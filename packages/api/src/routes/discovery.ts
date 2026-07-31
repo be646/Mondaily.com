@@ -4,7 +4,7 @@ import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
-import { sovereignHeaders } from "../lib/sovereign-search";
+import { sovereignHeaders, sovereignSearchUrls } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 
@@ -641,13 +641,26 @@ router.get("/status", async (c) => {
     : !scraper_reachable ? `Search is up but the scraper isn't reachable (scrape ${scrape.code}) — pages can't be read. Verify SOVEREIGN_SCRAPE_URL and that the scraper container is running.`
     : "All systems operational.";
 
+  // A REAL query through the configured engine set. The healthz probe stayed green for days while
+  // both pinned engines (qwant+yahoo) were dead upstream and every search returned zero results —
+  // reachability is not usability. One live query with a known-common term is the honest check.
+  let engines_working: boolean | null = null;
+  let engine_diag = "";
+  if (searxng_reachable) {
+    try {
+      const urls = await sovereignSearchUrls("aesthetic clinics london", 2);
+      engines_working = urls.length > 0;
+      if (!engines_working) engine_diag = "Search appliance responds but the configured engine set returns ZERO results — the upstream engines are likely blocked/dead. Set SOVEREIGN_SEARCH_ENGINES to a working set.";
+    } catch { engines_working = false; }
+  }
+
   return c.json({
-    status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
-    services: { searxng_reachable, scraper_reachable },
+    status: searxng_reachable && scraper_reachable && engines_working !== false ? "HEALTHY" : "DEGRADED",
+    services: { searxng_reachable, scraper_reachable, engines_working },
     // Env-configured flags + codes so the exact failure is visible from the client/logs.
     configured: { search_url: Boolean(process.env.SOVEREIGN_SEARCH_URL), scrape_url: Boolean(process.env.SOVEREIGN_SCRAPE_URL), search_key: Boolean(process.env.SOVEREIGN_SEARCH_KEY) },
     codes: { search: search.code, scrape: scrape.code },
-    diagnostic,
+    diagnostic: engine_diag || diagnostic,
   });
 });
 

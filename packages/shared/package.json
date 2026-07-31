@@ -16,6 +16,7 @@
     "./meeting-types": "./src/meeting-types.ts",
     "./captions": "./src/captions.ts",
     "./formula": "./src/formula.ts",
+    "./numbers": "./src/numbers.ts",
     "./baseline": "./src/baseline.ts"
   },
   "scripts": {

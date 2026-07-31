@@ -29,7 +29,7 @@ const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
   lost:        { dot: "bg-stone-400",     text: "text-stone-400" },
   rejected:    { dot: "bg-stone-400",     text: "text-stone-400" },
 };
-function stageStyle(s: string) {
+export function stageStyle(s: string) {   // exported: the new-record drawer colors its stage pills with THE same palette
   return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-400" };
 }
 
@@ -235,8 +235,13 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
   const numVal  = fmtVal(rawVal);
   const stageVal = String(d[groupCol] ?? stages[0] ?? "");
   const ownerKey = ["deal_owner", "owner", "assigned_to", "assigned", "contact", "member"].find(k => d[k]);
-  const owner   = ownerKey ? String(d[ownerKey] ?? "") : "";
-  const ownerMember = owner ? members.find(m => m.id === owner || m.name === owner || m.email === owner) : null;
+  const ownerRaw = ownerKey ? String(d[ownerKey] ?? "") : "";
+  const ownerMember = ownerRaw ? members.find(m => m.id === ownerRaw || m.name === ownerRaw || m.email === ownerRaw) : null;
+  // Never print a raw id as a person. Some records store the owner as a user UUID; when it
+  // resolves to a member we show their name, and when it doesn't, the card said
+  // "10c0bcfb-2db4-458c-…" — code where a person belongs. Unresolvable ids display as unassigned.
+  const looksLikeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ownerRaw) || /^user_[A-Za-z0-9]+$/.test(ownerRaw);
+  const owner = ownerMember ? (ownerMember.name || ownerMember.email || "") : looksLikeId ? "" : ownerRaw;
 
   return (
     <div className="group rounded-md border border-stone-800/60 bg-stone-900/40 hover:border-stone-700/60 hover:bg-stone-900/70 transition-all p-3 cursor-default">

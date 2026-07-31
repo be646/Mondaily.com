@@ -1,4 +1,5 @@
 import { convert } from "./currency";
+import { parseNumeric } from "@mondaily/shared/numbers";
 
 /**
  * Pure, deterministic record aggregation — the math behind POST /records/aggregate. No I/O, no
@@ -33,11 +34,10 @@ export interface AggResult {
 }
 
 // A numeric read that tolerates "$1,200.50" style strings; returns null when there's no number.
+// Delegates to THE shared parser — the old regex-strip corrupted European decimals ("1.200,50"
+// → 1.2), magnitude suffixes ("€1.2M" → 1.2) and accounting negatives ("(500)" → +500).
 export function aggNum(v: unknown): number | null {
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (v == null) return null;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
-  return Number.isNaN(n) ? null : n;
+  return parseNumeric(v);
 }
 
 // Truthy read for checkbox columns — identical semantics to the frontend `truthy` helper.
@@ -80,9 +80,13 @@ export function dateBucketKey(dt: Date, bucket: DateBucket): string {
 /** The value used to group a row — resolved from the common alias keys, honestly ("—" when absent).
  *  For group_by:"date", buckets on `dateField` (defaults to created_at) so a row is grouped by the same
  *  timestamp it was filtered on. */
-export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket = "month", dateField: DateField = "created_at"): string {
+export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket = "month", dateField: DateField = "created_at", exact = false): string {
   const d = row.data ?? {};
   if (groupBy === "none") return "all";
+  // exact: the record table groups by a REAL column key and reads it verbatim on ITS side —
+  // aliasing here attached server subtotals to groups the client considers different rows
+  // (deal_stage-only rows folded into "stage" while the client filed them under "—").
+  if (exact && groupBy !== "date") return String(aggValueOf(row, groupBy) ?? "—") || "—";
   if (groupBy === "status") return String(d.status ?? "—") || "—";
   if (groupBy === "stage") return String(d.stage ?? d.deal_stage ?? d.deal_status ?? "—") || "—";
   if (groupBy === "owner") return String(d.owner ?? d.deal_owner ?? d.assigned_to ?? d.assignee ?? "—") || "—";
@@ -99,11 +103,21 @@ export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket 
 // as `quickFilters`. Pure + in-memory, so no dynamic SQL is ever built from a user-supplied key.
 // Props are accepted as optional so the zod-inferred input type assigns cleanly under strict configs;
 // a filter missing its column is simply skipped (honest no-op, never a crash).
+/** A column's value for aggregation: data first, then the row root — lead_score and
+ *  relationship_health are stored at the node root, and reading data[column] alone made every
+ *  server total for them 0 (which then replaced the correct client subtotal in the footer). */
+export function aggValueOf(r: AggRow, column: string): unknown {
+  return r.data?.[column] ?? (r as unknown as Record<string, unknown>)[column];
+}
+
 export function applyFilters(rows: AggRow[], filters?: { column?: string | null; value?: string | null }[]): AggRow[] {
   if (!filters?.length) return rows;
   return rows.filter((r) => filters.every((f) => {
     if (!f.column) return true;
-    return String(r.data?.[f.column] ?? "").toLowerCase() === String(f.value ?? "").toLowerCase();
+    // EXACT compare, matching the SQL .eq() the grid list uses — this was case-insensitive, so
+    // "status is Paid" counted rows the grid didn't show ("paid"), and the footer disagreed with
+    // the visible list while claiming to represent it.
+    return String(aggValueOf(r, f.column) ?? "") === String(f.value ?? "");
   }));
 }
 
@@ -112,14 +126,14 @@ export function applyFilters(rows: AggRow[], filters?: { column?: string | null;
 export function aggregateRows(rows: AggRow[], op: AggOp, column: string, money?: MoneyCtx): AggResult {
   const count = rows.length;
   if (op === "count") return { value: count, count, unconverted: 0 };
-  if (op === "filled") return { value: rows.filter((r) => nonEmpty(r.data?.[column])).length, count, unconverted: 0 };
-  if (op === "checked") return { value: rows.filter((r) => aggChecked(r.data?.[column])).length, count, unconverted: 0 };
+  if (op === "filled") return { value: rows.filter((r) => nonEmpty(aggValueOf(r, column))).length, count, unconverted: 0 };
+  if (op === "checked") return { value: rows.filter((r) => aggChecked(aggValueOf(r, column))).length, count, unconverted: 0 };
 
   // Numeric ops (sum/avg/min/max)
   let unconverted = 0;
   const nums: number[] = [];
   for (const r of rows) {
-    const n = aggNum(r.data?.[column]);
+    const n = aggNum(aggValueOf(r, column));
     if (n == null) continue;
     if (money) {
       const cur = String(r.data?.currency ?? money.base).toUpperCase();
@@ -144,10 +158,10 @@ export interface AggGroup { label: string; value: number; count: number; unconve
 
 /** Group rows by the chosen dimension and aggregate each group; returns groups sorted by label.
  *  `dateField` selects which root timestamp a date bucket reads from (mirrors the date_filter field). */
-export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx, bucket: DateBucket = "month", dateField: DateField = "created_at"): AggGroup[] {
+export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx, bucket: DateBucket = "month", dateField: DateField = "created_at", exact = false): AggGroup[] {
   const buckets = new Map<string, AggRow[]>();
   for (const r of rows) {
-    const k = groupKeyOf(r, groupBy, bucket, dateField);
+    const k = groupKeyOf(r, groupBy, bucket, dateField, exact);
     (buckets.get(k) ?? buckets.set(k, []).get(k)!).push(r);
   }
   return [...buckets.entries()]
@@ -166,7 +180,7 @@ export function aggregateTop(rows: AggRow[], column: string, limit: number, mone
   let unconverted = 0;
   const scored: AggTopRow[] = [];
   for (const r of rows) {
-    const n = aggNum(r.data?.[column]);
+    const n = aggNum(aggValueOf(r, column));
     if (n == null) continue;
     let value = n;
     let unconv = false;

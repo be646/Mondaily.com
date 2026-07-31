@@ -25,6 +25,9 @@ import { INDUSTRY_TAXONOMY } from "./record-detail";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
+import { PipelineHealthBadge } from "./pipeline-health-badge";
+import { parseNumeric } from "@mondaily/shared/numbers";
+import type { PipelineHealth } from "./pipeline-health-badge";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
 /** Columns that live as real node columns (not inside the data jsonb) — the AI
@@ -529,10 +532,10 @@ function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
   if (op === "count") return String(vals.length);
   if (op === "filled") {
     const filled = vals.filter(v => v != null && v !== "" && v !== "—").length;
-    return `${Math.round((filled / vals.length) * 100)}% filled`;
+    return `${Math.round((filled / Math.max(vals.length, 1)) * 100)}% filled`;
   }
   const nums = vals
-    .map(v => typeof v === "number" ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")))
+    .map(v => parseNumeric(v) ?? NaN)
     .filter(n => !isNaN(n));
   if (!nums.length) return "—";
   if (op === "sum") { const s = nums.reduce((a, b) => a + b, 0); return s % 1 === 0 ? s.toLocaleString() : s.toFixed(2); }
@@ -578,7 +581,7 @@ function calcResultTyped(
   }
   if (kind === "currency" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
     const items = records
-      .map(r => ({ n: typeof r.data[col] === "number" ? r.data[col] as number : parseFloat(String(r.data[col] ?? "").replace(/[^0-9.\-]/g, "")), cur: String(r.data.currency ?? ctx.base) }))
+      .map(r => ({ n: parseNumeric(r.data[col]) ?? NaN, cur: String(r.data.currency ?? ctx.base) }))
       .filter(x => !isNaN(x.n));
     if (!items.length) return "—";
     let missing = 0;
@@ -594,7 +597,7 @@ function calcResultTyped(
     return formatMoney(agg, ctx.display) + (missing > 0 ? ` · ${missing} unconverted` : "");
   }
   if (kind === "percentage" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
-    const nums = records.map(r => typeof r.data[col] === "number" ? r.data[col] as number : parseFloat(String(r.data[col] ?? "").replace(/[^0-9.\-]/g, ""))).filter(n => !isNaN(n));
+    const nums = records.map(r => parseNumeric(r.data[col]) ?? NaN).filter(n => !isNaN(n));
     if (!nums.length) return "—";
     const agg = op === "sum" ? nums.reduce((a, b) => a + b, 0)
       : op === "avg" ? nums.reduce((a, b) => a + b, 0) / nums.length
@@ -652,6 +655,9 @@ function aggParts(kind: string | undefined, op: CalcOp, resp: AggResp, display: 
     : resp.truncated
     ? { text: `first ${resp.total_rows.toLocaleString()}`, warn: true }
     : { text: `over ${resp.total_rows.toLocaleString()}` });
+  // A filtered aggregate can ALSO be truncated (filters apply after the row cap) — hiding the
+  // warning presented a partial sum as the complete filtered total.
+  if (filtered && resp.truncated) notes.push({ text: "first rows only", warn: true });
   if (resp.unconverted > 0) notes.push({ text: `${resp.unconverted} unconverted`, warn: true });
   return { value, notes };
 }
@@ -1352,8 +1358,8 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
       const result = evalFormula(s.slice(1));
       if (result !== null) { onSave(result); setEditing(false); return; }
     }
-    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
-    onSave(isNaN(n) ? s : n);
+    const n = parseNumeric(s);   // shared parser — the regex strip corrupted "1.200,50" to 1.2 AND STORED IT
+    onSave(n == null ? s : n);
     setEditing(false);
   }
 
@@ -1408,11 +1414,11 @@ function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: s
     const s = draft.trim();
     if (!s) { onSave(""); setEditing(false); return; }
     if (s.startsWith("=")) { const r = evalFormula(s.slice(1)); if (r !== null) { onSave(r); setEditing(false); return; } }
-    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
-    onSave(isNaN(n) ? s : n);
+    const n = parseNumeric(s);   // shared parser — the regex strip corrupted "1.200,50" to 1.2 AND STORED IT
+    onSave(n == null ? s : n);
     setEditing(false);
   }
-  const num = typeof value === "number" ? value : parseFloat(String(value ?? "").replace(/[^0-9.\-]/g, ""));
+  const num = parseNumeric(value) ?? NaN;
   const shown = value === "" || value == null || isNaN(num) ? null : formatMoney(num, currency);
   if (editing) {
     return (
@@ -1439,11 +1445,11 @@ function PercentCell({ value, onSave }: { value: unknown; onSave: (v: number | s
   function commit() {
     const s = draft.trim();
     if (!s) { onSave(""); setEditing(false); return; }
-    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
-    onSave(isNaN(n) ? s : n);
+    const n = parseNumeric(s);   // shared parser — the regex strip corrupted "1.200,50" to 1.2 AND STORED IT
+    onSave(n == null ? s : n);
     setEditing(false);
   }
-  const num = typeof value === "number" ? value : parseFloat(String(value ?? "").replace(/[^0-9.\-]/g, ""));
+  const num = parseNumeric(value) ?? NaN;
   const shown = value === "" || value == null || isNaN(num) ? null : `${num.toLocaleString()}%`;
   if (editing) {
     return (
@@ -1857,18 +1863,26 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // sort via the jsonb value (data->col), where numbers compare numerically.
   const [sortRules, setSortRules] = useState<SortRule[]>([]);
   const primarySort = sortRules[0] ?? null;
+  // Whether the primary sort column is numeric is LEARNED from the loaded rows (declared below),
+  // so it lives in state and joins the query key — the first fetch may order as text, and the
+  // corrected numeric ordering refetches the moment the column kind resolves.
+  const [primarySortNumeric, setPrimarySortNumeric] = useState(false);
 
   const query = useQuery({
-    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds), primarySort?.col ?? "", primarySort?.dir ?? ""],
+    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds), primarySort?.col ?? "", primarySort?.dir ?? "", primarySortNumeric],
     queryFn: () => {
       const params = new URLSearchParams({ object_type: objectType, limit: String(PAGE_LIMIT) });
-      if (debouncedSearch) params.set("q", debouncedSearch);
+      if (debouncedSearch) {
+        params.set("q", debouncedSearch);
+        // the sheet's own columns join the server search — see ubc.listNodes q_cols
+        params.set("q_cols", allColumnsWithCustom.filter(c => c !== LAST_ACTIVITY).join(","));
+      }
       if (serverConds.length) params.set("filters", JSON.stringify(serverConds.map(c => ({ col: c.col, op: c.op, value: c.value }))));
       if (primarySort) {
         params.set("sort_col", primarySort.col);
         params.set("sort_dir", primarySort.dir);
         // jsonb numeric ordering for number-kind columns — text ordering would put 9 after 10
-        if (inferColKind(records, primarySort.col, customCols.find(cc => cc.key === primarySort.col)?.type) === "number") params.set("sort_numeric", "true");
+        if (primarySortNumeric) params.set("sort_numeric", "true");
       }
       return apiClient.get<NodeRecord[]>(`/nodes?${params}`);
     },
@@ -1884,6 +1898,11 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   });
 
   const records = query.data ?? [];
+  useEffect(() => {
+    if (!primarySort) { setPrimarySortNumeric(false); return; }
+    setPrimarySortNumeric(inferColKind(records, primarySort.col, customCols.find(cc => cc.key === primarySort.col)?.type) === "number");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primarySort?.col, records.length]);
   const totalOfType = countsQuery.data?.by_type?.[objectType] ?? records.length;
   // Truncated ONLY when the page hit the cap — `records` is the filtered result now, so comparing
   // it to the type total would flag every narrowed search as truncation.
@@ -1895,7 +1914,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const allColumns = useMemo(() => {
     if (columnUniverse.current.type !== objectType) columnUniverse.current = { type: objectType, keys: [] };
     const known = columnUniverse.current.keys;
-    const fresh = records.flatMap(r => Object.keys(r.data)).filter(k => !known.includes(k));
+    // keepPreviousData shows the OLD type's rows while the new query is in flight — extending the
+    // universe from placeholder data wrote the previous sheet's columns into this one permanently.
+    const fresh = query.isPlaceholderData ? [] : records.flatMap(r => Object.keys(r.data)).filter(k => !known.includes(k));
     if (fresh.length) columnUniverse.current.keys = [...known, ...fresh];
     const allKeys = Array.from(new Set(columnUniverse.current.keys))
       .filter(k => !HIDDEN_DATA_COLS.has(k));
@@ -2051,7 +2072,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // ── Column header context menu (right-click to delete) ──
   const [colCtxMenu, setColCtxMenu] = useState<{ col: string; x: number; y: number } | null>(null);
 
-  useEffect(() => { onColumnsChange?.(columns); }, [columns]);
+  // Emit the FULL column universe, not the visible subset — visibility is a display concern, and
+  // the create drawer was offering only the 8 default-visible fields.
+  useEffect(() => { onColumnsChange?.(allColumnsWithCustom); }, [allColumnsWithCustom]);
 
   // ── Owner cell state: recordId → owner name ──
   // owners[recordId][col] — separate tracker per column so Deal Owner ≠ Assigned To
@@ -2095,7 +2118,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // CSV of exactly what the view shows. `sorted` is the filtered/sorted page held in memory, so the
   // button states its row count and the panel warns when the type has more rows than are loaded.
   function exportCSV() {
-    const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(cellValue(r, c) ?? "")).join(","))].join("\n");
+    const rows = [orderedColumns.join(","), ...visibleRows.map(r => orderedColumns.map(c => JSON.stringify(cellValue(r, c) ?? "")).join(","))].join("\n");
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
     a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
   }
@@ -2133,8 +2156,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           case "not_empty": return v !== "";
           case "after":     return v >= want;         // ISO date strings compare correctly as text
           case "before":    return v !== "" && v <= want;
-          case "gt":        return parseFloat(v) > parseFloat(want);   // numeric — client-side only
-          case "lt":        return parseFloat(v) < parseFloat(want);
+          case "gt":        return (parseNumeric(v) ?? NaN) > (parseNumeric(want) ?? NaN);   // numeric — client-side only
+          case "lt":        return (parseNumeric(v) ?? NaN) < (parseNumeric(want) ?? NaN);
           default:          return true;
         }
       }));
@@ -2277,7 +2300,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const groupFiltersRepresentable = !toolbarSearch.trim() && serverFilters(conditions).length === conditions.length;
   const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
     queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(conditions) : "client")],
-    queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(conditions).length ? { filters: serverFilters(conditions) } : {}) }),
+    queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, group_exact: true, currency: groupCalcKind === "currency", ...(serverFilters(conditions).length ? { filters: serverFilters(conditions) } : {}) }),
     enabled: !!(groupByCol && groupCalcCol && groupCalcOp && serverAggOp(groupCalcKind, groupCalcOp) && groupFiltersRepresentable),
     staleTime: 30_000,
     retry: false,
@@ -2324,8 +2347,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     setSaveViewOpen(false);
   }
   function applyView(view: SavedView) {
-    setConditions(view.filters.map(migrateView));
-    setSortRules(view.sortRules);
+    setConditions(Array.isArray(view.filters) ? view.filters.map(migrateView) : []);
+    setSortRules(Array.isArray(view.sortRules) ? view.sortRules : []);   // legacy entries may lack the key — this threw
     setHiddenCols(new Set(view.hiddenCols));
     setGroupBy(view.groupBy ?? null);
   }
@@ -2346,7 +2369,6 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // ── Bulk selection ──
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [cellTip, setCellTip] = useState<{ text: string; x: number; y: number } | null>(null);
-  const allSelected = sorted.length > 0 && sorted.every(r => selected.has(r.id));
   const someSelected = selected.size > 0;
   const [prospectOpen, setProspectOpen] = useState(false);
   const prospectSeedQuery = useMemo(() => {
@@ -2360,7 +2382,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
   function toggleSelectAll() {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(sorted.map(r => r.id)));
+    else setSelected(new Set(visibleRows.map(r => r.id)));
   }
   function toggleSelectRow(id: string) {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -2512,10 +2534,22 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const visibleRows = useMemo(() => showFlaggedOnly ? sorted.filter(r => healthOf(r).length > 0) : sorted,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sorted, showFlaggedOnly, dupCounts]);
+  // The chip disappears when nothing is flagged — the narrow state must release with it, or the
+  // grid stays empty with no visible control to clear it.
+  useEffect(() => { if (flaggedCount === 0 && showFlaggedOnly) setShowFlaggedOnly(false); }, [flaggedCount, showFlaggedOnly]);
+  const allSelected = visibleRows.length > 0 && visibleRows.every(r => selected.has(r.id));
 
 
   function renderCell(col: string, record: NodeRecord) {
     const val = cellValue(record, col);
+    // Object-valued fields (agent-written structures) must NEVER fall through to the text editor:
+    // the grid printed pipeline_health as raw JSON ("shows code"), and clicking it started a text
+    // edit whose save destroyed the agent's structure. pipeline_health gets its real badge; any
+    // other object renders read-only.
+    if (val && typeof val === "object") {
+      if (col === "pipeline_health") return <div className="px-2 py-1"><PipelineHealthBadge health={val as PipelineHealth}/></div>;
+      return <span className="px-2 text-[11px]" style={{ color: "var(--text-faint)" }} title="Structured field — edited by agents, not by hand">structured</span>;
+    }
     const isEnriched = enrichedIds.includes(record.id);
     const customDef = customCols.find(c => c.key === col);
 
@@ -3014,7 +3048,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={exportCSV} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={11}/> Export as CSV
-            <span className="text-[10px] text-[var(--text-secondary)] ml-1">({sorted.length} rows)</span>
+            <span className="text-[10px] text-[var(--text-secondary)] ml-1">({visibleRows.length} rows)</span>
           </button>
           {truncated && (
             <span className="text-[10px] text-[var(--status-warn)]">
@@ -3078,7 +3112,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
       {openPanel === "filter" && (
         <FilterBar
           records={records}
-          columns={[...orderedColumns.filter(c => c !== LAST_ACTIVITY), LAST_ACTIVITY]}
+          columns={[...allColumnsWithCustom.filter(c => c !== LAST_ACTIVITY), LAST_ACTIVITY]}
           customCols={customCols}
           conditions={conditions}
           onChange={setConditions}
@@ -3467,8 +3501,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
               const rowsToRender: React.ReactNode[] = [];
               if (groupByCol) {
                 const groups = new Map<string, NodeRecord[]>();
-                for (const r of sorted) {
-                  const key = String(r.data[groupByCol] ?? "—");
+                for (const r of visibleRows) {
+                  const key = String(cellValue(r, groupByCol) ?? "—");
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(r);
                 }
@@ -3534,7 +3568,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                         <span className="mr-0.5 text-body first-letter:uppercase text-[var(--text-faint)]">{calculations[col]}</span>
                         {(() => {
                           const fSrc = customCols.find(cc => cc.key === col && cc.type === "formula")?.meta?.formula;
-                          const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }, fSrc);
+                          const clientStr = calcResultTyped(calculations[col], col, visibleRows, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }, fSrc);
                           if (effectiveType(col) === "formula") return <><CompactTotal text={clientStr}/><TotalNote text="loaded rows" /></>;
                           // Which active filters can the server reproduce EXACTLY? Only plain equality
                           // equality conditions on non-owner columns (owner cells resolve via display-name
@@ -3559,7 +3593,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                   </div>
                 </td>
               ))}
-              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[var(--surface-card)] border-t border-t-zinc-800/60">{sorted.length} rows</td>
+              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[var(--surface-card)] border-t border-t-zinc-800/60">{visibleRows.length} rows</td>
               <td className="bg-[var(--surface-card)] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
             </tr>
           </tfoot>

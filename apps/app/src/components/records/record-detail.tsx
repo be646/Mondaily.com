@@ -1368,15 +1368,18 @@ const QUOTE_STATUS_COLORS: Record<string, string> = {
   expired:  "text-stone-600 bg-stone-600/10",
 };
 
-function fmtCcy(amount: number, currency = "GBP") {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+// Shared money formatter (viewer locale). This hardcoded en-GB + a GBP default, so any finance
+// row with a missing currency rendered as £ regardless of the workspace's actual currency.
+function fmtCcy(amount: number, currency?: string) {
+  return formatMoney(amount, currency || "EUR");
 }
 
 function FinanceTab({ recordId, recordName, vertical }: { recordId: string; recordName: string; vertical: string }) {
   const qc = useQueryClient();
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [newInvAmount, setNewInvAmount] = useState("");
-  const [newInvCurrency, setNewInvCurrency] = useState("GBP");
+  const { base: wsBaseCurrency } = useCurrency();
+  const [newInvCurrency, setNewInvCurrency] = useState(wsBaseCurrency || "EUR");   // was hardcoded GBP
   const [newInvDueDate, setNewInvDueDate] = useState("");
 
   // Surface finance for this record via BOTH the explicit link AND a client-name match, so items
@@ -1386,12 +1389,16 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
     const seen = new Set<string>();
     return lists.flat().filter(x => { if (seen.has(x.id)) return false; seen.add(x.id); return true; });
   };
-  const byLinkAndName = async <T extends { id: string }>(path: string): Promise<T[]> => {
+  const byLinkAndName = async <T extends { id: string; client_name?: string }>(path: string): Promise<T[]> => {
     const [linked, named] = await Promise.all([
       apiClient.get<T[]>(`${path}?linked_record_id=${recordId}`),
       recordName ? apiClient.get<T[]>(`${path}?search=${encodeURIComponent(recordName)}`) : Promise.resolve([] as T[]),
     ]);
-    return mergeById(linked, named);
+    // The search endpoint substring-matches, so "Acme" also returned "Acme Corp" and "Acme
+    // Holdings" — absorbing OTHER clients' invoices into this record's Net Owed. Name matches
+    // count only when the client name is EXACTLY this record's name.
+    const exact = recordName?.trim().toLowerCase();
+    return mergeById(linked, named.filter(n => String(n.client_name ?? "").trim().toLowerCase() === exact));
   };
 
   const { data: invoices = [], isLoading: invLoading } = useQuery<InvoiceRecord[]>({
@@ -1417,7 +1424,13 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
   // Totals normalized to the workspace display currency via FX — mixed-currency finance items
   // sum honestly instead of being mislabeled with the first item's currency.
   const { display, sumInDisplay } = useCurrency();
-  const totalBilled = sumInDisplay(invoices.map(i => ({ amount: i.total ?? 0, currency: i.currency }))).value;
+  // Only BILLABLE invoices count toward what a client owes — this summed every status, so a €50k
+  // cancelled draft inflated Total Billed and Net Owed by €50k.
+  const BILLABLE = new Set(["sent", "viewed", "paid", "overdue", "partially_paid"]);
+  const billedAgg = sumInDisplay(invoices.filter(i => BILLABLE.has(String(i.status ?? ""))).map(i => ({ amount: i.total ?? 0, currency: i.currency })));
+  const totalBilled = billedAgg.value;
+  // Rows a rate was missing for entered at face value — surfaced, never silently absorbed.
+  const billedUnconverted = billedAgg.missing ?? 0;
   const creditsApplied = sumInDisplay(creditNotes.filter(cn => cn.status === "executed").map(cn => ({ amount: (cn.amount_cents ?? 0) / 100, currency: cn.currency }))).value;
   const netOwed = totalBilled - creditsApplied;
   const openQuotes = sumInDisplay(quotes.filter(q => q.status === "sent" || q.status === "draft").map(q => ({ amount: q.total ?? 0, currency: q.currency }))).value;
@@ -1446,7 +1459,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
+          { label: billedUnconverted > 0 ? `Total Billed · ${billedUnconverted} unconverted` : "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
           { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#2f9e6b]" },
           { label: "Open Quotes", value: fmtCcy(openQuotes, defaultCurrency), accent: "text-stone-400" },

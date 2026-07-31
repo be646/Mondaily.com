@@ -7,7 +7,7 @@ import { LogoMark } from "@/components/logo";
 import { Plus, X, Check, Loader2, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
 import { EmptyState } from "../../../../components/ui/page-state";
 import { RecordTable } from "../../../../components/records/record-table";
-import { BoardView } from "../../../../components/records/board-view";
+import { BoardView, stageStyle } from "../../../../components/records/board-view";
 import { CategoryPills } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { DedupPanel } from "../../../../components/records/dedup-panel";
@@ -79,8 +79,17 @@ function CreateRecordModal({
     if (/stage|status|priority|category|type|country|region|label/.test(l) || (vals.length > 2 && new Set(vals.map(v => v.toLowerCase())).size <= 12)) return "select";
     return "text";
   };
-  const optionsFor = (k: string): string[] =>
-    [...new Set(existingRows.map(r => String(r.data[k] ?? "")).filter(Boolean))].sort().slice(0, 12);
+  const optionsFor = (k: string): string[] => {
+    const byLower = new Map<string, Map<string, number>>();
+    for (const r of existingRows) {
+      const v = String(r.data[k] ?? ""); if (!v) continue;
+      const inner = byLower.get(v.toLowerCase()) ?? new Map<string, number>();
+      inner.set(v, (inner.get(v) ?? 0) + 1); byLower.set(v.toLowerCase(), inner);
+    }
+    // one option per distinct value ignoring case, shown in its most common casing — the raw list
+    // offered "Closed Lost" AND "closed" side by side, mirroring the data fragmentation
+    return [...byLower.values()].map(inner => [...inner.entries()].sort((a, b) => b[1] - a[1])[0]![0]).sort().slice(0, 12);
+  };
 
   // Schema-aware fields — the create form now uses THIS sheet's real defined columns (object_definitions
   // attributes), so a custom sheet like "Tax Sheet Report" shows its own columns, not generic hardcoded
@@ -290,16 +299,17 @@ function CreateRecordModal({
               </span>
             </div>
             {/* Tab switcher */}
-            <div className="flex items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5 gap-0.5">
+            {/* Hairline segmented switcher — underline marks the active tab, no filled pills. */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setTab("manual")}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}
+                className={`-mb-px border-b pb-1 text-[11.5px] font-medium transition-colors ${tab === "manual" ? "border-[var(--section-accent)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
               >Manual</button>
               <button
                 onClick={() => { setTab("ai"); setTimeout(() => promptRef.current?.focus(), 50); }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-stone-500/20 text-stone-300" : "text-stone-500 hover:text-stone-300"}`}
+                className={`-mb-px flex items-center gap-1 border-b pb-1 text-[11.5px] font-medium transition-colors ${tab === "ai" ? "border-[var(--section-accent)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
               >
-                <AIMark size={10}/> Generate
+                <AIMark size={10}/> AI Generate
               </button>
             </div>
           </div>
@@ -345,12 +355,18 @@ function CreateRecordModal({
                       </select>
                     ) : kind === "select" && optionsFor(k).length > 0 ? (
                       <div className="flex flex-wrap items-center gap-1">
-                        {optionsFor(k).map(opt => (
-                          <button key={opt} type="button" onClick={() => set(values[k] === opt ? "" : opt)}
-                            className={`rounded-sm border px-2 py-0.5 text-[11px] transition-colors ${values[k] === opt ? "border-[var(--section-accent)] bg-[var(--section-accent-soft)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                        {optionsFor(k).map(opt => {
+                          const isStageCol = /stage|status/.test(k.toLowerCase());
+                          const tone = isStageCol ? stageStyle(opt) : null;
+                          const on = (values[k] ?? "").toLowerCase() === opt.toLowerCase();
+                          return (
+                          <button key={opt} type="button" onClick={() => set(on ? "" : opt)}
+                            className={`flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[11px] transition-colors ${on ? "border-[var(--border-strong)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                            {tone && <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`}/>}
                             {opt}
                           </button>
-                        ))}
+                          );
+                        })}
                         <input value={optionsFor(k).includes(values[k] ?? "") ? "" : (values[k] ?? "")} onChange={e => set(e.target.value)}
                           placeholder="other…" className="w-20 rounded-sm border border-[var(--border-soft)] bg-transparent px-1.5 py-0.5 text-[11px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"/>
                       </div>
@@ -385,7 +401,7 @@ function CreateRecordModal({
                 </button>
                 <button onClick={save} disabled={saving} className="btn-primary gap-2 px-3 py-1.5 text-xs font-semibold">
                   {saving ? "Creating…" : "Create record"}
-                  <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#d1524a]/70">⌘↵</kbd>
+                  <kbd className="rounded-sm border border-[var(--border-soft)] bg-transparent px-1.5 py-0.5 text-[10px] font-normal opacity-70">⌘↵</kbd>
                 </button>
               </div>
             </div>
@@ -394,9 +410,9 @@ function CreateRecordModal({
 
         {/* ── AI Generate tab ── */}
         {tab === "ai" && (
-          <div className="flex gap-0">
-            {/* Left: prompt panel */}
-            <div className="flex flex-col w-[min(440px,92vw)] shrink-0">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            {/* Left: prompt panel — scrolls inside the drawer; the footer button stays reachable. */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-auto">
               <div className="px-5 py-4 space-y-3">
                 <p className="text-[11px] text-stone-500 leading-relaxed">
                   Describe what you're looking for. The agent searches the live web and extracts only real, source-backed <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> — never invented data.
@@ -450,7 +466,7 @@ function CreateRecordModal({
 
             {/* Right: preview panel (only shown after generation) */}
             {aiRecords.length > 0 && (
-              <div className="flex flex-col border-l border-[var(--border-soft)] w-[240px] shrink-0">
+              <div className="hidden sm:flex flex-col border-l border-[var(--border-soft)] w-[240px] shrink-0 overflow-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
                   <span className="text-[11px] font-semibold text-stone-300">{aiRecords.length} real records found</span>
                   <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
@@ -830,6 +846,10 @@ export function ObjectIndexPage() {
   const [statSlot, setStatSlot] = useState<HTMLElement | null>(null);
   useEffect(() => { setStatSlot(document.getElementById("mondaily-page-actions")); }, []);
   const allRecords = recordsQuery.data ?? [];
+  // In board view RecordTable never mounts, so onColumnsChange never fires — derive the field
+  // list from the loaded rows so the create drawer still offers the sheet's real fields.
+  const effectiveTableColumns = tableColumns.length ? tableColumns
+    : [...new Set((recordsQuery.data ?? []).flatMap(r => Object.keys(r.data)))].slice(0, 30);
   const recCreatedAt = (r: { created_at?: string; data?: Record<string, unknown> }) => String(r.created_at ?? (r.data?.created_at as string | undefined) ?? "");
   const pRange = periodRange(period);
   const pPrev = previousRange(period);
@@ -990,7 +1010,7 @@ export function ObjectIndexPage() {
       {showCreate && (
         <CreateRecordModal
           objectType={objectType}
-          tableColumns={tableColumns}
+          tableColumns={effectiveTableColumns}
           existingRows={allRecords}
           onClose={() => setShowCreate(false)}
           onEnrichStart={handleEnrichStart}

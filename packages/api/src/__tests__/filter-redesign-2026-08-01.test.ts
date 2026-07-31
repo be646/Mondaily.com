@@ -20,9 +20,14 @@ describe("filter redesign — server-side filtering", () => {
     expect(nodes).toMatch(/FILTER_OPS\.includes/);
   });
 
-  it("free-text search covers the identity fields in SQL", () => {
-    expect(ubc()).toMatch(/\["name", "title", "full_name", "email", "phone", "company", "notes"\]/);
-    expect(ubc()).toMatch(/data->>\$\{f\}\.ilike\.%\$\{term\}%/);
+  it("free-text search covers the identity fields PLUS the sheet's own columns, escaped and quoted", () => {
+    // 2026-08-01 audit: 7 hardcoded fields made server search answer "no rows" for terms the user
+    // could SEE on screen; wildcards were unescaped and commas were stripped (making "Smith, John"
+    // unfindable). Now: caller columns via q_cols, %/_ escaped, values double-quoted.
+    expect(ubc()).toMatch(/"name", "title", "full_name", "email", "phone", "company", "notes",/);
+    expect(ubc()).toMatch(/options\.q_cols \?\? \[\]/);
+    expect(ubc()).toMatch(/data->>\$\{f\}\.ilike\."%\$\{term\}%"/);
+    expect(ubc()).toContain('replace(/[\\\\%_]/g');
   });
 
   it("column names from the client never reach SQL unless shaped like one", () => {
@@ -39,7 +44,9 @@ describe("filter redesign — server-side filtering", () => {
   it("the table sends debounced search + representable conditions to the server", () => {
     expect(table()).toMatch(/const debouncedSearch = useDebounced\(toolbarSearch\.trim\(\), 300\)/);
     // 2026-08-01 sort rebuild: the primary sort rule joined the key — SQL orders the whole type.
-    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\), primarySort\?\.col \?\? "", primarySort\?\.dir \?\? ""\]/);
+    // 2026-08-01 audit: + primarySortNumeric (bug: numeric kind resolved after the fetch and the
+    // cached text-ordered page never refetched).
+    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\), primarySort\?\.col \?\? "", primarySort\?\.dir \?\? "", primarySortNumeric\]/);
     expect(table()).toMatch(/params\.set\("filters", JSON\.stringify/);
   });
 });
@@ -66,7 +73,8 @@ describe("filter redesign — the UI is search-first chips, not a dropdown row",
   it("saved views from before the redesign still apply (shape migration on read)", () => {
     expect(table()).toMatch(/const migrateView = /);
     expect(table()).toMatch(/"op" in f \? f/);
-    expect(table()).toMatch(/setConditions\(view\.filters\.map\(migrateView\)\)/);
+    // guarded: legacy localStorage views may lack either key entirely — applying one threw.
+    expect(table()).toMatch(/setConditions\(Array\.isArray\(view\.filters\) \? view\.filters\.map\(migrateView\) : \[\]\)/);
   });
 
   it("duplicate names get a display-only marker — no data is touched", () => {

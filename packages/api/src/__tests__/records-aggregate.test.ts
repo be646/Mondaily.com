@@ -89,11 +89,16 @@ describe("aggregate.ts — equality filters (the record table's quickFilters), c
     expect(applyFilters(rows).length).toBe(3);
     expect(applyFilters(rows, []).length).toBe(3);
   });
-  it("filters are case-insensitive and AND-combined; a filtered total matches only the kept rows", () => {
-    const kept = applyFilters(rows, [{ column: "stage", value: "WON" }]);
-    expect(kept.length).toBe(2);
-    expect(aggregateRows(kept, "sum", "amount").value).toBe(150);
-    const both = applyFilters(rows, [{ column: "stage", value: "won" }, { column: "region", value: "eu" }]);
+  it("filters are EXACT (matching the grid's SQL eq) and AND-combined", () => {
+    // 2026-08-01 financial audit: filters are now EXACT — the case-insensitive compare counted
+    // rows the grid's SQL .eq() didn't show, so the footer disagreed with the visible list.
+    expect(applyFilters(rows, [{ column: "stage", value: "WON" }]).length).toBe(0);
+    // "Won" and "won" are DIFFERENT values now — exactly as the grid's SQL eq treats them.
+    expect(applyFilters(rows, [{ column: "stage", value: "won" }]).length).toBe(1);
+    const kept = applyFilters(rows, [{ column: "stage", value: "Won" }]);
+    expect(kept.length).toBe(1);
+    expect(aggregateRows(kept, "sum", "amount").value).toBe(100);
+    const both = applyFilters(rows, [{ column: "stage", value: "Won" }, { column: "region", value: "EU" }]);
     expect(both.length).toBe(1);
     expect(aggregateRows(both, "sum", "amount").value).toBe(100);
   });
@@ -271,7 +276,8 @@ describe("POST /records/aggregate — Phase 3h op:'top' + generic date bucket (b
   });
   it("the date bucket + dateField are passed to the grouped path (buckets on the filtered timestamp)", () => {
     expect(route).toMatch(/const dateField = date_filter\?\.field \?\? "created_at"/);
-    expect(route).toMatch(/aggregateGrouped\(rows, op, column, group_by, money, bucket, dateField\)/);
+    // 2026-08-01: + group_exact — the table groups by a real column key read verbatim.
+    expect(route).toMatch(/aggregateGrouped\(rows, op, column, group_by, money, bucket, dateField, group_exact\)/);
   });
   it("fetches BOTH root timestamps so a date bucket can read created_at or updated_at", () => {
     expect(route).toMatch(/\.select\("id,data,created_at,updated_at"\)/);

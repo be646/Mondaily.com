@@ -29,6 +29,9 @@ const aggInput = z.object({
   op: z.enum(["count", "sum", "avg", "min", "max", "filled", "checked", "top"]),
   // "none" | "date" (time bucket) | keyword alias | any validated column key.
   group_by: z.string().max(120).regex(KEY, "invalid group_by").default("none"),
+  // The record table reads its group column VERBATIM — alias folding (stage→deal_stage etc.)
+  // attached its subtotals to groups the client considers different rows.
+  group_exact: z.boolean().optional().default(false),
   // Ranked-rows count for op:"top" — bounded so a caller can't ask for the whole table.
   limit: z.number().int().min(1).max(50).default(10),
   // Time-bucket granularity for group_by:"date" only (ignored otherwise). Default month (back-compat).
@@ -57,7 +60,7 @@ const aggInput = z.object({
  */
 router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   const ws = c.get("workspaceId");
-  const { object_type, column, op, group_by, currency, filters, date_filter, limit, bucket } = c.req.valid("json");
+  const { object_type, column, op, group_by, group_exact, currency, filters, date_filter, limit, bucket } = c.req.valid("json");
   const hasFilters = !!filters?.length;
 
   // Narrow a nodes query by the date_filter (root timestamp column, fixed name, parameterized value —
@@ -126,7 +129,7 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
     // Bucket a date group on the SAME timestamp the caller filtered on (else updated_at-filtered rows
     // would be grouped by created_at). Defaults to created_at when there's no date_filter.
     const dateField = date_filter?.field ?? "created_at";
-    const groups = aggregateGrouped(rows, op, column, group_by, money, bucket, dateField);
+    const groups = aggregateGrouped(rows, op, column, group_by, money, bucket, dateField, group_exact);
     const unconverted = groups.reduce((s, g) => s + g.unconverted, 0);
     return c.json({ op, column, group_by, object_type, groups, total_rows: rows.length, truncated, unconverted, currency: currencyCode });
   }

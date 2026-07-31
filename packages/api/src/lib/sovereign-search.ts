@@ -14,7 +14,10 @@ const SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || (DEV() ? "http://lo
 const SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || (DEV() ? "http://localhost:3002/v1/scrape" : "");
 // Datacenter-reliable engine set (see social-discovery): CAPTCHA'd engines in the default mix
 // zero out otherwise-good results, so pin to the ones that respond. Overridable via env.
-const SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
+// 2026-08-01: qwant + yahoo BOTH went dead upstream (access denied / protocol error), which
+// silently zeroed every AI-generate and enrichment query while the health probe stayed green
+// (healthz doesn't exercise engines). duckduckgo + bing verified live from the appliance.
+const SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "duckduckgo,bing";
 
 /** SearXNG JSON search → result URLs (empty on any failure — never throws). */
 export async function sovereignSearchUrls(query: string, limit = 4): Promise<string[]> {

@@ -122,6 +122,8 @@ router.get("/", requireAuth, zValidator("query", z.object({
   // Free-text search over identity fields + structured conditions, both applied in SQL so they
   // cover EVERY record of the type — not just the page the browser has loaded.
   q: z.string().max(100).optional(),
+  q_cols: z.string().max(2000).optional()          // comma-separated column names to include in q
+    .transform(raw => raw ? raw.split(",").map(c => c.trim()).filter(Boolean).slice(0, 30) : undefined),
   filters: z.string().max(4000).optional()      // JSON: [{col, op, value}]
     .transform((raw, ctx): { col: string; op: typeof FILTER_OPS[number]; value?: string }[] | undefined => {
       if (!raw) return undefined;

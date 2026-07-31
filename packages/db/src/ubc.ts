@@ -44,9 +44,9 @@ export async function getNode(id: string, workspaceId: string): Promise<(Node & 
  *  here on purpose — data values are mixed string/number in jsonb, and a text "9" > "10"
  *  comparison would silently lie; callers keep numeric ranges client-side. */
 export type NodeFilter = { col: string; op: "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after"; value?: string };
-const SAFE_COL = /^[a-zA-Z0-9_. -]{1,64}$/;   // column names come from the client — never into SQL unless shaped like one
+const SAFE_COL = /^[a-zA-Z0-9_-]{1,64}$/;   // client-supplied names; "." and spaces are refused — data->>a.b parses as a DIFFERENT path and silently mis-targets
 
-export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; filters?: NodeFilter[]; sort_col?: string; sort_dir?: "asc" | "desc"; sort_numeric?: boolean; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; q_cols?: string[]; filters?: NodeFilter[]; sort_col?: string; sort_dir?: "asc" | "desc"; sort_numeric?: boolean; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
   // Secondary sort on id: range-pagination over a non-unique key ALONE skips/duplicates rows that
   // share a value (bulk imports write many rows in the same instant), so pages were not
   // deterministic even when offset worked.
@@ -72,9 +72,17 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   // Free-text search over the identity fields — so "find a person" filters ALL records of the
   // type in the database, not just whichever page happens to be loaded in the browser.
   if (options.q?.trim()) {
-    const term = options.q.trim().replace(/[(),]/g, " ").slice(0, 100);
-    query = query.or(["name", "title", "full_name", "email", "phone", "company", "notes"]
-      .map(f => `data->>${f}.ilike.%${term}%`).join(","));
+    // Escape ilike wildcards ("%"/"_" matched everything) and DOUBLE-QUOTE the value so commas and
+    // parens survive PostgREST's or() syntax — stripping them made "Smith, John" unfindable.
+    const term = options.q.trim().slice(0, 100).replace(/[\\%_]/g, m => "\\" + m).replace(/"/g, "");
+    // Identity fields plus the CALLER'S OWN columns (q_cols, shape-validated) — the client's
+    // instant pass searches every field on screen, and a server that only knew 7 hardcoded fields
+    // answered "no rows" for terms the user could SEE, making matches vanish after the debounce.
+    const fields = [...new Set([
+      "name", "title", "full_name", "email", "phone", "company", "notes",
+      ...(options.q_cols ?? []).filter(c => SAFE_COL.test(c)).slice(0, 30),
+    ])];
+    query = query.or(fields.map(f => `data->>${f}.ilike."%${term}%"`).join(","));
   }
   for (const f of options.filters ?? []) {
     if (!SAFE_COL.test(f.col)) continue;         // refuse anything not shaped like a column name
@@ -84,7 +92,7 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
     const v = String(f.value ?? "");
     if (f.op === "is") query = query.eq(col, v);
     else if (f.op === "is_not") query = query.neq(col, v);
-    else if (f.op === "contains") query = query.ilike(col, `%${v.replace(/[%(),]/g, " ")}%`);
+    else if (f.op === "contains") query = query.ilike(col, `%${v.replace(/[\\%_]/g, m => "\\" + m)}%`);
     else if (f.op === "empty") query = query.or(`${col}.is.null,${col}.eq.`);
     else if (f.op === "not_empty") query = query.not(col, "is", null).neq(col, "");
     else if (f.op === "after") query = query.gte(col, v);
