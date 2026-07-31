@@ -144,7 +144,7 @@ function MetricBars({ title, hint, operators, value, tone, onSelect }: {
   const rows = operators.map(o => ({ o, v: value(o) })).filter(r => r.v > 0).sort((a, b) => b.v - a.v).slice(0, 8);
   const max = rows.reduce((m, r) => Math.max(m, r.v), 0) || 1;
   return (
-    <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
       <div className="mb-0.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</div>
       <div className="mb-2.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{hint}</div>
       {rows.length === 0 ? (
@@ -203,11 +203,11 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
     { label: "Decisions", tone: "var(--status-neutral)", pts: trends.decisions ?? [] },
   ];
   return (
-    <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border xl:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+    <div className="telemetry-strip mb-6">
       {tiles.map((t) => {
         const total = t.pts.reduce((s, p) => s + p.value, 0);
         return (
-          <div key={t.label} className="flex flex-col px-4 py-3.5" style={{ background: "var(--surface-card)" }}>
+          <div key={t.label} className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{t.label}</span>
               <span className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{periodLabel}</span>
@@ -227,7 +227,7 @@ const ROSTER_COLS = "grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1.6fr)_3.5rem_4
 function RosterTable({ operators, selectedId, onSelect, detailFor, compareBy }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string | null) => void; detailFor: (op: Operator) => React.ReactNode; compareBy?: Map<string, CompareRow> }) {
   const maxTokens = Math.max(1, ...operators.map(o => o.tokens));
   return (
-    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
       <div className={`hidden items-center gap-3 border-b px-4 py-2 text-[10.5px] font-medium sm:grid ${ROSTER_COLS}`} style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
         <span>Member</span>
         <span className="text-right">Trend</span>
@@ -295,7 +295,7 @@ function OversightAsk() {
   return (
     <div className="mb-5">
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }}
-        className="flex items-center gap-2 rounded-sm border px-3 py-1.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        className="flex items-center gap-2 rounded-sm border px-3 py-1.5" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
         <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…" aria-label="Ask about your team, grounded in recorded data"
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
@@ -307,7 +307,15 @@ function OversightAsk() {
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <SuggestionHints className="mt-2" items={suggestions} onPick={(s) => { setQ(s); ask.mutate(s); }} />
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {suggestions.map((sg) => (
+            <button key={sg} onClick={() => { setQ(sg); ask.mutate(sg); }}
+              className="rounded-md border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              {sg}
+            </button>
+          ))}
+        </div>
       )}
       {(ask.data || ask.isPending) && (
         <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
@@ -384,7 +392,7 @@ function TeamHealthHero({ operators, adv }: { operators: Operator[]; adv?: Advan
     <div><div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{label}</div><div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{value}</div></div>
   );
   return (
-    <div className="mb-4 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="mb-4 border-y px-1 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-sm" style={{ background: `color-mix(in srgb, ${h.tone} 14%, transparent)` }}><ShieldCheck size={17} style={{ color: h.tone }} /></span>
@@ -426,9 +434,9 @@ function VelocityStrip({ adv }: { adv: AdvancedResp }) {
     { label: "Avg decision cycle", value: v.decision_cycle.avg_hours != null ? `${v.decision_cycle.avg_hours}h` : "—", sub: v.decision_cycle.sample ? `${v.decision_cycle.sample} resolved` : "none resolved yet" },
   ];
   return (
-    <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-sm border sm:grid-cols-3" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+    <div className="telemetry-strip mb-6">
       {tiles.map(t => (
-        <div key={t.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
+        <div key={t.label} className="min-w-0 flex-1">
           <div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{t.label}</div>
           <div className="mt-1 text-[20px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{t.value}</div>
           <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.sub}</div>
@@ -446,7 +454,7 @@ function WorkloadAttention({ operators, onSelect }: { operators: Operator[]; onS
   if (overloaded.length === 0 && inactive.length === 0) return null;
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2">
-      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
         <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Heaviest workload</div>
         {overloaded.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No one is carrying an unusually heavy load.</p> : overloaded.map(({ o, load }) => (
           <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
@@ -455,7 +463,7 @@ function WorkloadAttention({ operators, onSelect }: { operators: Operator[]; onS
           </button>
         ))}
       </div>
-      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
         <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Going quiet <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 7+ days idle</span></div>
         {inactive.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>Everyone has been active in the last week.</p> : inactive.map(({ o, days }) => (
           <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
@@ -486,7 +494,7 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
   const canSubmit = Number(form.target_value) > 0 && (form.scope === "team" || !!form.target_user_id);
 
   return (
-    <div className="mb-6 rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="mb-6 rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
       <div className="flex items-center justify-between border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
         <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Target size={13} style={{ color: "var(--section-accent)" }} /> Goals &amp; targets</span>
         {available && <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Plus size={11} /> {open ? "Cancel" : "Add goal"}</button>}
@@ -568,7 +576,7 @@ function CollaborationGraph({ edges, operators, onSelect }: { edges: AdvancedRes
   }));
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-[320px_1fr]">
-      <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
         <div className="mb-1 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Collaboration</div>
         <div className="mb-1.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>Real internal messages between members</div>
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="collaboration graph">
@@ -583,7 +591,7 @@ function CollaborationGraph({ edges, operators, onSelect }: { edges: AdvancedRes
           ); })}
         </svg>
       </div>
-      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
         <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Busiest channels</div>
         <div className="space-y-1.5">
           {known.slice(0, 8).map((e, i) => (
@@ -704,7 +712,7 @@ export function TeamOversightPage() {
         // retryable error instead — shared primitive, no internals exposed.
         <ErrorState error={new Error("Couldn't load Team Intelligence right now.")} onRetry={() => refetch()} />
       ) : operators.length === 0 ? (
-        <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
           <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
           <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
           <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
@@ -778,7 +786,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
   }, [timeline]);
 
   return (
-    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
       {/* Identity zone — a recessed profile header: avatar, name + status/evaluation pills, the honest
           role/session line and (when present) the source-backed evaluation basis, with the primary
           contact/report actions on the right. One cohesive block instead of two stacked border rows. */}
