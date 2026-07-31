@@ -19,11 +19,18 @@ function fmtCredits(n: number | null): string {
 }
 
 function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+  // CONTENT MUST NEVER BE INVISIBLE. whileInView with a negative margin left whole sections at
+  // opacity 0 whenever the intersection was missed (jump-to-bottom, fast scroll, unusual
+  // viewports) — the page bottom rendered BLANK. The reveal is now an enhancement with a
+  // guarantee: if the viewport trigger hasn't fired within 2s of mount, the section force-shows.
+  const [forced, setForced] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setForced(true), 2000); return () => clearTimeout(t); }, []);
   return (
     <motion.div
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
+      animate={forced ? { opacity: 1, y: 0 } : undefined}
+      viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
     >
       {children}
@@ -330,16 +337,13 @@ function FeatureSection() {
               className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1"
               style={{ background: "var(--landing-hover)", border: "1px solid var(--landing-line)" }}
             >
-              {/* Brand glyph from the Simple Icons CDN, tinted to one muted tone; hides gracefully on error. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://cdn.simpleicons.org/${item.slug}/737373`}
-                alt=""
-                width={13}
-                height={13}
-                loading="lazy"
-                onError={e => { e.currentTarget.style.display = "none"; }}
-              />
+              {/* Inlined glyphs (was the Simple Icons CDN — an external fetch on a sovereignty-
+                  positioned page, and the icons vanished whenever the CDN stalled). One muted tone. */}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#737373" aria-hidden="true">
+                {item.slug === "gmail" && <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />}
+                {item.slug === "microsoftoutlook" && <path d="M24 12v6.75A2.25 2.25 0 0 1 21.75 21h-8.596v-6.469l1.947 1.464a.6.6 0 0 0 .698 0L24 10.898V12zM13.154 3h8.596A2.25 2.25 0 0 1 24 5.25v3.352l-8.4 5.443-2.446-1.84V3zM0 4.812l12 -2.25v18.876L0 19.187V4.813zm6.106 4.2c-1.687 0-2.906 1.457-2.906 3.037 0 1.62 1.238 3.002 2.87 3.002 1.669 0 2.906-1.42 2.906-3.038 0-1.6-1.201-3.002-2.87-3.002zm-.018 1.395c.86 0 1.393.783 1.393 1.643 0 .82-.494 1.606-1.375 1.606-.87 0-1.41-.792-1.41-1.634 0-.833.52-1.615 1.392-1.615z" />}
+                {item.slug === "googlecalendar" && <path d="M18.316 5.684H24v12.632h-5.684V5.684zM5.684 24h12.632v-5.684H5.684V24zM18.316 5.684V0H1.895A1.894 1.894 0 0 0 0 1.895v16.421h5.684V5.684h12.632zm-7.207 6.25v-.65c.63-.008 1.629-.008 1.629-1.145 0-.867-.732-.939-1.05-.939-.615 0-1.05.293-1.163.914l-1.454-.308c.35-1.396 1.483-1.912 2.642-1.912 1.283 0 2.516.626 2.516 2.104 0 .923-.61 1.396-1.06 1.578.514.174 1.208.641 1.208 1.68 0 1.567-1.351 2.267-2.664 2.267-1.361 0-2.379-.616-2.79-1.938l1.436-.421c.164.548.503 1.05 1.354 1.05.769 0 1.194-.4 1.194-.965 0-.851-.744-1.014-1.351-1.014h-.447zM22.105 0h-3.79v5.684H24V1.895A1.894 1.894 0 0 0 22.105 0z" />}
+              </svg>
               <span className="text-[11.5px] font-medium" style={{ color: "var(--landing-muted)" }}>{item.name}</span>
             </span>
           ))}
@@ -3119,9 +3123,11 @@ function StickyStartBar() {
       {show && (
         <motion.a
           href="https://app.mondaily.com/sign-up"
-          initial={{ y: 16, opacity: 0, scale: 0.96 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 16, opacity: 0, scale: 0.96 }}
+          // slide-only: opacity-fading a solid-black button rendered it as a broken GRAY box
+          // mid-animation (the "CTA turning black" report). Solid at every frame now.
+          initial={{ y: 72 }}
+          animate={{ y: 0 }}
+          exit={{ y: 72 }}
           transition={{ duration: 0.3 }}
           className="landing-sticky-bar fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-sm border border-black/[.12] bg-zinc-900 px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
         >
