@@ -53,15 +53,34 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
 function CreateRecordModal({
   objectType,
   tableColumns,
+  existingRows = [],
   onClose,
   onEnrichStart,
 }: {
   objectType: string;
   tableColumns: string[];
+  existingRows?: { data: Record<string, unknown> }[];
   onClose: () => void;
   onEnrichStart: (recordId: string, name: string) => void;
 }) {
   const queryClient = useQueryClient();
+  // Workspace members feed the Owner picker — an owner is always a member, never free text.
+  const membersQ = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<{ id: string; name?: string; email?: string }[]>("/members"), staleTime: 60_000 });
+
+  // Field KIND from the live data (same idea as the sheet's inferColKind): dates get a date input,
+  // numbers a number input, small value sets become option pills, owner columns a member picker.
+  const fieldKind = (k: string): "date" | "number" | "select" | "owner" | "text" => {
+    const l = k.toLowerCase();
+    if (/owner|assignee|assigned/.test(l)) return "owner";
+    const vals: string[] = [];
+    for (const r of existingRows) { const v = r.data[k]; if (v != null && v !== "") { vals.push(String(v)); if (vals.length >= 40) break; } }
+    if (l.includes("date") || vals.length > 2 && vals.every(v => /^\d{4}-\d{2}-\d{2}/.test(v))) return "date";
+    if (/value|amount|price|arr|revenue|funding|count|score|size|qty|quantity/.test(l) || (vals.length > 2 && vals.every(v => !isNaN(parseFloat(v)) && /^[\d.,%$€£\s-]+$/.test(v)))) return "number";
+    if (/stage|status|priority|category|type|country|region|label/.test(l) || (vals.length > 2 && new Set(vals.map(v => v.toLowerCase())).size <= 12)) return "select";
+    return "text";
+  };
+  const optionsFor = (k: string): string[] =>
+    [...new Set(existingRows.map(r => String(r.data[k] ?? "")).filter(Boolean))].sort().slice(0, 12);
 
   // Schema-aware fields — the create form now uses THIS sheet's real defined columns (object_definitions
   // attributes), so a custom sheet like "Tax Sheet Report" shows its own columns, not generic hardcoded
@@ -135,7 +154,8 @@ function CreateRecordModal({
     setValues(Object.fromEntries(fieldKeys.map(k => [k, colMeta[k]?.defaultValue ?? ""])));
     setCats([]);
   };
-  const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  // Same Owner/Assignee unification as the sheet: one meaning per word.
+  const label = (k: string) => (/^(assigned_to|assignee|assigned)$/i.test(k) ? "Owner" : k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
 
   // When the schema loads (async), add any newly-known fields to the form without clobbering typed values.
   useEffect(() => {
@@ -254,15 +274,21 @@ function CreateRecordModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[min(680px,92vw)]" : "w-[min(440px,92vw)]"}`}>
+      {/* Right-side drawer (2026-08-01 rebuild): the sheet stays visible behind it, and the form
+          follows the sheet's design language — hairline borders, sentence-case labels, typed
+          inputs per column kind instead of a wall of identical text boxes. */}
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}/>
+      <div className={`fixed right-0 top-0 z-50 flex h-full flex-col border-l border-[var(--border-soft)] bg-[var(--surface-page)] shadow-none transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[min(700px,96vw)]" : "w-[min(460px,96vw)]"}`}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-[13px] font-semibold capitalize text-[var(--text-primary)] tracking-tight">
-              New {objectType.replace(/[-_]/g, " ")}
-            </span>
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--text-faint)]">// Records</p>
+              <span className="text-[13px] font-semibold capitalize text-[var(--text-primary)] tracking-tight">
+                New {objectType.replace(/[-_]/g, " ").replace(/s$/, "")}
+              </span>
+            </div>
             {/* Tab switcher */}
             <div className="flex items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5 gap-0.5">
               <button
@@ -298,23 +324,45 @@ function CreateRecordModal({
                 </div>
               </div>
             )}
-            <div className="max-h-[400px] overflow-auto px-5 py-4 space-y-0.5">
+            <div className="flex-1 overflow-auto px-5 py-4 space-y-0.5">
               {fieldKeys.map(k => {
                 const isRequired = colMeta[k]?.required;
                 const hasDefault = !!colMeta[k]?.defaultValue;
                 const isEmpty = !(values[k] ?? "").trim();
+                const kind = fieldKind(k);
+                const inputCls = `w-full rounded-sm border bg-[var(--surface-hover)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none transition-colors ${isRequired && isEmpty ? "border-stone-500/20 focus:border-stone-500/40" : "border-[var(--border-soft)] focus:border-stone-500/30"}`;
+                const set = (v: string) => setValues(prev => ({ ...prev, [k]: v }));
                 return (
                   <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)] last:border-0">
-                    <span className={`text-[11px] font-medium uppercase tracking-wide select-none truncate flex items-center gap-1 ${isRequired ? "text-stone-400" : "text-stone-600"}`}>
+                    <span className={`text-[11.5px] font-medium select-none truncate flex items-center gap-1 first-letter:uppercase ${isRequired ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"}`}>
                       {label(k)}
                       {isRequired && <span className="text-stone-400 text-[10px]">*</span>}
                     </span>
-                    <input
-                      value={values[k] ?? ""}
-                      onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
-                      placeholder={hasDefault && isEmpty ? `Default: ${colMeta[k]!.defaultValue}` : "—"}
-                      className={`w-full rounded-md border bg-[var(--surface-hover)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none transition-colors focus:bg-[var(--surface-hover)] ${isRequired && isEmpty ? "border-stone-500/20 focus:border-stone-500/40" : "border-[var(--border-soft)] focus:border-stone-500/30"}`}
-                    />
+                    {kind === "owner" ? (
+                      <select value={values[k] ?? ""} onChange={e => set(e.target.value)} className={inputCls}>
+                        <option value="">— no owner</option>
+                        {(membersQ.data ?? []).map(m => <option key={m.id} value={m.name || m.email || m.id}>{m.name || m.email}</option>)}
+                      </select>
+                    ) : kind === "select" && optionsFor(k).length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {optionsFor(k).map(opt => (
+                          <button key={opt} type="button" onClick={() => set(values[k] === opt ? "" : opt)}
+                            className={`rounded-sm border px-2 py-0.5 text-[11px] transition-colors ${values[k] === opt ? "border-[var(--section-accent)] bg-[var(--section-accent-soft)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                            {opt}
+                          </button>
+                        ))}
+                        <input value={optionsFor(k).includes(values[k] ?? "") ? "" : (values[k] ?? "")} onChange={e => set(e.target.value)}
+                          placeholder="other…" className="w-20 rounded-sm border border-[var(--border-soft)] bg-transparent px-1.5 py-0.5 text-[11px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"/>
+                      </div>
+                    ) : (
+                      <input
+                        type={kind === "date" ? "date" : kind === "number" ? "number" : "text"}
+                        value={values[k] ?? ""}
+                        onChange={e => set(e.target.value)}
+                        placeholder={hasDefault && isEmpty ? `Default: ${colMeta[k]!.defaultValue}` : "—"}
+                        className={inputCls}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -462,7 +510,8 @@ function AIFillModal({
   objectType, tableColumns, onClose,
 }: { objectType: string; tableColumns: string[]; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  // Same Owner/Assignee unification as the sheet: one meaning per word.
+  const label = (k: string) => (/^(assigned_to|assignee|assigned)$/i.test(k) ? "Owner" : k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
   const cleanName = objectType.replace(/[-_]/g, " ");
 
   // Fetch schema attributes as fallback when tableColumns are not yet known (empty sheet)
@@ -942,6 +991,7 @@ export function ObjectIndexPage() {
         <CreateRecordModal
           objectType={objectType}
           tableColumns={tableColumns}
+          existingRows={allRecords}
           onClose={() => setShowCreate(false)}
           onEnrichStart={handleEnrichStart}
         />

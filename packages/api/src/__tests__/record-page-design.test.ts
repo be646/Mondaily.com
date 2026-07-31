@@ -139,7 +139,9 @@ describe("record table", () => {
     // NAME / EMAIL / JOB TITLE -> Name / Email / Job title. first-letter:uppercase on the lowercase
     // key gives SENTENCE case; `capitalize` would give title case ("Job Title"), which reads busier
     // at this row density and is not what the reference does.
-    expect(table).toMatch(/first-letter:uppercase">\{col\.replaceAll\("_", " "\)\}/);
+    // 2026-08-01: headers route through colLabel() so assigned-to columns read "Owner" on record
+    // sheets (one meaning per word app-wide); sentence case via first-letter:uppercase unchanged.
+    expect(table).toMatch(/first-letter:uppercase">\{colLabel\(col\)\}/);
     // ORDER-INDEPENDENT. The first version of this guard only matched "uppercase tracking-*" and
     // PASSED while three column headers carried "tracking-widest uppercase" — the reversed token
     // order — so the headers were still shouting with a green test. Match the utilities

@@ -38,7 +38,8 @@ describe("filter redesign — server-side filtering", () => {
 
   it("the table sends debounced search + representable conditions to the server", () => {
     expect(table()).toMatch(/const debouncedSearch = useDebounced\(toolbarSearch\.trim\(\), 300\)/);
-    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\)\]/);
+    // 2026-08-01 sort rebuild: the primary sort rule joined the key — SQL orders the whole type.
+    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\), primarySort\?\.col \?\? "", primarySort\?\.dir \?\? ""\]/);
     expect(table()).toMatch(/params\.set\("filters", JSON\.stringify/);
   });
 });

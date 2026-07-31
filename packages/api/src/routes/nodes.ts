@@ -132,6 +132,9 @@ router.get("/", requireAuth, zValidator("query", z.object({
           typeof f?.col === "string" && FILTER_OPS.includes(f?.op as typeof FILTER_OPS[number]));
       } catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "filters must be a JSON array" }); return z.NEVER; }
     }),
+  sort_col: z.string().max(64).optional(),
+  sort_dir: z.enum(["asc", "desc"]).optional(),
+  sort_numeric: z.coerce.boolean().optional(),
   limit: z.coerce.number().min(1).max(1000).default(50),
   // offset was missing from this schema entirely — zod STRIPPED it from the query, so clients that
   // paginated received page one repeatedly and could not tell.

@@ -34,10 +34,17 @@ const NODE_LEVEL_COLS = ["lead_score", "relationship_health"];
 function cellValue(record: NodeRecord, col: string): unknown {
   return NODE_LEVEL_COLS.includes(col) ? (record as unknown as Record<string, unknown>)[col] : record.data[col];
 }
-/** Human column label — AI score columns get their landing-page branding. */
+/** Human column label — AI score columns get their landing-page branding.
+ *  Owner vs Assigned-to (2026-08-01): ONE meaning each, app-wide. Owner = the accountable member
+ *  on a RECORD; Assignee = who executes a TASK. Record sheets therefore display every
+ *  assigned-to-style column as "Owner" so the same concept never wears two names on one screen.
+ *  (Task surfaces keep "Assignee" — they are tasks.) Data keys are unchanged; this is display
+ *  unification, not a destructive rename. */
 function colLabel(col: string): string {
   if (col === "lead_score") return "AI Score";
   if (col === "relationship_health") return "Relationship";
+  if (/^(assigned_to|assignee|assigned)$/i.test(col)) return "Owner";
+  if (/^deal_owner$/i.test(col)) return "Deal owner";
   return col.replace(/_/g, " ");
 }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
@@ -597,6 +604,17 @@ function calcResultTyped(
   return calcResult(op, col, records);
 }
 
+/** A total that outgrows its column renders compact ("€1.24M") with the exact figure in the
+ *  tooltip — a truncated sum is worse than a compact one. Non-numeric strings pass through. */
+function CompactTotal({ text }: { text: string }) {
+  if (text.length <= 18) return <>{text}</>;
+  const m = text.match(/^([^0-9-]*)(-?[\d,.]+)(.*)$/);
+  const n = m ? parseFloat(m[2]!.replace(/,/g, "")) : NaN;
+  if (isNaN(n) || Math.abs(n) < 10_000) return <span title={text}>{text}</span>;
+  const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 2 }).format(n);
+  return <span title={text}>{(m![1] ?? "") + compact + (m![3] ?? "")}</span>;
+}
+
 // ─── Server-side authoritative total (Phase 3) ───────────────────────────────
 // The client footer above totals the fetched page (capped at 1000). When the sheet is UNFILTERED,
 // we additionally ask the server to aggregate the WHOLE table via POST /records/aggregate — the same
@@ -666,9 +684,9 @@ function ServerTotalValue({ objectType, col, op, kind, display, fallback, filter
     retry: false,
   });
   // Loading or errored → keep the honest client subtotal (never a blank or a fake number).
-  if (!q.data) return <>{fallback}</>;
+  if (!q.data) return <CompactTotal text={fallback}/>;
   const { value, notes } = aggParts(kind, op, q.data, display, !!filters?.length);
-  return <>{value}{notes.map((n, i) => <TotalNote key={i} text={n.text} warn={n.warn} />)}</>;
+  return <><CompactTotal text={value}/>{notes.map((n, i) => <TotalNote key={i} text={n.text} warn={n.warn} />)}</>;
 }
 
 // ─── Calc dropdown ────────────────────────────────────────────────────────────
@@ -1635,7 +1653,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
         className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}
       >
         {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
-        <span className="mr-0.5 text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{col.replaceAll("_", " ")}</span>
+        <span className="mr-0.5 text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{colLabel(col)}</span>
         {activeValue ? <span>{activeValue}</span> : <ChevronDown size={10} className="opacity-40"/>}
         {activeValue && <X size={9} className="ml-0.5 opacity-60" onClick={e => { e.stopPropagation(); onSelect(activeValue); }}/>}
       </button>
@@ -1728,7 +1746,7 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
   const [draftValue, setDraftValue] = useState("");
 
   const kindOf = (col: string) => inferColKind(records, col, customCols.find(c => c.key === col)?.type);
-  const label = (col: string) => (col === LAST_ACTIVITY ? "last activity" : col.replaceAll("_", " "));
+  const label = (col: string) => (col === LAST_ACTIVITY ? "last activity" : colLabel(col));
   const valueOptions = (col: string): string[] =>
     [...new Set(records.map(r => String(cellValue(r, col) ?? "")).filter(Boolean))].sort().slice(0, 30);
 
@@ -1830,12 +1848,27 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const debouncedSearch = useDebounced(toolbarSearch.trim(), 300);
   const serverConds = useMemo(() => conditions.filter(c => c.op !== "gt" && c.op !== "lt" && !/owner|assign/i.test(c.col)), [conditions]);
 
+  // ── ONE sort model (2026-08-01 rebuild): sortRules is the whole truth. The old header-click
+  // "quick sort" was a second, parallel system — each silently cancelled the other. Header clicks
+  // now edit rule 0 of the same list the Sort panel manages. The PRIMARY rule is sent to the
+  // server so SQL orders the whole type and the page received is the true top-N — sorting only
+  // the loaded page silently sorted the wrong subset on any type past the cap. Numeric columns
+  // sort via the jsonb value (data->col), where numbers compare numerically.
+  const [sortRules, setSortRules] = useState<SortRule[]>([]);
+  const primarySort = sortRules[0] ?? null;
+
   const query = useQuery({
-    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds)],
+    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds), primarySort?.col ?? "", primarySort?.dir ?? ""],
     queryFn: () => {
       const params = new URLSearchParams({ object_type: objectType, limit: String(PAGE_LIMIT) });
       if (debouncedSearch) params.set("q", debouncedSearch);
       if (serverConds.length) params.set("filters", JSON.stringify(serverConds.map(c => ({ col: c.col, op: c.op, value: c.value }))));
+      if (primarySort) {
+        params.set("sort_col", primarySort.col);
+        params.set("sort_dir", primarySort.dir);
+        // jsonb numeric ordering for number-kind columns — text ordering would put 9 after 10
+        if (inferColKind(records, primarySort.col, customCols.find(cc => cc.key === primarySort.col)?.type) === "number") params.set("sort_numeric", "true");
+      }
       return apiClient.get<NodeRecord[]>(`/nodes?${params}`);
     },
     placeholderData: keepPreviousData,
@@ -1893,12 +1926,6 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
   }
 
-  // ── Multi-sort state (stacked rules) ──
-  const [sortRules, setSortRules] = useState<SortRule[]>([]);
-
-  // ── Legacy single-sort (header clicks) ──
-  const [quickSortCol, setQuickSortCol] = useState<string | null>(null);
-  const [quickSortDir, setQuickSortDir] = useState<SortDir>("asc");
 
   // ── Calc state ──
   const [calculations, setCalculations] = useState<Record<string, CalcOp>>({});
@@ -2053,13 +2080,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   useEffect(() => {
     // Column visibility is NOT reset here — the seeding effect above owns it per object type
     // (clearing it here would race that effect and briefly show every column).
-    setToolbarSearch(""); setConditions([]); setQuickSortCol(null); setSortRules([]);
+    setToolbarSearch(""); setConditions([]); setSortRules([]);
   }, [objectType]);
 
   function handleHeaderSort(col: string) {
-    if (quickSortCol === col) setQuickSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setQuickSortCol(col); setQuickSortDir("asc"); }
-    setSortRules([]); // clear stacked rules when header-clicking
+    // Edits rule 0 of the ONE list: same col toggles direction; a new col becomes the primary
+    // sort and clears the stack (header clicks express "sort by this now").
+    setSortRules(prev => prev[0]?.col === col
+      ? [{ col, dir: prev[0].dir === "asc" ? "desc" : "asc" }, ...prev.slice(1)]
+      : [{ col, dir: "asc" }]);
   }
 
   // CSV of exactly what the view shows. `sorted` is the filtered/sorted page held in memory, so the
@@ -2073,7 +2102,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const [nlpActive, setNlpActive] = useState(false);
   const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">) => {
     if (ft) setToolbarSearch(ft);
-    if (sc) { setQuickSortCol(sc); setQuickSortDir(sd); setSortRules([]); }
+    if (sc) setSortRules([{ col: sc, dir: sd }]);
     if (Object.keys(ops).length) setCalculations(prev => ({ ...prev, ...ops }));
     setNlpActive(true);
   }, []);
@@ -2113,11 +2142,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   }, [records, toolbarSearch, conditions, owners]);   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
 
   const sorted = useMemo(() => {
-    // Stacked sort rules take priority over quick sort
-    const rules = sortRules.length > 0
-      ? sortRules
-      : quickSortCol ? [{ col: quickSortCol, dir: quickSortDir }] : [];
-
+    // The page arrives pre-ordered by the primary rule (SQL); re-sorting here is a no-op for rule
+    // 0 and applies the stacked tie-break rules over the page.
+    const rules = sortRules;
     if (!rules.length) return filtered;
 
     return [...filtered].sort((a, b) => {
@@ -2133,12 +2160,11 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
       }
       return 0;
     });
-  }, [filtered, sortRules, quickSortCol, quickSortDir]);
+  }, [filtered, sortRules]);
 
   function SortIcon({ col }: { col: string }) {
     const rule = sortRules.find(r => r.col === col);
     if (rule) return rule.dir === "asc" ? <ChevronUp size={10} className="text-stone-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-stone-400 ml-1 shrink-0"/>;
-    if (quickSortCol === col) return quickSortDir === "asc" ? <ChevronUp size={10} className="text-stone-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-stone-400 ml-1 shrink-0"/>;
     return <ChevronsUpDown size={10} className="text-stone-700 ml-1 shrink-0"/>;
   }
 
@@ -2147,8 +2173,32 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // Name column sticky offset changes when the Record ID locked column is present
   const nameLeft = hasRecordIdCol ? "left-[112px]" : "left-8";
 
-  // ── Column widths (resizable) ──
+  // ── Column widths: auto-fit content, capped per kind; manual resize overrides ──
+  // Cells are ALWAYS single-line (a wrapped cell breaks row scanning). A column sizes itself to
+  // its content — including its own footer total, which must never truncate — up to a hard cap so
+  // one 1000-character value can't wreck the layout. Past the cap: ellipsis + hover tooltip.
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  const autoWidths = useMemo(() => {
+    const CAPS: Record<ReturnType<typeof inferColKind>, [number, number]> = {
+      number: [96, 150], date: [110, 160], select: [110, 180], text: [120, 360],
+    };
+    const out: Record<string, number> = {};
+    for (const col of allColumnsWithCustom) {
+      const kind = inferColKind(records, col, customCols.find(c => c.key === col)?.type);
+      const [min, cap] = col.toLowerCase() === "name" ? [140, 260] : CAPS[kind];
+      let maxLen = colLabel(col).length + 3;   // header label + sort icon
+      for (const r of records.slice(0, 60)) {
+        const v = display(cellValue(r, col));
+        if (v && v !== "—") maxLen = Math.max(maxLen, Math.min(v.length, 60));
+      }
+      const total = calculations[col] ? calcResultTyped(calculations[col], col, records, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }) : "";
+      maxLen = Math.max(maxLen, total.length);
+      out[col] = Math.round(Math.min(min + Math.max(0, maxLen - 8) * 7.2, Math.max(cap, total.length * 7.2 + 34)));
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allColumnsWithCustom, records, calculations, customCols, wsBase, wsDisplay, fxRates]);
+  const effectiveWidth = (col: string): number => colWidths[col] ?? autoWidths[col] ?? 160;
   const resizingRef = useRef<{ col: string; startX: number; startW: number } | null>(null);
 
   function startResize(col: string, e: React.MouseEvent, currentW: number) {
@@ -2658,7 +2708,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     );
   }
 
-  const activeSortCount = sortRules.length || (quickSortCol ? 1 : 0);
+  const activeSortCount = sortRules.length;
 
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
@@ -2697,7 +2747,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
+            style={{ width: effectiveWidth(col), minWidth: effectiveWidth(col), maxWidth: effectiveWidth(col) }}
+            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap text-ellipsis ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -2761,7 +2812,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             <button onClick={() => setToolbarSearch("")} aria-label="Clear search" className="text-[var(--text-faint)] hover:text-[var(--text-primary)]"><X size={10}/></button>
           )}
         </div>
-        {(conditions.length > 0 || toolbarSearch || quickSortCol || sortRules.length > 0) && (
+        {(conditions.length > 0 || toolbarSearch || sortRules.length > 0) && (
           <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {totalOfType}</span>
         )}
         {truncated && (
@@ -2874,12 +2925,12 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
               <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
             </div>
           ))}
-          <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) { setSortRules(r => [...r, { col: unused, dir: "asc" }]); setQuickSortCol(null); } }}
+          <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) setSortRules(r => [...r, { col: unused, dir: "asc" }]); }}
             className="flex items-center gap-1 text-[11px] text-stone-400 hover:text-stone-100 transition-colors shrink-0 whitespace-nowrap">
             <Plus size={11}/> Add sort
           </button>
           {sortRules.length > 0 && (
-            <button onClick={() => { setSortRules([]); setQuickSortCol(null); }} className="text-[10px] text-stone-400/50 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
+            <button onClick={() => setSortRules([])} className="text-[10px] text-stone-400/50 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
               Clear
             </button>
           )}
@@ -2931,7 +2982,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           <NLPCommandBar
             columns={orderedColumns}
             onApply={handleNLPApply}
-            onClear={() => { setToolbarSearch(""); setQuickSortCol(null); setNlpActive(false); }}
+            onClear={() => { setToolbarSearch(""); setSortRules([]); setNlpActive(false); }}
             hasActive={nlpActive}
           />
         </div>
@@ -3257,11 +3308,11 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                 </th>
               )}
               {orderedColumns.map((col, colIdx) => {
-                const w = colWidths[col];
+                const w = effectiveWidth(col);
                 return (
                   <th
                     key={col}
-                    style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
+                    style={{ width: w, minWidth: w, maxWidth: w }}
                     className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
@@ -3294,7 +3345,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                       <button onClick={() => handleHeaderSort(col)}
                         className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
-                        <span className="whitespace-nowrap text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{col.replaceAll("_", " ")}</span>
+                        <span className="whitespace-nowrap text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{colLabel(col)}</span>
                         {colMeta[col]?.required && <span className="text-stone-400/70 text-[10px] leading-none">*</span>}
                         <SortIcon col={col}/>
                       </button>
@@ -3435,7 +3486,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                         {(() => {
                           const fSrc = customCols.find(cc => cc.key === col && cc.type === "formula")?.meta?.formula;
                           const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }, fSrc);
-                          if (effectiveType(col) === "formula") return <>{clientStr}<TotalNote text="loaded rows" /></>;
+                          if (effectiveType(col) === "formula") return <><CompactTotal text={clientStr}/><TotalNote text="loaded rows" /></>;
                           // Which active filters can the server reproduce EXACTLY? Only plain equality
                           // equality conditions on non-owner columns (owner cells resolve via display-name
                           // state the server can't see; date-range __from/__to and free-text search
@@ -3445,7 +3496,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                           // never mistaken for the authoritative full-table server total.
                           const reprFilters = serverFilters(conditions);
                           const allRepresentable = !toolbarSearch.trim() && reprFilters.length === conditions.length;
-                          if (!allRepresentable) return <>{clientStr}<TotalNote text="this view" /></>;
+                          if (!allRepresentable) return <><CompactTotal text={clientStr}/><TotalNote text="this view" /></>;
                           return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}
                       </button>
@@ -3499,7 +3550,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
           <div className="px-3 py-1.5 text-body text-[var(--text-secondary)] border-b border-[var(--border-soft)] mb-1">
-            {colCtxMenu.col.replaceAll("_", " ")}
+            {colLabel(colCtxMenu.col)}
           </div>
           <button
             onClick={() => {

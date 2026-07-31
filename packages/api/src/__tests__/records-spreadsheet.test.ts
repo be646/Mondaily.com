@@ -116,7 +116,9 @@ describe("Phase 3 — footer uses the authoritative server total, client calc st
     expect(table).toMatch(/if \(kind === "checkbox"\) return op === "filled" \? "filled" : "checked"/);
   });
   it("keeps the client subtotal instantly and on error (never blank, never a fake number)", () => {
-    expect(table).toMatch(/if \(!q\.data\) return <>\{fallback\}<\/>/);
+    // 2026-08-01: totals render through <CompactTotal> — a sum that outgrows its column shows
+    // compact ("€1.24M") with the exact figure in the tooltip, instead of truncating.
+    expect(table).toMatch(/if \(!q\.data\) return <CompactTotal text=\{fallback\}\/>/);
     expect(table).toMatch(/<ServerTotalValue objectType=\{objectType\} col=\{col\} op=\{calculations\[col\]\} kind=\{effectiveType\(col\)\} display=\{wsDisplay\} fallback=\{clientStr\}/);
   });
   it("labels truncation and unconverted amounts honestly (no silent full-coverage claim)", () => {
@@ -143,7 +145,9 @@ describe("Phase 3b.1 — filtered server totals + group subtotals (still no sche
     // 2026-08-01 filter redesign (user-requested): search-first + condition chips. filterText and
     // quickFilters are gone — toolbarSearch is THE text filter, `conditions` the structured set,
     // and both run in SQL over ALL records (see /nodes q + filters params).
-    expect(table).toMatch(/const allRepresentable = !toolbarSearch\.trim\(\) && reprFilters\.length === conditions\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
+    // 2026-08-01: totals render through <CompactTotal> — a sum that outgrows its column shows
+    // compact ("€1.24M") with the exact figure in the tooltip, instead of truncating.
+    expect(table).toMatch(/const allRepresentable = !toolbarSearch\.trim\(\) && reprFilters\.length === conditions\.length;\s*if \(!allRepresentable\) return <><CompactTotal text=\{clientStr\}\/><TotalNote text="this view" \/><\/>;/);
     expect(table).toMatch(/<ServerTotalValue[^]*?filters=\{reprFilters\}/);
     // the aggregate call forwards the validated equality filters
     expect(table).toMatch(/\.\.\.\(filters\?\.length \? \{ filters \} : \{\}\)/);
@@ -178,7 +182,9 @@ describe("Phase 3 UX polish — footer totals scope is explicit and honest", () 
     expect(table).toMatch(/over \$\{resp\.total_rows/);
     expect(table).toMatch(/\$\{resp\.unconverted\} unconverted`, warn: true/);
     // a client subtotal (unrepresentable filter) is labelled "this view", never as full truth
-    expect(table).toMatch(/return <>\{clientStr\}<TotalNote text="this view" \/><\/>/);
+    // 2026-08-01: totals render through <CompactTotal> — a sum that outgrows its column shows
+    // compact ("€1.24M") with the exact figure in the tooltip, instead of truncating.
+    expect(table).toMatch(/return <><CompactTotal text=\{clientStr\}\/><TotalNote text="this view" \/><\/>/);
   });
   it("truncated + unconverted use a warn tone (not silently shown as full truth)", () => {
     expect(table).toMatch(/color: warn \? "#c6892e" : "var\(--text-faint\)"/);
