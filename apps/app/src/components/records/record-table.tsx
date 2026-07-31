@@ -1851,10 +1851,19 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
   const records = query.data ?? [];
   const totalOfType = countsQuery.data?.by_type?.[objectType] ?? records.length;
-  const truncated = totalOfType > records.length;
+  // Truncated ONLY when the page hit the cap — `records` is the filtered result now, so comparing
+  // it to the type total would flag every narrowed search as truncation.
+  const truncated = records.length >= PAGE_LIMIT && totalOfType > records.length;
 
+  // Column universe survives filtering: seed it from the unfiltered page and only EXTEND it when
+  // new keys appear — never shrink because the current (filtered) rows carry fewer keys.
+  const columnUniverse = useRef<{ type: string; keys: string[] }>({ type: "", keys: [] });
   const allColumns = useMemo(() => {
-    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))))
+    if (columnUniverse.current.type !== objectType) columnUniverse.current = { type: objectType, keys: [] };
+    const known = columnUniverse.current.keys;
+    const fresh = records.flatMap(r => Object.keys(r.data)).filter(k => !known.includes(k));
+    if (fresh.length) columnUniverse.current.keys = [...known, ...fresh];
+    const allKeys = Array.from(new Set(columnUniverse.current.keys))
       .filter(k => !HIDDEN_DATA_COLS.has(k));
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
@@ -1867,7 +1876,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     // scan above never finds them.
     const nodeCols = NODE_LEVEL_COLS.filter(c => records.some(r => (r as NodeRecord)[c as "lead_score"] != null));
     return [...base, ...nodeCols.filter(c => !base.includes(c))];
-  }, [records]);
+  }, [records, objectType]);
 
   // ── Column visibility (allColumnsWithCustom declared after customCols below) ──
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
@@ -2762,7 +2771,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             className={openPanel === "view" ? TB_ON : TB_IDLE}>
             <Settings2 size={11}/>
             <span>Columns</span>
-            {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumnsWithCustom.length - hiddenCols.size}</span>}
+            {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumnsWithCustom.filter(c => !hiddenCols.has(c)).length}</span>}
           </button>
 
           <div className="w-px h-3 bg-[var(--surface-hover)] mx-1"/>

@@ -31,8 +31,9 @@ describe("Graph audit — a page size is never presented as a total", () => {
     expect(table()).toMatch(/apiClient\.get<\{ total: number; by_type: Record<string, number> \}>\("\/nodes\/counts"\)/);
     expect(table()).toMatch(/const totalOfType = countsQuery\.data\?\.by_type\?\.\[objectType\] \?\? records\.length/);
     expect(table()).toMatch(/\{sorted\.length\} of \{totalOfType\}/);
-    // and says so plainly when the view holds less than the whole type
-    expect(table()).toMatch(/const truncated = totalOfType > records\.length/);
+    // and says so plainly when the PAGE hit its cap. (2026-08-01: records is now the server-filtered
+    // result, so a bare totalOfType > records.length would flag every narrowed search as truncation.)
+    expect(table()).toMatch(/const truncated = records\.length >= PAGE_LIMIT && totalOfType > records\.length/);
     expect(table()).toMatch(/exports the \{records\.length\} loaded rows, not all \{totalOfType\}/);
   });
 
