@@ -1,7 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { compareWindows, type BaselineComparison } from "@mondaily/shared/baseline";
 import { makeBaseConverter } from "./currency-store";
-import { dealStage as moneyDealStage, dealOwner as moneyDealOwner, dealValue as moneyDealValue, isWon as moneyIsWon, wonDate as moneyWonDate } from "./money";
+import { dealStage as moneyDealStage, dealOwner as moneyDealOwner, dealValue as moneyDealValue, isWon as moneyIsWon, wonDate as moneyWonDate, STAGE_WEIGHTS } from "./money";
 
 /**
  * Business-outcomes engine — THE deal-value computation shared by GET /activities/outcomes and the
@@ -20,6 +20,14 @@ export interface OutcomesResult {
   team: {
     value_won: number; deals_won: number; value_lost: number; deals_lost: number;
     pipeline_value: number; pipeline_deals: number;
+    /** Stage-weighted forecast over open deals (declared editorial weights from lib/money). */
+    projected_amount: number;
+    /** % of ALL opportunities (open+closed in scope) that closed either way — distinct from win rate. */
+    close_rate_pct: number | null;
+    /** Average age in days of currently-open deals — stall detector. */
+    avg_open_deal_age_days: number | null;
+    /** Open-pipeline distribution by raw stage label (top stages by value). */
+    stages: { stage: string; deals: number; value: number }[];
     win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null;
     unconverted: number; pipeline_unconverted: number;
     deltas: null | { value_won: BaselineComparison; deals_won: BaselineComparison; value_lost: BaselineComparison };
@@ -40,8 +48,11 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
 
   const teamNow = emptyWin(); const teamPrev = emptyWin();
   const byMember = new Map<string, OutcomeWindow>();
-  let pipelineValue = 0, pipelineN = 0, pipelineUnconverted = 0;
+  let pipelineValue = 0, pipelineN = 0, pipelineUnconverted = 0, projected = 0;
   const pipelineByMember = new Map<string, { value: number; n: number }>();
+  const openAges: number[] = [];
+  const stageAgg = new Map<string, { deals: number; value: number }>();
+  const nowMs = Date.now();
 
   for (const row of deals ?? []) {
     const d = (row.data ?? {}) as Record<string, unknown>;
@@ -73,6 +84,13 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       // open pipeline — a BALANCE (as of now), not a windowed flow
       pipelineValue += convertible ? val : 0; pipelineN += 1;
       if (!convertible) pipelineUnconverted += 1;
+      const w = STAGE_WEIGHTS.find(([re]) => re.test(stage))?.[1] ?? 0.2;
+      projected += (convertible ? val : 0) * w;
+      const created = Date.parse(String(row.created_at ?? ""));
+      if (Number.isFinite(created)) openAges.push((nowMs - created) / 86_400_000);
+      const label = (stage || "unstaged").toLowerCase();
+      const sa = stageAgg.get(label) ?? { deals: 0, value: 0 };
+      sa.deals += 1; sa.value += convertible ? val : 0; stageAgg.set(label, sa);
       if (owner) { const pm = pipelineByMember.get(owner) ?? { value: 0, n: 0 }; pm.value += convertible ? val : 0; pm.n += 1; pipelineByMember.set(owner, pm); }
     }
   }
@@ -87,6 +105,12 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       value_won: Math.round(teamNow.won), deals_won: teamNow.won_n,
       value_lost: Math.round(teamNow.lost), deals_lost: teamNow.lost_n,
       pipeline_value: Math.round(pipelineValue), pipeline_deals: pipelineN,
+      projected_amount: Math.round(projected),
+      close_rate_pct: (teamNow.won_n + teamNow.lost_n + pipelineN) > 0
+        ? Math.round(((teamNow.won_n + teamNow.lost_n) / (teamNow.won_n + teamNow.lost_n + pipelineN)) * 100) : null,
+      avg_open_deal_age_days: openAges.length > 0 ? Math.round(openAges.reduce((a, b) => a + b, 0) / openAges.length) : null,
+      stages: [...stageAgg.entries()].map(([stage, v]) => ({ stage, deals: v.deals, value: Math.round(v.value) }))
+        .sort((a, b) => b.value - a.value).slice(0, 8),
       win_rate_pct: winRate(teamNow), avg_deal_size: avg(teamNow), avg_cycle_days: cycle(teamNow),
       unconverted: teamNow.unconverted, pipeline_unconverted: pipelineUnconverted,
       deltas: hasPrev ? {

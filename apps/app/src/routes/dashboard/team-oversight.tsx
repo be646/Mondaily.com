@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer, Target, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
@@ -354,7 +354,7 @@ function OversightAsk() {
 // ── Business outcomes (Sales) — THE money layer: value won/lost, pipeline, win rate ──────────
 interface OutcomesResp {
   base_currency: string;
-  team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
+  team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; projected_amount: number; close_rate_pct: number | null; avg_open_deal_age_days: number | null; stages: { stage: string; deals: number; value: number }[]; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
     deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
   members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
 }
@@ -381,9 +381,56 @@ function SalesStrip({ period }: { period: Period }) {
         <KPITile label="Open pipeline" value={fmtMoney0(t.pipeline_value, cur)} sub={<>{t.pipeline_deals} open · as of today{t.pipeline_unconverted > 0 ? ` · ${t.pipeline_unconverted} unconverted` : ""}</>} />
         <KPITile label="Win rate" value={t.win_rate_pct != null ? `${t.win_rate_pct}%` : "—"} sub={t.win_rate_pct != null ? "of closed deals" : "no closed deals yet"} />
         <KPITile label="Avg deal" value={t.avg_deal_size != null ? fmtMoney0(t.avg_deal_size, cur) : "—"} sub={t.avg_cycle_days != null ? `${t.avg_cycle_days}d avg cycle` : "won deals only"} />
+        <KPITile label="Projected" value={fmtMoney0(t.projected_amount, cur)} sub="stage-weighted open pipeline" />
+        <KPITile label="Close rate" value={t.close_rate_pct != null ? `${t.close_rate_pct}%` : "—"} sub="of all opportunities" />
+        <KPITile label="Open deal age" value={t.avg_open_deal_age_days != null ? `${t.avg_open_deal_age_days}d` : "—"} sub="average · stall signal" />
       </KPIGrid>
+      {/* Pipeline by stage — hairline value bars (top stages by open value). */}
+      {t.stages.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Pipeline by stage</p>
+          <div className="space-y-1">
+            {t.stages.map((st) => {
+              const max = t.stages[0]!.value || 1;
+              return (
+                <div key={st.stage} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-36 truncate capitalize" style={{ color: "var(--text-muted)" }}>{st.stage}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(2, Math.round((st.value / max) * 100))}%`, background: "var(--section-accent)" }} />
+                  </span>
+                  <span className="w-32 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtMoney0(st.value, cur)} · {st.deals}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* Leaderboard — top members by value won (only meaningful with 2+ sellers). */}
+      {(q.data?.members.length ?? 0) > 1 && (
+        <div className="mt-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Top by value won</p>
+          <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+            {q.data!.members.slice(0, 5).map((m, i) => (
+              <div key={m.user_id} className="flex items-center gap-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="w-4 tabular-nums" style={{ color: "var(--text-faint)" }}>{i + 1}</span>
+                <span className="min-w-0 flex-1 truncate" style={{ color: "var(--text-primary)" }}><MemberName userId={m.user_id} /></span>
+                <span className="tabular-nums" style={{ color: "var(--status-ok)" }}>{fmtMoney0(m.value_won, cur)}</span>
+                <span className="w-20 text-right tabular-nums" style={{ color: "var(--text-muted)" }}>{m.win_rate_pct != null ? `${m.win_rate_pct}% win` : "—"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+/** Resolve a member id to their display name from the already-loaded matrix (no extra fetch). */
+function MemberName({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const cached = qc.getQueriesData<MatrixResp>({ queryKey: ["oversight-matrix"] });
+  for (const [, d] of cached) { const hit = d?.operators?.find((o: Operator) => o.operator_id === userId); if (hit) return <>{hit.name}</>; }
+  return <>{userId.slice(0, 8)}…</>;
 }
 
 // A small up/down/flat trend chip from two real counts (this window vs. the previous equal window).
