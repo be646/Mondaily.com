@@ -6,6 +6,7 @@ import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, TEAM_ONLY_GOAL_METRICS, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
 import { groundingViolations } from "../lib/grounding";
+import { sendTransactionalEmail } from "../lib/mail";
 import { pagedNodes as pagedMoneyNodes, closedWonIn, invoiceMetrics, dealOwner as moneyDealOwner, isWon as moneyIsWon, dealStage as moneyDealStage, wonDate as moneyWonDate, dealValue as moneyDealValue } from "../lib/money";
 import { makeBaseConverter } from "../lib/currency-store";
 import { isOverdue } from "@mondaily/shared/dates";
@@ -763,6 +764,116 @@ router.delete("/goals/:id", requireAuth, requireAdminRole, async (c) => {
   const { error } = await supabase.from("workspace_goals").update({ active: false }).eq("workspace_id", ws).eq("id", c.req.param("id"));
   if (error && !GOAL_TABLE_MISSING(error)) return c.json({ error: "Could not remove the goal." }, 500);
   return c.json({ ok: true });
+});
+
+/**
+ * POST /activities/member-report — compose a REAL member report (admin-only) and optionally email
+ * it to the member. Everything in the report is a recorded number from this workspace: task
+ * rollups, decisions resolved, deal tallies, AI credits. Charts are inline SVG bars drawn from
+ * those same numbers. The one AI paragraph goes through the gateway AND the grounding validator —
+ * if it references a number not present in the digest it is dropped, never shipped.
+ * Body: { actor_id, days?, email? } → { ok, html, emailed, insight_included }.
+ */
+router.post("/member-report", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ actor_id?: string; days?: number; email?: boolean }>().catch(() => ({} as never));
+  const actorId = String(body.actor_id ?? "");
+  if (!actorId) return c.json({ error: "actor_id required" }, 400);
+  const days = Math.min(365, Math.max(1, Math.round(Number(body.days ?? 30))));
+  const sinceIso = new Date(Date.now() - days * 86_400_000).toISOString();
+
+  const [{ data: member }, { data: usage }, { data: tasks }, { data: decisions }, { data: deals }, { data: msgs }] = await Promise.all([
+    supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
+    supabase.from("ai_usage").select("total_tokens").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso).limit(100000),
+    supabase.from("tasks").select("completed, due_date, completed_at").eq("workspace_id", ws).eq("assignee_id", actorId).limit(5000),
+    supabase.from("decision_queue").select("resolved_at").eq("workspace_id", ws).eq("resolved_by", actorId).gte("resolved_at", sinceIso).limit(10000),
+    supabase.from("nodes").select("object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000),
+    supabase.from("internal_messages").select("created_at").eq("workspace_id", ws).eq("sender_id", actorId).gte("created_at", sinceIso).limit(10000),
+  ]);
+  if (!member) return c.json({ error: "Member not found in this workspace." }, 404);
+
+  const t = { open: 0, overdue: 0, completed: 0 };
+  const now = Date.now();
+  for (const row of tasks ?? []) {
+    if (row.completed) t.completed += 1;
+    else { t.open += 1; if (row.due_date && new Date(String(row.due_date)).getTime() < now) t.overdue += 1; }
+  }
+  const dealRoll = { owned: 0, won: 0, lost: 0, open: 0 };
+  for (const d of deals ?? []) {
+    const data = (d.data ?? {}) as Record<string, unknown>;
+    const owner = String(data.owner_id ?? data.owner ?? d.created_by ?? "");
+    if (owner !== actorId) continue;
+    dealRoll.owned += 1;
+    const stage = String(data.stage ?? data.status ?? "").toLowerCase();
+    if (stage.includes("won")) dealRoll.won += 1;
+    else if (stage.includes("lost")) dealRoll.lost += 1;
+    else dealRoll.open += 1;
+  }
+  const credits = (usage ?? []).reduce((sum, u) => sum + Number(u.total_tokens ?? 0), 0);
+  const decisionsResolved = (decisions ?? []).length;
+  const messagesSent = (msgs ?? []).length;
+
+  // ── grounded AI paragraph (optional — the report ships without it if the gateway is down) ──
+  const digest = `Member ${member.name ?? member.email} (${member.role}) over the last ${days} days: tasks completed ${t.completed}, open ${t.open}, overdue ${t.overdue}; decisions resolved ${decisionsResolved}; deals owned ${dealRoll.owned} (won ${dealRoll.won}, lost ${dealRoll.lost}, open ${dealRoll.open}); AI credits used ${credits}; internal messages sent ${messagesSent}.`;
+  let insight: string | null = null;
+  try {
+    const { text } = await aiGateway({
+      system: "You write ONE short paragraph (2-3 sentences) summarizing a team member's recorded activity for a manager report. Use ONLY numbers present in the data. Neutral, factual, no advice about firing/discipline, no invented context.",
+      prompt: digest, maxTokens: 180, workspaceId: ws, userId: c.get("userId"), feature: "member_report",
+    });
+    const candidate = (text ?? "").trim();
+    if (candidate && groundingViolations(candidate, digest).length === 0) insight = candidate;
+  } catch { /* report ships without the AI paragraph — never blocks, never invents */ }
+
+  // ── inline-SVG bar chart helper (pure numbers in → bars out) ──
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const bars = (rows: { label: string; value: number; color: string }[]) => {
+    const max = Math.max(1, ...rows.map(r => r.value));
+    return `<table role="presentation" style="width:100%;border-collapse:collapse">${rows.map(r => `
+      <tr><td style="padding:3px 10px 3px 0;font:11px -apple-system,sans-serif;color:#555;white-space:nowrap">${esc(r.label)}</td>
+      <td style="width:70%"><div style="height:10px;border-radius:3px;background:${r.color};width:${Math.max(2, Math.round((r.value / max) * 100))}%"></div></td>
+      <td style="padding-left:8px;font:600 11px -apple-system,sans-serif;color:#222">${r.value}</td></tr>`).join("")}</table>`;
+  };
+  const kpi = (label: string, value: string | number, sub?: string) =>
+    `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 20px/1.2 ui-monospace,monospace;color:#111">${value}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc(label)}${sub ? ` · ${esc(sub)}` : ""}</div></td>`;
+
+  const periodLabel = `last ${days} days`;
+  const html = `<!doctype html><html><body style="margin:0;background:#fafafa;padding:24px">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e8e8e4;border-radius:8px;overflow:hidden">
+    <div style="padding:20px 24px;border-bottom:1px solid #e8e8e4">
+      <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc(String(member.name ?? member.email))} — team report</div>
+      <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc(String(member.role ?? ""))} · ${periodLabel} · generated ${new Date().toISOString().slice(0, 10)} · Mondaily</div>
+    </div>
+    <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
+      ${kpi("Tasks completed", t.completed)}${kpi("Open", t.open)}${kpi("Overdue", t.overdue)}${kpi("Decisions", decisionsResolved)}
+    </tr></table>
+    <div style="padding:16px 24px;border-bottom:1px solid #e8e8e4">
+      <div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tasks</div>
+      ${bars([{ label: "Completed", value: t.completed, color: "#44bb8f" }, { label: "Open", value: t.open, color: "#8a8a92" }, { label: "Overdue", value: t.overdue, color: "#d1524a" }])}
+    </div>
+    <div style="padding:16px 24px;border-bottom:1px solid #e8e8e4">
+      <div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Deals (${dealRoll.owned} owned)</div>
+      ${bars([{ label: "Won", value: dealRoll.won, color: "#44bb8f" }, { label: "Open", value: dealRoll.open, color: "#8a8a92" }, { label: "Lost", value: dealRoll.lost, color: "#d1524a" }])}
+    </div>
+    <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
+      ${kpi("AI credits", credits.toLocaleString(), periodLabel)}${kpi("Messages sent", messagesSent, periodLabel)}
+    </tr></table>
+    ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above — validated, nothing invented.</p></div>` : ""}
+    <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for the ${periodLabel}. Nothing is estimated.</p></div>
+  </div></body></html>`;
+
+  let emailed = false;
+  if (body.email) {
+    const to = String(member.email ?? "").trim();
+    if (!to) return c.json({ error: "This member has no email on file." }, 400);
+    emailed = await sendTransactionalEmail({
+      subject: `Your Mondaily team report — ${periodLabel}`,
+      to: [{ email: to, name: (member.name as string | undefined) ?? undefined }],
+      body: html,
+    });
+    if (!emailed) return c.json({ ok: false, html, emailed: false, reason: "mail_not_configured_or_send_failed" });
+  }
+  return c.json({ ok: true, html, emailed, insight_included: insight != null });
 });
 
 export { router as activitiesRouter };

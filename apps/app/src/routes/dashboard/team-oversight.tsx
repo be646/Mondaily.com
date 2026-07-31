@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer, Target, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
-import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
+import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection, ActionMenu } from "../../components/ui/controls";
 import { ErrorState } from "../../components/ui/page-state";
 import { SuggestionHints } from "../../components/ui/ai-button";
 import { PeriodSelector } from "../../components/ui/period-selector";
@@ -294,11 +294,12 @@ function OversightAsk() {
   const suggestions = ["Who has the most overdue work?", "Who is contributing to decisions?", "How is deal ownership spread across the team?"];
   return (
     <div className="mb-5">
+      {/* The Home ai-composer idiom, compact: one-line box, same focus ring family. */}
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }}
-        className="flex items-center gap-2 border-b px-1 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+        className="ai-composer flex items-center gap-2 !py-1.5">
         <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…" aria-label="Ask about your team, grounded in recorded data"
-          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
+          className="ai-composer-input min-w-0 flex-1 text-[13px]" />
         {/* Accent AI-action style — same recognizable primary treatment as .btn-primary across the app. */}
         <button type="submit" disabled={ask.isPending || !q.trim()} aria-label="Ask about your team"
           className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
@@ -307,15 +308,7 @@ function OversightAsk() {
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {suggestions.map((sg) => (
-            <button key={sg} onClick={() => { setQ(sg); ask.mutate(sg); }}
-              className="rounded-md border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
-              style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-              {sg}
-            </button>
-          ))}
-        </div>
+        <SuggestionHints className="mt-2" items={suggestions} onPick={(sg) => { setQ(sg); ask.mutate(sg); }} />
       )}
       {(ask.data || ask.isPending) && (
         <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
@@ -767,6 +760,22 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
   // query still auto-runs and every handler is preserved.
   type MemberTab = "overview" | "quality" | "ai" | "activity" | "timeline";
   const [tab, setTab] = useState<MemberTab>("overview");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
+  async function runReport(mode: "download" | "email") {
+    setReportBusy(true);
+    try {
+      const r = await apiClient.post<{ ok: boolean; html: string; emailed: boolean; reason?: string }>("/activities/member-report", { actor_id: op.operator_id, days: 30, email: mode === "email" });
+      if (mode === "email") {
+        setReportMsg(r.emailed ? `Report emailed to ${op.name}.` : "Couldn't send — mail isn't configured or the send failed.");
+      } else {
+        const url = URL.createObjectURL(new Blob([r.html], { type: "text/html" }));
+        const a = document.createElement("a"); a.href = url; a.download = `${op.name.replace(/\s+/g, "-").toLowerCase()}-report.html`; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch { setReportMsg("Couldn't build the report right now."); }
+    finally { setReportBusy(false); }
+  }
   const TABS: { id: MemberTab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "quality", label: "Work quality" },
@@ -821,10 +830,15 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })} title="Video" aria-label={`Video call ${op.name}`} className="btn-icon h-7 w-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"><Video size={13} /></button>
             </>
           )}
-          <button onClick={() => window.print()} title="Print / save this member's report as PDF" aria-label={`Print ${op.name}'s report`}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <Printer size={11} style={{ color: "var(--section-accent)" }} /> Print report
-          </button>
+          {/* Report menu — a REAL composed report (KPIs, bar charts, grounded AI paragraph) from
+              POST /activities/member-report. Download exports the HTML; Email sends it to the
+              member's address (server resolves the recipient — never client-supplied). */}
+          <ActionMenu triggerLabel={reportBusy ? "Report…" : "Report"} align="right" ariaLabel={`Report actions for ${op.name}`} items={[
+            { key: "download", label: "Download report", icon: Printer, disabled: reportBusy, onClick: () => void runReport("download") },
+            { key: "email", label: `Email report to ${op.name.split(" ")[0]}`, icon: Send, disabled: reportBusy, onClick: () => void runReport("email") },
+            { key: "print", label: "Print this page", icon: Printer, onClick: () => window.print() },
+          ]} />
+          {reportMsg && <span className="text-[10.5px]" style={{ color: "var(--text-muted)" }} role="status">{reportMsg}</span>}
         </div>
       </div>
 

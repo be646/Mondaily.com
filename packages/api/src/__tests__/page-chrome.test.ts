@@ -209,3 +209,26 @@ describe("hairline tokens — no hardcoded structural border hex (LINES pass)", 
     expect((css.match(/--border-faint:/g) ?? []).length).toBe(4);
   });
 });
+
+describe("member report (Team Oversight) — real numbers, grounded AI, safe email", () => {
+  const activities = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+  it("endpoint is admin-gated, recipient is server-resolved, AI paragraph is grounding-validated", () => {
+    const r = activities.slice(activities.indexOf('router.post("/member-report"'));
+    expect(r).toContain("requireAuth, requireAdminRole");
+    expect(r).toMatch(/member\.email/);                       // recipient from DB, never the body
+    expect(r).not.toMatch(/body\.(to|recipient|email_to)/);
+    expect(r).toMatch(/groundingViolations\(candidate, digest\)\.length === 0/);
+    expect(r).toContain("report ships without the AI paragraph");
+  });
+  it("the dossier Report menu wires download + email through the endpoint", () => {
+    const t = app("routes/dashboard/team-oversight.tsx");
+    expect(t).toMatch(/\/activities\/member-report/);
+    expect(t).toMatch(/email: mode === "email"/);
+    expect(t).toMatch(/Download report/);
+  });
+  it("the oversight composer runs the Home ai-composer idiom with SuggestionHints", () => {
+    const t = app("routes/dashboard/team-oversight.tsx");
+    expect(t).toMatch(/className="ai-composer flex items-center gap-2/);
+    expect(t).toMatch(/<SuggestionHints className="mt-2" items=\{suggestions\}/);
+  });
+});
