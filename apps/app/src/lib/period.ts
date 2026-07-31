@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { compareWindows } from "@mondaily/shared/baseline";
 
 /**
  * Shared reporting-period system. The ledger is ALWAYS cumulative — nothing is ever reset;
@@ -84,8 +85,14 @@ export function inRange(dateISO: string | null | undefined, range: DateRange): b
 
 /** Percentage change current-vs-previous. null when there is no comparable base. */
 export function deltaPct(current: number, previous: number): number | null {
-  if (previous === 0) return current === 0 ? 0 : null;
-  return Math.round(((current - previous) / Math.abs(previous)) * 100);
+  // Delegates to THE shared baseline engine: a percentage exists ONLY when the previous window
+  // is a real baseline (engine kind "pct" / "flat"). New/raw/none windows return null so no
+  // surface can render a wild % off a tiny or missing baseline. (Rules + tests live in
+  // @mondaily/shared/baseline.)
+  const c = compareWindows(Math.round(current), Math.round(previous));
+  if (c.kind === "pct") return c.pct;
+  if (c.kind === "flat") return 0;
+  return null;
 }
 
 export function periodLabel(p: Period): string {
