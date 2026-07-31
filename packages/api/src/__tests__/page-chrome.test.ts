@@ -226,9 +226,11 @@ describe("member report (Team Oversight) — real numbers, grounded AI, safe ema
     expect(t).toMatch(/email: mode === "email"/);
     expect(t).toMatch(/Download report/);
   });
-  it("the oversight composer runs the Home ai-composer idiom with SuggestionHints", () => {
+  it("the oversight composer is hairline — underline row + hairline suggestion rows", () => {
+    // Re-pointed same-day: the user picked the hairline treatment over the boxed ai-composer.
     const t = app("routes/dashboard/team-oversight.tsx");
-    expect(t).toMatch(/className="ai-composer flex items-center gap-2/);
-    expect(t).toMatch(/<SuggestionHints className="mt-2" items=\{suggestions\}/);
+    expect(t).toMatch(/Hairline composer — no box/);
+    expect(t).not.toMatch(/className="ai-composer/);
+    expect(t).toMatch(/suggestions\.map\(\(sg\)/);
   });
 });

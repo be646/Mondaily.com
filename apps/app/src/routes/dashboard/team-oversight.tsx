@@ -182,12 +182,12 @@ function TeamCharts({ operators, onSelect, windowLabel }: { operators: Operator[
 function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
   if (!points || points.length === 0) return null;
   const max = points.reduce((m, p) => Math.max(m, p.value), 0) || 1;
-  const W = 100, H = 28;
+  const W = 100, H = 48;
   const step = points.length > 1 ? W / (points.length - 1) : W;
   const coords = points.map((p, i) => `${(i * step).toFixed(2)},${(H - (p.value / max) * (H - 2) - 1).toFixed(2)}`);
   const total = points.reduce((s, p) => s + p.value, 0);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-8 w-full" role="img" aria-label={`trend total ${total}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-16 w-full" role="img" aria-label={`trend total ${total}`}>
       <polyline points={coords.join(" ")} fill="none" stroke={tone} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
     </svg>
   );
@@ -213,7 +213,7 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
               <span className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{periodLabel}</span>
             </div>
             <div className="mt-2 text-[23px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(total)}</div>
-            <div className="mt-2.5 h-8">{total === 0 ? <div className="pt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>—</div> : <Sparkline points={t.pts} tone={t.tone} />}</div>
+            <div className="mt-2.5 h-16">{total === 0 ? <div className="pt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>—</div> : <Sparkline points={t.pts} tone={t.tone} />}</div>
           </div>
         );
       })}
@@ -295,11 +295,12 @@ function OversightAsk() {
   return (
     <div className="mb-5">
       {/* The Home ai-composer idiom, compact: one-line box, same focus ring family. */}
+      {/* Hairline composer — no box: one underline, sparkle left, quiet Ask right. */}
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }}
-        className="ai-composer flex items-center gap-2 !py-1.5">
+        className="flex items-center gap-2 border-b px-1 pb-2" style={{ borderColor: "var(--border-soft)" }}>
         <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…" aria-label="Ask about your team, grounded in recorded data"
-          className="ai-composer-input min-w-0 flex-1 text-[13px]" />
+          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
         {/* Accent AI-action style — same recognizable primary treatment as .btn-primary across the app. */}
         <button type="submit" disabled={ask.isPending || !q.trim()} aria-label="Ask about your team"
           className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
@@ -308,7 +309,15 @@ function OversightAsk() {
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <SuggestionHints className="mt-2" items={suggestions} onPick={(sg) => { setQ(sg); ask.mutate(sg); }} />
+        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          {suggestions.map((sg) => (
+            <button key={sg} onClick={() => { setQ(sg); ask.mutate(sg); }}
+              className="flex w-full items-center gap-2 px-1 py-2 text-left text-[12.5px] transition-colors hover:text-[var(--text-primary)]"
+              style={{ color: "var(--text-muted)", borderColor: "var(--border-soft)" }}>
+              <span className="text-[var(--text-faint)]">↳</span> {sg}
+            </button>
+          ))}
+        </div>
       )}
       {(ask.data || ask.isPending) && (
         <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
@@ -859,30 +868,35 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
       {/* Overview as a dashboard — the same real numbers, grouped into meaningful sections (workload
           in flight · delivered · AI & comms) instead of one 9-tile wall. Each is the shared MetricGrid. */}
       <div className="py-1">
-        <Section title="Workload">
-          <MetricGrid cols={3} items={[
+        {/* Dense overview — full-width hairline strips instead of five sparse 3-col sections
+            (the "empty layer" complaint: each old row used a third of the width). Same numbers. */}
+        <div className="px-4 pt-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Work · delivered</p>
+          <MetricGrid cols={6} items={[
             { label: "Tasks", value: fmt(op.task_count) },
-            { label: "Open tasks", value: fmt(op.open_tasks ?? 0) },
+            { label: "Open", value: fmt(op.open_tasks ?? 0) },
             { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "var(--status-warn)" : undefined },
-          ]} />
-        </Section>
-        <Section title="Delivered">
-          <MetricGrid cols={3} items={[
             { label: "Completed", value: fmt(op.completed_tasks ?? 0) },
             { label: "Records touched", value: fmt(op.records_touched ?? 0) },
             { label: "Decisions", value: fmt(op.decisions_resolved ?? 0) },
           ]} />
-        </Section>
-        <Section title="AI & comms">
-          <MetricGrid cols={3} items={[
+        </div>
+        <div className="px-4 pt-4">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>AI · comms{myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) ? " · velocity" : ""}</p>
+          <MetricGrid cols={6} items={[
             { label: "AI credits", value: fmt(op.tokens) },
             { label: "Credits / task", value: fmt(op.complexity_delta) },
             { label: "Messages", value: fmt(op.messages_sent ?? 0) },
+            ...(myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) ? [
+              { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
+              { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
+              { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
+            ] : []),
           ]} />
-        </Section>
-        {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
+        </div>
         {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
-          <Section title="Deals">
+          <div className="px-4 pt-4">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Deals</p>
             <MetricGrid cols={5} items={[
               { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
               { label: "Open", value: fmt(op.deals_open ?? 0) },
@@ -890,17 +904,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "var(--status-error)" },
               { label: "Updated", value: fmt(op.deals_updated ?? 0) },
             ]} />
-          </Section>
-        )}
-        {/* Per-member velocity — real cycle times, honest nulls (only when the advanced payload is loaded) */}
-        {myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) && (
-          <Section title="Velocity">
-            <MetricGrid cols={3} items={[
-              { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
-              { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
-              { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
-            ]} />
-          </Section>
+          </div>
         )}
         {/* This member's goals — live attainment against real targets (only their own goals). */}
         {myGoals.length > 0 && (
