@@ -16,6 +16,7 @@ import {
 import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
 import { generateTotpSecret, verifyTotp, otpauthUrl, generateRecoveryCodes, hashRecoveryCode, signMfaToken, verifyMfaToken } from "../lib/totp";
+import { TRUST_COOKIE, signTrustToken, verifyTrustToken } from "../lib/totp";
 import { grantCredits } from "../lib/credits";
 import { grantAmountFor } from "@mondaily/shared/pricing";
 import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
@@ -227,6 +228,14 @@ router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), a
   // instead of a session. Rows without the migrated columns simply don't have totp_enabled_at,
   // so this is a no-op until enrollment exists — no lockout path.
   if ((cred as Record<string, unknown>).totp_enabled_at) {
+    // Trusted device: a valid 30-day trust cookie bound to (user, current enabled_at) skips the
+    // prompt. Re-enrolling 2FA changes enabled_at → every previously trusted device re-prompts.
+    const trustRaw = getCookie(c, TRUST_COOKIE);
+    const enabledAtIso = String((cred as Record<string, unknown>).totp_enabled_at);
+    if (trustRaw && await verifyTrustToken(trustRaw, cred.user_id as string, enabledAtIso)) {
+      await issueSession(c, cred.user_id as string, cred.email as string, c.req.header("user-agent"));
+      return c.json({ userId: cred.user_id, email: cred.email, ...(await sessionProfile(cred.user_id as string)) });
+    }
     return c.json({ mfa_required: true, mfa_token: await signMfaToken(cred.user_id as string, cred.email as string) });
   }
   await issueSession(c, cred.user_id as string, cred.email as string, c.req.header("user-agent"));
@@ -236,8 +245,8 @@ router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), a
 // ── Two-factor auth (TOTP, RFC 6238, in-house — see lib/totp.ts) ────────────────
 
 /** POST /auth/2fa/login — complete a 2FA login: mfa token (password proof) + TOTP or recovery code. */
-router.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidator("json", z.object({ mfa_token: z.string().min(1), code: z.string().min(6).max(16) })), async (c) => {
-  const { mfa_token, code } = c.req.valid("json");
+router.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidator("json", z.object({ mfa_token: z.string().min(1), code: z.string().min(6).max(64), trust_device: z.boolean().optional() })), async (c) => {
+  const { mfa_token, code, trust_device } = c.req.valid("json");
   const claims = await verifyMfaToken(mfa_token);
   if (!claims) return c.json({ error: "This sign-in attempt expired — enter your password again." }, 401);
   const { data: cred } = await supabase.from("auth_credentials").select("*").eq("user_id", claims.sub).maybeSingle();
@@ -258,6 +267,14 @@ router.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidato
     }
   }
   if (!ok) return c.json({ error: "That code didn't match. Codes rotate every 30 seconds — try the current one." }, 401);
+  // REAL device trust: HttpOnly 30-day cookie signed against (user, enabled_at). Only set when
+  // the user asked for it, only after a successful second factor.
+  if (trust_device) {
+    const enabledAtIso = String((cred as Record<string, unknown>).totp_enabled_at);
+    setCookie(c, TRUST_COOKIE, await signTrustToken(claims.sub, enabledAtIso), {
+      httpOnly: true, secure: true, sameSite: "Strict", path: "/api/v1/auth", maxAge: 30 * 24 * 60 * 60,
+    });
+  }
   await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
   return c.json({ userId: claims.sub, email: claims.email, ...(await sessionProfile(claims.sub)) });
 });
@@ -384,8 +401,14 @@ router.post("/reset-password", rateLimit(), requirePow, zValidator("json", z.obj
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").update({ password_hash, updated_at: new Date().toISOString() }).eq("user_id", claims.sub);
   if (error) return c.json({ error: error.message }, 400);
-  // Invalidate every existing session, then sign this device in fresh.
+  // Invalidate every existing session.
   await supabase.from("auth_refresh_tokens").update({ revoked_at: new Date().toISOString() }).eq("user_id", claims.sub).is("revoked_at", null);
+  // SECURITY: a reset link only proves EMAIL possession. With 2FA enrolled, that must never be
+  // enough for a session — the password is reset, but sign-in still requires the second factor.
+  const { data: credRow } = await supabase.from("auth_credentials").select("totp_enabled_at").eq("user_id", claims.sub).maybeSingle();
+  if ((credRow as Record<string, unknown> | null)?.totp_enabled_at) {
+    return c.json({ ok: true, mfa_required: true, mfa_token: await signMfaToken(claims.sub, claims.email) });
+  }
   await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
   return c.json({ ok: true, ...(await sessionProfile(claims.sub)) });
 });

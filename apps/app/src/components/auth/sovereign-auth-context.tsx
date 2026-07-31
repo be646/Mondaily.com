@@ -48,7 +48,8 @@ interface SovereignAuthValue {
   user: SovereignUser | null;
   /** Returns { requiresActivation: true } for legacy users with no password yet. */
   login: (email: string, password: string) => Promise<{ requiresActivation?: boolean; mfaToken?: string }>;
-  completeMfa: (mfaToken: string, code: string) => Promise<void>;
+  /** trustDevice=true asks the server to set the signed 30-day md_2fa_trust cookie. */
+  completeMfa: (mfaToken: string, code: string, trustDevice?: boolean) => Promise<void>;
   /** New account: creates credentials + a fresh workspace (owner). Pass a pre-solved PoW to drive
    *  a visible shield; omit it and the call solves one internally. */
   register: (email: string, password: string, name?: string, pow?: Pow) => Promise<void>;
@@ -58,8 +59,10 @@ interface SovereignAuthValue {
   activate: (token: string, password: string) => Promise<void>;
   /** Email a short-lived password-reset link to the address on file. */
   requestPasswordReset: (email: string, pow?: Pow) => Promise<void>;
-  /** Set a new password using the emailed reset token (signs the user in). */
-  resetPassword: (token: string, password: string, pow?: Pow) => Promise<void>;
+  /** Set a new password using the emailed reset token. Signs the user in — UNLESS 2FA is
+   *  enrolled, in which case the password is reset but a second factor is still required:
+   *  returns { mfaToken } for the caller to complete via completeMfa. */
+  resetPassword: (token: string, password: string, pow?: Pow) => Promise<{ mfaToken?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
   /** Re-fetch /me and update the cached profile (e.g. after an avatar/name change). */
@@ -143,8 +146,8 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
-  const completeMfa = useCallback(async (mfaToken: string, code: string) => {
-    const r = await authCall<MeResp & { error?: string }>("/2fa/login", { mfa_token: mfaToken, code });
+  const completeMfa = useCallback(async (mfaToken: string, code: string, trustDevice = false) => {
+    const r = await authCall<MeResp & { error?: string }>("/2fa/login", { mfa_token: mfaToken, code, trust_device: trustDevice });
     if (r.status === 200 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data), r.data.workspaceId); return; }
     throw new Error(r.data.error || "That code didn't match.");
   }, []);
@@ -174,11 +177,14 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = useCallback(async (token: string, password: string, pow?: Pow) => {
     const solved = pow ?? await getPow();
-    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password, ...solved });
-    if (r.status === 200 && (r.data as { ok?: boolean }).ok !== false) {
+    const r = await authCall<MeResp & { ok?: boolean; mfa_required?: boolean; mfa_token?: string; error?: string }>("/reset-password", { token, password, ...solved });
+    if (r.status === 200 && r.data.ok !== false) {
+      // 2FA enrolled: password IS reset, but the reset link only proves email possession — the
+      // second factor is still required before a session exists.
+      if (r.data.mfa_required && r.data.mfa_token) return { mfaToken: r.data.mfa_token };
       const me = await authCall<MeResp>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { purgeSessionState(); setAuthed(toUser(me.data), me.data.workspaceId); return; }
-      return;
+      if (me.status === 200 && me.data.userId) { purgeSessionState(); setAuthed(toUser(me.data), me.data.workspaceId); }
+      return {};
     }
     throw new Error(r.data.error || "Could not reset your password.");
   }, []);

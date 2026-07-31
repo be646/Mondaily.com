@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldCheck, ArrowLeft, AlertTriangle } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton } from "../../components/auth/auth-shell";
+import { MfaCard } from "../../components/auth/mfa-card";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
 
 function pwIssues(pw: string): string | null {
@@ -17,12 +18,13 @@ export function ShadowResetPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
-  const { resetPassword } = useSovereignAuth();
+  const { resetPassword, completeMfa } = useSovereignAuth();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
 
   const pwError = password ? pwIssues(password) : null;
   const matchError = confirm && confirm !== password ? "Passwords don't match." : null;
@@ -33,13 +35,25 @@ export function ShadowResetPage() {
     if (!valid || loading) return;
     setError(null); setLoading(true);
     try {
-      await resetPassword(token, password);
+      const r = await resetPassword(token, password);
+      // 2FA enrolled: the password is reset, but a reset email only proves email possession —
+      // the authenticator (or a recovery code) is still required to actually sign in.
+      if (r.mfaToken) { setMfaToken(r.mfaToken); return; }
       navigate("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reset your password.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (mfaToken) {
+    return (
+      <MfaCard
+        onSubmit={async (code, trustDevice) => { await completeMfa(mfaToken, code, trustDevice); navigate("/home"); }}
+        onBack={() => navigate("/auth/shadow-login")} backLabel="Back to sign in"
+      />
+    );
   }
 
   if (!token) {

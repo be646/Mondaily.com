@@ -70,11 +70,17 @@ export function otpauthUrl(secretB32: string, email: string): string {
   return `otpauth://totp/Mondaily:${encodeURIComponent(email)}?secret=${secretB32}&issuer=Mondaily&algorithm=SHA1&digits=6&period=30`;
 }
 
-// ── recovery codes — 8× 10-char codes, stored hashed, single-use ────────────────
+// ── recovery codes — 8× four-word phrases, stored hashed, single-use ────────────
+// Words instead of random strings because these are BREAK-GLASS keys a human writes on paper:
+// "maple-orbit-crane-delta" survives handwriting and re-typing; "k7xq2-m9zzt" doesn't. They are
+// NOT meant to be memorized — they're meant to be stored. Entropy: 4 words from 256 = 32 bits
+// per code, defended by single-use + password-first (the mfa token) + strict rate limits.
+const WORDS = ("acre amber arch atlas basil beacon birch bloom bolt brook cedar chalk cliff cloud comet coral crane creek delta drift dune ember fable fern flint frost gale glade grove harbor hazel heron ivory jade juniper kelp knoll lagoon larch ledge linen lotus lumen maple marsh mesa mist moss north oak ocean olive onyx opal orbit osprey otter pearl pine plume prairie quill reef ridge river robin rowan sage sand shale shore sierra slate sparrow spruce stone summit swift tarn teak thistle tide timber topaz trail tundra vale violet wharf willow wren zephyr alder aspen bay bramble briar cairn canyon cape cove crag cypress dawn dell eddy elm falcon fen field fjord flare foam ford fox garnet geyser gill gorge grain gulf gull heath hollow inlet iris isle jetty karst kestrel lark lava lichen loch magma mead meadow mineral moor moraine nectar ness nimbus oat orchard outcrop oxbow palm pampas peak peat pebble petal pika pinyon plain plateau pond pool poppy pumice quarry quartz rain rapids raven reed ripple roost rye saffron sagebrush salt savanna sea sedge seed sequoia silt sky sleet slope snow sol sorrel spire spring sprout star steppe strait stream sumac summitry sun surf swale sward talus terrace thicket thorn torrent tor trellis tributary tuff tule tup tussock vernal vetch vine wadi wave weald wheat whin wick wold woodland yarrow yew yucca zenith basin bluff briarwood butte cascade channel chasm cinder cirque coast crest current darkwood dell2 dingle down escarp estuary firth flat floe fount".split(/\s+/)).slice(0, 256);
+
 export function generateRecoveryCodes(): { plain: string[]; hashes: string[] } {
   const plain = Array.from({ length: 8 }, () => {
-    const raw = base32Encode(randomBytes(6)).slice(0, 10).toLowerCase();
-    return `${raw.slice(0, 5)}-${raw.slice(5)}`;
+    const b = randomBytes(4);
+    return [b[0]!, b[1]!, b[2]!, b[3]!].map(n => WORDS[n % WORDS.length]!).join("-");
   });
   return { plain, hashes: plain.map(p => createHash("sha256").update(p).digest("hex")) };
 }
@@ -102,4 +108,22 @@ export async function verifyMfaToken(token: string): Promise<{ sub: string; emai
     if (p.type !== "mfa" || typeof p.sub !== "string") return null;
     return { sub: p.sub, email: String(p.email ?? "") };
   } catch { return null; }
+}
+
+// ── device trust — "don't ask on this device for 30 days" (REAL, revocable) ─────
+// A signed 30-day token bound to (user, the CURRENT totp_enabled_at). Re-enrolling 2FA changes
+// enabled_at, which invalidates every previously trusted device automatically.
+const TRUST_TTL_SECONDS = 30 * 24 * 60 * 60;
+export const TRUST_COOKIE = "md_2fa_trust";
+
+export async function signTrustToken(userId: string, enabledAtIso: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign({ sub: userId, type: "mfa_trust", tea: enabledAtIso, iat: now, exp: now + TRUST_TTL_SECONDS }, jwtSecret());
+}
+
+export async function verifyTrustToken(token: string, userId: string, enabledAtIso: string): Promise<boolean> {
+  try {
+    const p = (await verify(token, jwtSecret(), "HS256")) as Record<string, unknown>;
+    return p.type === "mfa_trust" && p.sub === userId && p.tea === enabledAtIso;
+  } catch { return false; }
 }

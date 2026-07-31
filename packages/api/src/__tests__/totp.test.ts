@@ -48,7 +48,11 @@ describe("2FA flow contracts (source-read)", () => {
   it("login never issues a session when 2FA is enabled; mfa token is the only bridge", () => {
     const a = read();
     expect(a).toContain("mfa_required: true");
-    expect(a).toMatch(/totp_enabled_at\) \{\s*\n\s*return c\.json\(\{ mfa_required/);
+    // 2026-07-31: the 2FA branch gained ONE bypass — a signed 30-day trust cookie, verified
+    // against (user, current totp_enabled_at) so re-enrollment revokes every trusted device.
+    // Anything else inside the branch must still return mfa_required, never a session.
+    expect(a).toMatch(/verifyTrustToken\(trustRaw, cred\.user_id as string, enabledAtIso\)/);
+    expect(a).toMatch(/return c\.json\(\{ mfa_required: true, mfa_token: await signMfaToken\(cred\.user_id/);
     expect(a).toContain("no lockout path");
   });
   it("recovery codes are single-use and returned exactly once; disable needs possession proof", () => {

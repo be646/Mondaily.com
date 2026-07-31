@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Download, LockKeyhole, Plus, Shield, Smartphone, X, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, Copy, Download, KeyRound, LockKeyhole, Plus, Shield, ShieldCheck, Smartphone, X, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
+import { qrSvg } from "../../../lib/qr";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { FieldSelect } from "../../../components/ui/controls";
@@ -53,16 +54,20 @@ function AccessToggle({ checked, onChange }: { checked: boolean; onChange: (v: b
 }
 
 
-// ── Two-factor authentication (TOTP) — enroll, recovery codes, disable ─────────
+// ── Two-factor authentication (TOTP) — enroll (QR + key), recovery codes, disable ─────────
 function TwoFactorSection() {
   const [status, setStatus] = useState<{ available: boolean; enabled: boolean; recovery_codes_left?: number } | null>(null);
   const [setup, setSetup] = useState<{ secret: string; otpauth: string } | null>(null);
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState<string[] | null>(null);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const load = () => apiClient.get<{ available: boolean; enabled: boolean; recovery_codes_left?: number }>("/auth/2fa/status").then(setStatus).catch(() => setStatus(null));
   useEffect(() => { void load(); }, []);
+  // The QR encodes the otpauth URL — generated fully client-side (vendored encoder, verified
+  // against a real decoder); the secret never travels anywhere for rendering.
+  const qr = useMemo(() => (setup ? qrSvg(setup.otpauth, 168) : null), [setup]);
   if (!status) return null;
 
   async function act(path: string, body: Record<string, unknown>, after: (r: never) => void) {
@@ -72,56 +77,103 @@ function TwoFactorSection() {
     finally { setBusy(false); }
   }
 
+  const codesLeft = status.recovery_codes_left ?? 0;
+
   return (
     <section className="settings-section">
-      <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Two-factor authentication</h2>
-      {!status.available ? (
-        <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Not available yet — the 2FA migration hasn't been applied to this deployment.</p>
-      ) : status.enabled ? (
-        <div className="mt-2 space-y-3">
-          <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>
-            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "var(--status-ok)" }} />
-            Enabled — sign-in requires your authenticator code. {status.recovery_codes_left ?? 0} recovery code{(status.recovery_codes_left ?? 0) === 1 ? "" : "s"} remaining.
-          </p>
-          <div className="flex items-center gap-2">
-            <input value={code} onChange={e => setCode(e.target.value)} placeholder="Current code to disable" inputMode="numeric"
-              className="key-input h-8 w-48 px-3 text-[12px]" />
-            <button disabled={busy || code.trim().length < 6} onClick={() => void act("/auth/2fa/disable", { code: code.trim() }, () => { setCode(""); })}
-              className="btn-secondary h-8 px-3 text-[12px] font-medium">Disable 2FA</button>
+      <div className="settings-section-header">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={14} className="text-[var(--text-muted)]" />
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Two-factor authentication</h2>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${status.enabled ? "bg-[#2f9e6b]/10 text-[#2f9e6b]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
+          {!status.available ? "Unavailable" : status.enabled ? "Enabled" : "Off"}
+        </span>
+      </div>
+      <div className="p-5">
+        {!status.available ? (
+          <p className="text-sm text-[var(--text-muted)]">Not available yet — the 2FA migration hasn't been applied to this deployment.</p>
+        ) : status.enabled ? (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--text-secondary)]">
+              Every sign-in requires a code from your authenticator app. Devices you've marked as
+              trusted skip the code for 30 days; re-enrolling 2FA revokes all trusted devices at once.
+            </p>
+            <div className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3.5 py-2.5 text-[12.5px]" style={{ color: "var(--text-secondary)" }}>
+              <KeyRound size={13} className="shrink-0 text-[var(--text-muted)]" />
+              <span><b>{codesLeft}</b> recovery code{codesLeft === 1 ? "" : "s"} remaining — these are your break-glass keys if you <i>lose the authenticator itself</i>. (A forgotten password uses the email reset link instead — but with 2FA on, even that still asks for a code.)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={code} onChange={e => setCode(e.target.value)} placeholder="Current code to disable" inputMode="numeric"
+                className="key-input h-9 w-52 px-3 text-[12.5px]" />
+              <button disabled={busy || code.trim().length < 6} onClick={() => void act("/auth/2fa/disable", { code: code.trim() }, () => { setCode(""); })}
+                className="btn-secondary h-9 px-3 text-[12px] font-medium">Disable 2FA</button>
+            </div>
           </div>
-        </div>
-      ) : setup ? (
-        <div className="mt-2 space-y-3">
-          <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>Add this key to your authenticator app (Google Authenticator, 1Password, Aegis…):</p>
-          <p className="rounded-md border px-3 py-2 font-mono text-[13px] tracking-wider" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{setup.secret}</p>
-          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Or open <a className="underline" href={setup.otpauth}>this otpauth link</a> on a device with your authenticator installed. Nothing is enforced until you verify below — abandoning setup can't lock you out.</p>
-          <div className="flex items-center gap-2">
-            <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" autoFocus
-              className="key-input h-8 w-36 px-3 text-center font-mono text-[13px]" />
-            <button disabled={busy || code.trim().length < 6}
-              onClick={() => void act("/auth/2fa/enable", { code: code.trim() }, (r) => { setRecovery((r as { recovery_codes?: string[] }).recovery_codes ?? []); setSetup(null); setCode(""); })}
-              className="btn-primary h-8 px-3 text-[12px] font-semibold">Verify &amp; enable</button>
-            <button onClick={() => { setSetup(null); setCode(""); }} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+        ) : setup ? (
+          <div className="flex flex-wrap items-start gap-6">
+            {qr && (
+              <div className="shrink-0 overflow-hidden rounded-md border border-[var(--border-soft)] bg-white p-2"
+                dangerouslySetInnerHTML={{ __html: qr }} />
+            )}
+            <div className="min-w-[260px] flex-1 space-y-3.5">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">1 · Scan with your authenticator</p>
+                <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Google Authenticator, 1Password, Aegis, Apple Passwords… Can't scan? Enter the key manually:</p>
+              </div>
+              <div className="flex h-9 items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+                <code className="min-w-0 flex-1 truncate px-3 font-mono text-[12px] tracking-wider text-[var(--text-primary)]">{setup.secret}</code>
+                <button onClick={() => { navigator.clipboard.writeText(setup.secret); setCopiedKey(true); setTimeout(() => setCopiedKey(false), 2000); }}
+                  className="px-3 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]" aria-label="Copy key">
+                  {copiedKey ? <Check size={13} className="text-[#2f9e6b]" /> : <Copy size={13} />}
+                </button>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">2 · Verify a code to turn it on</p>
+                <p className="mt-0.5 text-[12px] text-[var(--text-faint)]">Nothing is enforced until this succeeds — abandoning setup can't lock you out.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" autoFocus
+                  className="key-input h-9 w-36 px-3 text-center font-mono text-[13px]" />
+                <button disabled={busy || code.trim().length < 6}
+                  onClick={() => void act("/auth/2fa/enable", { code: code.trim() }, (r) => { setRecovery((r as { recovery_codes?: string[] }).recovery_codes ?? []); setSetup(null); setCode(""); })}
+                  className="btn-primary h-9 px-3 text-[12px] font-semibold">Verify &amp; enable</button>
+                <button onClick={() => { setSetup(null); setCode(""); }} className="text-[12px] text-[var(--text-muted)]">Cancel</button>
+              </div>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="mt-2">
-          <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>Add a 6-digit authenticator code to every sign-in. Built in-house (RFC 6238) — your secret never leaves this deployment.</p>
-          <button disabled={busy} onClick={() => void act("/auth/2fa/setup", {}, (r) => setSetup(r as { secret: string; otpauth: string }))}
-            className="btn-primary mt-2.5 h-8 px-3 text-[12px] font-semibold">Set up 2FA</button>
-        </div>
-      )}
-      {recovery && (
-        <div className="mt-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--status-warn)", background: "color-mix(in srgb, var(--status-warn) 6%, transparent)" }}>
-          <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Recovery codes — shown once, save them now</p>
-          <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>Each works exactly once if you lose your authenticator. We store only hashes — these cannot be shown again.</p>
-          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-[12.5px]" style={{ color: "var(--text-primary)" }}>
-            {recovery.map(rc => <span key={rc}>{rc}</span>)}
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="max-w-xl text-sm text-[var(--text-muted)]">Require an authenticator code on every sign-in. Built in-house (RFC 6238) — your secret never leaves this deployment.</p>
+            <button disabled={busy} onClick={() => void act("/auth/2fa/setup", {}, (r) => setSetup(r as { secret: string; otpauth: string }))}
+              className="btn-primary h-9 shrink-0 px-4 text-[12.5px] font-semibold">Set up 2FA</button>
           </div>
-          <button onClick={() => setRecovery(null)} className="btn-secondary mt-3 h-7 px-3 text-[11.5px] font-medium">I've saved them</button>
-        </div>
-      )}
-      {err && <p className="mt-2 text-[12px]" style={{ color: "var(--status-error)" }}>{err}</p>}
+        )}
+        {recovery && (
+          <div className="mt-4 rounded-md border px-4 py-3.5" style={{ borderColor: "var(--status-warn)", background: "color-mix(in srgb, var(--status-warn) 6%, transparent)" }}>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Recovery codes — shown once, save them now</p>
+            <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              These unlock your account if you <b>lose your authenticator device</b> — they are not for
+              forgotten passwords (that's the email reset link). Each phrase works exactly once. They're
+              words so they survive being written on paper and re-typed; store them, don't memorize them.
+              We keep only hashes — they can never be shown again.
+            </p>
+            <div className="mt-2.5 grid grid-cols-1 gap-x-6 gap-y-1 font-mono text-[12.5px] sm:grid-cols-2" style={{ color: "var(--text-primary)" }}>
+              {recovery.map(rc => <span key={rc}>{rc}</span>)}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button onClick={() => {
+                const blob = new Blob([`Mondaily 2FA recovery codes — each works once, for authenticator loss:\n\n${recovery.join("\n")}\n`], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = "mondaily-recovery-codes.txt"; a.click();
+                URL.revokeObjectURL(url);
+              }} className="btn-secondary h-8 gap-1.5 px-3 text-[11.5px] font-medium"><Download size={12} /> Download .txt</button>
+              <button onClick={() => setRecovery(null)} className="btn-secondary h-8 px-3 text-[11.5px] font-medium">I've saved them</button>
+            </div>
+          </div>
+        )}
+        {err && <p className="mt-3 text-[12px]" style={{ color: "var(--status-error)" }}>{err}</p>}
+      </div>
     </section>
   );
 }
