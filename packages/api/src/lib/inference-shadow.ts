@@ -21,6 +21,10 @@ export interface ShadowInput {
   taskClass?: string;
   feature?: string;
   messages: { role: string; content: string }[];
+  /** When mirroring a structured tool-use call, the same tools/tool_choice body is forwarded so
+   *  the shadow engine attempts the SAME structured extraction; its tool-call arguments (or plain
+   *  content as a fallback) become the compared text. */
+  toolsBody?: { tools: unknown[]; tool_choice: unknown };
   primary: { model: string; latencyMs: number; text: string; tokens: number };
 }
 
@@ -58,14 +62,16 @@ export async function maybeShadowMirror(input: ShadowInput): Promise<void> {
       const r = await fetch(`${base}/chat/completions`, {
         method: "POST",
         headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: cfg.modelOverride, max_tokens: 1024, messages: input.messages }),
+        body: JSON.stringify({ model: cfg.modelOverride, max_tokens: 1024, messages: input.messages, ...(input.toolsBody ?? {}) }),
         signal: AbortSignal.timeout(25000),
       });
       const latency = Date.now() - t0;
       if (!r.ok) shadow = { ok: false, latency, tokens: null, text: "", error: `HTTP ${r.status}` };
       else {
-        const j = await r.json() as { choices?: { message?: { content?: string } }[]; usage?: { total_tokens?: number } };
-        shadow = { ok: true, latency, tokens: j.usage?.total_tokens ?? null, text: j.choices?.[0]?.message?.content ?? "", error: null };
+        const j = await r.json() as { choices?: { message?: { content?: string; tool_calls?: { function?: { arguments?: string } }[] } }[]; usage?: { total_tokens?: number } };
+        const msg = j.choices?.[0]?.message;
+        const text = msg?.tool_calls?.[0]?.function?.arguments ?? msg?.content ?? "";
+        shadow = { ok: true, latency, tokens: j.usage?.total_tokens ?? null, text, error: null };
       }
     } catch (e) {
       shadow = { ok: false, latency: Date.now() - t0, tokens: null, text: "", error: e instanceof Error ? e.message.slice(0, 200) : "unreachable" };

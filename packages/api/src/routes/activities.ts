@@ -144,7 +144,13 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
   // Period filter (default 30d) — every windowed metric + trend recomputes for the chosen range.
   const days = Math.min(365, Math.max(1, Math.round(Number(c.req.query("days") ?? 30))));
-  const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  // CALENDAR-TRUE windows: when the client sends an explicit `since` ISO (lib/period's calendar
+  // start — midnight on the 1st, Sunday, Jan 1…), use it EXACTLY. `days` stays as the fallback
+  // and still shapes the previous-equal-window comparison length.
+  const sinceParam = Date.parse(String(c.req.query("since") ?? ""));
+  const sinceIso = Number.isFinite(sinceParam) && sinceParam < Date.now()
+    ? new Date(Math.max(sinceParam, Date.now() - 365 * 86_400_000)).toISOString()
+    : new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
   const nowIso = new Date().toISOString();
   const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([

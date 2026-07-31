@@ -730,8 +730,10 @@ export function TeamOversightPage() {
   const days = period === "all" ? 365 : calendarDays(period);
 
   const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
-    queryKey: ["oversight-matrix", days],
-    queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}`),
+    queryKey: ["oversight-matrix", days, period],
+    // Calendar-true: send the EXACT window start (midnight today / Sunday / the 1st…) so "Today"
+    // really means since midnight, not a rolling 24h. `days` still shapes the comparison window.
+    queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}&since=${encodeURIComponent(periodRange(period).start.toISOString())}`),
     refetchInterval: 30_000,
     retry: false,
   });

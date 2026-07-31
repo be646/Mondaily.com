@@ -368,3 +368,22 @@ describe("workspace deletion — slow, loud, reversible (approved design)", () =
     expect(ui).toContain('"/settings/export"');            // REAL export, not the settings form
   });
 });
+
+describe("deferred items closed — calendar-true Today + structured-path shadow", () => {
+  const read = (p: string) => require("node:fs").readFileSync(require("node:path").join(__dirname, p), "utf8");
+  it("the oversight matrix accepts an exact `since` ISO (calendar start), clamped to 365d", () => {
+    const a = read("../routes/activities.ts");
+    expect(a).toContain('c.req.query("since")');
+    expect(a).toContain("Math.max(sinceParam, Date.now() - 365 * 86_400_000)");
+    const t = read("../../../../apps/app/src/routes/dashboard/team-oversight.tsx");
+    expect(t).toContain("since=${encodeURIComponent(periodRange(period).start.toISOString())}");
+  });
+  it("tool-use calls mirror with the SAME tools body; shadow compares tool arguments", () => {
+    const gw = read("../lib/ai-gateway.ts");
+    const seg = gw.slice(gw.indexOf("export async function aiGatewayToolUse"));
+    expect(seg).toMatch(/void maybeShadowMirror\(/);
+    expect(seg).toContain("toolsBody:");
+    const sh = read("../lib/inference-shadow.ts");
+    expect(sh).toContain("tool_calls?.[0]?.function?.arguments ?? msg?.content");
+  });
+});

@@ -431,6 +431,17 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
 
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};
+  // Shadow evaluation for the STRUCTURED path — extraction is exactly the class a local model
+  // would earn first, so its comparisons matter most. Same switches, fire-and-forget, metadata-only.
+  void maybeShadowMirror({
+    workspaceId: req.workspaceId, taskClass: req.taskClass ?? "extraction", feature: req.feature,
+    messages: messages.map(m => ({ role: String(m.role), content: typeof m.content === "string" ? m.content : "" })),
+    toolsBody: {
+      tools: [{ type: "function", function: { name: req.toolName, description: req.toolDescription, parameters: req.toolSchema } }],
+      tool_choice: { type: "function", function: { name: req.toolName } },
+    },
+    primary: { model: resolved.modelId, latencyMs, text: toolCall.function.arguments, tokens: (completion.usage as { total_tokens?: number } | undefined)?.total_tokens ?? 0 },
+  });
   try {
     return JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
   } catch {
