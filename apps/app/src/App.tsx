@@ -1,3 +1,4 @@
+import { RestoreWorkspacePage } from "./routes/restore-workspace";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
@@ -129,6 +130,7 @@ export function App() {
       {/* PUBLIC guest call — no account; token rides in the URL fragment. Standalone (no dashboard). */}
       <Route path="/join/:eventId" element={<GuestCallPage />} />
       {/* Sovereign Auth — native cookie session (the sole auth runtime) */}
+      <Route path="/restore" element={<RestoreWorkspacePage />} />
       <Route path="/auth" element={<Outlet />}>
         <Route path="shadow-login" element={<ShadowLoginPage />} />
         <Route path="register" element={<ShadowRegisterPage />} />

@@ -54,6 +54,13 @@ export const requireAuth = createMiddleware<{
   if (dbError) throw new HTTPException(500, { message: `DB error: ${dbError.message}` });
   if (!membership) throw new HTTPException(403, { message: `User ${userId} not in workspace ${workspaceId}` });
 
+  // Soft-deleted workspace gate: a deleted workspace is INERT for everyone immediately (410, not
+  // 403 — "gone, restorable" is different from "not yours"). Cached 60s so the common path costs
+  // nothing; the restore endpoint uses requireJwt and is therefore not blocked by this gate.
+  if (await workspaceIsDeleted(workspaceId)) {
+    throw new HTTPException(410, { message: "This workspace has been deleted. The owner can restore it from the deletion email within 14 days." });
+  }
+
   c.set("userId", userId);
   c.set("workspaceId", workspaceId);
   c.set("role", membership.role);
@@ -91,3 +98,20 @@ export const requireAdmin = createMiddleware<{
   }
   await next();
 });
+
+// ── soft-delete cache ───────────────────────────────────────────────────────────
+// 60s TTL; deletion/restore call clearDeletedCache() so the gate reacts immediately in-region.
+const deletedCache = new Map<string, { deleted: boolean; at: number }>();
+export function clearDeletedCache(workspaceId: string) { deletedCache.delete(workspaceId); }
+async function workspaceIsDeleted(workspaceId: string): Promise<boolean> {
+  const hit = deletedCache.get(workspaceId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.deleted;
+  try {
+    const { data, error } = await supabase.from("workspaces").select("deleted_at").eq("id", workspaceId).maybeSingle();
+    // Column not migrated yet → feature off, never a lockout.
+    if (error) { deletedCache.set(workspaceId, { deleted: false, at: Date.now() }); return false; }
+    const deleted = !!data?.deleted_at;
+    deletedCache.set(workspaceId, { deleted, at: Date.now() });
+    return deleted;
+  } catch { return false; }
+}

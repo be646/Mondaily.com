@@ -328,3 +328,43 @@ describe("Brain advisor mode — opt-in, deduped, advisory risk, never auto-appr
     expect(a).toContain("a voice, not hands");   // docblock sits above the route slice
   });
 });
+
+describe("workspace deletion — slow, loud, reversible (approved design)", () => {
+  const read = (p: string) => require("node:fs").readFileSync(require("node:path").join(__dirname, p), "utf8");
+  it("soft delete: owner-only, typed confirmation, 14-day grace, honest unmigrated state", () => {
+    const a = read("../routes/app-data.ts");
+    const d = a.slice(a.indexOf('router.post("/settings/workspace/delete"'));
+    expect(d).toContain('c.get("role") !== "owner"');
+    expect(d).toContain("Type the workspace name exactly to confirm.");
+    expect(d).toContain("14 * 86_400_000");
+    expect(d).toContain("the soft-delete migration hasn't been applied");
+    // the old immediate hard-purge endpoint is retired, not lingering
+    const oldStart = a.indexOf('router.delete("/settings/workspace"');
+    const old = a.slice(oldStart, a.indexOf("router.", oldStart + 10));
+    expect(old).toContain("This endpoint is retired.");
+    expect(old).not.toMatch(/\.delete\(\)/);
+  });
+  it("the auth gate answers 410 for deleted workspaces and fails open pre-migration", () => {
+    const m = read("../middleware/auth.ts");
+    expect(m).toContain("await workspaceIsDeleted(workspaceId)");
+    expect(m).toContain("410");
+    expect(m).toContain("Column not migrated yet → feature off, never a lockout.");
+  });
+  it("purge: only after the window, paged deletes, per-table receipts, workspaces row LAST", () => {
+    const j = read("../jobs/workspace-purge.ts");
+    expect(j).toContain('lt("deleted_at", cutoff)');
+    expect(j).toMatch(/limit\(500\)/);
+    expect(j).toContain("receipt[table]");
+    expect(j).toContain("retained — a table failed; next run retries");
+  });
+  it("restore: owner-only, JWT path (bypasses the 410 gate), honest expired-window answer", () => {
+    const au = read("../routes/auth.ts");
+    const r = au.slice(au.indexOf('router.post("/restore-workspace"'));
+    expect(r).toContain('member?.role !== "owner"');
+    expect(r).toContain("restore window has passed");
+    const ui = read("../../../../apps/app/src/routes/dashboard/settings/workspace.tsx");
+    expect(ui).toContain("delete without exporting");      // export-first with explicit opt-out
+    expect(ui).toContain("Schedule deletion (14-day window)");
+    expect(ui).toContain('"/settings/export"');            // REAL export, not the settings form
+  });
+});

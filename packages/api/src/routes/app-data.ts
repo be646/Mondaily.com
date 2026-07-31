@@ -4,6 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { clearDeletedCache } from "../middleware/auth";
+import { sendTransactionalEmail } from "../lib/mail";
 import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
@@ -570,29 +572,11 @@ router.patch("/settings/profile", async (c) => {
 // workspace, and clears the caller's session cookies. (Admin-area write → middleware already
 // requires admin; we additionally require the strict 'owner' role.)
 router.delete("/settings/workspace", async (c) => {
-  const ws = c.get("workspaceId");
-  const userId = c.get("userId");
-  const { data: m } = await supabase.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
-  if (m?.role !== "owner") return c.json({ error: "Only the workspace owner can delete this workspace." }, 403);
-
-  // Best-effort per-table purge (a table that doesn't exist just no-ops), children before parents.
-  const tables = [
-    "activities", "agent_jobs", "decision_queue", "notifications", "ai_usage", "discovered_leads",
-    "chat_threads", "email_connections", "workflows", "sequences", "lists", "notes",
-    "invoices", "credit_notes", "quotes", "expenses", "reports", "dashboards",
-    "edges", "nodes", "workspace_members",
-  ];
-  for (const t of tables) {
-    await supabase.from(t).delete().eq("workspace_id", ws).then(() => {}, () => {});
-  }
-  const { error } = await supabase.from("workspaces").delete().eq("id", ws);
-  if (error) return c.json({ error: `Could not delete workspace: ${error.message}` }, 500);
-
-  deleteCookie(c, ACCESS_COOKIE, { path: "/" });
-  deleteCookie(c, REFRESH_COOKIE, { path: "/api/v1/auth" });
-  return c.json({ ok: true });
+  // RETIRED 2026-07-31: this was an IMMEDIATE hard purge — no typed confirmation server-side, no
+  // grace window, no restore, unpaged deletes. Superseded by the approved soft-delete flow:
+  // POST /settings/workspace/delete (typed confirm → 14-day grace → cron purge with receipts).
+  return c.json({ error: "This endpoint is retired. Use POST /settings/workspace/delete (14-day grace window applies)." }, 410);
 });
-
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -938,6 +922,46 @@ router.get("/settings/security", async (c) => {
  * an export never silently pretends to be complete. Messages/attachments are excluded here
  * (they carry other members' DMs and signed-URL material) — noted in the manifest.
  */
+/**
+ * POST /settings/workspace/delete — soft-delete this workspace (OWNER only, typed confirmation).
+ * Design contract (approved 2026-07-31):
+ *   • owner role required — admins cannot delete a workspace
+ *   • body.confirm_name must EXACTLY match the workspace name (typed confirmation)
+ *   • sets deleted_at → the auth gate makes the workspace inert for everyone within 60s
+ *   • 14-day grace window; restore is one click (emailed link / owner endpoint)
+ *   • hard erase happens ONLY via the purge cron after the window, with per-table receipts
+ */
+router.post("/settings/workspace/delete", async (c) => {
+  if (c.get("role") !== "owner") return c.json({ error: "Only the workspace owner can delete a workspace." }, 403);
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ confirm_name?: string }>().catch(() => ({} as never));
+  const { data: wsRow } = await supabase.from("workspaces").select("id, name, deleted_at").eq("id", ws).maybeSingle();
+  if (!wsRow) return c.json({ error: "Workspace not found." }, 404);
+  if (wsRow.deleted_at) return c.json({ error: "Already scheduled for deletion." }, 409);
+  if (String(body.confirm_name ?? "") !== String(wsRow.name ?? "")) {
+    return c.json({ error: "Type the workspace name exactly to confirm." }, 400);
+  }
+  const { error } = await supabase.from("workspaces").update({ deleted_at: new Date().toISOString() }).eq("id", ws);
+  if (error) {
+    if (/deleted_at/i.test(error.message)) return c.json({ error: "Deletion isn't enabled yet — the soft-delete migration hasn't been applied." }, 503);
+    return c.json({ error: "Could not schedule deletion." }, 500);
+  }
+  clearDeletedCache(ws);
+  const eraseDate = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+  // Owner notification — recipient resolved server-side; restore is an authenticated action.
+  const { data: me } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", ws).eq("user_id", c.get("userId")).maybeSingle();
+  if (me?.email) {
+    await sendTransactionalEmail({
+      subject: `Workspace "${wsRow.name}" scheduled for deletion`,
+      to: [{ email: String(me.email), name: (me.name as string | undefined) ?? undefined }],
+      body: `<p>The workspace <strong>${String(wsRow.name)}</strong> was scheduled for permanent deletion. All data will be erased on <strong>${eraseDate}</strong>.</p>
+<p>Until then it is hidden and inactive. To restore it, sign in and open <a href="https://app.mondaily.com/restore?ws=${ws}">app.mondaily.com/restore</a>.</p>
+<p style="color:#888;font-size:12px">If you did not request this, restore the workspace and rotate your password immediately.</p>`,
+    }).catch(() => {});
+  }
+  return c.json({ ok: true, erase_after: eraseDate });
+});
+
 router.get("/settings/export", async (c) => {
   // GETs bypass the settings write-gate above, so this read is gated explicitly — an export IS
   // the whole workspace, not a settings read.

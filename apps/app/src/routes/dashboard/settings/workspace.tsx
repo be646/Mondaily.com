@@ -211,56 +211,98 @@ function ModulesSection({
 function DangerZoneSection({ form }: { form: WorkspaceData }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
+  const [exportedOnce, setExportedOnce] = useState(false);
+  const [skipExport, setSkipExport] = useState(false);
+  const [busy, setBusy] = useState<"export" | "delete" | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  function exportData() {
-    const blob = new Blob([JSON.stringify({ workspace: form, exported_at: new Date().toISOString() }, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${form.slug || "workspace"}-export.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  // REAL export — the full server bundle (records, tasks, decisions, goals, activities with a
+  // manifest), not the settings form the old button downloaded.
+  async function exportData() {
+    setBusy("export"); setMsg(null);
+    try {
+      const bundle = await apiClient.get<Record<string, unknown>>("/settings/export");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+      a.download = `${form.slug || "workspace"}-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+      setExportedOnce(true);
+    } catch { setMsg("Export failed — owner/admin role required."); }
+    finally { setBusy(null); }
   }
 
   async function deleteWorkspace() {
     if (deleteText !== form.name) return;
-    await apiClient.delete("/settings/workspace");
-    window.location.assign("/workspaces");
+    setBusy("delete"); setMsg(null);
+    try {
+      const r = await apiClient.post<{ ok?: boolean; erase_after?: string; error?: string }>("/settings/workspace/delete", { confirm_name: deleteText });
+      if (r.ok) { window.location.assign("/workspaces"); return; }
+      setMsg(r.error ?? "Could not schedule deletion.");
+    } catch (e) { setMsg(e instanceof Error ? e.message : "Could not schedule deletion."); }
+    finally { setBusy(null); }
   }
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-semibold text-[var(--text-faint)] mb-0.5">Danger Zone</h2>
-        <p className="text-[11px] text-[var(--text-muted)]">Irreversible actions. Proceed with caution.</p>
+        <p className="text-[11px] text-[var(--text-muted)]">Deleting is owner-only, needs the workspace name typed exactly, and keeps a 14-day restore window before anything is permanently erased.</p>
       </div>
 
       <div className="border border-[var(--border-soft)] rounded-sm p-6 space-y-4">
-        <p className="text-[12px] text-[var(--text-muted)]">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
+        <p className="text-[12px] text-[var(--text-muted)]">Export a portable copy of all workspace data, or schedule this workspace for deletion.</p>
         <div className="flex flex-wrap gap-3">
-          <button onClick={exportData}
-            className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
-            <Download size={13} /> Export all data
+          <button onClick={() => void exportData()} disabled={busy === "export"}
+            className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
+            <Download size={13} /> {busy === "export" ? "Preparing…" : "Export all data"}
           </button>
           <button onClick={() => setDeleteOpen(true)}
             className="flex items-center gap-2 rounded-sm border border-[var(--border-strong)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors">
             <Trash2 size={13} /> Delete workspace
           </button>
         </div>
+        {msg && <p className="text-[11.5px]" style={{ color: "var(--status-error)" }}>{msg}</p>}
       </div>
 
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-[var(--text-primary)]">Delete {form.name}</h2>
               <button onClick={() => setDeleteOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
             </div>
-            <p className="text-[12px] text-[var(--text-muted)]">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
-            <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
+            <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
+              The workspace goes inert for every member immediately, and all data is <strong style={{ color: "var(--text-secondary)" }}>permanently erased after 14 days</strong>.
+              You (the owner) can restore it any time inside that window — you'll get an email with the restore link.
+            </p>
+
+            {/* EXPORT-FIRST: deleting without a copy of your data requires an explicit opt-out. */}
+            {!exportedOnce && !skipExport && (
+              <div className="mt-4 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+                <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>Take a copy first — it's one click.</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <button onClick={() => void exportData()} disabled={busy === "export"}
+                    className="btn-primary h-7 gap-1.5 px-3 text-[12px] font-semibold">
+                    <Download size={12} /> {busy === "export" ? "Preparing…" : "Download export"}
+                  </button>
+                  <label className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                    <input type="checkbox" checked={skipExport} onChange={e => setSkipExport(e.target.checked)} /> delete without exporting
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <p className="mt-4 text-[12px]" style={{ color: "var(--text-muted)" }}>Type <strong style={{ color: "var(--text-secondary)" }}>{form.name}</strong> to confirm.</p>
+            <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-2 h-10 w-full px-3 text-[12px]" />
+            {msg && <p className="mt-2 text-[11.5px]" style={{ color: "var(--status-error)" }}>{msg}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">Delete workspace</button>
+              <button onClick={() => void deleteWorkspace()}
+                disabled={deleteText !== form.name || busy != null || (!exportedOnce && !skipExport)}
+                className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">
+                {busy === "delete" ? "Scheduling…" : "Schedule deletion (14-day window)"}
+              </button>
             </div>
           </div>
         </>

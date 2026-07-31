@@ -696,7 +696,9 @@ describe("Settings-wide visual normalization", () => {
   it("destructive Delete buttons use the shared rose danger tone, not a neutral fill", () => {
     expect(SETTINGS_SRC["account"]).toMatch(/Delete account<\/button>/);
     expect(SETTINGS_SRC["account"]).toMatch(/border-\[#d1524a\][\s\S]*Delete account/);
-    expect(SETTINGS_SRC["workspace"]).toMatch(/border-\[#d1524a\][\s\S]*Delete workspace/);
+    // Re-pointed 2026-07-31: the destructive button became "Schedule deletion (14-day window)"
+    // per the approved soft-delete design — still the same red-toned confirm treatment.
+    expect(SETTINGS_SRC["workspace"]).toMatch(/border-\[#d1524a\][\s\S]*Schedule deletion \(14-day window\)/);
   });
   it("primary Settings actions resolve to the shared accent model (accent-soft / btn-primary), preserving handlers", () => {
     // The former stone primaries now use the accent surface token used by btn-primary/MetricGrid.
@@ -1069,9 +1071,10 @@ describe("landing consolidation", () => {
     expect(landing).toMatch(/text-\[9\.5px\][\s\S]*?>Simulated preview</);
   });
   it("integrations strip shows named provider pills (scannable, degrade gracefully) — no bare icon-only tiles", () => {
-    // Provider NAME is always rendered, and the brand glyph hides on load error instead of showing a broken box.
+    // Re-pointed 2026-07-31: glyphs are INLINED SVGs now (the CDN dependency is gone entirely,
+    // so there is nothing to error-handle). Provider NAME still always renders.
     for (const name of ["Gmail", "Outlook", "Google Calendar"]) expect(landing).toContain(name);
-    expect(landing).toMatch(/onError=\{e => \{ e\.currentTarget\.style\.display = "none"; \}\}/);
+    expect(landing).not.toMatch(/cdn\.simpleicons\.org/);
     // Honest: only the three real OAuth providers, still labelled "via OAuth".
     expect(landing).toContain("via OAuth");
   });

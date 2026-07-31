@@ -412,4 +412,30 @@ router.post("/pow-claim", requireJwt, async (c) => {
   return c.json({ ok: true });
 });
 
+
+/**
+ * POST /auth/restore-workspace — undo a soft-delete inside the 14-day window (OWNER only).
+ * Uses JWT-only auth on purpose: the normal auth gate answers 410 for deleted workspaces, so the
+ * restore path verifies ownership itself. Idempotent; expired windows answer honestly.
+ */
+router.post("/restore-workspace", async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const body = await c.req.json<{ workspace_id?: string }>().catch(() => ({} as never));
+  const ws = String(body.workspace_id ?? "");
+  if (!ws) return c.json({ error: "workspace_id required" }, 400);
+  const { data: member } = await supabase.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
+  if (member?.role !== "owner") return c.json({ error: "Only the workspace owner can restore it." }, 403);
+  const { data: wsRow } = await supabase.from("workspaces").select("deleted_at, name").eq("id", ws).maybeSingle();
+  if (!wsRow?.deleted_at) return c.json({ ok: true, already_active: true });
+  if (Date.now() - Date.parse(String(wsRow.deleted_at)) > 14 * 86_400_000) {
+    return c.json({ error: "The 14-day restore window has passed — this workspace's data has been (or is being) permanently erased." }, 410);
+  }
+  const { error } = await supabase.from("workspaces").update({ deleted_at: null }).eq("id", ws);
+  if (error) return c.json({ error: "Could not restore the workspace." }, 500);
+  const { clearDeletedCache } = await import("../middleware/auth");
+  clearDeletedCache(ws);
+  return c.json({ ok: true, restored: true, name: wsRow.name ?? null });
+});
+
 export { router as authRouter };
