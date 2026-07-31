@@ -220,7 +220,8 @@ Use ONLY fields from the provided list. If the request cannot be expressed in th
     const res = evaluateFormula(formula, sm);
     const name = String(sm.name ?? sm.title ?? "—").slice(0, 60);
     if (res.ok) return { name, value: res.value };
-    return { name, error: res.error };
+    // cast: Vercel's build resolves the shared union without literal discrimination
+    return { name, error: (res as unknown as { error: string }).error };
   });
   const allFailed = preview.length > 0 && preview.every(pv => "error" in pv);
   const warnings = [
