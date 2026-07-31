@@ -234,3 +234,15 @@ describe("member report (Team Oversight) — real numbers, grounded AI, safe ema
     expect(t).toMatch(/suggestions\.map\(\(sg\)/);
   });
 });
+
+describe("honest deltas — no percentage against a tiny baseline (Team Oversight)", () => {
+  it("Trend shows 'new' at zero baseline and raw counts below MIN_BASE, never a huge %", () => {
+    const t = app("routes/dashboard/team-oversight.tsx");
+    const trend = t.slice(t.indexOf("function Trend("), t.indexOf("function teamHealth"));
+    expect(trend).toContain("const MIN_BASE = 5");
+    expect(trend).toMatch(/prev === 0 \? "new"/);
+    expect(trend).toMatch(/prev < MIN_BASE \? `\$\{now\} vs \$\{prev\}`/);
+    // the tooltip keeps the raw comparison in every case
+    expect(trend).toMatch(/title=\{`\$\{now\} this period vs \$\{prev\} previous`\}/);
+  });
+});
