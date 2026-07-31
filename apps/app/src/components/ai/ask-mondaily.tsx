@@ -480,7 +480,7 @@ export function AskMondaily() {
           {/* Quick prompts picker */}
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 mb-2 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-modal)] shadow-[0_8px_24px_rgba(0,0,0,0.28)] overflow-hidden z-50">
-              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)]">
+              <div className="px-4 py-2.5 border-b border-[var(--border-soft)]">
                 <p className="text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">

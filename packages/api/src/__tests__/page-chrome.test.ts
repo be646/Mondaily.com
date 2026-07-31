@@ -192,3 +192,20 @@ describe("content primitives (Increment 1 — Panel / Modal / KPI)", () => {
     expect(ps).toMatch(/color-mix\(in srgb, var\(--text-primary\) 5%, transparent\)/);
   });
 });
+
+describe("hairline tokens — no hardcoded structural border hex (LINES pass)", () => {
+  it("record table + ask panel use --border-soft/--border-faint, not paired hex hairlines", () => {
+    const rt = app("components/records/record-table.tsx");
+    expect(rt).not.toMatch(/border-b-\[#edf0f5\]/);
+    expect(rt).not.toMatch(/border-b-\[#e5e7eb\]/);
+    expect(rt).not.toMatch(/border-\[#eef2f7\]/);
+    expect(rt).toMatch(/border-b-\[var\(--border-faint\)\]/);
+    const ask = app("components/ai/ask-mondaily.tsx");
+    expect(ask).not.toMatch(/border-\[#eef2f7\]/);
+  });
+
+  it("--border-faint is defined for every theme (dense-grid hairline, fainter than soft)", () => {
+    const css = app("styles.css");
+    expect((css.match(/--border-faint:/g) ?? []).length).toBe(4);
+  });
+});

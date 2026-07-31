@@ -26,6 +26,7 @@
   --surface-hover:    #1a1a1c;
   --surface-selected: #222226;
   --border-soft:      #27272a;
+  --border-faint:     rgba(255,255,255,0.04);
   --border-strong:    #34343a;
   --text-primary:     #e8e8e6;
   --text-secondary:   #b5b5b1;
@@ -144,6 +145,7 @@ html[data-theme="paper"] {
   --surface-hover:    #ebe2d0;
   --surface-selected: #e3d7c1;
   --border-soft:      #ddd0b8;
+  --border-faint:     #ece2d0;
   --border-strong:    #c9b899;
   --text-primary:     #38301f;
   --text-secondary:   #5c503c;
@@ -163,6 +165,7 @@ html[data-theme="daylight"], html[data-theme="light"] {
   --surface-hover:    #f4f4f2;
   --surface-selected: #eaeae7;
   --border-soft:      #e8e8e4;
+  --border-faint:     #f1f1ee;
   --border-strong:    #d6d6d0;
   --text-primary:     #0a0a0a;
   --text-secondary:   #404040;
@@ -182,6 +185,7 @@ html[data-theme="rose"] {
   --surface-hover:    #f4e0e3;
   --surface-selected: #edd1d6;
   --border-soft:      #ecd3d8;
+  --border-faint:     #f5e4e8;
   --border-strong:    #dcb8bf;
   --text-primary:     #3d2329;
   --text-secondary:   #5f3c44;

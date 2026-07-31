@@ -2514,7 +2514,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         key={record.id}
         className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-[var(--surface-hover)]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-[var(--surface-hover)] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-1.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-1.5 border-b border-b-[var(--border-faint)] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
             className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-stone-500 border-stone-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}
@@ -2523,14 +2523,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-1.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-1.5 border-b border-b-[var(--border-faint)] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
+            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -2544,10 +2544,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {renderCell(col, record)}
           </td>
         ))}
-        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-stone-500 dark:text-[var(--text-secondary)] tabular-nums border-b border-b-[#edf0f5] dark:border-b-white/[.04]">
+        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-stone-500 dark:text-[var(--text-secondary)] tabular-nums border-b border-b-[var(--border-faint)]">
           {fmtDate(record.updated_at)}
         </td>
-        <td className="border-b border-b-[#edf0f5] dark:border-b-white/[.04] w-10 px-2">
+        <td className="border-b border-b-[var(--border-faint)] w-10 px-2">
           <button
             onClick={() => deleteRow(record)}
             className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-sm text-stone-400 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-500/10 transition-all"
@@ -2571,7 +2571,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     <>
     <section className="flex flex-col h-full bg-white dark:bg-transparent">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)] shrink-0">
+      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[var(--border-soft)] shrink-0">
         {/* Search — always visible, left-anchored, quiet until focused. */}
         <div className="mr-2 flex items-center gap-1.5">
           <Search size={11} className="shrink-0 text-[var(--text-faint)]"/>
@@ -3162,7 +3162,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
                   className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-stone-500 border-stone-500" : someSelected ? "border-stone-300 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)]" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}
@@ -3173,7 +3173,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               </th>
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
-                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] sticky left-8 z-30">
                   <span className="text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">ID</span>
                 </th>
               )}
@@ -3183,7 +3183,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -3230,7 +3230,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   </th>
                 );
               })}
-              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
+              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">Updated</span>
@@ -3240,7 +3240,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
+                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
