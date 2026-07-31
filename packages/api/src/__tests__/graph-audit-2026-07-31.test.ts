@@ -102,12 +102,15 @@ describe("Graph audit — table wiring", () => {
   });
 
   it("filters are not limited to stage/status/assignee columns", () => {
-    expect(table()).toMatch(/const DISTINCT_CAP = 40/);
+    // 2026-08-01: superseded by the search-first FilterBar — ANY column can carry a condition,
+    // with operators from its inferred kind, and conditions run in SQL over all records.
+    expect(table()).toMatch(/function FilterBar/);
+    expect(table()).toMatch(/OPS_FOR_KIND\[kindOf\(draftCol\)\]/);
     expect(table()).not.toMatch(/Add a Stage, Status, or Assignee column to enable filters/);
   });
 
   it("owner reassignment re-runs the filter", () => {
-    expect(table()).toMatch(/\[records, filterText, toolbarSearch, quickFilters, owners\]/);
+    expect(table()).toMatch(/\[records, toolbarSearch, conditions, owners\]/);
   });
 
   it("footer aggregates read node-level columns too", () => {

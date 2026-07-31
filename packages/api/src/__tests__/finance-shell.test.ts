@@ -53,14 +53,18 @@ describe("the sheet has an always-visible search", () => {
     expect(table).toMatch(/placeholder="Search records…"/);
     expect(table).toMatch(/if \(toolbarSearch\.trim\(\)\) \{/);
     // it participates in the memo deps, the N-of-M counter, and the no-results message
-    // 2026-07-31 audit: the `filterQuery` prop was removed — the only call site never passed it,
-    // so it was permanently "". filterText + toolbarSearch are the two live text filters.
-    expect(table).toMatch(/\[records, filterText, toolbarSearch, quickFilters, owners\]/);
-    expect(table).toMatch(/toolbarSearch \|\| filterText/);
+    // 2026-08-01 filter redesign (user-requested): search-first + condition chips. filterText and
+    // quickFilters are gone — toolbarSearch is THE text filter, `conditions` the structured set,
+    // and both run in SQL over ALL records (see /nodes q + filters params).
+    expect(table).toMatch(/\[records, toolbarSearch, conditions, owners\]/);
+    expect(table).toMatch(/No results\{toolbarSearch \?/);
   });
   it("blocks server-side group representability like the other text filters", () => {
     // A text search is client-side; pretending the grouped server view represents it would lie.
-    expect(table).toMatch(/!filterText\.trim\(\) && !toolbarSearch\.trim\(\)/);
+    // 2026-08-01 filter redesign (user-requested): search-first + condition chips. filterText and
+    // quickFilters are gone — toolbarSearch is THE text filter, `conditions` the structured set,
+    // and both run in SQL over ALL records (see /nodes q + filters params).
+    expect(table).toMatch(/!toolbarSearch\.trim\(\) && serverFilters\(conditions\)\.length === conditions\.length/);
   });
 });
 

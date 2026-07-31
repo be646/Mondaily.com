@@ -113,10 +113,25 @@ router.get("/:id", requireAuth, async (c) => {
   return c.json(node);
 });
 
+const FILTER_OPS = ["is", "is_not", "contains", "empty", "not_empty", "before", "after"] as const;
+
 router.get("/", requireAuth, zValidator("query", z.object({
   vertical: z.string().optional(),
   object_type: z.string().optional(),
   parent_id: z.string().optional(),   // children of one record, filtered in SQL (see ubc.listNodes)
+  // Free-text search over identity fields + structured conditions, both applied in SQL so they
+  // cover EVERY record of the type — not just the page the browser has loaded.
+  q: z.string().max(100).optional(),
+  filters: z.string().max(4000).optional()      // JSON: [{col, op, value}]
+    .transform((raw, ctx): { col: string; op: typeof FILTER_OPS[number]; value?: string }[] | undefined => {
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error("not an array");
+        return parsed.slice(0, 20).filter((f: Record<string, unknown>) =>
+          typeof f?.col === "string" && FILTER_OPS.includes(f?.op as typeof FILTER_OPS[number]));
+      } catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "filters must be a JSON array" }); return z.NEVER; }
+    }),
   limit: z.coerce.number().min(1).max(1000).default(50),
   // offset was missing from this schema entirely — zod STRIPPED it from the query, so clients that
   // paginated received page one repeatedly and could not tell.

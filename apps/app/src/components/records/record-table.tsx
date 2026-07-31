@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { LogoMark } from "@/components/logo";
 import {
@@ -638,13 +638,13 @@ function aggParts(kind: string | undefined, op: CalcOp, resp: AggResp, display: 
   return { value, notes };
 }
 type AggFilter = { column: string; value: string };
-// The subset of the table's quickFilters the server can reproduce EXACTLY: plain equality on a
-// non-owner column. Owner/assignee filters resolve through display-name state the server can't see;
-// __from/__to are date ranges, not equality — those keep the client subtotal.
-function serverFilters(quickFilters: { col: string; value: string }[]): AggFilter[] {
-  return quickFilters
-    .filter(f => !f.col.endsWith("__from") && !f.col.endsWith("__to") && !/owner|assign/i.test(f.col))
-    .map(f => ({ column: f.col, value: f.value }));
+// The subset of the active conditions the aggregate route can reproduce EXACTLY: plain equality
+// on a non-owner column. Owner/assignee filters resolve through display-name state the server
+// can't see; every other operator keeps the honest client subtotal.
+function serverFilters(conditions: Cond[]): AggFilter[] {
+  return conditions
+    .filter(c => c.op === "is" && !/owner|assign/i.test(c.col) && c.col !== LAST_ACTIVITY)
+    .map(c => ({ column: c.col, value: String(c.value ?? "") }));
 }
 // Compact Excel-style subtotal string for a single group value (server-provided).
 function fmtGroupVal(kind: string | undefined, op: CalcOp, value: number, currency: string, unconverted: number): string {
@@ -1665,17 +1665,180 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
 
 /** One page of records. `/nodes` caps limit at 1000; the exact total comes from /nodes/counts. */
 const PAGE_LIMIT = 1000;
+
+// ── Filter conditions (search-first redesign, 2026-07-31) ─────────────────────
+/** ops before/after are dates; gt/lt are numeric and CLIENT-side only (jsonb text-compare lies
+ *  about numbers, so the server never pretends to answer them — see ubc.NodeFilter). */
+type CondOp = "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after" | "gt" | "lt";
+type Cond = { col: string; op: CondOp; value?: string };
+const OP_LABEL: Record<CondOp, string> = {
+  is: "is", is_not: "is not", contains: "contains", empty: "is empty", not_empty: "is not empty",
+  before: "before", after: "after", gt: "more than", lt: "less than",
+};
+/** last_activity is a pseudo-column over updated_at — "no activity in 30 days" as one condition. */
+const LAST_ACTIVITY = "last_activity";
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
+  return v;
+}
+
+/** Infer a column's kind from its live values so the condition builder offers the right operators
+ *  and input (dates get before/after, numbers get more/less-than, bounded sets get a picker). */
+function inferColKind(records: NodeRecord[], col: string, customType?: string): "date" | "number" | "select" | "text" {
+  if (col === LAST_ACTIVITY) return "date";
+  if (customType) {
+    if (customType === "date") return "date";
+    if (customType === "number" || customType === "currency" || customType === "percentage") return "number";
+    if (["stage", "status", "select", "country", "assignee", "owner"].includes(customType)) return "select";
+  }
+  const vals: string[] = [];
+  for (const r of records) { const v = cellValue(r, col); if (v != null && v !== "") { vals.push(String(v)); if (vals.length >= 50) break; } }
+  if (!vals.length) return "text";
+  if (vals.every(v => /^\d{4}-\d{2}-\d{2}/.test(v))) return "date";
+  if (vals.every(v => !isNaN(parseFloat(v)) && /^[\d.,%$€£\s-]+$/.test(v))) return "number";
+  if (new Set(vals.map(v => v.toLowerCase())).size <= 15) return "select";
+  return "text";
+}
+const OPS_FOR_KIND: Record<ReturnType<typeof inferColKind>, CondOp[]> = {
+  date:   ["after", "before", "empty", "not_empty"],
+  number: ["gt", "lt", "is", "empty", "not_empty"],
+  select: ["is", "is_not", "empty", "not_empty"],
+  text:   ["contains", "is", "is_not", "empty", "not_empty"],
+};
 /** Columns shown before the user opens the Columns panel; the rest start hidden, not discarded. */
 const DEFAULT_VISIBLE_COLS = 8;
+
+
+// ── FilterBar — search-first structured conditions (2026-07-31 redesign) ──────
+/** Active chips + a "+ Filter" builder: field → operator → value. Operators and the value input
+ *  come from the column's inferred kind; bounded columns get a picker of their real values. */
+function FilterBar({ records, columns, customCols, conditions, onChange, onClose }: {
+  records: NodeRecord[];
+  columns: string[];
+  customCols: { key: string; type: string }[];
+  conditions: Cond[];
+  onChange: (c: Cond[]) => void;
+  onClose: () => void;
+}) {
+  const [draftCol, setDraftCol] = useState<string | null>(null);
+  const [draftOp, setDraftOp] = useState<CondOp | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [draftValue, setDraftValue] = useState("");
+
+  const kindOf = (col: string) => inferColKind(records, col, customCols.find(c => c.key === col)?.type);
+  const label = (col: string) => (col === LAST_ACTIVITY ? "last activity" : col.replaceAll("_", " "));
+  const valueOptions = (col: string): string[] =>
+    [...new Set(records.map(r => String(cellValue(r, col) ?? "")).filter(Boolean))].sort().slice(0, 30);
+
+  const commit = (op: CondOp, value?: string) => {
+    if (!draftCol) return;
+    onChange([...conditions, { col: draftCol, op, value }]);
+    setDraftCol(null); setDraftOp(null); setDraftValue(""); setPickerOpen(false);
+  };
+  // last_activity presets — "no activity in N days" is one click, not a date calculation.
+  const daysAgoIso = (d: number) => new Date(Date.now() - d * 86400_000).toISOString().slice(0, 10);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+      {conditions.map((c, i) => (
+        <span key={i} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-[11px] text-[var(--text-primary)]">
+          <span className="text-[var(--text-muted)] first-letter:uppercase">{label(c.col)}</span>
+          <span className="text-[var(--text-faint)]">{OP_LABEL[c.op]}</span>
+          {c.value != null && c.value !== "" && <span className="max-w-40 truncate font-medium">{kindOf(c.col) === "date" && c.col === LAST_ACTIVITY ? new Date(c.value).toLocaleDateString() : c.value}</span>}
+          <button onClick={() => onChange(conditions.filter((_, j) => j !== i))} aria-label="Remove filter"
+            className="text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"><X size={10}/></button>
+        </span>
+      ))}
+
+      {/* + Filter builder */}
+      <div className="relative">
+        <button onClick={() => { setPickerOpen(o => !o); setDraftCol(null); setDraftOp(null); }}
+          className="flex items-center gap-1 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]">
+          <Plus size={10}/> Filter
+        </button>
+        {pickerOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setPickerOpen(false); setDraftCol(null); setDraftOp(null); }}/>
+            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+              {!draftCol ? (
+                columns.map(col => (
+                  <button key={col} onClick={() => setDraftCol(col)}
+                    className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                    {label(col)}
+                  </button>
+                ))
+              ) : !draftOp ? (
+                <>
+                  <p className="px-2.5 py-1 text-[10px] text-[var(--text-faint)] first-letter:uppercase">{label(draftCol)}</p>
+                  {draftCol === LAST_ACTIVITY && ([["No activity in 30 days", 30], ["No activity in 60 days", 60], ["No activity in 90 days", 90]] as const).map(([txt, d]) => (
+                    <button key={d} onClick={() => commit("before", daysAgoIso(d))}
+                      className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">{txt}</button>
+                  ))}
+                  {OPS_FOR_KIND[kindOf(draftCol)].map(op => (
+                    <button key={op} onClick={() => (op === "empty" || op === "not_empty") ? commit(op) : setDraftOp(op)}
+                      className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">{OP_LABEL[op]}</button>
+                  ))}
+                </>
+              ) : (
+                <div className="p-1.5">
+                  <p className="mb-1 text-[10px] text-[var(--text-faint)]"><span className="first-letter:uppercase">{label(draftCol)}</span> {OP_LABEL[draftOp]}…</p>
+                  {kindOf(draftCol) === "select" && (draftOp === "is" || draftOp === "is_not") ? (
+                    valueOptions(draftCol).map(v => (
+                      <button key={v} onClick={() => commit(draftOp, v)}
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">{v}</button>
+                    ))
+                  ) : (
+                    <input autoFocus
+                      type={kindOf(draftCol) === "date" ? "date" : kindOf(draftCol) === "number" ? "number" : "text"}
+                      value={draftValue} onChange={e => setDraftValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && draftValue) commit(draftOp, draftValue); if (e.key === "Escape") { setDraftOp(null); setDraftValue(""); } }}
+                      placeholder="Value — Enter to apply" className="key-input w-full px-2 py-1.5 text-[11.5px]"/>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {conditions.length > 0 && (
+        <button onClick={() => onChange([])} className="text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">Clear all</button>
+      )}
+      <button onClick={onClose} className="ml-auto text-[var(--text-secondary)] shrink-0 hover:text-[var(--text-primary)]"><X size={13}/></button>
+    </div>
+  );
+}
+
+// ── FilterBar end ──
 
 // ─── Main table ───────────────────────────────────────────────────────────────
 // `filterQuery` prop removed (2026-07-31 audit): the only call site never passed it, so it was
 // permanently "" — one of three identical free-text filters. filterText + toolbarSearch remain.
 export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: { objectType: string; enrichedIds?: string[]; onColumnsChange?: (cols: string[]) => void }) {
   const qc = useQueryClient();
+  // ── Filter — search-first + structured condition chips (2026-07-31 redesign) ──
+  // ONE text filter (the always-visible toolbar search) instead of the previous three parallel
+  // ones, plus explicit conditions added via "+ Filter": field → operator → value, rendered as
+  // removable chips. The old model was a permanent dropdown-per-column row.
+  const [toolbarSearch, setToolbarSearch] = useState("");
+  const [conditions, setConditions] = useState<Cond[]>([]);
+  // Search + SQL-representable conditions also go to the SERVER (debounced), so filtering covers
+  // every record of the type — not just the loaded page. The client predicate below still runs for
+  // instant feedback and for the numeric ops jsonb text-compare can't do honestly (gt/lt).
+  const debouncedSearch = useDebounced(toolbarSearch.trim(), 300);
+  const serverConds = useMemo(() => conditions.filter(c => c.op !== "gt" && c.op !== "lt" && !/owner|assign/i.test(c.col)), [conditions]);
+
   const query = useQuery({
-    queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=${PAGE_LIMIT}`),
+    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds)],
+    queryFn: () => {
+      const params = new URLSearchParams({ object_type: objectType, limit: String(PAGE_LIMIT) });
+      if (debouncedSearch) params.set("q", debouncedSearch);
+      if (serverConds.length) params.set("filters", JSON.stringify(serverConds.map(c => ({ col: c.col, op: c.op, value: c.value }))));
+      return apiClient.get<NodeRecord[]>(`/nodes?${params}`);
+    },
+    placeholderData: keepPreviousData,
   });
   // The EXACT number of records of this type. The table only holds one page, so `records.length`
   // is a page size, not a total — it read "1000" for every type past a thousand rows, and the CSV
@@ -1732,21 +1895,6 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const [calculations, setCalculations] = useState<Record<string, CalcOp>>({});
   const [openCalcCol, setOpenCalcCol] = useState<string | null>(null);
 
-  // ── Filter ──
-  const [filterText, setFilterText] = useState("");
-  // The always-visible toolbar search. The sheet had NO search box at all — this is the one
-  // nobody feeds — so finding a record meant opening the Filter panel. Same all-fields substring
-  // semantics as the other two text filters.
-  const [toolbarSearch, setToolbarSearch] = useState("");
-  // Quick filter chips: { col, value } pairs, AND-ed together
-  const [quickFilters, setQuickFilters] = useState<{ col: string; value: string }[]>([]);
-
-  function toggleQuickFilter(col: string, value: string) {
-    setQuickFilters(prev => {
-      const exists = prev.some(f => f.col === col && f.value === value);
-      return exists ? prev.filter(f => !(f.col === col && f.value === value)) : [...prev, { col, value }];
-    });
-  }
 
   // ── NLP ──
 
@@ -1896,7 +2044,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   useEffect(() => {
     // Column visibility is NOT reset here — the seeding effect above owns it per object type
     // (clearing it here would race that effect and briefly show every column).
-    setFilterText(""); setQuickSortCol(null); setSortRules([]);
+    setToolbarSearch(""); setConditions([]); setQuickSortCol(null); setSortRules([]);
   }, [objectType]);
 
   function handleHeaderSort(col: string) {
@@ -1915,7 +2063,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
   const [nlpActive, setNlpActive] = useState(false);
   const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">) => {
-    if (ft) setFilterText(ft);
+    if (ft) setToolbarSearch(ft);
     if (sc) { setQuickSortCol(sc); setQuickSortDir(sd); setSortRules([]); }
     if (Object.keys(ops).length) setCalculations(prev => ({ ...prev, ...ops }));
     setNlpActive(true);
@@ -1924,37 +2072,36 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // ── Filter → sort pipeline ──
   const filtered = useMemo(() => {
     let base = records;
-    if (filterText.trim()) {
-      const q2 = filterText.toLowerCase();
-      base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
-    }
+    // Instant text pass while the debounced server query is in flight (the server then re-answers
+    // over ALL records, incl. `last_activity` which lives on updated_at, not in data).
     if (toolbarSearch.trim()) {
       const q3 = toolbarSearch.toLowerCase();
       base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q3)));
     }
-    if (quickFilters.length) {
-      base = base.filter(r => quickFilters.every(f => {
-        if (f.col.endsWith("__from")) {
-          const col = f.col.replace("__from", "");
-          const v = String(r.data[col] ?? r.updated_at ?? "");
-          return v >= f.value;
+    if (conditions.length) {
+      base = base.filter(r => conditions.every(c => {
+        // last_activity is the record's updated_at — a real filterable dimension now.
+        const raw = c.col === "last_activity" ? r.updated_at
+          : /owner|assign/i.test(c.col) ? (owners[r.id]?.[c.col] ?? cellValue(r, c.col))
+          : cellValue(r, c.col);
+        const v = String(raw ?? "");
+        const want = String(c.value ?? "");
+        switch (c.op) {
+          case "is":        return v.toLowerCase() === want.toLowerCase();
+          case "is_not":    return v.toLowerCase() !== want.toLowerCase();
+          case "contains":  return v.toLowerCase().includes(want.toLowerCase());
+          case "empty":     return v === "";
+          case "not_empty": return v !== "";
+          case "after":     return v >= want;         // ISO date strings compare correctly as text
+          case "before":    return v !== "" && v <= want;
+          case "gt":        return parseFloat(v) > parseFloat(want);   // numeric — client-side only
+          case "lt":        return parseFloat(v) < parseFloat(want);
+          default:          return true;
         }
-        if (f.col.endsWith("__to")) {
-          const col = f.col.replace("__to", "");
-          const v = String(r.data[col] ?? r.updated_at ?? "");
-          return v <= f.value;
-        }
-        // For owner/assignee columns use the owners state (same source as display)
-        const l = f.col.toLowerCase();
-        const isOwnerCol = l.includes("owner") || l.includes("assign");
-        const cellVal = isOwnerCol
-          ? (owners[r.id]?.[f.col] ?? String(r.data[f.col] ?? ""))
-          : String(r.data[f.col] ?? "");
-        return cellVal.toLowerCase() === f.value.toLowerCase();
       }));
     }
     return base;
-  }, [records, filterText, toolbarSearch, quickFilters, owners]);   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
+  }, [records, toolbarSearch, conditions, owners]);   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
 
   const sorted = useMemo(() => {
     // Stacked sort rules take priority over quick sort
@@ -2066,10 +2213,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   const groupCalcKind = groupCalcCol ? effectiveType(groupCalcCol) : undefined;
   // Only send filters when the whole active set is server-representable; otherwise disable the server
   // group query and fall back to the client per-group calc (honest, over the visible rows).
-  const groupFiltersRepresentable = !filterText.trim() && !toolbarSearch.trim() && serverFilters(quickFilters).length === quickFilters.length;
+  const groupFiltersRepresentable = !toolbarSearch.trim() && serverFilters(conditions).length === conditions.length;
   const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
-    queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(quickFilters) : "client")],
-    queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(quickFilters).length ? { filters: serverFilters(quickFilters) } : {}) }),
+    queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(conditions) : "client")],
+    queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(conditions).length ? { filters: serverFilters(conditions) } : {}) }),
     enabled: !!(groupByCol && groupCalcCol && groupCalcOp && serverAggOp(groupCalcKind, groupCalcOp) && groupFiltersRepresentable),
     staleTime: 30_000,
     retry: false,
@@ -2083,7 +2230,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
   // ── Saved views ──
   const savedViewsKey = `mondaily_views_${objectType}`;
-  interface SavedView { id: string; name: string; filters: typeof quickFilters; sortRules: typeof sortRules; hiddenCols: string[]; groupBy: string | null }
+  interface SavedView { id: string; name: string; filters: (Cond | { col: string; value: string })[]; sortRules: typeof sortRules; hiddenCols: string[]; groupBy: string | null }
+  // Views saved before the 2026-07-31 filter redesign stored {col,value} equality pairs (with
+  // __from/__to date-range suffixes) — migrate on read so nobody's saved views break.
+  const migrateView = (f: Cond | { col: string; value: string }): Cond =>
+    "op" in f ? f
+    : f.col.endsWith("__from") ? { col: f.col.slice(0, -6), op: "after", value: f.value }
+    : f.col.endsWith("__to") ? { col: f.col.slice(0, -4), op: "before", value: f.value }
+    : { col: f.col, op: "is", value: f.value };
   const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
     try { return JSON.parse(localStorage.getItem(savedViewsKey) ?? "[]"); } catch { return []; }
   });
@@ -2099,7 +2253,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     const view: SavedView = {
       id: crypto.randomUUID(),
       name: newViewName.trim(),
-      filters: quickFilters,
+      filters: conditions,
       sortRules,
       hiddenCols: [...hiddenCols],
       groupBy: groupByCol,
@@ -2109,7 +2263,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     setSaveViewOpen(false);
   }
   function applyView(view: SavedView) {
-    setQuickFilters(view.filters);
+    setConditions(view.filters.map(migrateView));
     setSortRules(view.sortRules);
     setHiddenCols(new Set(view.hiddenCols));
     setGroupBy(view.groupBy ?? null);
@@ -2169,8 +2323,6 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     else if (failed > 0) showFlash(`Couldn't add ${failed} record${failed === 1 ? "" : "s"} — the list type may not match.`, "warn");
   }
 
-  const [filterSearchOpen, setFilterSearchOpen] = useState(false);
-  const filterSearchRef = useRef<HTMLInputElement>(null);
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [assignPickerOpen, setAssignPickerOpen] = useState(false);
   const [assignSearch, setAssignSearch] = useState("");
@@ -2253,6 +2405,23 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
         flashTimer.current = setTimeout(() => setFlash(null), 4000);
       });
   }
+
+  // Possible-duplicate indicator (display ONLY — no data is touched): identical primary names on
+  // the loaded page get a small ×N marker, so three "Bassem Epra" rows read as one person entered
+  // three times instead of silently looking like three people. Merging stays a separate,
+  // supervised job for the cleaning toolkit.
+  const dupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of records) {
+      const n = String(r.data.name ?? r.data.title ?? r.data.full_name ?? "").trim().toLowerCase();
+      if (n) m.set(n, (m.get(n) ?? 0) + 1);
+    }
+    return m;
+  }, [records]);
+  const dupCountOf = (record: NodeRecord): number => {
+    const n = String(record.data.name ?? record.data.title ?? record.data.full_name ?? "").trim().toLowerCase();
+    return n ? (dupCounts.get(n) ?? 0) : 0;
+  };
 
   function renderCell(col: string, record: NodeRecord) {
     const val = cellValue(record, col);
@@ -2525,7 +2694,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             onMouseMove={(e) => cellTip && setCellTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
             onMouseLeave={() => setCellTip(null)}
           >
-            {renderCell(col, record)}
+            {colIdx === 0 ? (
+              <div className="flex items-center gap-1.5">
+                <div className="min-w-0 flex-1">{renderCell(col, record)}</div>
+                {dupCountOf(record) > 1 && (
+                  <span className="shrink-0 rounded-sm border border-[var(--status-warn)]/30 px-1 text-[9px] leading-4 text-[var(--status-warn)]"
+                    title={`${dupCountOf(record)} records share this exact name — possible duplicates`}>×{dupCountOf(record)}</span>
+                )}
+              </div>
+            ) : renderCell(col, record)}
           </td>
         ))}
         <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-stone-500 dark:text-[var(--text-secondary)] tabular-nums border-b border-b-[var(--border-faint)]">
@@ -2570,13 +2747,13 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             <button onClick={() => setToolbarSearch("")} aria-label="Clear search" className="text-[var(--text-faint)] hover:text-[var(--text-primary)]"><X size={10}/></button>
           )}
         </div>
-        {(filterText || toolbarSearch || quickSortCol || sortRules.length > 0) && (
+        {(conditions.length > 0 || toolbarSearch || quickSortCol || sortRules.length > 0) && (
           <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {totalOfType}</span>
         )}
         {truncated && (
           <span
             className="mr-2 rounded-sm border border-[var(--status-warn)]/30 px-1.5 py-px text-[10px] text-[var(--status-warn)]"
-            title={`This view holds the first ${records.length} of ${totalOfType} records. Filters, sorting and export apply to what is loaded.`}
+            title={`This view holds the first ${records.length} of ${totalOfType} records. Search and filters query ALL records; sorting and export apply to what is loaded.`}
           >first {records.length} of {totalOfType}</span>
         )}
         <div className="ml-auto flex items-center gap-0.5">
@@ -2592,10 +2769,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
           {/* Filter */}
           <button onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
-            className={openPanel === "filter" || quickFilters.length > 0 || filterText ? TB_ON : TB_IDLE}>
+            className={openPanel === "filter" || conditions.length > 0 ? TB_ON : TB_IDLE}>
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
             <span>Filter</span>
-            {(quickFilters.length > 0 || filterText) && <span className={TB_DOT_ACTIVE}>{quickFilters.length + (filterText ? 1 : 0)}</span>}
+            {conditions.length > 0 && <span className={TB_DOT_ACTIVE}>{conditions.length}</span>}
           </button>
 
           {/* Sort */}
@@ -2740,7 +2917,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           <NLPCommandBar
             columns={orderedColumns}
             onApply={handleNLPApply}
-            onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }}
+            onClear={() => { setToolbarSearch(""); setQuickSortCol(null); setNlpActive(false); }}
             hasActive={nlpActive}
           />
         </div>
@@ -2781,155 +2958,19 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
       )}
 
       {/* ── Filter inline bar ── */}
-      {openPanel === "filter" && (() => {
-        // ANY column can be filtered, not just stage/status/assignee/date/country. The whitelist
-        // that used to live here meant a table whose columns were e.g. Confidence label, Source and
-        // AI score offered no filters at all ("Add a Stage, Status, or Assignee column to enable
-        // filters") — while Group by already listed every one of those columns. The rendering
-        // branches below already handle the generic case by building options from real data values;
-        // only the eligibility test was too narrow.
-        //
-        // A column qualifies when it is a known filterable kind, OR when its values form a
-        // reasonably small set (a picker over 400 distinct free-text values helps nobody).
-        const DISTINCT_CAP = 40;
-        const filterableCols = orderedColumns.filter(c => {
-          const l = c.toLowerCase();
-          const known =
-            l.includes("stage") || l === "status" || l === "deal_status" ||
-            l.includes("assignee") || l.includes("assigned") || l.includes("owner") ||
-            l.includes("date") || l === "close_date" || l === "due_date" || l === "start_date" ||
-            l.includes("country");
-          if (known) return true;
-          const distinct = new Set<string>();
-          for (const r of records) {
-            const v = cellValue(r, c);
-            if (v == null || v === "") continue;
-            distinct.add(String(v));
-            if (distinct.size > DISTINCT_CAP) return false;
-          }
-          return distinct.size > 0;
-        });
-        // Custom stage/status/owner/assignee/country cols that aren't already in the ordered list
-        const customFilterCols = customCols
-          .filter(c => ["stage","status","assignee","owner","country"].includes(c.type))
-          .map(c => c.key)
-          .filter(k => !filterableCols.includes(k));
-        const allFilterCols = [...filterableCols, ...customFilterCols];
-
-        return (
-          <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
-            {/* Search — icon that expands on click */}
-            <div className="flex items-center shrink-0">
-              {filterSearchOpen ? (
-                <div className="relative flex items-center">
-                  <Search size={11} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-stone-500"/>
-                  <input
-                    ref={filterSearchRef}
-                    autoFocus
-                    value={filterText}
-                    onChange={e => setFilterText(e.target.value)}
-                    onBlur={() => { if (!filterText) setFilterSearchOpen(false); }}
-                    onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
-                    placeholder="Search…"
-                    className="key-input w-44 py-1 pl-6 pr-6 text-xs"
-                  />
-                  {filterText && (
-                    <button onClick={() => { setFilterText(""); setFilterSearchOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-600 hover:text-[var(--text-primary)] transition-colors">
-                      <X size={10}/>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setFilterSearchOpen(true)}
-                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-[var(--text-primary)] bg-[var(--surface-hover)]" : "text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)]"}`}
-                  title="Search records"
-                >
-                  <Search size={12}/>
-                </button>
-              )}
-            </div>
-            {allFilterCols.length > 0 && <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>}
-
-            {allFilterCols.length === 0 && (
-              <span className="text-xs text-stone-600">No filterable columns — every visible column is unique free text.</span>
-            )}
-
-            {allFilterCols.map(col => {
-              const l = col.toLowerCase();
-              const customDef = customCols.find(c => c.key === col);
-              const isDate = l.includes("date");
-              const isStage = l.includes("stage") || col === "deal_status" || customDef?.type === "stage";
-              const isStatus = col === "status" || customDef?.type === "status";
-
-              if (isDate) {
-                const dateFrom = quickFilters.find(f => f.col === col + "__from")?.value ?? "";
-                const dateTo   = quickFilters.find(f => f.col === col + "__to")?.value ?? "";
-                const hasDate  = dateFrom || dateTo;
-                return (
-                  <div key={col} className="flex items-center gap-1.5 shrink-0">
-                    <span className={`shrink-0 text-body first-letter:uppercase ${hasDate ? "text-[var(--text-primary)]" : "text-[var(--text-faint)]"}`}>{col.replaceAll("_"," ")}</span>
-                    <input type="date" value={dateFrom}
-                      onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
-                      className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                    />
-                    <span className="text-stone-700 text-[10px]">→</span>
-                    <input type="date" value={dateTo}
-                      onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__to"); return e.target.value ? [...o,{col:col+"__to",value:e.target.value}] : o; })}
-                      className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                    />
-                    <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
-                  </div>
-                );
-              }
-
-              // Options: use full defaults for stage/status, real member names for owner/assignee, data values for others
-              const isCountry = l.includes("country") || customDef?.type === "country";
-              const isOwnerCol = l.includes("owner") || l.includes("assign") || customDef?.type === "assignee" || customDef?.type === "owner";
-              let vals: string[];
-              if (isStage) {
-                vals = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
-              } else if (isStatus) {
-                vals = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
-              } else if (isOwnerCol) {
-                // Use owners state (local display source) merged with data values, then fall back to member names
-                const fromOwners = records.map(r => owners[r.id]?.[col] ?? resolveOwner(r.data[col])).filter(v => v && !UUID_RE.test(v));
-                const fromMembers = members.filter(m => { const lb = m.name || m.email; return lb && typeof lb === "string" && isNaN(Number(lb)); }).map(m => m.name || m.email || "");
-                vals = [...new Set([...fromOwners, ...fromMembers])].filter(Boolean).sort();
-              } else if (isCountry) {
-                vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
-              } else {
-                vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
-              }
-
-              if (!vals.length) return null;
-              const active = quickFilters.find(f => f.col === col);
-
-              return (
-                <div key={col} className="flex items-center gap-2 shrink-0">
-                  <FilterColDropdown
-                    col={col}
-                    vals={vals}
-                    activeValue={active?.value ?? null}
-                    isStage={isStage || isStatus}
-                    onSelect={val => toggleQuickFilter(col, val)}
-                  />
-                  <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
-                </div>
-              );
-            })}
-
-            {quickFilters.length > 0 && (
-              <button onClick={() => { setQuickFilters([]); setFilterText(""); }} className="text-[10px] text-stone-400/60 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
-                Clear all
-              </button>
-            )}
-            <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 transition-colors pl-2">
-              <X size={13}/>
-            </button>
-          </div>
-        );
-      })()}
+      {/* ── Filter bar: active condition chips + "+ Filter" builder (2026-07-31 redesign).
+             Replaces the permanent dropdown-per-column row — you only see chips for filters you
+             actually applied, and conditions run in SQL over ALL records, not the loaded page. ── */}
+      {openPanel === "filter" && (
+        <FilterBar
+          records={records}
+          columns={[...orderedColumns.filter(c => c !== LAST_ACTIVITY), LAST_ACTIVITY]}
+          customCols={customCols}
+          conditions={conditions}
+          onChange={setConditions}
+          onClose={() => setOpenPanel(null)}
+        />
+      )}
 
       {/* Bulk action bar */}
       {someSelected && (
@@ -3304,7 +3345,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             {sorted.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
-                  No results{(toolbarSearch || filterText) ? ` for "${toolbarSearch || filterText}"` : ""}
+                  No results{toolbarSearch ? ` for "${toolbarSearch}"` : conditions.length ? " for the active filters" : ""}
                 </td>
               </tr>
             ) : (() => {
@@ -3382,14 +3423,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                           const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }, fSrc);
                           if (effectiveType(col) === "formula") return <>{clientStr}<TotalNote text="loaded rows" /></>;
                           // Which active filters can the server reproduce EXACTLY? Only plain equality
-                          // quickFilters on non-owner columns (owner cells resolve via display-name
+                          // equality conditions on non-owner columns (owner cells resolve via display-name
                           // state the server can't see; date-range __from/__to and free-text search
                           // aren't equality). If the whole active filter set is representable we send
                           // it so the server total matches the filtered view; otherwise we keep the
                           // honest client subtotal over the visible rows — LABELLED "this view" so it's
                           // never mistaken for the authoritative full-table server total.
-                          const reprFilters = serverFilters(quickFilters);
-                          const allRepresentable = !filterText.trim() && !toolbarSearch.trim() && reprFilters.length === quickFilters.length;
+                          const reprFilters = serverFilters(conditions);
+                          const allRepresentable = !toolbarSearch.trim() && reprFilters.length === conditions.length;
                           if (!allRepresentable) return <>{clientStr}<TotalNote text="this view" /></>;
                           return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}

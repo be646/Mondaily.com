@@ -129,15 +129,21 @@ describe("Phase 3 — footer uses the authoritative server total, client calc st
 
 describe("Phase 3b.1 — filtered server totals + group subtotals (still no schema/finance/formula)", () => {
   it("only server-representable filters (equality, non-owner) are sent; owner/date-range/text stay client", () => {
+    // 2026-08-01 filter redesign (user-requested): search-first + condition chips. filterText and
+    // quickFilters are gone — toolbarSearch is THE text filter, `conditions` the structured set,
+    // and both run in SQL over ALL records (see /nodes q + filters params).
     expect(table).toMatch(/function serverFilters/);
-    expect(table).toMatch(/!f\.col\.endsWith\("__from"\) && !f\.col\.endsWith\("__to"\) && !\/owner\|assign\/i\.test\(f\.col\)/);
+    expect(table).toMatch(/c\.op === "is" && !\/owner\|assign\/i\.test\(c\.col\) && c\.col !== LAST_ACTIVITY/);
   });
   it("footer uses the server total (with filters) only when the WHOLE active filter set is representable", () => {
     // Got STRICTER when the toolbar search was added: a text search is client-side, so it too must
     // block the server total from claiming to represent the view.
     // 2026-07-31 audit: the `filterQuery` prop was removed — the only call site never passed it,
     // so it was permanently "". filterText + toolbarSearch are the two live text filters.
-    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !toolbarSearch\.trim\(\) && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
+    // 2026-08-01 filter redesign (user-requested): search-first + condition chips. filterText and
+    // quickFilters are gone — toolbarSearch is THE text filter, `conditions` the structured set,
+    // and both run in SQL over ALL records (see /nodes q + filters params).
+    expect(table).toMatch(/const allRepresentable = !toolbarSearch\.trim\(\) && reprFilters\.length === conditions\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
     expect(table).toMatch(/<ServerTotalValue[^]*?filters=\{reprFilters\}/);
     // the aggregate call forwards the validated equality filters
     expect(table).toMatch(/\.\.\.\(filters\?\.length \? \{ filters \} : \{\}\)/);

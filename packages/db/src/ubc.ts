@@ -38,7 +38,15 @@ export async function getNode(id: string, workspaceId: string): Promise<(Node & 
   return { ...(data as Node & { updated_at: string; created_at?: string }), activities };
 }
 
-export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+/** One structured filter condition, applied in SQL over the data jsonb.
+ *  Ops the database can reproduce exactly: is / is_not / contains / empty / not_empty, plus
+ *  before / after (ISO date strings compare correctly as text). Numeric gt/lt are NOT offered
+ *  here on purpose — data values are mixed string/number in jsonb, and a text "9" > "10"
+ *  comparison would silently lie; callers keep numeric ranges client-side. */
+export type NodeFilter = { col: string; op: "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after"; value?: string };
+const SAFE_COL = /^[a-zA-Z0-9_. -]{1,64}$/;   // column names come from the client — never into SQL unless shaped like one
+
+export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; filters?: NodeFilter[]; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
   // Secondary sort on id: range-pagination over updated_at ALONE skips/duplicates rows that share
   // a timestamp (bulk imports and merges write many rows in the same instant), so pages were not
   // deterministic even when offset worked.
@@ -50,6 +58,25 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   // the callers used to pull a capped global page and filter client-side, which silently dropped a
   // record's own children once the workspace had more rows than the page size.
   if (options.parent_id) query = query.eq("data->>parent_id", options.parent_id);
+  // Free-text search over the identity fields — so "find a person" filters ALL records of the
+  // type in the database, not just whichever page happens to be loaded in the browser.
+  if (options.q?.trim()) {
+    const term = options.q.trim().replace(/[(),]/g, " ").slice(0, 100);
+    query = query.or(["name", "title", "full_name", "email", "phone", "company", "notes"]
+      .map(f => `data->>${f}.ilike.%${term}%`).join(","));
+  }
+  for (const f of options.filters ?? []) {
+    if (!SAFE_COL.test(f.col)) continue;         // refuse anything not shaped like a column name
+    const col = `data->>${f.col}`;
+    const v = String(f.value ?? "");
+    if (f.op === "is") query = query.eq(col, v);
+    else if (f.op === "is_not") query = query.neq(col, v);
+    else if (f.op === "contains") query = query.ilike(col, `%${v.replace(/[%(),]/g, " ")}%`);
+    else if (f.op === "empty") query = query.or(`${col}.is.null,${col}.eq.`);
+    else if (f.op === "not_empty") query = query.not(col, "is", null).neq(col, "");
+    else if (f.op === "after") query = query.gte(col, v);
+    else if (f.op === "before") query = query.lte(col, v);
+  }
   const limit = options.limit || 50;
   // offset was accepted by callers and SILENTLY IGNORED — GET /nodes?offset=500 returned page one
   // again, so every paginating consumer read duplicate data without knowing. Found live: paged
