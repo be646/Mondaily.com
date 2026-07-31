@@ -672,10 +672,13 @@ const METRIC_COLS: Record<number, string> = {
 };
 export function MetricGrid({ items, cols = 3, className }: { items: MetricItem[]; cols?: 2 | 3 | 4 | 5 | 6; className?: string }) {
   return (
-    <div className={cx("grid gap-1.5", METRIC_COLS[cols] ?? METRIC_COLS[3], className)}>
+    <div className={cx("grid gap-x-2 gap-y-3", METRIC_COLS[cols] ?? METRIC_COLS[3], className)}>
       {items.map((m, i) => (
-        <div key={i} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }} title={m.title}>
-          <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{m.value}</div>
+        // Hairline metric cells (2026-07-30): transparent on the page background with a left
+        // hairline tick — the filled gray tiles were the "different colour" island inside the
+        // one-background member dossier. Same numbers, KPI-family look.
+        <div key={i} className="border-l px-3 py-1" style={{ borderColor: "var(--border-soft)" }} title={m.title}>
+          <div className="font-mono text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{m.value}</div>
           <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.label}</div>
         </div>
       ))}
