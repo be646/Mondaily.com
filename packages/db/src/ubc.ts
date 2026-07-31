@@ -30,15 +30,15 @@ export async function updateNode(id: string, workspaceId: string, updates: Parti
   return data as Node;
 }
 
-export async function getNode(id: string, workspaceId: string): Promise<(Node & { activities: Awaited<ReturnType<typeof getActivities>>; updated_at: string }) | null> {
+export async function getNode(id: string, workspaceId: string): Promise<(Node & { activities: Awaited<ReturnType<typeof getActivities>>; updated_at: string; created_at?: string }) | null> {
   const { data, error } = await supabase.from("nodes").select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
   if (error) throw new Error(`getNode failed: ${error.message}`);
   if (!data) return null;
   const activities = await getActivities(id, 50);
-  return { ...(data as Node & { updated_at: string }), activities };
+  return { ...(data as Node & { updated_at: string; created_at?: string }), activities };
 }
 
-export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
   // Secondary sort on id: range-pagination over updated_at ALONE skips/duplicates rows that share
   // a timestamp (bulk imports and merges write many rows in the same instant), so pages were not
   // deterministic even when offset worked.
@@ -46,6 +46,10 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
     .order("updated_at", { ascending: false }).order("id", { ascending: true });
   if (options.vertical) query = query.eq("vertical", options.vertical);
   if (options.object_type || options.objectType) query = query.eq("object_type", options.object_type || options.objectType);
+  // Children of one record (notes/tasks/contact logs hang off data.parent_id). Filtering in SQL —
+  // the callers used to pull a capped global page and filter client-side, which silently dropped a
+  // record's own children once the workspace had more rows than the page size.
+  if (options.parent_id) query = query.eq("data->>parent_id", options.parent_id);
   const limit = options.limit || 50;
   // offset was accepted by callers and SILENTLY IGNORED — GET /nodes?offset=500 returned page one
   // again, so every paginating consumer read duplicate data without knowing. Found live: paged

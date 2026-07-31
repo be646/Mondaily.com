@@ -286,15 +286,7 @@ function getColumnIcon(col: string) {
   return <Database size={12} className="text-stone-600"/>;
 }
 
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, cb: () => void) {
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) cb();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [ref, cb]);
-}
+// (Removed dead component `useClickOutside` — 2026-07-31 audit: defined once, imported nowhere;//  superseded by the inline toolbar bars that are actually rendered.)
 
 // ─── Portal dropdown — renders over ALL overflow/z-index traps ────────────────
 function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down", minWidth, className = "", children }: {
@@ -524,7 +516,9 @@ export function StagePill({ value, options, onSelect }: {
 // ─── Calc engine ─────────────────────────────────────────────────────────────
 function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
   if (!op) return "";
-  const vals = records.map(r => r.data[col]);
+  // cellValue(), not r.data[col]: node-level columns (lead_score / relationship_health) live at the
+  // top level of the record, so a Sum or Avg over them always came back "—".
+  const vals = records.map(r => cellValue(r, col));
   if (op === "count") return String(vals.length);
   if (op === "filled") {
     const filled = vals.filter(v => v != null && v !== "" && v !== "—").length;
@@ -712,159 +706,13 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
 }
 
 // ─── View Settings dropdown ───────────────────────────────────────────────────
-function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }: {
-  columns: string[];
-  hidden: Set<string>;
-  onToggle: (col: string) => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
-}) {
-  return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-56">
-      <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-        <p className="text-body text-[var(--text-secondary)]">Visible columns</p>
-      </div>
-      <div className="py-1 max-h-64 overflow-auto">
-        {columns.map(col => {
-          const visible = !hidden.has(col);
-          return (
-            <button key={col} onClick={() => onToggle(col)}
-              className="dropdown-item w-full gap-2.5">
-              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-stone-500 bg-stone-500" : "border-[var(--border-soft)] bg-transparent"}`}>
-                {visible && <Check size={10} className="text-[var(--text-primary)]"/>}
-              </div>
-              <span className="capitalize">{colLabel(col)}</span>
-              <GripVertical size={12} className="ml-auto text-stone-700"/>
-            </button>
-          );
-        })}
-      </div>
-      <div className="border-t border-[var(--border-soft)] px-3 py-2">
-        <button
-          onClick={() => { columns.forEach(c => hidden.has(c) && onToggle(c)); onClose(); }}
-          className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
-        >
-          Show all columns
-        </button>
-      </div>
-    </PortalDropdown>
-  );
-}
+// (Removed dead component `ViewSettingsDropdown` — 2026-07-31 audit: defined once, imported nowhere;//  superseded by the inline toolbar bars that are actually rendered.)
 
 // ─── Sort panel dropdown ──────────────────────────────────────────────────────
-function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
-  columns: string[];
-  rules: SortRule[];
-  onChange: (rules: SortRule[]) => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
-}) {
-  function addRule() {
-    const unused = columns.find(c => !rules.some(r => r.col === c));
-    if (unused) onChange([...rules, { col: unused, dir: "asc" }]);
-  }
-  function updateRule(i: number, patch: Partial<SortRule>) {
-    onChange(rules.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  }
-
-  return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
-      <div className="px-3 pt-3 pb-2">
-        <p className="text-body text-[var(--text-secondary)] mb-2">Sort by</p>
-        {rules.length === 0 && (
-          <p className="text-xs text-stone-700 pb-1">No sorts applied</p>
-        )}
-        <div className="space-y-1.5">
-          {rules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5">
-              <div className="flex-1 min-w-0">
-                <FieldSelect
-                  value={rule.col}
-                  onChange={v => updateRule(i, { col: v })}
-                  ariaLabel="Sort column"
-                  className="w-full capitalize"
-                  options={columns.map(c => ({ value: c, label: colLabel(c) }))}
-                />
-              </div>
-              <button
-                onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
-                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784] border border-[#717784]/25" : "bg-[#c6892e]/10 text-[#c6892e] border border-[#c6892e]/25"}`}
-              >
-                {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
-              </button>
-              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400 transition-colors shrink-0">
-                <X size={12}/>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="border-t border-[var(--border-soft)] px-3 py-2 flex items-center justify-between">
-        <button onClick={addRule} disabled={rules.length >= columns.length}
-          className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-20">
-          <Plus size={11}/> Add sort
-        </button>
-        {rules.length > 0 && (
-          <button onClick={() => onChange([])} className="text-[11px] text-stone-400/50 hover:text-stone-400 transition-colors">
-            Clear
-          </button>
-        )}
-      </div>
-    </PortalDropdown>
-  );
-}
+// (Removed dead component `SortPanel` — 2026-07-31 audit: defined once, imported nowhere;//  superseded by the inline toolbar bars that are actually rendered.)
 
 // ─── Export dropdown ──────────────────────────────────────────────────────────
-function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
-  records: NodeRecord[];
-  columns: string[];
-  objectType: string;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
-}) {
-
-  function exportCSV() {
-    const header = [...columns, "updated_at"].join(",");
-    const rows = records.map(r => {
-      const cells = columns.map(c => {
-        const v = r.data[c] ?? "";
-        const str = String(v).replace(/"/g, '""');
-        return str.includes(",") || str.includes("\n") || str.includes('"') ? `"${str}"` : str;
-      });
-      cells.push(new Date(r.updated_at).toISOString());
-      return cells.join(",");
-    });
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${objectType}-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    onClose();
-  }
-
-  return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-44">
-      <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-        <p className="text-body text-[var(--text-secondary)]">Import / Export</p>
-      </div>
-      <button onClick={exportCSV} className="dropdown-item w-full gap-2">
-        <Download size={12} className="text-stone-400"/>
-        Export as CSV
-      </button>
-      <button
-        onClick={onClose}
-        className="dropdown-item w-full gap-2 opacity-40 cursor-not-allowed"
-        disabled
-      >
-        <Download size={12} className="text-stone-600"/>
-        Import CSV <span className="ml-auto text-[10px]">soon</span>
-      </button>
-    </PortalDropdown>
-  );
-}
+// (Removed dead component `ExportDropdown` — 2026-07-31 audit: defined once, imported nowhere;//  superseded by the inline toolbar bars that are actually rendered.)
 
 // ─── Owner cell ───────────────────────────────────────────────────────────────
 interface Member { id: string; name: string; email: string; avatar_url?: string; role?: string }
@@ -879,7 +727,9 @@ function avatarColor(name: string) {
 function MemberAvatar({ name, size = 5 }: { name: string; size?: number }) {
   const initials = name.split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   return (
-    <div className={`h-${size} w-${size} rounded-full ${avatarColor(name)} flex items-center justify-center text-[9px] font-bold text-[var(--text-primary)] shrink-0`}>
+    // Sized inline: `h-${size}` is an interpolated class name, which Tailwind never emits — the
+    // avatars had no width or height at all.
+    <div style={{ height: size * 4, width: size * 4 }} className={`rounded-full ${avatarColor(name)} flex items-center justify-center text-[9px] font-bold text-[var(--text-primary)] shrink-0`}>
       {initials}
     </div>
   );
@@ -1184,6 +1034,14 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
 }
 
 // ─── NLP Command Bar ──────────────────────────────────────────────────────────
+/**
+ * Natural-language table commands ("sort by AI score descending, total the value column").
+ * Calls /generate/nlp (now metered), with the regex parser as an offline fallback.
+ *
+ * 2026-07-31 audit: fully built but NEVER MOUNTED — no render site anywhere in the app, so the
+ * endpoint had zero callers and the feature was unreachable. Restored and wired into the toolbar
+ * as an "Ask" panel rather than deleted.
+ */
 function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   columns: string[];
   onApply: (filterText: string, sortCol: string | null, sortDir: SortDir, calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">) => void;
@@ -1805,22 +1663,42 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
   );
 }
 
+/** One page of records. `/nodes` caps limit at 1000; the exact total comes from /nodes/counts. */
+const PAGE_LIMIT = 1000;
+/** Columns shown before the user opens the Columns panel; the rest start hidden, not discarded. */
+const DEFAULT_VISIBLE_COLS = 8;
+
 // ─── Main table ───────────────────────────────────────────────────────────────
-export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", onColumnsChange }: { objectType: string; enrichedIds?: string[]; filterQuery?: string; onColumnsChange?: (cols: string[]) => void }) {
+// `filterQuery` prop removed (2026-07-31 audit): the only call site never passed it, so it was
+// permanently "" — one of three identical free-text filters. filterText + toolbarSearch remain.
+export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: { objectType: string; enrichedIds?: string[]; onColumnsChange?: (cols: string[]) => void }) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=1000`),
+    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=${PAGE_LIMIT}`),
+  });
+  // The EXACT number of records of this type. The table only holds one page, so `records.length`
+  // is a page size, not a total — it read "1000" for every type past a thousand rows, and the CSV
+  // export silently stopped at the same edge with no indication.
+  const countsQuery = useQuery({
+    queryKey: ["node-counts"],
+    queryFn: () => apiClient.get<{ total: number; by_type: Record<string, number> }>("/nodes/counts"),
+    staleTime: 60_000,
   });
 
   const records = query.data ?? [];
+  const totalOfType = countsQuery.data?.by_type?.[objectType] ?? records.length;
+  const truncated = totalOfType > records.length;
 
   const allColumns = useMemo(() => {
     const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))))
       .filter(k => !HIDDEN_DATA_COLS.has(k));
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
-    const base = (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
+    // Keep EVERY key. This used to .slice(0, 8) here, i.e. before the visibility layer, so a 9th
+    // column simply did not exist anywhere in the UI. The 9th onward are now hidden-by-default
+    // (see the hiddenCols seed) and can be switched back on from the Columns panel.
+    const base = nameKey ? [nameKey, ...rest] : allKeys;
     // Surface node-level AI columns (lead_score / relationship_health) when any
     // record actually carries one — they aren't in the data jsonb, so the key
     // scan above never finds them.
@@ -1830,6 +1708,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Column visibility (allColumnsWithCustom declared after customCols below) ──
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
+  // Seed once per object type: show the first DEFAULT_VISIBLE_COLS columns, hide the rest. Same
+  // default density as before, except the extra columns are now RECOVERABLE from the Columns panel
+  // instead of being dropped from the data model entirely.
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (seededFor.current === objectType || allColumns.length === 0) return;
+    seededFor.current = objectType;
+    setHiddenCols(new Set(allColumns.slice(DEFAULT_VISIBLE_COLS)));
+  }, [objectType, allColumns]);
   function toggleCol(col: string) {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
   }
@@ -1847,7 +1734,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Filter ──
   const [filterText, setFilterText] = useState("");
-  // The always-visible toolbar search. The sheet had NO search box at all — filterQuery is a prop
+  // The always-visible toolbar search. The sheet had NO search box at all — this is the one
   // nobody feeds — so finding a record meant opening the Filter panel. Same all-fields substring
   // semantics as the other two text filters.
   const [toolbarSearch, setToolbarSearch] = useState("");
@@ -1862,10 +1749,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   // ── NLP ──
-  const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|"ask"|null>(null);
 
   // Add column lives in the table header now
   const addColHeaderRef = useRef<HTMLTableCellElement>(null);
@@ -2008,7 +1894,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   });
 
   useEffect(() => {
-    setFilterText(""); setQuickSortCol(null); setSortRules([]); setNlpActive(false); setHiddenCols(new Set());
+    // Column visibility is NOT reset here — the seeding effect above owns it per object type
+    // (clearing it here would race that effect and briefly show every column).
+    setFilterText(""); setQuickSortCol(null); setSortRules([]);
   }, [objectType]);
 
   function handleHeaderSort(col: string) {
@@ -2017,6 +1905,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setSortRules([]); // clear stacked rules when header-clicking
   }
 
+  // CSV of exactly what the view shows. `sorted` is the filtered/sorted page held in memory, so the
+  // button states its row count and the panel warns when the type has more rows than are loaded.
+  function exportCSV() {
+    const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(cellValue(r, c) ?? "")).join(","))].join("\n");
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
+    a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
+  }
+
+  const [nlpActive, setNlpActive] = useState(false);
   const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">) => {
     if (ft) setFilterText(ft);
     if (sc) { setQuickSortCol(sc); setQuickSortDir(sd); setSortRules([]); }
@@ -2027,10 +1924,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // ── Filter → sort pipeline ──
   const filtered = useMemo(() => {
     let base = records;
-    if (filterQuery.trim()) {
-      const q = filterQuery.toLowerCase();
-      base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q)));
-    }
     if (filterText.trim()) {
       const q2 = filterText.toLowerCase();
       base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
@@ -2061,7 +1954,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       }));
     }
     return base;
-  }, [records, filterText, filterQuery, toolbarSearch, quickFilters]);
+  }, [records, filterText, toolbarSearch, quickFilters, owners]);   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
 
   const sorted = useMemo(() => {
     // Stacked sort rules take priority over quick sort
@@ -2173,7 +2066,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const groupCalcKind = groupCalcCol ? effectiveType(groupCalcCol) : undefined;
   // Only send filters when the whole active set is server-representable; otherwise disable the server
   // group query and fall back to the client per-group calc (honest, over the visible rows).
-  const groupFiltersRepresentable = !filterText.trim() && !filterQuery && !toolbarSearch.trim() && serverFilters(quickFilters).length === quickFilters.length;
+  const groupFiltersRepresentable = !filterText.trim() && !toolbarSearch.trim() && serverFilters(quickFilters).length === quickFilters.length;
   const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
     queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(quickFilters) : "client")],
     queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(quickFilters).length ? { filters: serverFilters(quickFilters) } : {}) }),
@@ -2233,12 +2126,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   function saveColMeta(next: typeof colMeta) {
     setColMeta(next);
     localStorage.setItem(colMetaKey, JSON.stringify(next));
-  }
-  function setColDefault(col: string, val: string) {
-    saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
-  }
-  function toggleColRequired(col: string) {
-    saveColMeta({ ...colMeta, [col]: { ...colMeta[col], required: !colMeta[col]?.required } });
   }
 
   // ── Bulk selection ──
@@ -2683,15 +2570,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <button onClick={() => setToolbarSearch("")} aria-label="Clear search" className="text-[var(--text-faint)] hover:text-[var(--text-primary)]"><X size={10}/></button>
           )}
         </div>
-        {(filterText || filterQuery || toolbarSearch || quickSortCol || sortRules.length > 0) && (
-          <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {records.length}</span>
+        {(filterText || toolbarSearch || quickSortCol || sortRules.length > 0) && (
+          <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {totalOfType}</span>
         )}
-        {nlpActive && (
-          <span className="flex items-center gap-1 rounded-md border border-stone-700/60 bg-stone-800/40 px-2 py-1 text-[10px] text-stone-400 mr-1">
-            <LogoMark size={9}/> AI active
-          </span>
+        {truncated && (
+          <span
+            className="mr-2 rounded-sm border border-[var(--status-warn)]/30 px-1.5 py-px text-[10px] text-[var(--status-warn)]"
+            title={`This view holds the first ${records.length} of ${totalOfType} records. Filters, sorting and export apply to what is loaded.`}
+          >first {records.length} of {totalOfType}</span>
         )}
-
         <div className="ml-auto flex items-center gap-0.5">
           {/* Columns (was "View") */}
           <button onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
@@ -2725,6 +2612,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <Rows3 size={11}/>
             <span>Group</span>
             {groupByCol && <span className={TB_DOT}>{colLabel(groupByCol)}</span>}
+          </button>
+
+          {/* Ask — natural-language table commands (was built but never mounted) */}
+          <button onClick={() => setOpenPanel(p => p === "ask" ? null : "ask")}
+            className={openPanel === "ask" ? TB_ON : TB_IDLE} title="Describe what you want to see">
+            <LogoMark size={11}/>
+            <span>Ask</span>
+            {nlpActive && <span className={TB_DOT}>on</span>}
           </button>
 
           <div className="w-px h-3 bg-[var(--surface-hover)] mx-1"/>
@@ -2826,15 +2721,28 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
           <span className="text-body text-[var(--text-secondary)] shrink-0">Export</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
-          <button onClick={() => {
-            const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(r.data[c] ?? "")).join(","))].join("\n");
-            const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
-            a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
-          }} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={exportCSV} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={11}/> Export as CSV
             <span className="text-[10px] text-[var(--text-secondary)] ml-1">({sorted.length} rows)</span>
           </button>
+          {truncated && (
+            <span className="text-[10px] text-[var(--status-warn)]">
+              exports the {records.length} loaded rows, not all {totalOfType}
+            </span>
+          )}
           <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Ask (natural-language commands) inline bar ── */}
+      {openPanel === "ask" && (
+        <div className="px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+          <NLPCommandBar
+            columns={orderedColumns}
+            onApply={handleNLPApply}
+            onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }}
+            hasActive={nlpActive}
+          />
         </div>
       )}
 
@@ -2874,16 +2782,34 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
       {/* ── Filter inline bar ── */}
       {openPanel === "filter" && (() => {
+        // ANY column can be filtered, not just stage/status/assignee/date/country. The whitelist
+        // that used to live here meant a table whose columns were e.g. Confidence label, Source and
+        // AI score offered no filters at all ("Add a Stage, Status, or Assignee column to enable
+        // filters") — while Group by already listed every one of those columns. The rendering
+        // branches below already handle the generic case by building options from real data values;
+        // only the eligibility test was too narrow.
+        //
+        // A column qualifies when it is a known filterable kind, OR when its values form a
+        // reasonably small set (a picker over 400 distinct free-text values helps nobody).
+        const DISTINCT_CAP = 40;
         const filterableCols = orderedColumns.filter(c => {
           const l = c.toLowerCase();
-          return (
+          const known =
             l.includes("stage") || l === "status" || l === "deal_status" ||
             l.includes("assignee") || l.includes("assigned") || l.includes("owner") ||
             l.includes("date") || l === "close_date" || l === "due_date" || l === "start_date" ||
-            l === "country" || l.includes("country")
-          );
+            l.includes("country");
+          if (known) return true;
+          const distinct = new Set<string>();
+          for (const r of records) {
+            const v = cellValue(r, c);
+            if (v == null || v === "") continue;
+            distinct.add(String(v));
+            if (distinct.size > DISTINCT_CAP) return false;
+          }
+          return distinct.size > 0;
         });
-        // Also include custom stage/status/owner/assignee/country cols
+        // Custom stage/status/owner/assignee/country cols that aren't already in the ordered list
         const customFilterCols = customCols
           .filter(c => ["stage","status","assignee","owner","country"].includes(c.type))
           .map(c => c.key)
@@ -2926,7 +2852,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {allFilterCols.length > 0 && <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>}
 
             {allFilterCols.length === 0 && (
-              <span className="text-xs text-stone-600">Add a Stage, Status, or Assignee column to enable filters.</span>
+              <span className="text-xs text-stone-600">No filterable columns — every visible column is unique free text.</span>
             )}
 
             {allFilterCols.map(col => {
@@ -3377,8 +3303,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
-                  No results{(toolbarSearch || filterText || filterQuery) ? ` for "${toolbarSearch || filterText || filterQuery}"` : ""}
+                <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                  No results{(toolbarSearch || filterText) ? ` for "${toolbarSearch || filterText}"` : ""}
                 </td>
               </tr>
             ) : (() => {
@@ -3395,7 +3321,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   const ss = stageStyle(groupVal);
                   rowsToRender.push(
                     <tr key={`grp-${groupVal}`}>
-                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
+                      <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
                         <div className="flex items-center gap-2">
                           <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
                           <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
@@ -3463,7 +3389,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           // honest client subtotal over the visible rows — LABELLED "this view" so it's
                           // never mistaken for the authoritative full-table server total.
                           const reprFilters = serverFilters(quickFilters);
-                          const allRepresentable = !filterText.trim() && !filterQuery && !toolbarSearch.trim() && reprFilters.length === quickFilters.length;
+                          const allRepresentable = !filterText.trim() && !toolbarSearch.trim() && reprFilters.length === quickFilters.length;
                           if (!allRepresentable) return <>{clientStr}<TotalNote text="this view" /></>;
                           return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}

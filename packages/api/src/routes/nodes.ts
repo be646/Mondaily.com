@@ -51,9 +51,16 @@ router.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", z.o
   relationship: z.string().default("related"),
 })), async (c) => {
   const id = c.req.param("id");
+  const workspaceId = c.get("workspaceId");
   const { target_id, relationship } = c.req.valid("json");
-  await ubc.createEdge(c.get("workspaceId"), id, target_id, relationship);
-  await ubc.createEdge(c.get("workspaceId"), target_id, id, relationship);
+  // BOTH endpoints must belong to the caller's workspace before an edge is written. Neither was
+  // checked: a member could create edges naming arbitrary foreign node UUIDs (graph pollution and
+  // an existence probe). Same guard shape lists.ts uses before adding a list entry.
+  const { data: owned } = await supabase.from("nodes").select("id").eq("workspace_id", workspaceId).in("id", [id, target_id]);
+  const ownedIds = new Set((owned ?? []).map((n: { id: string }) => n.id));
+  if (!ownedIds.has(id) || !ownedIds.has(target_id)) return c.json({ error: "Record not found" }, 404);
+  await ubc.createEdge(workspaceId, id, target_id, relationship);
+  await ubc.createEdge(workspaceId, target_id, id, relationship);
   return c.json({ ok: true }, 201);
 });
 
@@ -109,6 +116,7 @@ router.get("/:id", requireAuth, async (c) => {
 router.get("/", requireAuth, zValidator("query", z.object({
   vertical: z.string().optional(),
   object_type: z.string().optional(),
+  parent_id: z.string().optional(),   // children of one record, filtered in SQL (see ubc.listNodes)
   limit: z.coerce.number().min(1).max(1000).default(50),
   // offset was missing from this schema entirely — zod STRIPPED it from the query, so clients that
   // paginated received page one repeatedly and could not tell.

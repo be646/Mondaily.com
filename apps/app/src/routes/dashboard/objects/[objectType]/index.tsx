@@ -4,16 +4,15 @@ import { createPortal } from "react-dom";
 import { SegmentedControl } from "../../../../components/ui/segmented";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
-import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
+import { Plus, X, Check, Loader2, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
 import { EmptyState } from "../../../../components/ui/page-state";
 import { RecordTable } from "../../../../components/records/record-table";
 import { BoardView } from "../../../../components/records/board-view";
-import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
+import { CategoryPills } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { DedupPanel } from "../../../../components/records/dedup-panel";
 import { SegmentBuilder } from "../../../../components/records/segment-builder";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../../lib/api-client";
-import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PeriodSelector } from "../../../../components/ui/period-selector";
 import { CommandPageHeader, ActionMenu } from "../../../../components/ui/controls";
@@ -202,9 +201,15 @@ function CreateRecordModal({
       });
       const data = await res.json() as any;
       if (data.error) throw new Error(data.error);
-      const recs: Record<string, string>[] = (data.records ?? []).map((r: any) =>
-        Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")]))
-      );
+      // Keep the provenance the extractor worked to establish. Mapping to fieldKeys ALONE dropped
+      // `source_url` and `_discovered`, so records the model was required to ground in a real web
+      // source arrived indistinguishable from hand-typed ones — the verification claim didn't
+      // survive the import.
+      const recs: Record<string, string>[] = (data.records ?? []).map((r: any) => ({
+        ...Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")])),
+        ...(r.source_url ? { source_url: String(r.source_url) } : {}),
+        ...(r._discovered ? { _discovered: "true" } : {}),
+      }));
       setAiRecords(recs);
       // No fabrication: when the web yields nothing real, show the reason instead of empty silence.
       if (recs.length === 0 && data.reason) setAiError(data.reason);
@@ -506,9 +511,15 @@ function AIFillModal({
       });
       const data = await res.json() as any;
       if (data.error) throw new Error(data.error);
-      const recs: Record<string, string>[] = (data.records ?? []).map((r: any) =>
-        Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")]))
-      );
+      // Keep the provenance the extractor worked to establish. Mapping to fieldKeys ALONE dropped
+      // `source_url` and `_discovered`, so records the model was required to ground in a real web
+      // source arrived indistinguishable from hand-typed ones — the verification claim didn't
+      // survive the import.
+      const recs: Record<string, string>[] = (data.records ?? []).map((r: any) => ({
+        ...Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")])),
+        ...(r.source_url ? { source_url: String(r.source_url) } : {}),
+        ...(r._discovered ? { _discovered: "true" } : {}),
+      }));
       setRecords(recs);
       setSelected(new Set(recs.map((_, i) => i)));
     } catch (e: any) { setError(e.message || "Failed to generate"); }

@@ -21,6 +21,11 @@ import { resolveEntitlement } from "../lib/entitlements";
 
 // Naive English pluralization (covers the common custom-object-type names: company/property/box/
 // dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
+/** "visit payment records" → "Visit Payment Records" — display names are Title Case everywhere. */
+function titleCase(s: string): string {
+  return s.trim().replace(/\S+/g, w => w[0]!.toUpperCase() + w.slice(1));
+}
+
 function pluralize(word: string): string {
   const w = word.trim();
   if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + "ies";
@@ -784,8 +789,11 @@ async function executeTool(
             const attrs = Object.keys(recordData).filter(k => k !== "name").map(k => ({ id: crypto.randomUUID(), name: k, type: TYPE_BY_KEY[k] ?? "text" }));
             await supabase.from("object_definitions").insert({
               workspace_id: workspaceId, vertical: "shared", slug: typeSlug,
-              name_singular: typeSlug.replace(/_/g, " ").replace(/s$/, "") || typeSlug,
-              name_plural: typeSlug.replace(/_/g, " "),
+              // Title Case, matching the bootstrap seeds and the create-object route. This wrote
+              // raw lowercase, so every type the agent registered showed up lower-cased next to
+              // properly-cased ones in the Graph browse tiles.
+              name_singular: titleCase(typeSlug.replace(/_/g, " ").replace(/s$/, "") || typeSlug),
+              name_plural: titleCase(typeSlug.replace(/_/g, " ")),
               attributes: attrs,
             }).then(() => {}, () => {});
           }

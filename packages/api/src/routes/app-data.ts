@@ -210,7 +210,10 @@ async function bootstrapWorkspace(workspaceId: string, createdBy: string) {
 
 router.get("/objects", async (c) => {
   await bootstrapWorkspace(c.get("workspaceId"), c.get("userId"));
-  const data = await rows("object_definitions", c.get("workspaceId"));
+  // Every object definition, not the generic 100-row default: this list IS the workspace's type
+  // registry — it backs the Graph browse tiles, the sidebar and every object picker, so a silent
+  // cut at 100 would make types disappear from navigation entirely.
+  const data = await rows("object_definitions", c.get("workspaceId"), { limit: 1000 });
   // Real per-type counts for the sidebar/pickers — the same SQL aggregate the cleaning tools use
   // (exact, never a truncated JS count). Fail-soft: without the RPC everything still renders,
   // just without counts, so this stays additive for older deployments.

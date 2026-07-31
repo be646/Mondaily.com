@@ -55,10 +55,21 @@ router.post("/node/:nodeId", requireAuth, zValidator("json", z.object({
   tag_id: z.string().uuid(),
 })), async (c) => {
   const { tag_id } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const nodeId = c.req.param("nodeId");
+  // Both ids must be OURS. Neither was validated: the row was written with the caller's
+  // workspace_id but a foreign node_id/tag_id, and because GET /node/:nodeId joins tags(...)
+  // filtered on node_tags.workspace_id, planting a foreign tag_id read that tag's name and colour
+  // straight back out — a genuine cross-tenant read path, not just pollution.
+  const [{ data: node }, { data: tag }] = await Promise.all([
+    supabase.from("nodes").select("id").eq("id", nodeId).eq("workspace_id", workspaceId).maybeSingle(),
+    supabase.from("tags").select("id").eq("id", tag_id).eq("workspace_id", workspaceId).maybeSingle(),
+  ]);
+  if (!node || !tag) return c.json({ error: "Not found" }, 404);
   const { error } = await supabase.from("node_tags").insert({
-    node_id: c.req.param("nodeId"),
+    node_id: nodeId,
     tag_id,
-    workspace_id: c.get("workspaceId"),
+    workspace_id: workspaceId,
   });
   if (error && !error.message.includes("duplicate")) return c.json({ error: error.message }, 400);
   return c.json({ ok: true });

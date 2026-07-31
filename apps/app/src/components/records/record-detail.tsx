@@ -8,7 +8,7 @@ import {
   DollarSign, Users2, Mail, Phone, Tag, Clock, Plus,
   ChevronDown, MapPin, TrendingUp, Square,
   CheckSquare, FileText, X, Link2, Search, UserCheck,
-  Camera, ExternalLink, Briefcase, Percent, Receipt,
+  Camera, ExternalLink, Briefcase, Percent, Receipt, Globe,
   CreditCard, Star, List, Trash2, Pencil, PhoneCall,
   MessageSquare, Video, AlignLeft,
 } from "lucide-react";
@@ -30,7 +30,7 @@ import { GraphContextButton } from "../graph/graph-context-drawer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
-interface RecordData { id: string; object_type: string; vertical: string; data: Record<string, unknown>; ai_summary?: string; activities?: Activity[]; updated_at: string }
+interface RecordData { id: string; object_type: string; vertical: string; data: Record<string, unknown>; ai_summary?: string; activities?: Activity[]; updated_at: string; created_at?: string }
 interface NoteRecord  { id: string; data: Record<string, unknown>; updated_at: string }
 interface TaskRecord  { id: string; data: Record<string, unknown>; updated_at: string }
 interface Category   { name: string; color: string }
@@ -613,9 +613,11 @@ function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
   return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[var(--surface-card)]`}/>;
 }
 
-function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; createdAt: string }) {
+function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; createdAt?: string }) {
   const events = [
-    { id: "created", action: "created", actor_type: "system", created_at: createdAt, diff: null, ai_summary: "Record created" },
+    // Only when we have a REAL created_at. This was passed `record.updated_at`, so a record edited
+    // a minute ago rendered "Record created · just now" — a fabricated timestamp on an audit feed.
+    ...(createdAt ? [{ id: "created", action: "created", actor_type: "system", created_at: createdAt, diff: null, ai_summary: "Record created" }] : []),
     ...(activities ?? []),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   return (
@@ -650,8 +652,11 @@ function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; crea
 function CompanyHighlights({ data, onSave }: { data: Record<string, unknown>; onSave: (f: string, v: string) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      <HighlightCard icon={Wifi}       label="Connection"   value={data.connection_strength ?? "Not set"}     accent="emerald"/>
-      <HighlightCard icon={Calendar}   label="Next meeting"  value={data.next_interaction ?? "Not scheduled"} accent="blue"/>
+      {/* `connection_strength` / `next_interaction` used to sit here: nothing anywhere in the
+          codebase writes either, so both cards permanently read "Not set"/"Not scheduled" and
+          implied a relationship-strength feature that does not exist. */}
+      <HighlightCard icon={Globe}      label="Website"       value={data.website ?? data.domain ?? "—"}       accent="emerald" onSave={v => onSave("website", v)}/>
+      <HighlightCard icon={Briefcase}  label="Industry"      value={data.industry ?? "—"}                     accent="blue"    onSave={v => onSave("industry", v)}/>
       <HighlightCard icon={Users2}     label="Team size"     value={data.employee_range ?? "—"}               accent="slate"  onSave={v => onSave("employee_range", v)}/>
       <HighlightCard icon={DollarSign} label="Est. ARR"      value={data.arr ?? "—"}                          accent="amber"  onSave={v => onSave("arr", v)} numeric/>
       <HighlightCard icon={TrendingUp} label="Funding"       value={data.funding_raised ?? "—"}               accent="purple" onSave={v => onSave("funding_raised", v)} numeric/>
@@ -662,8 +667,9 @@ function CompanyHighlights({ data, onSave }: { data: Record<string, unknown>; on
 function PeopleHighlights({ data, onSave }: { data: Record<string, unknown>; onSave: (f: string, v: string) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      <HighlightCard icon={Wifi}      label="Connection"   value={data.connection_strength ?? "Not set"}     accent="emerald"/>
-      <HighlightCard icon={Calendar}  label="Next meeting"  value={data.next_interaction ?? "Not scheduled"} accent="blue"/>
+      {/* see CompanyHighlights — both removed fields were never written by anything. */}
+      <HighlightCard icon={Briefcase} label="Title"         value={data.title ?? data.job_title ?? data.role ?? "—"} accent="emerald" onSave={v => onSave("title", v)}/>
+      <HighlightCard icon={Globe}     label="Profile"       value={data.linkedin ?? data.source_url ?? "—"}  accent="blue"/>
       <HighlightCard icon={Building2} label="Company"       value={data.company ?? "—"}                     accent="purple" onSave={v => onSave("company", v)}/>
       <HighlightCard icon={Mail}      label="Email"         value={data.email ?? "—"}                       accent="blue"   onSave={v => onSave("email", v)}/>
       <HighlightCard icon={Phone}     label="Phone"         value={data.phone ?? "—"}                       accent="slate"  onSave={v => onSave("phone", v)}/>
@@ -704,7 +710,7 @@ function ExpenseHighlights({ data, onSave }: { data: Record<string,unknown>; onS
       <HighlightCard icon={DollarSign}  label="Amount"       value={data.amount ?? "—"}                              accent="red"     onSave={v => onSave("amount", v)} numeric/>
       <HighlightCard icon={Calendar}    label="Date"         value={data.date ?? data.expense_date ?? "—"}           accent="slate"   onSave={v => onSave("date", v)}/>
       <HighlightCard icon={Tag}         label="Category"     value={data.category ?? "—"}                            accent="blue"    onSave={v => onSave("category", v)}/>
-      <HighlightCard icon={CreditCard}  label="Reimbursed"   value={data.reimbursed ? "Yes" : "Pending"}             accent="emerald"/>
+      <HighlightCard icon={CreditCard}  label="Reimbursed"   value={data.reimbursed == null ? "—" : data.reimbursed ? "Yes" : "No"}             accent="emerald"/>
       <HighlightCard icon={Users}       label="Submitted by" value={data.submitted_by ?? data.owner ?? "—"}          accent="purple"/>
       <HighlightCard icon={Building2}   label="Vendor"       value={data.vendor ?? data.merchant ?? "—"}             accent="amber"   onSave={v => onSave("vendor", v)}/>
     </div>
@@ -728,8 +734,8 @@ function TaskHighlights({ data, onSave }: { data: Record<string,unknown>; onSave
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={Calendar}   label="Due Date"  value={data.due_date ?? "—"}                                   accent="red"     onSave={v => onSave("due_date", v)}/>
-      <HighlightCard icon={Star}       label="Priority"  value={data.priority ?? "Normal"}                              accent="amber"   onSave={v => onSave("priority", v)}/>
-      <HighlightCard icon={CheckSquare} label="Status"   value={data.done ? "Done ✓" : (String(data.status ?? "Open"))} accent="emerald"/>
+      <HighlightCard icon={Star}       label="Priority"  value={data.priority ?? "—"}                              accent="amber"   onSave={v => onSave("priority", v)}/>
+      <HighlightCard icon={CheckSquare} label="Status"   value={data.done ? "Done ✓" : (data.status == null ? "—" : String(data.status))} accent="emerald"/>
       <HighlightCard icon={Users}      label="Assignee"  value={data.assignee ?? data.assigned_to ?? "—"}               accent="blue"/>
       <HighlightCard icon={Building2}  label="Project"   value={data.project ?? "—"}                                    accent="purple"  onSave={v => onSave("project", v)}/>
       <HighlightCard icon={Clock}      label="Est. Time" value={data.estimated_time ?? "—"}                             accent="slate"   onSave={v => onSave("estimated_time", v)}/>
@@ -756,8 +762,9 @@ function InlineNotesPanel({ recordId, vertical, onViewAll }: { recordId: string;
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["notes", recordId],
     queryFn: async () => {
-      const all = await apiClient.get<NoteRecord[]>("/nodes?object_type=note&limit=200");
-      return all.filter(n => n.data.parent_id === recordId);
+      // Server-side parent filter. This used to pull the workspace's 200 most recent notes and
+      // filter here, so a record's own notes vanished once the workspace passed 200 notes.
+      return apiClient.get<NoteRecord[]>(`/nodes?object_type=note&parent_id=${encodeURIComponent(recordId)}&limit=200`);
     },
   });
   const createNote = useMutation({
@@ -831,8 +838,8 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", recordId],
     queryFn: async () => {
-      const all = await apiClient.get<TaskRecord[]>("/nodes?object_type=task&limit=200");
-      return all.filter(t => t.data.parent_id === recordId);
+      // See the notes query: filtered in SQL, not over a capped global page.
+      return apiClient.get<TaskRecord[]>(`/nodes?object_type=task&parent_id=${encodeURIComponent(recordId)}&limit=200`);
     },
   });
   const createTask = useMutation({
@@ -988,8 +995,9 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["notes", recordId],
     queryFn: async () => {
-      const all = await apiClient.get<NoteRecord[]>("/nodes?object_type=note&limit=200");
-      return all.filter(n => n.data.parent_id === recordId);
+      // Server-side parent filter. This used to pull the workspace's 200 most recent notes and
+      // filter here, so a record's own notes vanished once the workspace passed 200 notes.
+      return apiClient.get<NoteRecord[]>(`/nodes?object_type=note&parent_id=${encodeURIComponent(recordId)}&limit=200`);
     },
   });
   const createNote = useMutation({
@@ -1053,8 +1061,8 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", recordId],
     queryFn: async () => {
-      const all = await apiClient.get<TaskRecord[]>("/nodes?object_type=task&limit=200");
-      return all.filter(t => t.data.parent_id === recordId);
+      // See the notes query: filtered in SQL, not over a capped global page.
+      return apiClient.get<TaskRecord[]>(`/nodes?object_type=task&parent_id=${encodeURIComponent(recordId)}&limit=200`);
     },
   });
   const createTask = useMutation({
@@ -1209,8 +1217,8 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["contact-log", recordId],
     queryFn: async () => {
-      const all = await apiClient.get<ContactLogRecord[]>("/nodes?object_type=contact_log&limit=200");
-      return all.filter(n => n.data.parent_id === recordId)
+      const all = await apiClient.get<ContactLogRecord[]>(`/nodes?object_type=contact_log&parent_id=${encodeURIComponent(recordId)}&limit=200`);
+      return all
         .sort((a, b) => new Date(b.data.logged_at as string || b.updated_at).getTime()
                       - new Date(a.data.logged_at as string || a.updated_at).getTime());
     },
@@ -1635,9 +1643,14 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
     queryKey: ["related", recordId],
     queryFn: () => apiClient.get<RelatedNode[]>(`/nodes/${recordId}/related`),
   });
+  // Real workspace search. This used to fetch an arbitrary `/nodes?limit=200` page and filter it
+  // by name in the browser, so the picker could only ever offer 200 of the workspace's records —
+  // anything outside that slice was unlinkable, with no indication why.
   const { data: allNodes = [], isLoading: allLoading } = useQuery({
-    queryKey: ["all-nodes-search"],
-    queryFn: () => apiClient.get<RelatedNode[]>("/nodes?limit=200"),
+    queryKey: ["record-link-search", searchText],
+    queryFn: () => searchText.trim()
+      ? apiClient.post<RelatedNode[]>("/search", { query: searchText.trim(), limit: 25 })
+      : apiClient.get<RelatedNode[]>("/nodes?limit=50"),
     enabled: searchOpen,
   });
   const linkRecord = useMutation({
@@ -1646,6 +1659,11 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
   });
 
   const relatedIds = new Set(related.map(r => r.id));
+  // Each tab shows the linked records of ITS OWN type. Company/People/Deals/Contact previously
+  // rendered byte-identical lists — a "Deals" tab listing linked notes and companies.
+  const tabType = tabLabel.toLowerCase().replace(/s$/, "");
+  const visibleRelated = tabLabel === "Related" ? related
+    : related.filter(r => String(r.object_type ?? "").toLowerCase().includes(tabType));
   const searchResults = allNodes.filter(n => {
     if (n.id === recordId || relatedIds.has(n.id)) return false;
     const name = String(n.data.name ?? n.data.title ?? "").toLowerCase();
@@ -1683,7 +1701,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
         </div>
       </div>
       {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
-       : related.length === 0 ? (
+       : visibleRelated.length === 0 ? (
         <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <Link2 size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No linked records yet.</p>
@@ -1691,7 +1709,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
         </div>
       ) : (
         <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
-          {related.map(r => {
+          {visibleRelated.map(r => {
             const n = rname(r);
             return (
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
@@ -1815,25 +1833,24 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     patch.mutate({ ...query.data.data, logo_url: url || undefined });
   }, [query.data, patch]);
 
-  const [autoMsg, setAutoMsg] = useState<string | null>(null);
+  // Stage SUGGESTION from recent activity. This used to fire patch.mutate() 1.5s after the page
+  // rendered — silently rewriting the user's deal_stage without asking — and announced the change
+  // as the work of AI. It is a keyword rule (STAGE_TRIGGERS), not a model, and moving a deal's
+  // stage is the user's call. It now proposes; the user applies.
+  const [stageSuggestion, setStageSuggestion] = useState<string | null>(null);
+  const [stageDismissed, setStageDismissed] = useState(false);
   useEffect(() => {
-    if (!query.data) return;
+    if (!query.data || stageDismissed) return;
     const acts = query.data.activities ?? [];
     if (!acts.length || !objectType.toLowerCase().includes("deal")) return;
     const cur = String(query.data.data.deal_stage ?? "");
     for (const act of acts) {
       const detected = detectStageFromActivity(`${act.action} ${act.ai_summary ?? ""}`);
-      if (detected && detected !== cur) {
-        const t = setTimeout(() => {
-          patch.mutate({ ...query.data.data, deal_stage: detected });
-          setAutoMsg(`AI moved stage to "${detected}" based on activity`);
-          setTimeout(() => setAutoMsg(null), 5000);
-        }, 1500);
-        return () => clearTimeout(t);
-      }
+      if (detected && detected !== cur) { setStageSuggestion(detected); return; }
     }
+    setStageSuggestion(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.data?.activities, objectType]);
+  }, [query.data?.activities, objectType, stageDismissed]);
 
   if (query.isLoading) return <div className="p-8"><PageSkeleton/></div>;
   if (query.isError || !query.data) return (
@@ -1915,9 +1932,15 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
         {patch.isPending && <span className="ml-auto animate-pulse text-body text-[var(--text-faint)]">Saving…</span>}
       </div>
 
-      {autoMsg && (
-        <div className="flex items-center gap-2 border-b border-[#2f9e6b]/25 bg-[#2f9e6b]/[.06] px-6 py-2 text-xs text-[#2f9e6b] shrink-0">
-          <LogoMark size={12} className="shrink-0"/>{autoMsg}
+      {stageSuggestion && (
+        <div className="flex items-center gap-2 border-b border-[#c6892e]/25 bg-[#c6892e]/[.06] px-6 py-2 text-xs text-[#c6892e] shrink-0">
+          <LogoMark size={12} className="shrink-0"/>
+          <span>Recent activity matches the <b>{stageSuggestion}</b> stage.</span>
+          <button
+            onClick={() => { patch.mutate({ ...query.data!.data, deal_stage: stageSuggestion }); setStageSuggestion(null); }}
+            className="rounded-sm border border-[#c6892e]/40 px-2 py-0.5 font-medium transition-colors hover:bg-[#c6892e]/10"
+          >Move stage</button>
+          <button onClick={() => { setStageSuggestion(null); setStageDismissed(true); }} className="text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">Dismiss</button>
         </div>
       )}
 
@@ -2215,7 +2238,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 {/* Activity feed */}
                 <div>
                   <p className="mb-4 text-body text-[var(--text-secondary)]">Activity</p>
-                  <ActivityFeed activities={record.activities} createdAt={record.updated_at}/>
+                  <ActivityFeed activities={record.activities} createdAt={record.created_at}/>
                 </div>
               </div>
             )}

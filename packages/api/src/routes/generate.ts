@@ -136,6 +136,11 @@ router.post("/nlp", requireAuth, verifyAiCredits, zValidator("json", z.object({
           },
         },
       },
+      // Metered: without workspaceId/userId the gateway skips recordAiUsage entirely, so these
+      // calls were gated by verifyAiCredits but never actually debited or logged to ai_usage.
+      workspaceId: c.get("workspaceId"),
+      userId: c.get("userId"),
+      feature: "generate.nlp",
     });
 
     if (!input || Object.keys(input).length === 0) return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
@@ -257,6 +262,9 @@ router.post("/records", requireAuth, verifyAiCredits, zValidator("json", z.objec
         `NEVER fabricate names, values, follower counts, revenue, emails, or phones. Every record MUST have a real source_url copied from the content. ` +
         `Return an empty array if the content contains no genuine ${objectType}. Do not pad to reach the count.`,
       prompt: `Object type: ${objectType}. Request: "${prompt}". Columns to fill (only when grounded): ${columns.join(", ")}.\n\nWeb content:\n${webContext.slice(0, 12000)}`,
+      workspaceId: c.get("workspaceId"),   // meter it (see generate.nlp above)
+      userId: c.get("userId"),
+      feature: "generate.records",
     }).catch(() => ({ records: [] as Record<string, unknown>[] }));
 
     const records = Array.isArray((extracted as { records?: unknown }).records)

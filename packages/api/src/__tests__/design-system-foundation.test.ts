@@ -1963,7 +1963,9 @@ describe("Object record related-record list → framed hairline surface (Pass OB
   const R = read("apps/app/src/components/records/record-detail.tsx");
 
   it("RelatedTab list is one framed divide-y surface, not a space-y-2 boxed stack", () => {
-    expect(R).toMatch(/<div className="overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y divide-\[var\(--border-soft\)\]">\s*\n\s*\{related\.map/);
+    // 2026-07-31 audit: renders `visibleRelated` — the Company/People/Deals/Contact tabs used to
+    // map the same unfiltered `related` list, so a "Deals" tab listed linked notes and companies.
+    expect(R).toMatch(/<div className="overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y divide-\[var\(--border-soft\)\]">\s*\n\s*\{visibleRelated\.map/);
     // old boxed per-card related-record treatment gone
     expect(R).not.toMatch(/flex items-center gap-3 rounded-sm border border-\[var\(--border-soft\)\] bg-\[var\(--surface-hover\)\] p-3 hover:border/);
   });

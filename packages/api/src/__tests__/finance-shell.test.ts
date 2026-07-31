@@ -53,12 +53,14 @@ describe("the sheet has an always-visible search", () => {
     expect(table).toMatch(/placeholder="Search records…"/);
     expect(table).toMatch(/if \(toolbarSearch\.trim\(\)\) \{/);
     // it participates in the memo deps, the N-of-M counter, and the no-results message
-    expect(table).toMatch(/\[records, filterText, filterQuery, toolbarSearch, quickFilters\]/);
-    expect(table).toMatch(/toolbarSearch \|\| filterText \|\| filterQuery/);
+    // 2026-07-31 audit: the `filterQuery` prop was removed — the only call site never passed it,
+    // so it was permanently "". filterText + toolbarSearch are the two live text filters.
+    expect(table).toMatch(/\[records, filterText, toolbarSearch, quickFilters, owners\]/);
+    expect(table).toMatch(/toolbarSearch \|\| filterText/);
   });
   it("blocks server-side group representability like the other text filters", () => {
     // A text search is client-side; pretending the grouped server view represents it would lie.
-    expect(table).toMatch(/!filterText\.trim\(\) && !filterQuery && !toolbarSearch\.trim\(\)/);
+    expect(table).toMatch(/!filterText\.trim\(\) && !toolbarSearch\.trim\(\)/);
   });
 });
 
