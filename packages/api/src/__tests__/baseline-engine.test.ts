@@ -258,3 +258,37 @@ describe("sovereign inference backend — one spine, fail-closed, measured probe
     expect(be).not.toMatch(/gov.?cloud/i);
   });
 });
+
+describe("shadow evaluation — off by default, metadata-only, never user-visible, never metered", () => {
+  it("three explicit switches gate it; a shadow failure cannot reach the user", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const sh = readFileSync(join(__dirname, "../lib/inference-shadow.ts"), "utf8");
+    expect(sh).toMatch(/inferenceMode\(\) === "gateway" && sovereignVllmConfigured\(\) && shadowPct\(\) > 0/);
+    expect(sh).toContain("shadow must never surface");
+    const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+    expect(gw).toMatch(/void maybeShadowMirror\(/);            // fire-and-forget, not awaited
+  });
+  it("logs METADATA only — no prompt/response persistence, no credit metering", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const sh = readFileSync(join(__dirname, "../lib/inference-shadow.ts"), "utf8");
+    expect(sh).toContain("texts end here — only the metadata row persists");
+    expect(sh).not.toMatch(/recordAiUsage|assertCreditsOk/);   // evaluation is not product usage
+    const row = sh.slice(sh.indexOf("const row = {"), sh.indexOf("await supabase"));
+    expect(row).not.toMatch(/text:|prompt|content/);           // the insert carries no text fields
+    const mig = readFileSync(join(__dirname, "../../../db/migrations/20260731_inference_shadow.sql"), "utf8");
+    expect(mig).toContain("METADATA ONLY");
+    expect(mig).not.toMatch(/prompt_text|response_text/);
+  });
+  it("the jaccard comparator is real and the aggregate endpoint reports honest states", async () => {
+    const { jaccardPct } = await import("../lib/inference-shadow");
+    expect(jaccardPct("the revenue grew fast", "the revenue grew fast")).toBe(100);
+    expect(jaccardPct("alpha beta gamma", "delta epsilon zeta")).toBe(0);
+    expect(jaccardPct("value won this month", "value lost this month")).toBeGreaterThan(30);
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const rd = readFileSync(join(__dirname, "../routes/admin-readiness.ts"), "utf8");
+    expect(rd).toContain('reason: "migration_not_applied"');
+  });
+});

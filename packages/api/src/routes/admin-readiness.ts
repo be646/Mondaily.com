@@ -207,4 +207,42 @@ router.post("/readiness/vllm-test", async (c) => {
   return c.json(r);
 });
 
+/**
+ * GET /api/v1/admin/readiness/inference-shadow — per-task-class shadow comparison aggregates.
+ * Metadata aggregates only (runs, error rate, avg latencies, avg similarity). Honest states:
+ * enabled:false until the migration is applied or while the shadow switches are off.
+ */
+router.get("/readiness/inference-shadow", async (c) => {
+  const ws = c.get("workspaceId");
+  const q = await supabase.from("inference_shadow_runs")
+    .select("task_class, shadow_ok, primary_latency_ms, shadow_latency_ms, similarity_pct, primary_tokens, shadow_tokens, created_at")
+    .eq("workspace_id", ws).order("created_at", { ascending: false }).limit(2000);
+  if (q.error && (q.error.code === "42P01" || /does not exist/i.test(q.error.message ?? ""))) {
+    return c.json({ enabled: false, reason: "migration_not_applied" });
+  }
+  const rows = q.data ?? [];
+  const byClass = new Map<string, { runs: number; ok: number; p_lat: number[]; s_lat: number[]; sim: number[] }>();
+  for (const r of rows) {
+    const k = String(r.task_class ?? "unclassified");
+    const b = byClass.get(k) ?? { runs: 0, ok: 0, p_lat: [], s_lat: [], sim: [] };
+    b.runs += 1;
+    if (r.shadow_ok) {
+      b.ok += 1;
+      if (r.shadow_latency_ms != null) b.s_lat.push(Number(r.shadow_latency_ms));
+      if (r.similarity_pct != null) b.sim.push(Number(r.similarity_pct));
+    }
+    if (r.primary_latency_ms != null) b.p_lat.push(Number(r.primary_latency_ms));
+    byClass.set(k, b);
+  }
+  const avg = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
+  return c.json({
+    enabled: true,
+    total_runs: rows.length,
+    classes: [...byClass.entries()].map(([task_class, b]) => ({
+      task_class, runs: b.runs, error_rate_pct: Math.round(((b.runs - b.ok) / b.runs) * 100),
+      avg_primary_ms: avg(b.p_lat), avg_shadow_ms: avg(b.s_lat), avg_similarity_pct: avg(b.sim),
+    })).sort((a, b) => b.runs - a.runs),
+  });
+});
+
 export { router as adminReadinessRouter };

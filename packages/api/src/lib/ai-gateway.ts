@@ -31,6 +31,7 @@ import { recordAiUsage } from "./ai-usage";
 import { assertCreditsOk, CreditsExhaustedError } from "./credits";
 import { modelForClass, backendLabel as routerBackendLabel, type TaskClass } from "./ai-router";
 import { inferenceMode, sovereignBackendConfig } from "./inference-backend";
+import { maybeShadowMirror } from "./inference-shadow";
 
 /** Observability label for the ACTIVE backend — "sovereign-vllm" when the local engine serves. */
 function backendLabel(): string {
@@ -372,6 +373,14 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
   }
   const msg = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
   const text = (msg?.content && msg.content.trim()) ? msg.content : (msg?.reasoning ?? "");
+  // Shadow evaluation — fire-and-forget mirror of this REAL request to the sovereign vLLM engine
+  // (three explicit off-by-default switches inside; metadata-only logging; never affects the
+  // response, never meters credits). This is how the local engine earns live traffic.
+  void maybeShadowMirror({
+    workspaceId: req.workspaceId, taskClass: req.taskClass, feature: req.feature,
+    messages: messages.map(m => ({ role: String(m.role), content: typeof m.content === "string" ? m.content : "" })),
+    primary: { model: resolved.modelId, latencyMs, text, tokens: (completion.usage as { total_tokens?: number } | undefined)?.total_tokens ?? 0 },
+  });
   return { text, provider: "openai-compat", model: resolved.modelId };
 }
 
