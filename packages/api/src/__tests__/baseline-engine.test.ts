@@ -121,3 +121,25 @@ describe("Secret Brain — shadow-mode contract (source-read guards)", () => {
     expect(mig).toContain("check (mode in ('shadow'))");
   });
 });
+
+describe("loss-reason capture + lost-deal analysis", () => {
+  it("stage→lost transitions pause for ONE modal; reason lands in the SAME patch", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const APP = join(__dirname, "../../../../apps/app/src");
+    const rt = readFileSync(join(APP, "components/records/record-table.tsx"), "utf8");
+    expect(rt).toMatch(/isLostStage\(newVal\) && !record\.data\.loss_reason/);
+    expect(rt).toMatch(/\.\.\.\(extra \?\? \{\}\)/);          // same-patch read-merge-write
+    const bv = readFileSync(join(APP, "components/records/board-view.tsx"), "utf8");
+    expect(bv).toMatch(/isLostStage\(newStage\) && !rec\.data\.loss_reason/);
+    const lm = readFileSync(join(APP, "components/records/loss-reason.tsx"), "utf8");
+    expect(lm).toContain("Skip");                             // skipping is allowed, honestly
+  });
+  it("the engine groups lost deals by reason with an honest 'no reason recorded' bucket", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const lib = readFileSync(join(__dirname, "../lib/outcomes.ts"), "utf8");
+    expect(lib).toContain('"no reason recorded"');
+    expect(lib).toMatch(/lost_reasons/);
+  });
+});

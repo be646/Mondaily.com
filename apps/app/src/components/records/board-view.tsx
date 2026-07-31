@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { LossReasonModal, isLostStage, type PendingLoss } from "./loss-reason";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Plus, Check, X, ChevronRight, ChevronDown } from "lucide-react";
@@ -404,6 +405,8 @@ export function BoardView({ objectType }: { objectType: string }) {
     });
   }, [records, groupCol]);
 
+  const [pendingLoss, setPendingLoss] = useState<PendingLoss | null>(null);
+
   const moveRecord = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => apiClient.patch(`/nodes/${id}`, { data }),
     onMutate: async ({ id, data }) => {
@@ -439,6 +442,7 @@ export function BoardView({ objectType }: { objectType: string }) {
   if (!groupCol && !recordsQuery.isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
+      {pendingLoss && <LossReasonModal pending={pendingLoss} onClose={() => setPendingLoss(null)} />}
         <div className="text-center space-y-2">
           <p className="text-sm text-stone-400">Board view requires a stage or status column</p>
           <p className="text-xs text-stone-600">Add a column named "stage", "status", or "phase" to use board view</p>
@@ -494,7 +498,14 @@ export function BoardView({ objectType }: { objectType: string }) {
                     valueCol={valueCol}
                     members={members}
                     stages={stages}
-                    onMove={newStage => moveRecord.mutate({ id: rec.id, data: { ...rec.data, [groupCol!]: newStage } })}
+                    onMove={newStage => {
+                      if (isLostStage(newStage) && !rec.data.loss_reason) {
+                        setPendingLoss({ name: String(rec.data.name ?? rec.data.title ?? "This deal"),
+                          apply: (reason) => moveRecord.mutate({ id: rec.id, data: { ...rec.data, [groupCol!]: newStage, ...(reason ? { loss_reason: reason } : {}) } }) });
+                        return;
+                      }
+                      moveRecord.mutate({ id: rec.id, data: { ...rec.data, [groupCol!]: newStage } });
+                    }}
                     onPatch={fields => patchRecord(rec.id, fields)}
                   />
                 ))

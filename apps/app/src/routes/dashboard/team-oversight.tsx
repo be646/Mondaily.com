@@ -354,7 +354,7 @@ function OversightAsk() {
 // ── Business outcomes (Sales) — THE money layer: value won/lost, pipeline, win rate ──────────
 interface OutcomesResp {
   base_currency: string;
-  team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; projected_amount: number; close_rate_pct: number | null; avg_open_deal_age_days: number | null; stages: { stage: string; deals: number; value: number }[]; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
+  team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; projected_amount: number; close_rate_pct: number | null; avg_open_deal_age_days: number | null; stages: { stage: string; deals: number; value: number }[]; lost_reasons: { reason: string; deals: number; value: number }[]; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
     deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
   members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
 }
@@ -399,6 +399,26 @@ function SalesStrip({ period }: { period: Period }) {
                     <span className="block h-full rounded-full" style={{ width: `${Math.max(2, Math.round((st.value / max) * 100))}%`, background: "var(--section-accent)" }} />
                   </span>
                   <span className="w-32 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtMoney0(st.value, cur)} · {st.deals}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* Lost by reason — renders only when the window has losses; skipped reasons show honestly. */}
+      {t.lost_reasons.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Lost by reason</p>
+          <div className="space-y-1">
+            {t.lost_reasons.map((lr) => {
+              const max = t.lost_reasons[0]!.value || 1;
+              return (
+                <div key={lr.reason} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-36 truncate" style={{ color: "var(--text-muted)" }}>{lr.reason}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(2, Math.round((lr.value / max) * 100))}%`, background: "var(--status-error)" }} />
+                  </span>
+                  <span className="w-32 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtMoney0(lr.value, cur)} · {lr.deals}</span>
                 </div>
               );
             })}

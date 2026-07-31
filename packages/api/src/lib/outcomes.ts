@@ -28,6 +28,8 @@ export interface OutcomesResult {
     avg_open_deal_age_days: number | null;
     /** Open-pipeline distribution by raw stage label (top stages by value). */
     stages: { stage: string; deals: number; value: number }[];
+    /** Lost deals in the window grouped by recorded loss_reason ("no reason recorded" is honest). */
+    lost_reasons: { reason: string; deals: number; value: number }[];
     win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null;
     unconverted: number; pipeline_unconverted: number;
     deltas: null | { value_won: BaselineComparison; deals_won: BaselineComparison; value_lost: BaselineComparison };
@@ -52,6 +54,7 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
   const pipelineByMember = new Map<string, { value: number; n: number }>();
   const openAges: number[] = [];
   const stageAgg = new Map<string, { deals: number; value: number }>();
+  const lostReasons = new Map<string, { deals: number; value: number }>();
   const nowMs = Date.now();
 
   for (const row of deals ?? []) {
@@ -79,6 +82,11 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
         bucket.lost += convertible ? val : 0; bucket.lost_n += 1;
         if (!convertible) bucket.unconverted += 1;
         if (mine) { mine.lost += convertible ? val : 0; mine.lost_n += 1; if (!convertible) mine.unconverted += 1; }
+        if (target === "now") {
+          const reason = String(d.loss_reason ?? "").trim() || "no reason recorded";
+          const lr = lostReasons.get(reason) ?? { deals: 0, value: 0 };
+          lr.deals += 1; lr.value += convertible ? val : 0; lostReasons.set(reason, lr);
+        }
       }
     } else if (!/closed/i.test(stage)) {
       // open pipeline — a BALANCE (as of now), not a windowed flow
@@ -110,6 +118,8 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
         ? Math.round(((teamNow.won_n + teamNow.lost_n) / (teamNow.won_n + teamNow.lost_n + pipelineN)) * 100) : null,
       avg_open_deal_age_days: openAges.length > 0 ? Math.round(openAges.reduce((a, b) => a + b, 0) / openAges.length) : null,
       stages: [...stageAgg.entries()].map(([stage, v]) => ({ stage, deals: v.deals, value: Math.round(v.value) }))
+        .sort((a, b) => b.value - a.value).slice(0, 8),
+      lost_reasons: [...lostReasons.entries()].map(([reason, v]) => ({ reason, deals: v.deals, value: Math.round(v.value) }))
         .sort((a, b) => b.value - a.value).slice(0, 8),
       win_rate_pct: winRate(teamNow), avg_deal_size: avg(teamNow), avg_cycle_days: cycle(teamNow),
       unconverted: teamNow.unconverted, pipeline_unconverted: pipelineUnconverted,

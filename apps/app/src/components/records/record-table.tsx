@@ -15,6 +15,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { evaluateFormula } from "@mondaily/shared/formula";
+import { LossReasonModal, isLostStage, type PendingLoss } from "./loss-reason";
 import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency";
 import { countryFacts, fmtPopulation } from "../../lib/countries";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
@@ -2210,6 +2211,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [undoToast, setUndoToast] = useState<{ record: NodeRecord; timer: ReturnType<typeof setTimeout> } | null>(null);
   // Lightweight transient feedback toast (bulk add-to-list results, etc.). Auto-dismisses.
   const [flash, setFlash] = useState<{ msg: string; kind: "ok" | "warn" } | null>(null);
+  const [pendingLoss, setPendingLoss] = useState<PendingLoss | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function showFlash(msg: string, kind: "ok" | "warn") {
     if (flashTimer.current) clearTimeout(flashTimer.current);
@@ -2252,8 +2254,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setUndoToast(null);
   }
 
-  function saveCell(record: NodeRecord, col: string, newVal: string | number | boolean | object) {
-    const newData = { ...record.data, [col]: newVal };
+  function saveCell(record: NodeRecord, col: string, newVal: string | number | boolean | object, extra?: Record<string, unknown>) {
+    // Loss-reason capture: a stage-ish column moving to a lost value, with no reason on file,
+    // pauses for ONE modal — reason + stage land in the SAME patch (read-merge-write).
+    if (!extra && /stage|status/i.test(col) && isLostStage(newVal) && !record.data.loss_reason) {
+      setPendingLoss({
+        name: String(record.data.name ?? record.data.title ?? "This deal"),
+        apply: (reason) => saveCell(record, col, newVal, reason ? { loss_reason: reason } : { }),
+      });
+      return;
+    }
+    const newData = { ...record.data, [col]: newVal, ...(extra ?? {}) };
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
       (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
     );
@@ -2570,6 +2581,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   return (
     <>
     <section className="flex flex-col h-full bg-white dark:bg-transparent">
+      {pendingLoss && <LossReasonModal pending={pendingLoss} onClose={() => setPendingLoss(null)} />}
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[var(--border-soft)] shrink-0">
         {/* Search — always visible, left-anchored, quiet until focused. */}
