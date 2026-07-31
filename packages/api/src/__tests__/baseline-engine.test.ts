@@ -143,3 +143,39 @@ describe("loss-reason capture + lost-deal analysis", () => {
     expect(lib).toMatch(/lost_reasons/);
   });
 });
+
+describe("sheet columns are workspace-shared; formula footer totals; goals in the brief", () => {
+  it("sheet-config endpoints store columns in nodes (schema-free), workspace-scoped, bounded", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const r = readFileSync(join(__dirname, "../routes/records.ts"), "utf8");
+    const cfg = r.slice(r.indexOf('router.get("/sheet-config'));
+    expect(cfg).toContain('"sheet_config"');
+    expect(cfg).toMatch(/eq\("workspace_id", ws\)/);
+    expect(cfg).toMatch(/slice\(0, 100\)/);                     // hostile-payload cap
+    expect(cfg).toContain("read-merge-write");
+  });
+  it("the client is server-first with a one-time localStorage migration and offline fallback", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const rt = readFileSync(join(__dirname, "../../../../apps/app/src/components/records/record-table.tsx"), "utf8");
+    expect(rt).toMatch(/\/records\/sheet-config\//);
+    expect(rt).toContain("one-time migration");
+    expect(rt).toContain("the local cache keeps working");
+  });
+  it("formula footer totals compute client-side with the honest 'loaded rows' scope note", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const rt = readFileSync(join(__dirname, "../../../../apps/app/src/components/records/record-table.tsx"), "utf8");
+    expect(rt).toMatch(/kind === "formula"\) return null;\s*\/\/ server can't evaluate formulas/);
+    expect(rt).toMatch(/<TotalNote text="loaded rows" \/>/);
+    expect(rt).toMatch(/kind === "formula" && formulaSrc/);
+  });
+  it("the executive brief includes real goal attainment via the shared goalActual", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const job = readFileSync(join(__dirname, "../jobs/executive-brief.ts"), "utf8");
+    expect(job).toMatch(/goalActual\(ws, String\(g\.metric\)/);
+    expect(job).toMatch(/goalAttainmentPct\(actual/);
+  });
+});

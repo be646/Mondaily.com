@@ -3,6 +3,8 @@ import { aiGateway } from "../lib/ai-gateway";
 import { groundingViolations } from "../lib/grounding";
 import { sendTransactionalEmail } from "../lib/mail";
 import { computeOutcomes } from "../lib/outcomes";
+import { goalActual } from "../routes/activities";
+import { goalAttainmentPct } from "../lib/oversight-metrics";
 
 /**
  * Executive brief — the AUTONOMOUS monthly report. Runs from cron on the 1st, covers the JUST-
@@ -35,6 +37,12 @@ export async function runExecutiveBrief(now: Date = new Date()): Promise<{ sent:
           .gte("resolved_at", new Date(monthStart).toISOString()).lte("resolved_at", new Date(monthEnd).toISOString()),
         supabase.from("workspace_members").select("email, name, role").eq("workspace_id", ws).in("role", ["owner", "admin"]),
       ]);
+      // Active goals with real attainment — same computation the Goals panel uses.
+      const { data: goalRows } = await supabase.from("workspace_goals").select("*").eq("workspace_id", ws).eq("active", true).limit(20).then(r => r, () => ({ data: null }));
+      const goals = await Promise.all((goalRows ?? []).map(async g => {
+        const actual = await goalActual(ws, String(g.metric), (g.target_user_id as string) ?? null, Number(g.window_days ?? 30)).catch(() => 0);
+        return { label: (g.label as string) ?? String(g.metric), actual, target: Number(g.target_value), pct: goalAttainmentPct(actual, Number(g.target_value)) };
+      }));
       const tasksDone = (tasks as unknown as { count?: number } | null)?.count ?? 0;
       const decisionsDone = (decisions as unknown as { count?: number } | null)?.count ?? 0;
       const t = outcomes.team;
@@ -80,6 +88,8 @@ export async function runExecutiveBrief(now: Date = new Date()): Promise<{ sent:
   <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
     ${kpi("Tasks completed", String(tasksDone))}${kpi("Decisions resolved", String(decisionsDone))}
   </tr></table>
+  ${goals.length > 0 ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Goals</div>${goals.map(g => `
+    <div style="display:flex;justify-content:space-between;font:12px -apple-system,sans-serif;color:#333;padding:3px 0"><span>${esc(g.label)}</span><span style="font-variant-numeric:tabular-nums;color:${g.pct >= 100 ? "#2f9e6b" : g.pct >= 70 ? "#555" : "#c6892e"}">${g.actual.toLocaleString()}/${g.target.toLocaleString()} · ${g.pct}%</span></div>`).join("")}</div>` : ""}
   ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc(insight)}</p></div>` : ""}
   <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc(monthName)}, in ${esc(cur)}.${t.unconverted > 0 ? ` ${t.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
 </div></body></html>`;

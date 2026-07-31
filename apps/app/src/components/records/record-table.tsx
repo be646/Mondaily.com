@@ -548,8 +548,28 @@ function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
 function calcResultTyped(
   op: CalcOp, col: string, records: NodeRecord[], kind: string | undefined,
   ctx: { display: string; rates: Record<string, number>; base: string },
+  formulaSrc?: string,
 ): string {
   if (!op) return "";
+  // Formula columns: computed per loaded row by the shared evaluator, then aggregated
+  // client-side. The footer labels the scope honestly ("this view"/loaded rows) upstream.
+  if (kind === "formula" && formulaSrc) {
+    const vals: number[] = [];
+    let filled = 0;
+    for (const r of records) {
+      const res = evaluateFormula(formulaSrc, r.data as Record<string, unknown>);
+      if (res.ok && res.value != null && res.value !== "") filled += 1;
+      if (res.ok && typeof res.value === "number" && Number.isFinite(res.value)) vals.push(res.value);
+      if (res.ok && typeof res.value === "boolean" && res.value) vals.push(1);
+    }
+    if (op === "filled") return `${Math.round((filled / Math.max(records.length, 1)) * 100)}% filled`;
+    if (op === "count") return String(filled);
+    if (!vals.length) return "—";
+    const v = op === "sum" ? vals.reduce((a, b) => a + b, 0)
+      : op === "avg" ? vals.reduce((a, b) => a + b, 0) / vals.length
+      : op === "min" ? Math.min(...vals) : Math.max(...vals);
+    return v % 1 === 0 ? v.toLocaleString() : v.toFixed(2);
+  }
   if (kind === "checkbox") {
     const checked = records.filter(r => truthy(r.data[col])).length;
     if (op === "filled") { const f = records.filter(r => r.data[col] != null && r.data[col] !== "").length; return `${Math.round((f / Math.max(records.length, 1)) * 100)}% filled`; }
@@ -591,6 +611,7 @@ function calcResultTyped(
 type AggResp = { op: string; value?: number; total_rows: number; truncated: boolean; unconverted: number; currency: string | null };
 function serverAggOp(kind: string | undefined, op: CalcOp): "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked" | null {
   if (!op) return null;
+  if (kind === "formula") return null;   // server can't evaluate formulas — client subtotal only
   if (kind === "checkbox") return op === "filled" ? "filled" : "checked"; // checkbox "count" means checked
   return op;
 }
@@ -661,7 +682,7 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
   col: string; current: CalcOp; onSelect: (op: CalcOp) => void; onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>; kind?: string;
 }) {
-  const numericKind = kind === "currency" || kind === "percentage" || kind === "number";
+  const numericKind = kind === "currency" || kind === "percentage" || kind === "number" || kind === "formula";
   // Text-like server types never aggregate to sums/averages — only count / % filled (even if the
   // column NAME would otherwise trip the numeric heuristic, e.g. "phone_number").
   const textKind = kind === "select" || kind === "multi_select" || kind === "url" || kind === "email" || kind === "phone" || kind === "datetime" || kind === "date" || kind === "text";
@@ -1810,18 +1831,39 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Custom columns — persisted to localStorage per objectType ──
   const customColsKey = `mondaily_custom_cols_${objectType}`;
+  // WORKSPACE-SHARED custom columns (2026-07-31): the server (nodes sheet_config) is the source
+  // of truth so every member sees the same sheet; localStorage remains a fast-paint cache and the
+  // one-time migration source for columns created in the per-browser era.
   const [customCols, setCustomCols] = useState<{ key: string; type: string; meta?: Record<string, string> }[]>(() => {
     try { return JSON.parse(localStorage.getItem(customColsKey) ?? "[]"); } catch { return []; }
   });
-  // Reload when objectType changes (navigating between People/Deals/etc.)
   useEffect(() => {
+    let cancelled = false;
+    // paint from cache immediately, then reconcile with the server
     try { setCustomCols(JSON.parse(localStorage.getItem(`mondaily_custom_cols_${objectType}`) ?? "[]")); }
     catch { setCustomCols([]); }
+    apiClient.get<{ columns: { key: string; type: string; meta?: Record<string, string> }[]; exists: boolean }>(`/records/sheet-config/${encodeURIComponent(objectType)}`)
+      .then(r => {
+        if (cancelled) return;
+        if (r.exists) {
+          setCustomCols(r.columns);
+          localStorage.setItem(`mondaily_custom_cols_${objectType}`, JSON.stringify(r.columns));
+        } else {
+          // one-time migration: this browser has columns the workspace doesn't — push them up
+          const local = JSON.parse(localStorage.getItem(`mondaily_custom_cols_${objectType}`) ?? "[]");
+          if (Array.isArray(local) && local.length > 0) {
+            apiClient.post(`/records/sheet-config/${encodeURIComponent(objectType)}`, { columns: local }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => { /* offline/legacy server — the local cache keeps working */ });
+    return () => { cancelled = true; };
   }, [objectType]);
 
   function saveCustomCols(next: { key: string; type: string; meta?: Record<string, string> }[]) {
     setCustomCols(next);
     localStorage.setItem(`mondaily_custom_cols_${objectType}`, JSON.stringify(next));
+    apiClient.post(`/records/sheet-config/${encodeURIComponent(objectType)}`, { columns: next }).catch(() => {});
   }
 
   // Record-ID column is handled separately (locked between checkbox and name)
@@ -3365,7 +3407,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
                         <span className="mr-0.5 text-body first-letter:uppercase text-[var(--text-faint)]">{calculations[col]}</span>
                         {(() => {
-                          const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase });
+                          const fSrc = customCols.find(cc => cc.key === col && cc.type === "formula")?.meta?.formula;
+                          const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }, fSrc);
+                          if (effectiveType(col) === "formula") return <>{clientStr}<TotalNote text="loaded rows" /></>;
                           // Which active filters can the server reproduce EXACTLY? Only plain equality
                           // quickFilters on non-owner columns (owner cells resolve via display-name
                           // state the server can't see; date-range __from/__to and free-text search

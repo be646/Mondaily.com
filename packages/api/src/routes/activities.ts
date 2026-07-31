@@ -655,7 +655,7 @@ router.get("/oversight-advanced", requireAuth, requireAdminRole, async (c) => {
 const GOAL_TABLE_MISSING = (err: unknown) => /relation .*workspace_goals.* does not exist|could not find the table/i.test(String((err as { message?: string })?.message ?? err ?? ""));
 
 /** Real actual for a goal's metric over its window (per member or whole team). Read-only counts. */
-async function goalActual(ws: string, metric: string, userId: string | null, windowDays: number): Promise<number> {
+export async function goalActual(ws: string, metric: string, userId: string | null, windowDays: number): Promise<number> {
   const since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
   if (metric === "tasks_completed") {
     let q = supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("completed", true).gte("completed_at", since);

@@ -62,7 +62,8 @@ describe("record table — currency-aware, fail-closed column totals (no fabrica
     expect(table).toMatch(/const \{ base: wsBase, display: wsDisplay, rates: fxRates \} = useCurrency\(\)/);
   });
   it("the footer total call is type-aware (passes the resolved kind + currency context)", () => {
-    expect(table).toMatch(/calcResultTyped\(calculations\[col\], col, sorted, effectiveType\(col\), \{ display: wsDisplay, rates: fxRates, base: wsBase \}\)/);
+    // Re-pointed 2026-07-31: gained a formulaSrc arg (formula-column footer totals).
+    expect(table).toMatch(/calcResultTyped\(calculations\[col\], col, sorted, effectiveType\(col\), \{ display: wsDisplay, rates: fxRates, base: wsBase \}, fSrc\)/);
   });
 });
 

@@ -135,4 +135,43 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   });
 });
 
+/**
+ * Sheet display-column config — WORKSPACE-SHARED custom columns for a records sheet.
+ * Storage is schema-free (a nodes row, object_type="sheet_config"), the house pattern for
+ * config-shaped data. Previously custom columns lived in per-browser localStorage, so two
+ * members saw different sheets; this makes the sheet ONE shared object.
+ * GET returns { columns } (empty when unset). PUT replaces the column list (read-merge-write
+ * on the nodes row; caps keep a hostile payload bounded).
+ */
+router.get("/sheet-config/:objectType", async (c) => {
+  const ws = c.get("workspaceId");
+  const objectType = c.req.param("objectType");
+  const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws)
+    .eq("object_type", "sheet_config").eq("data->>sheet", objectType).limit(1).maybeSingle();
+  return c.json({ columns: (data?.data as { columns?: unknown[] } | null)?.columns ?? [], exists: !!data });
+});
+
+router.post("/sheet-config/:objectType", async (c) => {
+  const ws = c.get("workspaceId");
+  const userId = c.get("userId");
+  const objectType = c.req.param("objectType");
+  const body = await c.req.json<{ columns?: { key: string; type: string; meta?: Record<string, string> }[] }>().catch(() => ({} as never));
+  const columns = Array.isArray(body.columns) ? body.columns.slice(0, 100).map(col => ({
+    key: String(col.key).slice(0, 120), type: String(col.type).slice(0, 60),
+    ...(col.meta ? { meta: Object.fromEntries(Object.entries(col.meta).slice(0, 10).map(([k, v]) => [String(k).slice(0, 40), String(v).slice(0, 2000)])) } : {}),
+  })) : [];
+  const { data: existing } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws)
+    .eq("object_type", "sheet_config").eq("data->>sheet", objectType).limit(1).maybeSingle();
+  if (existing) {
+    // read-merge-write: replace ONLY the columns key, keep the rest of data intact
+    const merged = { ...(existing.data as Record<string, unknown>), columns };
+    const { error } = await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", ws);
+    if (error) return c.json({ error: "Could not save sheet columns." }, 500);
+  } else {
+    const { error } = await supabase.from("nodes").insert({ workspace_id: ws, vertical: "shared", object_type: "sheet_config", created_by: userId, data: { sheet: objectType, columns } });
+    if (error) return c.json({ error: "Could not save sheet columns." }, 500);
+  }
+  return c.json({ ok: true, columns });
+});
+
 export const recordsRouter = router;
