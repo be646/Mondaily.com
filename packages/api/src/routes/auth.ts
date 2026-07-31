@@ -15,6 +15,7 @@ import {
 } from "../lib/auth-tokens";
 import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
+import { generateTotpSecret, verifyTotp, otpauthUrl, generateRecoveryCodes, hashRecoveryCode, signMfaToken, verifyMfaToken } from "../lib/totp";
 import { grantCredits } from "../lib/credits";
 import { grantAmountFor } from "@mondaily/shared/pricing";
 import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
@@ -222,8 +223,96 @@ router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), a
     return c.json({ error: "Invalid email or password." }, 401);
   }
   failedLogins.delete(email.toLowerCase()); // clean slate on success
+  // 2FA branch: password verified but a second factor is enrolled → issue a 5-minute mfa token
+  // instead of a session. Rows without the migrated columns simply don't have totp_enabled_at,
+  // so this is a no-op until enrollment exists — no lockout path.
+  if ((cred as Record<string, unknown>).totp_enabled_at) {
+    return c.json({ mfa_required: true, mfa_token: await signMfaToken(cred.user_id as string, cred.email as string) });
+  }
   await issueSession(c, cred.user_id as string, cred.email as string, c.req.header("user-agent"));
   return c.json({ userId: cred.user_id, email: cred.email, ...(await sessionProfile(cred.user_id as string)) });
+});
+
+// ── Two-factor auth (TOTP, RFC 6238, in-house — see lib/totp.ts) ────────────────
+
+/** POST /auth/2fa/login — complete a 2FA login: mfa token (password proof) + TOTP or recovery code. */
+router.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidator("json", z.object({ mfa_token: z.string().min(1), code: z.string().min(6).max(16) })), async (c) => {
+  const { mfa_token, code } = c.req.valid("json");
+  const claims = await verifyMfaToken(mfa_token);
+  if (!claims) return c.json({ error: "This sign-in attempt expired — enter your password again." }, 401);
+  const { data: cred } = await supabase.from("auth_credentials").select("*").eq("user_id", claims.sub).maybeSingle();
+  const secret = (cred as Record<string, unknown> | null)?.totp_secret as string | undefined;
+  if (!cred || !secret || !(cred as Record<string, unknown>).totp_enabled_at) {
+    // 2FA was disabled between password and code — just sign in.
+    await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
+    return c.json({ userId: claims.sub, email: claims.email, ...(await sessionProfile(claims.sub)) });
+  }
+  let ok = verifyTotp(secret, code);
+  if (!ok) {
+    // recovery-code path — single use: matching hash is removed on success
+    const hashes = ((cred as Record<string, unknown>).recovery_codes as string[] | null) ?? [];
+    const h = hashRecoveryCode(code);
+    if (hashes.includes(h)) {
+      ok = true;
+      await supabase.from("auth_credentials").update({ recovery_codes: hashes.filter(x => x !== h) }).eq("user_id", claims.sub);
+    }
+  }
+  if (!ok) return c.json({ error: "That code didn't match. Codes rotate every 30 seconds — try the current one." }, 401);
+  await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
+  return c.json({ userId: claims.sub, email: claims.email, ...(await sessionProfile(claims.sub)) });
+});
+
+/** POST /auth/2fa/setup — start enrollment (authenticated). Stores a PENDING secret; nothing is
+ *  enforced until /2fa/enable verifies a code, so abandoning setup can never lock you out. */
+router.post("/2fa/setup", rateLimit({ max: 5, windowMs: 10 * 60_000 }), async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const { data: cred } = await supabase.from("auth_credentials").select("email, totp_enabled_at").eq("user_id", userId).maybeSingle();
+  if (!cred) return c.json({ error: "No native credential on this account." }, 400);
+  if ((cred as Record<string, unknown>).totp_enabled_at) return c.json({ error: "Two-factor is already enabled. Disable it first to re-enroll." }, 409);
+  const secret = generateTotpSecret();
+  const { error } = await supabase.from("auth_credentials").update({ totp_secret: secret }).eq("user_id", userId);
+  if (error) return c.json({ error: /totp_secret/i.test(error.message) ? "2FA isn't enabled yet — the migration hasn't been applied." : "Could not start enrollment." }, 503);
+  return c.json({ secret, otpauth: otpauthUrl(secret, String(cred.email)) });
+});
+
+/** POST /auth/2fa/enable — finish enrollment: verify one code, mint recovery codes (returned ONCE). */
+router.post("/2fa/enable", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidator("json", z.object({ code: z.string().min(6).max(8) })), async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const { data: cred } = await supabase.from("auth_credentials").select("totp_secret, totp_enabled_at").eq("user_id", userId).maybeSingle();
+  const secret = (cred as Record<string, unknown> | null)?.totp_secret as string | undefined;
+  if (!secret) return c.json({ error: "Start setup first." }, 400);
+  if ((cred as Record<string, unknown>).totp_enabled_at) return c.json({ error: "Already enabled." }, 409);
+  if (!verifyTotp(secret, c.req.valid("json").code)) return c.json({ error: "That code didn't match — check your authenticator and try the current code." }, 400);
+  const { plain, hashes } = generateRecoveryCodes();
+  const { error } = await supabase.from("auth_credentials").update({ totp_enabled_at: new Date().toISOString(), recovery_codes: hashes }).eq("user_id", userId);
+  if (error) return c.json({ error: "Could not enable two-factor." }, 500);
+  return c.json({ ok: true, recovery_codes: plain });   // shown once, stored only as hashes
+});
+
+/** POST /auth/2fa/disable — requires a CURRENT code or recovery code (possession proof). */
+router.post("/2fa/disable", rateLimit({ max: 8, windowMs: 5 * 60_000 }), zValidator("json", z.object({ code: z.string().min(6).max(16) })), async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const { data: cred } = await supabase.from("auth_credentials").select("totp_secret, totp_enabled_at, recovery_codes").eq("user_id", userId).maybeSingle();
+  const secret = (cred as Record<string, unknown> | null)?.totp_secret as string | undefined;
+  if (!secret || !(cred as Record<string, unknown>)?.totp_enabled_at) return c.json({ ok: true, already_disabled: true });
+  const code = c.req.valid("json").code;
+  const ok = verifyTotp(secret, code) || (((cred as Record<string, unknown>).recovery_codes as string[] | null) ?? []).includes(hashRecoveryCode(code));
+  if (!ok) return c.json({ error: "That code didn't match." }, 401);
+  const { error } = await supabase.from("auth_credentials").update({ totp_secret: null, totp_enabled_at: null, recovery_codes: null }).eq("user_id", userId);
+  if (error) return c.json({ error: "Could not disable two-factor." }, 500);
+  return c.json({ ok: true });
+});
+
+/** GET /auth/2fa/status — is 2FA enabled for the caller (+ remaining recovery codes)? */
+router.get("/2fa/status", async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const { data: cred, error } = await supabase.from("auth_credentials").select("totp_enabled_at, recovery_codes").eq("user_id", userId).maybeSingle();
+  if (error) return c.json({ available: false, enabled: false });   // migration not applied — honest
+  return c.json({ available: true, enabled: !!(cred as Record<string, unknown> | null)?.totp_enabled_at, recovery_codes_left: (((cred as Record<string, unknown> | null)?.recovery_codes as string[] | null) ?? []).length });
 });
 
 // POST /auth/activate — legacy bridge: bind a new password to an existing user_… id.

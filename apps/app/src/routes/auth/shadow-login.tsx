@@ -17,9 +17,11 @@ export function ShadowLoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
-  const { status, login, requestActivation } = useSovereignAuth();
+  const { status, login, completeMfa, requestActivation } = useSovereignAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activationSent, setActivationSent] = useState(false);
@@ -46,6 +48,8 @@ export function ShadowLoginPage() {
       if (r.requiresActivation) {
         await requestActivation(email.trim());
         setActivationSent(true);
+      } else if (r.mfaToken) {
+        setMfaToken(r.mfaToken);   // second step: authenticator code
       } else {
         navigate(next);
       }
@@ -54,6 +58,33 @@ export function ShadowLoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onMfaSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!mfaToken || mfaCode.trim().length < 6 || loading) return;
+    setError(null); setLoading(true);
+    try { await completeMfa(mfaToken, mfaCode.trim()); navigate(next); }
+    catch (err) { setError(err instanceof Error ? err.message : "That code didn't match."); }
+    finally { setLoading(false); }
+  }
+
+  if (mfaToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6" style={{ background: "var(--surface-page)" }}>
+        <form onSubmit={onMfaSubmit} className="w-full max-w-sm rounded-md border p-6" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <h1 className="text-[16px] font-semibold" style={{ color: "var(--text-primary)" }}>Two-factor code</h1>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Enter the 6-digit code from your authenticator app — or one of your recovery codes.</p>
+          <input value={mfaCode} onChange={e => setMfaCode(e.target.value)} autoFocus inputMode="numeric" placeholder="123 456"
+            className="key-input mt-4 h-11 w-full px-3 text-center font-mono text-[18px] tracking-[0.3em]" />
+          {error && <p className="mt-2 text-[12px]" style={{ color: "var(--status-error)" }}>{error}</p>}
+          <button type="submit" disabled={mfaCode.trim().length < 6 || loading}
+            className="btn-primary mt-4 h-10 w-full text-[13px] font-semibold">{loading ? "Checking…" : "Sign in"}</button>
+          <button type="button" onClick={() => { setMfaToken(null); setMfaCode(""); setError(null); }}
+            className="mt-3 w-full text-[12px]" style={{ color: "var(--text-muted)" }}>Back to password</button>
+        </form>
+      </div>
+    );
   }
 
   if (activationSent) {

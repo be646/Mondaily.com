@@ -52,6 +52,80 @@ function AccessToggle({ checked, onChange }: { checked: boolean; onChange: (v: b
   );
 }
 
+
+// ── Two-factor authentication (TOTP) — enroll, recovery codes, disable ─────────
+function TwoFactorSection() {
+  const [status, setStatus] = useState<{ available: boolean; enabled: boolean; recovery_codes_left?: number } | null>(null);
+  const [setup, setSetup] = useState<{ secret: string; otpauth: string } | null>(null);
+  const [code, setCode] = useState("");
+  const [recovery, setRecovery] = useState<string[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => apiClient.get<{ available: boolean; enabled: boolean; recovery_codes_left?: number }>("/auth/2fa/status").then(setStatus).catch(() => setStatus(null));
+  useEffect(() => { void load(); }, []);
+  if (!status) return null;
+
+  async function act(path: string, body: Record<string, unknown>, after: (r: never) => void) {
+    setBusy(true); setErr(null);
+    try { after(await apiClient.post(path, body) as never); await load(); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Something went wrong."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <section className="settings-section">
+      <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Two-factor authentication</h2>
+      {!status.available ? (
+        <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Not available yet — the 2FA migration hasn't been applied to this deployment.</p>
+      ) : status.enabled ? (
+        <div className="mt-2 space-y-3">
+          <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>
+            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "var(--status-ok)" }} />
+            Enabled — sign-in requires your authenticator code. {status.recovery_codes_left ?? 0} recovery code{(status.recovery_codes_left ?? 0) === 1 ? "" : "s"} remaining.
+          </p>
+          <div className="flex items-center gap-2">
+            <input value={code} onChange={e => setCode(e.target.value)} placeholder="Current code to disable" inputMode="numeric"
+              className="key-input h-8 w-48 px-3 text-[12px]" />
+            <button disabled={busy || code.trim().length < 6} onClick={() => void act("/auth/2fa/disable", { code: code.trim() }, () => { setCode(""); })}
+              className="btn-secondary h-8 px-3 text-[12px] font-medium">Disable 2FA</button>
+          </div>
+        </div>
+      ) : setup ? (
+        <div className="mt-2 space-y-3">
+          <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>Add this key to your authenticator app (Google Authenticator, 1Password, Aegis…):</p>
+          <p className="rounded-md border px-3 py-2 font-mono text-[13px] tracking-wider" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{setup.secret}</p>
+          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Or open <a className="underline" href={setup.otpauth}>this otpauth link</a> on a device with your authenticator installed. Nothing is enforced until you verify below — abandoning setup can't lock you out.</p>
+          <div className="flex items-center gap-2">
+            <input value={code} onChange={e => setCode(e.target.value)} placeholder="6-digit code" inputMode="numeric" autoFocus
+              className="key-input h-8 w-36 px-3 text-center font-mono text-[13px]" />
+            <button disabled={busy || code.trim().length < 6}
+              onClick={() => void act("/auth/2fa/enable", { code: code.trim() }, (r) => { setRecovery((r as { recovery_codes?: string[] }).recovery_codes ?? []); setSetup(null); setCode(""); })}
+              className="btn-primary h-8 px-3 text-[12px] font-semibold">Verify &amp; enable</button>
+            <button onClick={() => { setSetup(null); setCode(""); }} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>Add a 6-digit authenticator code to every sign-in. Built in-house (RFC 6238) — your secret never leaves this deployment.</p>
+          <button disabled={busy} onClick={() => void act("/auth/2fa/setup", {}, (r) => setSetup(r as { secret: string; otpauth: string }))}
+            className="btn-primary mt-2.5 h-8 px-3 text-[12px] font-semibold">Set up 2FA</button>
+        </div>
+      )}
+      {recovery && (
+        <div className="mt-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--status-warn)", background: "color-mix(in srgb, var(--status-warn) 6%, transparent)" }}>
+          <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Recovery codes — shown once, save them now</p>
+          <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>Each works exactly once if you lose your authenticator. We store only hashes — these cannot be shown again.</p>
+          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-[12.5px]" style={{ color: "var(--text-primary)" }}>
+            {recovery.map(rc => <span key={rc}>{rc}</span>)}
+          </div>
+          <button onClick={() => setRecovery(null)} className="btn-secondary mt-3 h-7 px-3 text-[11.5px] font-medium">I've saved them</button>
+        </div>
+      )}
+      {err && <p className="mt-2 text-[12px]" style={{ color: "var(--status-error)" }}>{err}</p>}
+    </section>
+  );
+}
+
 export function SecuritySettings() {
   const qc = useQueryClient();
   const query = useQuery({ queryKey: ["security"], queryFn: () => apiClient.get<SecurityData>("/settings/security") });
@@ -106,6 +180,9 @@ export function SecuritySettings() {
     <div className="space-y-5">
       <CommandPageHeader
         variant="bar" icon={Shield} callsign="SECURITY" title="Security" subtitle="Authentication, active sessions, recipient protection, and audit controls." />
+
+      {/* ── Two-factor authentication ── */}
+      <TwoFactorSection />
 
       {/* ── SSO ── */}
       <section className="settings-section">

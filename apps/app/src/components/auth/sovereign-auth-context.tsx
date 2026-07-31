@@ -47,7 +47,8 @@ interface SovereignAuthValue {
   status: Status;
   user: SovereignUser | null;
   /** Returns { requiresActivation: true } for legacy users with no password yet. */
-  login: (email: string, password: string) => Promise<{ requiresActivation?: boolean }>;
+  login: (email: string, password: string) => Promise<{ requiresActivation?: boolean; mfaToken?: string }>;
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   /** New account: creates credentials + a fresh workspace (owner). Pass a pre-solved PoW to drive
    *  a visible shield; omit it and the call solves one internally. */
   register: (email: string, password: string, name?: string, pow?: Pow) => Promise<void>;
@@ -134,10 +135,18 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     // Solve the anti-bot proof-of-work (same gate as register/reset). Transparent to the user.
     const solved = await getPow();
-    const r = await authCall<MeResp & { requires_activation?: boolean; error?: string }>("/login", { email, password, ...solved });
+    const r = await authCall<MeResp & { requires_activation?: boolean; mfa_required?: boolean; mfa_token?: string; error?: string }>("/login", { email, password, ...solved });
     if (r.status === 200 && r.data.requires_activation) return { requiresActivation: true };
+    // 2FA: password accepted, second factor pending — hand the page the 5-minute mfa token.
+    if (r.status === 200 && r.data.mfa_required && r.data.mfa_token) return { mfaToken: r.data.mfa_token };
     if (r.status === 200 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data, email), r.data.workspaceId); return {}; }
     throw new Error(r.data.error || "Invalid email or password.");
+  }, []);
+
+  const completeMfa = useCallback(async (mfaToken: string, code: string) => {
+    const r = await authCall<MeResp & { error?: string }>("/2fa/login", { mfa_token: mfaToken, code });
+    if (r.status === 200 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data), r.data.workspaceId); return; }
+    throw new Error(r.data.error || "That code didn't match.");
   }, []);
 
   const register = useCallback(async (email: string, password: string, name?: string, pow?: Pow) => {
@@ -185,7 +194,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     if (me.status === 200 && me.data.userId) setAuthed(toUser(me.data), me.data.workspaceId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <Ctx.Provider value={{ status, user, login, register, requestActivation, activate, requestPasswordReset, resetPassword, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ status, user, login, completeMfa, register, requestActivation, activate, requestPasswordReset, resetPassword, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
 }
 
 export function useSovereignAuth(): SovereignAuthValue {
