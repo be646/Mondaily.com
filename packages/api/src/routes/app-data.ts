@@ -944,13 +944,25 @@ router.get("/settings/export", async (c) => {
   if (!isWorkspaceAdmin(c.get("role"))) return c.json({ error: "Forbidden — owner or admin role required." }, 403);
   const ws = c.get("workspaceId");
   const CAP = 20000;
+  // PAGED fetch — Supabase silently caps a single select at 1000 rows regardless of .limit()
+  // (the live export returned exactly 1000 activities with truncated:false — the classic
+  // row-cap truncation). Page in 1000-row chunks up to CAP; truncated is honest either way.
+  const PAGE = 1000;
   const grab = async (table: string, cols: string, order = "created_at") => {
-    const { data, error } = await supabase.from(table).select(cols).eq("workspace_id", ws).order(order, { ascending: false }).limit(CAP);
-    return { rows: data ?? [], truncated: (data?.length ?? 0) >= CAP, error: error ? "unavailable" : null };
+    const rows: unknown[] = [];
+    let failed = false;
+    for (let from = 0; from < CAP; from += PAGE) {
+      const { data, error } = await supabase.from(table).select(cols).eq("workspace_id", ws)
+        .order(order, { ascending: false }).range(from, from + PAGE - 1);
+      if (error) { failed = rows.length === 0; break; }
+      rows.push(...(data ?? []));
+      if ((data?.length ?? 0) < PAGE) break;
+    }
+    return { rows, truncated: rows.length >= CAP, error: failed ? "unavailable" : null };
   };
   const [nodes, tasks, decisions, goals, activities] = await Promise.all([
     grab("nodes", "id, object_type, data, created_by, created_at, updated_at"),
-    grab("tasks", "id, title, description, assignee_id, due_date, completed, completed_at, created_at"),
+    grab("tasks", "id, title, assignee_id, due_date, completed, completed_at, created_at"),
     grab("decision_queue", "id, title, summary, status, risk_level, resolved_by, resolved_at, created_at"),
     grab("workspace_goals", "id, scope, target_user_id, metric, target_value, window_days, label, active, created_at"),
     grab("activities", "id, actor_id, actor_type, action, node_id, created_at"),
