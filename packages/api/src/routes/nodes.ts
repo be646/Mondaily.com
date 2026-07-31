@@ -17,6 +17,29 @@ function dealStageOf(data: unknown): string {
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
+/**
+ * GET /nodes/counts — EXACT record counts for this workspace, by object_type.
+ *
+ * Exists because surfaces that need a total were deriving it from `/nodes?limit=500`, which caps
+ * at the page size: a workspace with 900 records displayed "500 total records" as if it were the
+ * truth. A count must come from the database, never from the length of a truncated page.
+ * Declared before "/:id/*" so the literal path wins the route match.
+ */
+router.get("/counts", requireAuth, async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const [{ count: total }, grouped] = await Promise.all([
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // Per-type counts come from the existing SQL aggregate (same one /objects uses for its sidebar
+    // counts) — a GROUP BY in the database, never a tally over a fetched page.
+    supabase.rpc("object_type_counts", { ws: workspaceId }),
+  ]);
+  const byType: Record<string, number> = {};
+  for (const r of (grouped.data ?? []) as { object_type: string; n: number }[]) {
+    byType[r.object_type] = Number(r.n);
+  }
+  return c.json({ total: total ?? 0, by_type: byType });
+});
+
 router.get("/:id/related", requireAuth, async (c) => {
   const id = c.req.param("id");
   const related = await ubc.getRelated(id, c.get("workspaceId"));

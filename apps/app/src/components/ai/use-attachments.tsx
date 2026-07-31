@@ -30,7 +30,10 @@ export function useAttachments() {
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
-        const res = await apiClient.post<RecordHit[]>("/search", { q: query.trim() });
+        // The API's schema field is `query` — sending `q` failed zod validation, so every record
+        // search 400'd and the catch below cleared the results: a picker that silently never found
+        // anything.
+        const res = await apiClient.post<RecordHit[]>("/search", { query: query.trim() });
         if (!cancelled) setResults((res ?? []).slice(0, 8));
       } catch { if (!cancelled) setResults([]); }
     }, 250);

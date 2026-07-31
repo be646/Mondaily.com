@@ -172,74 +172,10 @@ const BOOTSTRAP_OBJECTS = [
   },
 ] as const;
 
-const SEED_NODES: Record<string, Array<Record<string, unknown>>> = {
-  companies: [
-    { name:"Stripe",       description:"Payments infrastructure for the internet",      arr:1_400_000_000, funding_raised:2_200_000_000, employee_range:"4001–7000",  country:"USA"         },
-    { name:"Vercel",       description:"Frontend cloud & edge deployment platform",     arr:  150_000_000, funding_raised:  313_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Linear",       description:"Issue tracking for modern software teams",      arr:   40_000_000, funding_raised:   52_000_000, employee_range:"51–200",    country:"USA"         },
-    { name:"Retool",       description:"Low-code platform for internal tools",          arr:   55_000_000, funding_raised:  145_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Figma",        description:"Collaborative interface design tool",           arr:  400_000_000, funding_raised:  333_000_000, employee_range:"501–1000",  country:"USA"         },
-    { name:"Notion",       description:"All-in-one connected workspace",               arr:  320_000_000, funding_raised:  343_000_000, employee_range:"501–1000",  country:"USA"         },
-    { name:"Supabase",     description:"Open source Firebase alternative",             arr:   30_000_000, funding_raised:  116_000_000, employee_range:"51–200",    country:"Singapore"   },
-    { name:"Loom",         description:"Async video messaging for work",               arr:   90_000_000, funding_raised:  203_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Planetscale",  description:"Serverless MySQL-compatible database",          arr:   25_000_000, funding_raised:  105_000_000, employee_range:"51–200",    country:"USA"         },
-    { name:"Clerk",        description:"Authentication & user management APIs",        arr:   18_000_000, funding_raised:   67_000_000, employee_range:"51–200",    country:"USA"         },
-    { name:"Resend",       description:"Email API for developers",                     arr:    8_000_000, funding_raised:   20_000_000, employee_range:"11–50",     country:"USA"         },
-    { name:"Railway",      description:"Deploy code, databases and apps instantly",    arr:   12_000_000, funding_raised:   24_000_000, employee_range:"11–50",     country:"Canada"      },
-    { name:"Miro",         description:"Online collaborative whiteboard platform",      arr:  450_000_000, funding_raised:  476_000_000, employee_range:"1001–2000", country:"Netherlands" },
-    { name:"Descript",     description:"AI-powered video and podcast editor",          arr:   35_000_000, funding_raised:  100_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Hex",          description:"Modern data workspace for teams",              arr:   22_000_000, funding_raised:   56_000_000, employee_range:"51–200",    country:"USA"         },
-    { name:"Airbyte",      description:"Open-source data integration platform",        arr:   45_000_000, funding_raised:  181_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Hasura",       description:"Instant GraphQL & REST APIs on your database", arr:   30_000_000, funding_raised:  100_000_000, employee_range:"201–500",   country:"USA"         },
-    { name:"Tally",        description:"Beautifully simple form builder",              arr:    5_000_000, funding_raised:    2_500_000, employee_range:"11–50",     country:"Belgium"     },
-    { name:"Raycast",      description:"Supercharged Mac productivity launcher",       arr:   15_000_000, funding_raised:   30_000_000, employee_range:"51–200",    country:"Germany"     },
-    { name:"Cal.com",      description:"Open-source scheduling infrastructure",        arr:    6_000_000, funding_raised:   32_000_000, employee_range:"11–50",     country:"USA"         },
-  ],
-  people: [
-    { name:"Guillermo Rauch",  email:"g@vercel.com",           job_title:"CEO & Co-founder",          twitter_followers:420_000, linkedin:"linkedin.com/in/rauchg"            },
-    { name:"Patrick Collison", email:"patrick@stripe.com",     job_title:"CEO & Co-founder",          twitter_followers:380_000, linkedin:"linkedin.com/in/patrickcollison"   },
-    { name:"Dylan Field",      email:"dylan@figma.com",        job_title:"CEO & Co-founder",          twitter_followers:210_000, linkedin:"linkedin.com/in/dylanfield"        },
-    { name:"Ivan Zhao",        email:"ivan@notion.so",         job_title:"CEO & Co-founder",          twitter_followers: 95_000, linkedin:"linkedin.com/in/ivanhzhao"         },
-    { name:"Karri Saarinen",   email:"karri@linear.app",       job_title:"CEO & Co-founder",          twitter_followers:130_000, linkedin:"linkedin.com/in/karrisaarinen"     },
-    { name:"Paul Copplestone", email:"paul@supabase.io",       job_title:"CEO & Co-founder",          twitter_followers: 72_000, linkedin:"linkedin.com/in/paulcopplestone"   },
-    { name:"David Hsu",        email:"david@retool.com",       job_title:"CEO & Co-founder",          twitter_followers: 41_000, linkedin:"linkedin.com/in/david-hsu-retool"  },
-    { name:"Sarah Chen",       email:"s.chen@vercel.com",      job_title:"VP of Engineering",         twitter_followers: 18_400, linkedin:"linkedin.com/in/sarahchen"         },
-    { name:"Marcus Rivera",    email:"m.rivera@linear.app",    job_title:"Head of Product",           twitter_followers:  9_200, linkedin:"linkedin.com/in/mrivera"           },
-    { name:"Priya Nair",       email:"priya@notion.so",        job_title:"Growth Lead",               twitter_followers:  6_700, linkedin:"linkedin.com/in/priyanair"         },
-    { name:"Tom Eriksson",     email:"tom@figma.com",          job_title:"Senior Product Designer",   twitter_followers: 24_100, linkedin:"linkedin.com/in/tomeriksson"       },
-    { name:"Yuki Tanaka",      email:"yuki@retool.com",        job_title:"Solutions Engineer",        twitter_followers:  3_900, linkedin:"linkedin.com/in/yukitanaka"        },
-    { name:"Amara Osei",       email:"amara@supabase.io",      job_title:"Developer Advocate",        twitter_followers: 11_500, linkedin:"linkedin.com/in/amaraosei"         },
-    { name:"Jake Whitmore",    email:"jake@loom.com",          job_title:"Account Executive",         twitter_followers:  2_300, linkedin:"linkedin.com/in/jakewhitmore"      },
-    { name:"Diana Popescu",    email:"diana@planetscale.com",  job_title:"Engineering Manager",       twitter_followers:  7_800, linkedin:"linkedin.com/in/dianapopescu"      },
-    { name:"James Liu",        email:"james@clerk.dev",        job_title:"Developer Relations Lead",  twitter_followers: 15_200, linkedin:"linkedin.com/in/jamesliu"          },
-    { name:"Nina Braun",       email:"nina@raycast.com",       job_title:"Head of Design",            twitter_followers:  8_900, linkedin:"linkedin.com/in/ninabraun"         },
-    { name:"Léa Fontaine",     email:"lea@cal.com",            job_title:"Community Manager",         twitter_followers:  4_100, linkedin:"linkedin.com/in/leafontaine"       },
-    { name:"Ravi Sharma",      email:"ravi@airbyte.com",       job_title:"Senior Data Engineer",      twitter_followers:  5_600, linkedin:"linkedin.com/in/ravisharma"        },
-    { name:"Chloe Andersen",   email:"chloe@hex.tech",         job_title:"Product Marketing Manager", twitter_followers:  3_300, linkedin:"linkedin.com/in/chloeandersen"     },
-  ],
-  deals: [
-    { name:"Stripe Enterprise Expansion",    deal_stage:"Closed Won",  deal_value:480_000, deal_owner:"Sarah Chen"     },
-    { name:"Figma Design Ops Bundle",        deal_stage:"Negotiation", deal_value:240_000, deal_owner:"Priya Nair"     },
-    { name:"Vercel Pro Fleet Upgrade",       deal_stage:"Proposal",    deal_value:185_000, deal_owner:"Marcus Rivera"  },
-    { name:"Notion Workspace Scale",         deal_stage:"In Progress", deal_value:120_000, deal_owner:"Jake Whitmore"  },
-    { name:"Linear Dev Team Expansion",      deal_stage:"Qualified",   deal_value: 56_000, deal_owner:"Marcus Rivera"  },
-    { name:"Retool Internal Tools Rollout",  deal_stage:"In Progress", deal_value: 98_500, deal_owner:"Amara Osei"     },
-    { name:"Supabase Scale-Up Plan",         deal_stage:"Lead",        deal_value: 42_000, deal_owner:"Tom Eriksson"   },
-    { name:"Loom Video Platform",            deal_stage:"Closed Won",  deal_value:115_000, deal_owner:"Jake Whitmore"  },
-    { name:"Planetscale DB Migration",       deal_stage:"Closed Lost", deal_value: 88_000, deal_owner:"Diana Popescu"  },
-    { name:"Clerk Auth Integration",         deal_stage:"Lead",        deal_value: 28_000, deal_owner:"James Liu"      },
-    { name:"Miro Whiteboard Enterprise",     deal_stage:"Proposal",    deal_value:310_000, deal_owner:"Priya Nair"     },
-    { name:"Airbyte Data Pipeline",          deal_stage:"In Progress", deal_value: 74_000, deal_owner:"Ravi Sharma"    },
-    { name:"Raycast Team Licence",           deal_stage:"Lead",        deal_value: 18_500, deal_owner:"Nina Braun"     },
-    { name:"Resend Transactional Email",     deal_stage:"Closed Won",  deal_value: 32_000, deal_owner:"Chloe Andersen" },
-    { name:"Hex Analytics Workspace",        deal_stage:"Qualified",   deal_value: 55_000, deal_owner:"Ravi Sharma"    },
-    { name:"Cal.com Scheduling Suite",       deal_stage:"Negotiation", deal_value: 22_000, deal_owner:"Léa Fontaine"   },
-    { name:"Hasura GraphQL Platform",        deal_stage:"Closed Lost", deal_value: 67_000, deal_owner:"Sarah Chen"     },
-    { name:"Descript Podcast Toolkit",       deal_stage:"In Progress", deal_value: 48_000, deal_owner:"Jake Whitmore"  },
-    { name:"Tally Forms Enterprise",         deal_stage:"Closed Won",  deal_value: 15_000, deal_owner:"Léa Fontaine"   },
-    { name:"Railway Infrastructure Upgrade", deal_stage:"Lead",        deal_value: 38_000, deal_owner:"Marcus Rivera"  },
-  ],
-};
+// Demo seed data (20 invented companies with fabricated ARR/funding, 20 fake people, 20 fake
+// deals) was removed here. It was declared and never referenced — bootstrapWorkspace seeds
+// nothing by design — but it sat one line away from inserting invented business records into
+// a real workspace, where agents and reports would treat them as fact.
 
 async function bootstrapWorkspace(workspaceId: string, createdBy: string) {
   // Only runs if this workspace has zero object_definitions
@@ -288,14 +224,27 @@ router.get("/objects", async (c) => {
   return c.json(data);
 });
 
-router.get("/notifications", async (c) => c.json(await rows("notifications", c.get("workspaceId"))));
+// NOTE: the canonical notifications API is routes/notifications.ts (mounted first in app.ts, so a
+// GET here was shadowed and unreachable). That duplicate was ALSO workspace-only scoped — no
+// user_id filter — i.e. one mount-order change away from serving every member's personal
+// notifications to any member. Removed rather than left as a trap.
+//
+// These two write routes ARE reachable (the canonical router uses PATCH, not POST), and had the
+// same defect: workspace-scoped only, so any member could mark another member's notification read.
+// They now carry the same per-user guard as the canonical router.
+function ownNotifications(c: { get: (k: "workspaceId" | "userId") => string }) {
+  return supabase.from("notifications")
+    .update({ is_read: true, read_at: new Date().toISOString() })
+    .eq("workspace_id", c.get("workspaceId"))
+    .or(`user_id.eq.${c.get("userId")},user_id.is.null`);
+}
 router.post("/notifications/:id/read", async (c) => {
   // Set BOTH is_read + read_at so the bell's unread count (which keys on is_read) stays in sync.
-  await supabase.from("notifications").update({ is_read: true, read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id"));
+  await ownNotifications(c).eq("id", c.req.param("id"));
   return c.json({ ok: true });
 });
 router.post("/notifications/read-all", async (c) => {
-  await supabase.from("notifications").update({ is_read: true, read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).eq("is_read", false);
+  await ownNotifications(c).eq("is_read", false);
   return c.json({ ok: true });
 });
 
@@ -304,9 +253,20 @@ router.get("/tasks", async (c) => {
   return c.json(nodes.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })));
 });
 router.get("/meetings/today", async (c) => {
-  const nodes = await rows("nodes", c.get("workspaceId"), { objectType: "meeting" });
+  // This queried object_type "meeting" — a type NOTHING in the codebase has ever written, so it
+  // could only ever return []. Real meetings are calendar_event nodes (routes/calendar.ts), and the
+  // day filter now runs in SQL instead of after a 100-row page, which previously dropped today's
+  // meeting from any workspace with more than 100 of them.
   const today = new Date().toISOString().slice(0, 10);
-  return c.json(nodes.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })).filter((meeting: Record<string, unknown>) => String(meeting.start_time ?? "").startsWith(today)));
+  const { data } = await supabase.from("nodes")
+    .select("id, data")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("object_type", "calendar_event")
+    .gte("data->>start_at", `${today}T00:00:00`)
+    .lte("data->>start_at", `${today}T23:59:59`)
+    .order("data->>start_at", { ascending: true })
+    .limit(100);
+  return c.json((data ?? []).map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })));
 });
 router.post("/tasks", zValidator("json", z.object({ title: z.string().min(1), due_date: z.string().optional(), assignee_id: z.string().optional() })), async (c) => {
   const body = c.req.valid("json");

@@ -1466,8 +1466,15 @@ describe("Home command-center console status rail (Pass R2)", () => {
     expect(H).toMatch(/mt-3 flex flex-wrap items-center gap-x-4 gap-y-1\.5 border-t pt-2\.5/);
     // Right now label now appears exactly once (relocated, not duplicated)
     expect((H.match(/>Right now<\/span>/g) || []).length).toBe(1);
-    // Graph + Sources status lines retained (2)
-    expect((H.match(/status-line/g) || []).length).toBe(2);
+    // 2026-07-31 audit: the two pills ("Graph synced" / "Sources checked") claimed a graph sync
+    // and a source-verification pass that nothing in the app performs, and painted green during
+    // the initial load. Replaced by ONE pill that states only what it knows — whether this page's
+    // data loaded — with a real three-way loading/ok/error state.
+    expect((H.match(/status-line/g) || []).length).toBe(1);
+    expect(H).toMatch(/workspaceDataLoading \? "Loading workspace data"/);
+    expect(H).toMatch(/workspaceDataOk \? "Workspace data loaded" : "Some data failed to load"/);
+    expect(H).not.toMatch(/Graph \{graphSynced \? "synced"/);
+    expect(H).not.toMatch(/Sources \{sourcesChecked \? "checked"/);
     // the old centered status-dots block is gone from the hero
     expect(H).not.toMatch(/<div className="mt-3 flex items-center gap-4">/);
   });
@@ -1559,9 +1566,13 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     expect(home).toMatch(/disabled=\{!loading && !input\.trim\(\) && attachments\.length === 0\}/);
   });
 
-  it("workspace meeting times are formatted, never raw ISO", () => {
-    expect(home).toMatch(/id: `ws-\$\{m\.id\}`, title: m\.title, when: new Date\(m\.start_time\)\.toLocaleTimeString/);
-    expect(home).not.toMatch(/title: m\.title, when: m\.start_time,/);
+  it("meeting times are formatted, never raw ISO", () => {
+    // 2026-07-31 audit: the `wsEvents` row this used to guard came from /meetings/today, which
+    // queried an object_type NOTHING writes — it could only ever return []. That query is gone;
+    // native meetings come from the calendar_event feed, and the formatting rule still holds.
+    expect(home).toMatch(/when: new Date\(e\.start_at\)\.toLocaleTimeString/);
+    expect(home).not.toMatch(/when: e\.start_at,/);
+    expect(home).not.toMatch(/apiClient\.get<Meeting\[\]>\("\/meetings\/today"\)/);
   });
 
   it("priority pill never renders a literal undefined class", () => {
@@ -1624,10 +1635,12 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     expect(engine).toMatch(/onAssistantMessage\?: \(index: number, fullText: string, alreadyRenderedLive\?: boolean\) => void/);
     expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, reply, tokens > 0\)/);
     expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, partial, true\)/);
-    // non-streaming fallback still gets the typewriter
     expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, reply, false\)/);
-    // Home honours the flag instead of retyping
-    expect(home).toMatch(/if \(alreadyRenderedLive\) \{ setStreamingMsgIdx\(null\); return; \}/);
+    // 2026-07-31 audit: Home no longer animates ANY answer. The old fallback ran a random-speed
+    // typewriter (Math.random 3-7 chars/frame) over text that had already fully arrived — a
+    // finished response performing generation it wasn't doing. Real streaming is SSE only.
+    expect(home).toMatch(/setStreamingMsgIdx\(null\);/);
+    expect(home).not.toMatch(/Math\.random\(\) \* 5\) \+ 3/);
   });
 
   it("expensive agent-dock queries are opt-in, not fired for every consumer", () => {
@@ -1636,7 +1649,12 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     const constellation = read("apps/app/src/components/ai/agent-constellation.tsx");
     // heavy queries default OFF and are gated on the pulse opt-in
     expect(dock).toMatch(/pulse: wantPulse = false/);
-    expect((dock.match(/enabled: enabled && wantPulse/g) ?? []).length).toBe(3);
+    // 2026-07-31 audit: now 4 — the single /nodes?limit=500 scan (whose array length was reported
+    // as "total records", i.e. a page cap shown as a total) was replaced by an exact /nodes/counts
+    // call plus a small automation-only fetch for the workflow subtype.
+    expect((dock.match(/enabled: enabled && wantPulse/g) ?? []).length).toBe(4);
+    expect(dock).toMatch(/apiClient\.get<\{ total: number; by_type: Record<string, number> \}>\("\/nodes\/counts"\)/);
+    expect(dock).not.toMatch(/apiClient\.get<NodeLite\[\]>\("\/nodes\?limit=500"\)/);
     // /agents (which feeds `constellation`) stays ungated by pulse
     expect(dock).toMatch(/queryFn: \(\) => apiClient\.get<\{ agents: AgentRegistryEntry\[\] \}>\("\/agents"\),\s*\n\s*staleTime: 60_000,\s*\n\s*enabled,/);
     // exactly one consumer opts into the heavy counts

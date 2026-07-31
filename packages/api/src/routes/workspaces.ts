@@ -32,7 +32,9 @@ router.get("/mine", requireJwt, async (c) => {
         supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("lists").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("object_type", "deal"),
+        // Stem match, not an exact "deal" literal: workspaces define the object as either "deal"
+        // or "deals", and the literal silently reported 0 deals on every plural workspace.
+        supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).ilike("object_type", "%deal%"),
       ]);
       return {
         workspace_id: workspaceId,

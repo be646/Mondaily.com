@@ -310,7 +310,9 @@ const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | 
   { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "var(--accent)" },
   { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#d1524a" },
   { key: "relationships",  label: "relationship records", icon: Users,       color: "#c6892e" },
-  { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#717784" },
+  // Labelled "finance signals", not "overdue invoices": the value is the Finance Agent's
+  // evidence_count, which is overdue invoices PLUS pending finance decisions (routes/agents.ts).
+  { key: "financeOverdue", label: "finance signals",      icon: Receipt,     color: "#717784" },
   { key: "records",        label: "total records",        icon: Database,   color: "#059669" },
   { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "var(--accent)" },
   { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#d1524a" },
@@ -376,7 +378,8 @@ export function WorkspaceGraphPulse() {
           <GitBranch size={13} style={{ color: "var(--text-muted)" }}/>
           <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph Pulse</h2>
         </div>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
+        {/* Was "real-time, not historical" while half the tiles showed a real 14-day series. */}
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>live counts · 14d trend where history exists</span>
       </div>
       {!inView || pulse.isLoading ? (
         <div className="skeleton-shimmer h-[140px] rounded-sm"/>
@@ -409,13 +412,14 @@ export function WorkspaceGraphPulse() {
                   {connected ? t.value : "—"}{t.suffix}
                 </p>
                 <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-[18px] w-full">
+                  {/* A real 14-day series draws a real line. Without one we draw a FLAT baseline,
+                      never a curve: the old fallback drew "M0,26 C30,26 50,endY 100,endY" — a
+                      rising curve in the same stroke and colour as the genuine trend, inventing a
+                      history for metrics (like "overdue right now") that have none. */}
                   {real ? (
                     <path d={real} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   ) : (
-                    <>
-                      <path d={`M0,26 C30,26 50,${endY} 100,${endY}`} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={connected ? 1 : 0.4}/>
-                      <circle cx={100} cy={endY} r={2.2} fill={tone} opacity={connected ? 1 : 0.4}/>
-                    </>
+                    <path d="M0,26 L100,26" fill="none" stroke={tone} strokeWidth={1} strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={connected ? 0.35 : 0.2}/>
                   )}
                 </svg>
               </div>

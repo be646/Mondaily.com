@@ -17,6 +17,7 @@ import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 import { recallContext } from "../lib/memory-recall";
 import { isOverdue } from "@mondaily/shared/dates";
+import { resolveEntitlement } from "../lib/entitlements";
 
 // Naive English pluralization (covers the common custom-object-type names: company/property/box/
 // dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
@@ -1366,7 +1367,8 @@ async function executeTool(
         const { error: updateError } = await supabase
           .from("decision_queue")
           .update({ status: newStatus, resolved_at: new Date().toISOString(), resolved_by: userId })
-          .eq("id", decisionId);
+          .eq("id", decisionId)
+          .eq("workspace_id", workspaceId);   // defense in depth: the write carries the tenant guard, not just the fetch above
         if (updateError) return `Error resolving decision: ${updateError.message}`;
         sources.push({ type: "decision", title: decision.title, node_id: decisionId, object_type: "decision" });
         return `${action === "approve" ? "Approved" : action === "reject" ? "Rejected" : "Snoozed"}: "${decision.title}".`;
@@ -1856,6 +1858,16 @@ router.get("/credits", requireAuth, async (c) => {
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
+  // The monthly allowance comes from the entitlement resolver — THE single source for plan limits.
+  // This route used to answer a hardcoded `limit: 1000` for every workspace on every plan, in both
+  // the success and the error branch, so the number shown to the user was unrelated to their plan.
+  const { data: ws } = await supabase.from("workspaces").select("settings, plan").eq("id", workspaceId).maybeSingle();
+  const entitlement = resolveEntitlement(
+    (ws as { settings?: Record<string, unknown> } | null)?.settings,
+    (ws as { plan?: string | null } | null)?.plan,
+  );
+  const limit = entitlement.includedMonthlyCredits;
+
   const { data, error } = await supabase
     .from("ai_usage")
     .select("message_count")
@@ -1864,10 +1876,10 @@ router.get("/credits", requireAuth, async (c) => {
     .gte("created_at", periodStart)
     .lte("created_at", periodEnd);
 
-  if (error) return c.json({ used: 0, limit: 1000, period_end: periodEnd });
+  if (error) return c.json({ used: 0, limit, period_end: periodEnd });
 
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
-  return c.json({ used, limit: 1000, period_end: periodEnd });
+  return c.json({ used, limit, period_end: periodEnd });
 });
 
 /**

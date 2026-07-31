@@ -280,18 +280,8 @@ export function AgentConstellationPanel() {
 
   const liveCount = constellation.filter(a => isLiveState(a.state)).length;
 
-  // Relative "last run" — the real telemetry (already fetched) that the old pill rail hid.
-  const ranAgo = (iso?: string | null): string | null => {
-    if (!iso) return null;
-    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (!Number.isFinite(s) || s < 0) return null;
-    if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-    return `${Math.floor(s / 86400)}d ago`;
-  };
-  // Colour encodes MEANING (state), never an arbitrary per-agent rainbow. Matte palette only:
-  // working = green · waiting on you = amber · problem = rose · watching/quiet = muted.
-  const stateTone = (state: ConstellationState): string => STATE_TONE[state];
+  // (Dropped two dead locals here: `ranAgo`, a verbatim copy of the exported agentRanAgo, and
+  //  `stateTone` — neither was called. The grid delegates to AgentCard, which computes both.)
 
   return (
     <section className="mb-8">
@@ -335,112 +325,6 @@ export function AgentConstellationPanel() {
  * Live agents get a small breathing ring; everything else just sits there
  * quietly, which is the honest state for monitoring/disabled/not_configured. */
 // ─── Hero agent strip ─────────────────────────────────────────────────────────
-// A clean, premium summary of the agent fleet for the Home welcome area (replaces
-// the old sidebar dock). An overlapping stack of live-pulsing dots + a quiet
-// count, in a pill that lifts on hover and scrolls to the full constellation.
-export function AgentHeroStrip() {
-  const { constellation, isLoading } = useAgentData();
-
-  if (isLoading) return <div className="skeleton-shimmer h-4 w-32 rounded"/>;
-  if (!constellation.length) return null;
-
-  const live = constellation.filter(a => isLiveState(a.state));
-
-  // Frameless: a quiet label + active/total count, then one live-pinging dot per
-  // ACTIVE agent (so 8 working → 8 dots). The whole row gets a soft transparent
-  // hover layer.
-  return (
-    <a href="#agents" className="agent-hero-row group inline-flex items-center gap-2 rounded-md px-2 py-1">
-      <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>AI agents</span>
-      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
-      {live.length > 0 && (
-        <span className="flex flex-wrap items-center gap-1.5">
-          {live.map((a) => (
-            // Colour encodes the agent's real STATE (matte, meaning-based) — same tone it shows in
-            // the constellation — never an arbitrary per-position rainbow.
-            <span key={a.id} title={`${a.name} · ${CONSTELLATION_STATE_LABEL[a.state]}`} className="live-dot"
-              style={{ background: STATE_TONE[a.state] }}/>
-          ))}
-        </span>
-      )}
-    </a>
-  );
-}
-
-// ─── Sidebar agents ───────────────────────────────────────────────────────────
-// Compact agents line for the workspace header box: same per-agent colours as the
-// constellation but more MATTE (blended toward grey), one dot per active agent.
-export function SidebarAgents() {
-  const { constellation, isLoading } = useAgentData();
-  if (isLoading || !constellation.length) return null;
-  const live = constellation.filter(a => isLiveState(a.state));
-  return (
-    <Link to="/activity" className="block rounded-sm px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>AI agents</span>
-        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
-      </div>
-      {live.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1">
-          {live.map((a) => (
-            <span key={a.id} title={`${a.name} · ${CONSTELLATION_STATE_LABEL[a.state]}`} className="h-1.5 w-1.5 rounded-full"
-              style={{ background: `color-mix(in srgb, ${STATE_TONE[a.state]} 60%, var(--text-muted))` }}/>
-          ))}
-        </div>
-      )}
-    </Link>
-  );
-}
-
-export function AgentPulse({ collapsed }: { collapsed: boolean }) {
-  const { constellation, isLoading } = useAgentData();
-
-  if (isLoading) {
-    return <div className="shrink-0"><div className="skeleton-shimmer h-10 rounded-lg"/></div>;
-  }
-
-  if (collapsed) {
-    const activeAgents = constellation.filter(a => isLiveState(a.state));
-    return (
-      <Link to="/home" title={`${constellation.length} agents`} className="flex flex-col items-center gap-1.5 rounded-sm py-2 surface-hover">
-        <Network size={13} style={{ color: "var(--text-muted)" }}/>
-        <div className="flex flex-col items-center gap-1">
-          {constellation.slice(0, 4).map(a => (
-            <span key={a.id} className="relative flex h-2 w-2 shrink-0 items-center justify-center">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(a.state) ? "var(--text-muted)" : "var(--text-faint)" }}/>
-              {isLiveState(a.state) && activeAgents.includes(a) && (
-                <motion.span animate={{ opacity: [0.35, 0.75, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--text-muted) 28%, transparent)" }}/>
-              )}
-            </span>
-          ))}
-        </div>
-      </Link>
-    );
-  }
-
-  const activeAgents = constellation.filter(a => isLiveState(a.state));
-
-  return (
-    <div className="shrink-0">
-      <Link
-        to="/home"
-        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
-      >
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md">
-          <Network size={13} style={{ color: "var(--text-muted)" }}/>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-secondary)" }}>AI agents</span>
-          <span className="block truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
-            {constellation.length} agents · {activeAgents.length > 0 ? `${activeAgents.length} active` : "quiet"}
-          </span>
-        </span>
-        <span className="flex shrink-0 items-center gap-1">
-          {constellation.slice(0, 3).map(agent => (
-            <span key={agent.id} className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(agent.state) ? "var(--text-muted)" : "var(--text-faint)" }}/>
-          ))}
-        </span>
-      </Link>
-    </div>
-  );
-}
+// (Removed AgentHeroStrip, SidebarAgents and AgentPulse — three exported components with no
+// importer anywhere in apps/app: leftovers from the old sidebar dock, each still calling
+// useAgentData() and its queries. AgentCard + AgentConstellationPanel above are the live ones.)

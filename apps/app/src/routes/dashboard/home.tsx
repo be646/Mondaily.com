@@ -1,20 +1,20 @@
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { motion } from "framer-motion";
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown, ChevronDown } from "lucide-react";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown, ChevronDown } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
-  GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, friendlyAskError, TokenLedger, Markdown, sourcesToLinks,
+  EvidenceStrip, SourceList, friendlyAskError, TokenLedger, Markdown, sourcesToLinks,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useVoiceDictation } from "../../components/ai/use-voice";
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders, BASE_URL } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
@@ -25,76 +25,9 @@ import { useDisplayIdentity } from "../../hooks/useDisplayIdentity";
 import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
-function renderMarkdown(text: string): React.ReactNode {
-  const lines = text.split("\n");
-  const nodes: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
-
-  const flushList = (key: string) => {
-    if (!listBuffer.length) return;
-    nodes.push(
-      <ul key={key} className="my-1.5 space-y-1 pl-1">
-        {listBuffer.map((item, i) => (
-          <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
-            <span className="leading-7">{inlineFormat(item)}</span>
-          </li>
-        ))}
-      </ul>
-    );
-    listBuffer = [];
-  };
-
-  lines.forEach((line, i) => {
-    const trimmed = line.trim();
-    // blank
-    if (!trimmed) { flushList(`l${i}`); nodes.push(<div key={i} className="h-2"/>); return; }
-    // table separator rows like |---|---| — skip entirely
-    if (/^\|[-| :]+\|$/.test(trimmed)) return;
-    // table data rows like | col | col | — render as bullet list row
-    if (/^\|/.test(trimmed) && /\|$/.test(trimmed)) {
-      const cells = trimmed.split("|").map(c => c.trim()).filter(Boolean);
-      listBuffer.push(cells.join("  ·  "));
-      return;
-    }
-    // headings
-    if (/^#{1,3}\s/.test(trimmed)) {
-      flushList(`l${i}`);
-      const t = trimmed.replace(/^#{1,3}\s/, "");
-      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t}</p>);
-      return;
-    }
-    // horizontal rule
-    if (/^---+$/.test(trimmed)) {
-      flushList(`l${i}`);
-      nodes.push(<hr key={i} className="my-3" style={{ borderColor: "var(--border-soft)" }}/>);
-      return;
-    }
-    // bullet list
-    if (/^[-*•]\s/.test(trimmed)) {
-      listBuffer.push(trimmed.replace(/^[-*•]\s/, ""));
-      return;
-    }
-    // numbered list
-    if (/^\d+\.\s/.test(trimmed)) {
-      listBuffer.push(trimmed.replace(/^\d+\.\s/, ""));
-      return;
-    }
-    flushList(`l${i}`);
-    nodes.push(<p key={i} className="leading-7" style={{ color: "var(--text-secondary)" }}>{inlineFormat(trimmed)}</p>);
-  });
-  flushList("end");
-  return <>{nodes}</>;
-}
-
-function inlineFormat(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
-  return parts.map((p, i) => {
-    if (/^\*\*/.test(p) || /^__/.test(p))
-      return <strong key={i} className="font-semibold" style={{ color: "var(--text-primary)" }}>{p.slice(2, -2)}</strong>;
-    return p.replace(/[*_`|]/g, "");  // strip * _ ` | from plain spans
-  });
-}
+// (Removed a second, local markdown renderer used only by the scan modal — the shared <Markdown>
+//  component already renders the same content type, and two renderers meant two different
+//  outputs for identical text.)
 
 const QUICK_PROMPTS: { icon: React.ElementType; label: string; description: string; prompt: string; promptKey?: string }[] = [
   {
@@ -159,9 +92,10 @@ interface WorkspaceSummary {
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
   urgent: "border border-[#c6892e]/30 bg-[#c6892e]/10 text-[#c6892e] dark:text-[#c6892e]",
-  high:   "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
-  medium: "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
-  low:    "border border-stone-200 bg-stone-50 text-[var(--text-secondary)] dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-secondary)]",
+  // high and medium were byte-identical strings; low is token-ised like the rest.
+  high:   "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)]",
+  medium: "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)]",
+  low:    "border border-[var(--border-soft)] bg-[var(--surface-page)] text-[var(--text-muted)]",
 };
 
 export function HomePage() {
@@ -181,7 +115,6 @@ export function HomePage() {
     (key ? wsSuggestions?.home?.find(h => h.key === key)?.prompt : undefined) ?? fallback ?? "";
   const loc = useLanguage();   // locale-aware date formatting (+ keeps <html dir> synced app-wide)
   const qc = useQueryClient();
-  const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const voice = useVoiceDictation(setInput);
   const [taskScope, setTaskScope] = useState<"mine" | "all">("mine");
@@ -189,10 +122,7 @@ export function HomePage() {
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
   const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
   const [taskWidgetReply, setTaskWidgetReply] = useState<string | null>(null);
-  const [thinkingStep, setThinkingStep] = useState(0);
-  const taskWidgetInputRef = useRef<HTMLInputElement>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
-  const [taskPromptPickerOpen, setTaskPromptPickerOpen] = useState(false);
   const taskPickerRef = useRef<HTMLDivElement>(null);
   const [scanReport, setScanReport] = useState<string | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
@@ -201,29 +131,16 @@ export function HomePage() {
   const [streamingMsgIdx, setStreamingMsgIdx] = useState<number | null>(null);
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const startStreaming = useCallback((msgIdx: number, fullText: string, alreadyRenderedLive?: boolean) => {
-    if (streamRef.current) clearInterval(streamRef.current);
-    // SSE already animated these tokens on screen. Re-typing them makes the finished
-    // answer visibly collapse to empty and retype itself, so just leave it rendered.
-    if (alreadyRenderedLive) { setStreamingMsgIdx(null); return; }
-    setStreamingMsgIdx(msgIdx);
-    setStreamedUpTo(0);
-    let pos = 0;
-    streamRef.current = setInterval(() => {
-      pos += Math.floor(Math.random() * 5) + 3; // 3–7 chars per frame — natural pace
-      if (pos >= fullText.length) {
-        pos = fullText.length;
-        clearInterval(streamRef.current!);
-        streamRef.current = null;
-        setStreamingMsgIdx(null);
-      }
-      setStreamedUpTo(pos);
-    }, 18);
+  // Answers render as soon as they arrive. This used to run a random-speed typewriter
+  // (3–7 chars/frame) over text that had ALREADY fully arrived — a completed response
+  // performing live generation it wasn't doing. Real token-by-token output comes from SSE
+  // and is already on screen by the time this fires.
+  const startStreaming = useCallback((_msgIdx: number, _fullText: string, _alreadyRenderedLive?: boolean) => {
+    if (streamRef.current) { clearInterval(streamRef.current); streamRef.current = null; }
+    setStreamingMsgIdx(null);
   }, []);
 
   // Stop the typewriter when Home unmounts — otherwise navigating away mid-answer
@@ -271,7 +188,7 @@ export function HomePage() {
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
-        const res = await apiClient.post<{ id: string; object_type: string; data: Record<string, unknown> }[]>("/search", { q: attachQuery.trim() });
+        const res = await apiClient.post<{ id: string; object_type: string; data: Record<string, unknown> }[]>("/search", { query: attachQuery.trim() });
         if (!cancelled) setAttachResults((res ?? []).slice(0, 8));
       } catch { if (!cancelled) setAttachResults([]); }
     }, 250);
@@ -305,14 +222,8 @@ export function HomePage() {
   // sources. Home's context is general workspace scope.
   const {
     messages, setMessages, currentThreadId, setCurrentThreadId, loading,
-    suggestions, setSuggestions, messageMeta, doSend, buildChipText, stop, regenerate,
+    suggestions, setSuggestions, messageMeta, doSend, buildChipText, stop, regenerate, streamStatus,
   } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)", ...attachContext }, onAssistantMessage: startStreaming });
-
-  useEffect(() => {
-    if (!loading) { setThinkingStep(0); return; }
-    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, GRAPH_REASONING_STEPS.length - 1)), 850);
-    return () => clearInterval(id);
-  }, [loading]);
 
   useEffect(() => {
     if (!promptPickerOpen) return;
@@ -323,14 +234,6 @@ export function HomePage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [promptPickerOpen]);
 
-  useEffect(() => {
-    if (!taskPromptPickerOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (taskPickerRef.current && !taskPickerRef.current.contains(e.target as Node)) setTaskPromptPickerOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [taskPromptPickerOpen]);
   const tasksQuery = useQuery({
     queryKey: ["tasks", "home", taskScope],
     queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${taskScope}&sort=priority`),
@@ -340,7 +243,9 @@ export function HomePage() {
     placeholderData: keepPreviousData,
   });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
-  const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
+  // (Removed the /meetings/today query: it read an object_type nothing writes, so it always
+  // returned []. Native meetings come from nativeMeetingsQ below — the same calendar_event rows,
+  // fetched once.)
   // Real connected-calendar events (Google / Microsoft, direct OAuth — no middleman).
   interface CalEvent { id: string; title: string; start: string; end?: string; allDay: boolean; location?: string; attendees: number; meetingUrl?: string; provider: string }
   const calendarQ = useQuery({
@@ -368,6 +273,9 @@ export function HomePage() {
         const popup = window.open(r.auth_url, "mondaily-calendar", "width=520,height=680");
         // Refresh once the OAuth popup posts back success.
         const onMsg = (e: MessageEvent) => {
+          // Only trust this message from our own API origin — the handler previously acted on a
+          // postMessage from any origin at all.
+          if (e.origin !== new URL(BASE_URL, window.location.href).origin) return;
           if (e.data?.type === "nylas-connect" && e.data.ok) {
             qc.invalidateQueries({ queryKey: ["calendar"] });
             window.removeEventListener("message", onMsg);
@@ -426,7 +334,7 @@ export function HomePage() {
   };
 
   const isChatting = messages.length > 0;
-  const recentThreads = getThreads().slice(0, 3);
+  const recentThreads = useMemo(() => getThreads().slice(0, 3), [currentThreadId, messages.length]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Reset the auto-expanded textarea back to one row once it's cleared (after send).
   useEffect(() => { const el = inputRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
@@ -506,7 +414,7 @@ export function HomePage() {
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
 <title>Mondaily Scan Report — ${scanTimestamp}</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; color: var(--surface-card-2); line-height: 1.7; font-size: 15px; }
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; color: #1c1917; line-height: 1.7; font-size: 15px; }
   h1 { font-size: 20px; margin-bottom: 4px; } p.meta { color: #666; font-size: 13px; margin-bottom: 32px; }
   pre { white-space: pre-wrap; word-break: break-word; }
   @media print { body { margin: 24px; } }
@@ -524,7 +432,7 @@ export function HomePage() {
     if (scanLoading) return;
     setScanLoading(true);
     setScanReport(null);
-    setScanTimestamp(new Date().toLocaleString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }));
+    setScanTimestamp(new Date().toLocaleString(loc.lang, { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }));
     try {
       let model = "auto";
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
@@ -570,13 +478,6 @@ export function HomePage() {
     setTaskWidgetLoading(false);
   };
 
-  const TASK_PROMPTS = [
-    { label: "What's overdue?",       prompt: "List all my overdue tasks and tell me what to do about each one." },
-    { label: "What to focus on?",     prompt: "Which of my open tasks should I focus on right now and why?" },
-    { label: "Create from notes",     prompt: "Based on my recent activity and notes, suggest 3 tasks I should create and create them for me." },
-    { label: "Prep daily brief",      prompt: "Give me a quick brief on my tasks for today: what's urgent, what's due, and what I can defer." },
-  ];
-
   const sendSuggestion = useCallback((text: string) => {
     setSuggestions([]);
     doSend(text);
@@ -592,8 +493,8 @@ export function HomePage() {
 
   // Route/context chips fill the input and focus it rather than auto-sending
   // — the user reviews and completes the question before it goes anywhere.
-  const prefill = useCallback((text: string) => {
-    setInput(text);
+  const prefill = useCallback((text?: string) => {
+    setInput(text ?? "");
     inputRef.current?.focus();
   }, []);
 
@@ -604,8 +505,10 @@ export function HomePage() {
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
   const unreadCount = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
-  const graphSynced = !tasksQuery.isError && !notificationsQuery.isError && !decisionsQuery.isError;
-  const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
+  // Honest load state for the header pill: amber while any of the three feeds is still in flight,
+  // green only once they have all actually returned, red if one failed.
+  const workspaceDataLoading = tasksQuery.isLoading || notificationsQuery.isLoading || decisionsQuery.isLoading;
+  const workspaceDataOk = !tasksQuery.isError && !notificationsQuery.isError && !decisionsQuery.isError;
   const currentWorkspaceId = typeof window !== "undefined" ? localStorage.getItem("mondaily_workspace_id") : null;
   const workspaceSummaries = workspacesQuery.data?.workspaces ?? [];
   const currentWorkspace = workspaceSummaries.find(w => w.workspace_id === currentWorkspaceId);
@@ -657,7 +560,6 @@ export function HomePage() {
           const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && isPastDue(t.due_date)).length;
           const risk = unreadRiskCount || (riskBanner ?? 0);
           const starts: number[] = [];
-          for (const m of meetings.data ?? []) { const t = new Date(m.start_time).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
           for (const e of nativeMeetingsQ.data?.events ?? []) { const t = new Date(e.start_at).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
           for (const e of (calendarQ.data?.events ?? []) as { start?: string; start_at?: string }[]) { const t = new Date(e.start ?? e.start_at ?? "").getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
           const nextStart = starts.length ? Math.min(...starts) : null;
@@ -670,8 +572,14 @@ export function HomePage() {
           if (nextStart) seg.push({ label: `Next meeting ${new Date(nextStart).toLocaleTimeString(loc.lang, { hour: "2-digit", minute: "2-digit" })}`, to: "/calendar", tone: "var(--text-secondary)" });
           return (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
-              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "var(--status-warn)" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "var(--status-warn)" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              {/* Says exactly what it knows: whether this page's data loaded. It previously read
+                  "Graph synced" / "Sources checked" — implying a sync and a source-verification
+                  pass that nothing in the app performs, and it painted green during the initial
+                  load (before any row had arrived) because isError is false until a response fails. */}
+              <span className="status-line">
+                <span className="live-dot" style={{ background: workspaceDataLoading ? "var(--status-warn)" : workspaceDataOk ? "var(--section-accent)" : "var(--status-error)" }}/>
+                {workspaceDataLoading ? "Loading workspace data" : workspaceDataOk ? "Workspace data loaded" : "Some data failed to load"}
+              </span>
               {seg.length > 0 && <span className="hidden h-3 w-px sm:inline-block" style={{ background: "var(--border-soft)" }} />}
               {seg.length > 0 && <span className="text-caption font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Right now</span>}
               {seg.map((s, i) => (
@@ -718,7 +626,7 @@ export function HomePage() {
         );
       })()}
 
-      <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
+      <section className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
@@ -782,7 +690,6 @@ export function HomePage() {
                 const isStreaming = streamingMsgIdx === i;
                 const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
                 const meta = messageMeta[i];
-                const AgentIcon = meta?.agent.icon;
                 const showThinking = !!m.pending || (isStreaming && !displayText);
                 return (
                   <div key={i} data-role={m.role} className={`mx-auto w-full max-w-3xl min-w-0 ${m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}`}>
@@ -802,7 +709,11 @@ export function HomePage() {
                             The top-edge never moves. */}
                         <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
                           {showThinking
-                            ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+                            // The REAL tool phase from the engine ("Running search records…") when
+                            // one is streaming; otherwise a plain "Thinking…". This used to cycle a
+                            // fixed 4-step script on an 850ms timer — invented progress that had no
+                            // connection to what the model was actually doing.
+                            ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{streamStatus ?? "Thinking"}…</span>
                             : isStreaming
                               // While streaming: render as STABLE plain text (the parent is
                               // whitespace-pre-wrap) so half-typed lines don't re-parse into
@@ -812,12 +723,14 @@ export function HomePage() {
                               : <Markdown text={displayText} links={sourcesToLinks(meta?.sources)}/>}
                           {isStreaming && displayText && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
-                        {!isStreaming && meta && AgentIcon && (
+                        {/* The per-answer "Finance Agent"/"Signal Agent" badge was removed: that
+                            name came from a regex over the user's own prompt, while the reply
+                            always came from the generic /ask endpoint — attribution to an agent
+                            that never ran, plus a hardcoded draft-ready status attribute styled as
+                            a real agent state. The evidence strip below is real: it lists the
+                            sources the answer was actually built from. */}
+                        {!isStreaming && meta && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 pl-4">
-                            <span className="agent-badge" data-status="draft_ready">
-                              <AgentIcon size={10}/>
-                              {meta.agent.name}
-                            </span>
                             <EvidenceStrip sources={meta.sources}/>
                           </div>
                         )}
@@ -916,7 +829,6 @@ export function HomePage() {
                 ))}
               </div>
             )}
-            <div ref={bottomRef}/>
           </div>
         )}
 
@@ -1128,14 +1040,18 @@ export function HomePage() {
       <NeedsYouPanel
         notifications={notificationsQuery.data ?? []}
         notificationsError={notificationsQuery.isError}
+        // Home is this panel's only mount, and it never passed this — so both of its
+        // error/empty CTAs ("Ask what still works" / "Ask what changed") were dead buttons.
+        onAskMondaily={prefill}
       />
 
       {/* ── Operating Picture — graph telemetry and the agent map share one
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
       <section className="home-section home-operating-picture">
+        {/* The accent dot here was bound to nothing — a "live" light that was always on. The
+            constellation below reports the real live-agent count. */}
         <div className="mb-4 flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--section-accent)" }} />
           <p className="home-section-title !mb-0">Live operations</p>
         </div>
         {/* Agents lead — the AI command center is the centerpiece, with the
@@ -1175,9 +1091,9 @@ export function HomePage() {
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-[var(--text-secondary)] dark:text-stone-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{loc.t("nav.tasks")}</span>
-              <span className="flow-micro-badge">
-                <LogoMark size={8}/> AI sorted
-              </span>
+              {/* Previously claimed AI ordering that never happened — the list is sorted by due
+                  date in the widget below, and the label now says exactly that. */}
+              <span className="flow-micro-badge">Soonest due</span>
             </div>
             <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>
               View all <ArrowUpRight size={11}/>
@@ -1224,7 +1140,7 @@ export function HomePage() {
                         {item.due_date && (
                           <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "var(--status-warn)" : "var(--text-faint)" }}>
                             <Clock size={9}/>
-                            {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {new Date(item.due_date).toLocaleDateString(loc.lang, { month: "short", day: "numeric" })}
                           </span>
                         )}
                         {assigneeName && (
@@ -1244,7 +1160,7 @@ export function HomePage() {
           <div className="flow-panel-footer" ref={taskPickerRef}>
             <div className="relative flex items-center gap-2 rounded-sm border px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)", borderColor: "var(--border-soft)" }}>
               <LogoMark size={11} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
-              <input ref={taskWidgetInputRef} value={taskWidgetInput}
+              <input value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
                 placeholder="Add task or ask AI…"
@@ -1284,12 +1200,11 @@ export function HomePage() {
           const cal = calendarQ.data;
           const calConnected = cal?.connected;
           // Merge connected-calendar events with any workspace-created meetings, sorted by start.
-          const calEvents = (cal?.events ?? []).map(e => ({ id: e.id, title: e.title, when: e.allDay ? "All day" : new Date(e.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees ? `${e.attendees} attendee${e.attendees === 1 ? "" : "s"}` : ""), url: e.meetingUrl, start: e.start }));
-          const wsEvents = (meetings.data ?? []).map(m => ({ id: `ws-${m.id}`, title: m.title, when: new Date(m.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: "", url: undefined as string | undefined, start: m.start_time }));
+          const calEvents = (cal?.events ?? []).map(e => ({ id: e.id, title: e.title, when: e.allDay ? "All day" : new Date(e.start).toLocaleTimeString(loc.lang, { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees ? `${e.attendees} attendee${e.attendees === 1 ? "" : "s"}` : ""), url: e.meetingUrl, start: e.start }));
           // Native Mondaily meetings — link to the in-app meeting room.
-          const nativeEvents = (nativeMeetingsQ.data?.events ?? []).map(e => ({ id: `native-${e.id}`, title: e.title, when: new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees?.length ? `${e.attendees.length} attendee${e.attendees.length === 1 ? "" : "s"}` : "Mondaily"), url: `/calls/${e.id}`, start: e.start_at }));
-          const allEvents = [...calEvents, ...wsEvents, ...nativeEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-          const loading = calendarQ.isLoading || meetings.isLoading || nativeMeetingsQ.isLoading;
+          const nativeEvents = (nativeMeetingsQ.data?.events ?? []).map(e => ({ id: `native-${e.id}`, title: e.title, when: new Date(e.start_at).toLocaleTimeString(loc.lang, { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees?.length ? `${e.attendees.length} attendee${e.attendees.length === 1 ? "" : "s"}` : "Mondaily"), url: `/calls/${e.id}`, start: e.start_at }));
+          const allEvents = [...calEvents, ...nativeEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          const loading = calendarQ.isLoading || nativeMeetingsQ.isLoading;
           return (
             <section className="flow-panel-clean flex flex-col overflow-hidden">
               <div className="flow-panel-heading flex items-center justify-between">
@@ -1319,7 +1234,12 @@ export function HomePage() {
                           <span className="shrink-0 text-label tabular-nums" style={{ color: "var(--text-muted)" }}>{m.when}</span>
                         </>
                       );
-                      return m.url ? (
+                      // Internal meeting rooms ("/calls/:id") stay in the SPA — they were opening
+                      // in a new tab with a full page reload. Only external provider links
+                      // (Google/Outlook) get target="_blank".
+                      return m.url?.startsWith("/") ? (
+                        <li key={m.id}><Link to={m.url} className="flow-list-row group flex items-center gap-3 hover:opacity-90">{row}</Link></li>
+                      ) : m.url ? (
                         <li key={m.id}><a href={m.url} target="_blank" rel="noreferrer" className="flow-list-row group flex items-center gap-3 hover:opacity-90">{row}</a></li>
                       ) : (
                         <li key={m.id} className="flow-list-row flex items-center gap-3">{row}</li>
@@ -1378,13 +1298,8 @@ export function HomePage() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>AI Scan Report</p>
-                    <span className="flex items-center gap-1 rounded-full px-1.5 py-px text-[9px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                      <span className="relative flex h-1 w-1">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-40" style={{ background: "var(--text-muted)" }}/>
-                        <span className="relative inline-flex h-1 w-1 rounded-full" style={{ background: "var(--text-muted)" }}/>
-                      </span>
-                      AI Signal
-                    </span>
+                    {/* Removed a permanently-pinging "AI Signal" badge that was bound to no data —
+                        a live indicator for nothing. The timestamp below is the real signal. */}
                   </div>
                   {scanTimestamp && <p className="mt-px text-caption" style={{ color: "var(--text-faint)" }}>{scanTimestamp}</p>}
                 </div>
@@ -1406,7 +1321,7 @@ export function HomePage() {
                   <LogoMark size={22} thinking />
                   <span className="text-sm italic tracking-wide">Searching workspace…</span>
                 </div>
-              ) : scanReport ? renderMarkdown(scanReport) : null}
+              ) : scanReport ? <Markdown text={scanReport}/> : null}
             </div>
             {!scanLoading && scanReport && (
               <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>

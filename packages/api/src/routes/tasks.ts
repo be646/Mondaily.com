@@ -90,7 +90,10 @@ tasks.patch("/:id", async (c) => {
   if (updateBody.completed === false && updateBody.status === undefined) updateBody.status = "todo";
 
   // Get old values for activity logging + the completion transition (need prior `completed`).
-  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email,completed,completed_at").eq("id", id).single();
+  // Workspace-scoped like the update below: without .eq("workspace_id", …) this pre-read returned
+  // another tenant's task fields (status/priority/assignee) for any guessed id — a read-side IDOR
+  // even though the write itself was already scoped.
+  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email,completed,completed_at").eq("id", id).eq("workspace_id", workspaceId).single();
 
   // Stamp completed_at on the REAL completion transition only (see resolveCompletedAt for the rule).
   const wasCompleted = (oldTask as { completed?: boolean } | null)?.completed === true;

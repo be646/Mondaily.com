@@ -716,8 +716,12 @@ router.post("/risk-alerts", requireAuth, verifyAiCredits, async (c) => {
   const cutoff14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Pull relevant data
-  const [tasksRes, nodesRes, existingRes] = await Promise.all([
+  // Pull relevant data. NOTE the two exact counts below: the model is told real totals, while the
+  // task/node arrays are only the most recent 100 rows. Previously the prompt asserted
+  // "Total open tasks: ${tasks.length}" from those capped arrays, so any workspace past 100 was
+  // told its total was exactly 100 — and the model wrote that false figure into a real ai_risk
+  // notification the user reads as fact.
+  const [tasksRes, nodesRes, existingRes, openTaskCount, recordCount] = await Promise.all([
     supabase.from("tasks")
       .select("id, title, priority, status, due_date, completed, created_at")
       .eq("workspace_id", workspaceId)
@@ -734,6 +738,10 @@ router.post("/risk-alerts", requireAuth, verifyAiCredits, async (c) => {
       .eq("workspace_id", workspaceId)
       .eq("type", "ai_risk")
       .gte("created_at", cutoff24h),
+    supabase.from("tasks").select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).eq("completed", false),
+    supabase.from("nodes").select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
   ]);
 
   const tasks = tasksRes.data ?? [];
@@ -744,19 +752,26 @@ router.post("/risk-alerts", requireAuth, verifyAiCredits, async (c) => {
   const overdueTasks = tasks.filter(t => isOverdue(t.due_date, now));
   const urgentTasks = tasks.filter(t => t.priority === "urgent");
   const staleNodes = nodes.filter(n => n.updated_at && new Date(n.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000));
-  const dealNodes = nodes.filter(n => n.object_type === "deals");
+  // Match the object_type by stem, like routes/nodes.ts — workspaces carry either "deal" or
+  // "deals" depending on how the object was defined, and the exact-match literal silently
+  // reported zero open deals on half of them.
+  const dealNodes = nodes.filter(n => String(n.object_type).toLowerCase().includes("deal"));
   const highValueStaleDeals = dealNodes.filter(n => {
     const val = parseFloat((n.data as any)?.value ?? (n.data as any)?.amount ?? "0");
     return val > 0 && n.updated_at && new Date(n.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   });
 
+  // Totals come from exact COUNTs; everything derived from the arrays is labelled as a sample of
+  // the most recent rows, so the model can never present a page size as a total.
+  const sampled = `of the ${nodes.length} most recently updated records sampled`;
+  const sampledTasks = `of the ${tasks.length} most recent open tasks sampled`;
   const context = [
-    `Total open tasks: ${tasks.length}`,
-    `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " — titles: " + overdueTasks.slice(0,5).map(t=>t.title).join(", ") : ""}`,
-    `Urgent tasks: ${urgentTasks.length}`,
-    `Total graph records: ${nodes.length}`,
-    `Stale records (no update in 14d): ${staleNodes.length}`,
-    `Open deals: ${dealNodes.length}`,
+    `Total open tasks: ${openTaskCount.count ?? tasks.length}`,
+    `Overdue tasks (${sampledTasks}): ${overdueTasks.length}${overdueTasks.length ? " — titles: " + overdueTasks.slice(0,5).map(t=>t.title).join(", ") : ""}`,
+    `Urgent tasks (${sampledTasks}): ${urgentTasks.length}`,
+    `Total graph records: ${recordCount.count ?? nodes.length}`,
+    `Stale records, no update in 14d (${sampled}): ${staleNodes.length}`,
+    `Open deals (${sampled}): ${dealNodes.length}`,
     `High-value stale deals (no activity 14d): ${highValueStaleDeals.length}${highValueStaleDeals.length ? " — " + highValueStaleDeals.slice(0,3).map(n=>(n.data as any)?.name ?? "unnamed").join(", ") : ""}`,
     `Old open tasks (created > 14d ago, still open): ${tasks.filter(t => new Date(t.created_at) < new Date(cutoff14d)).length}`,
   ].join("\n");

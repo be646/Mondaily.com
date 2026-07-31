@@ -88,18 +88,31 @@ export function useAgentData({ enabled = true, pulse: wantPulse = false }: { ena
     staleTime: 60_000,
     enabled: enabled && wantPulse,
   });
-  const nodesQ = useQuery({
-    queryKey: ["agent-dock", "nodes"],
-    queryFn: () => apiClient.get<NodeLite[]>("/nodes?limit=500"),
+  // EXACT counts from the database. This used to be `/nodes?limit=500` with the returned array's
+  // length reported as "total records" — so any workspace past 500 records displayed exactly 500,
+  // a page cap presented as the truth. Counting belongs in SQL, never in a truncated page.
+  const countsQ = useQuery({
+    queryKey: ["agent-dock", "node-counts"],
+    queryFn: () => apiClient.get<{ total: number; by_type: Record<string, number> }>("/nodes/counts"),
+    staleTime: 60_000,
+    enabled: enabled && wantPulse,
+  });
+  // Workflow automations are identified by a field INSIDE data (data.type), which a type-level
+  // count can't see — so fetch just the automation rows (a small set) rather than all records.
+  const automationsQ = useQuery({
+    queryKey: ["agent-dock", "automations"],
+    queryFn: () => apiClient.get<NodeLite[]>("/nodes?object_type=automation&limit=1000"),
     staleTime: 60_000,
     enabled: enabled && wantPulse,
   });
 
   const tasks = tasksQ.data ?? [];
   const notifications = notificationsQ.data ?? [];
-  const nodes = nodesQ.data ?? [];
-  const relationships = nodes.filter(n => RELATIONSHIP_TYPES.some(t => n.object_type.toLowerCase().includes(t)));
-  const workflows = nodes.filter(n => n.object_type === "automation" && n.data?.type === "workflow");
+  const byType = countsQ.data?.by_type ?? {};
+  const relationshipCount = Object.entries(byType)
+    .filter(([type]) => RELATIONSHIP_TYPES.some(t => type.toLowerCase().includes(t)))
+    .reduce((sum, [, n]) => sum + n, 0);
+  const workflows = (automationsQ.data ?? []).filter(n => n.object_type === "automation" && n.data?.type === "workflow");
 
   const registryAgents = registryQ.data?.agents ?? [];
   const financeAgent = registryAgents.find(a => a.id === "finance");
@@ -129,13 +142,13 @@ export function useAgentData({ enabled = true, pulse: wantPulse = false }: { ena
     pulse: {
       tasksOpen: tasks.filter(t => !t.completed).length,
       tasksOverdue: tasks.filter(t => !t.completed && isPastDue(t.due_date)).length,
-      relationships: relationships.length,
+      relationships: relationshipCount,
       financeOverdue: hasFinance ? (financeAgent?.evidence_count ?? 0) : null,
-      records: nodes.length,
+      records: countsQ.data?.total ?? 0,
       workflows: workflows.length,
       risks: signalAgent?.evidence_count ?? notifications.filter(n => n.type === "ai_risk" && !n.is_read).length,
-      isLoading: registryQ.isLoading || tasksQ.isLoading || nodesQ.isLoading,
-      isError: registryQ.isError || tasksQ.isError || notificationsQ.isError || nodesQ.isError,
+      isLoading: registryQ.isLoading || tasksQ.isLoading || countsQ.isLoading,
+      isError: registryQ.isError || tasksQ.isError || notificationsQ.isError || countsQ.isError,
     },
   };
 }
