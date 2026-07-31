@@ -179,3 +179,26 @@ describe("sheet columns are workspace-shared; formula footer totals; goals in th
     expect(job).toMatch(/goalAttainmentPct\(actual/);
   });
 });
+
+describe("AI formula builder — proposes and PROVES, never saves", () => {
+  it("the endpoint executes the AI's formula against real rows and checks field references", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const r = readFileSync(join(__dirname, "../routes/records.ts"), "utf8");
+    const fb = r.slice(r.indexOf('router.post("/formula-builder"'));
+    expect(fb).toMatch(/evaluateFormula\(formula, sm\)/);        // proof against real samples
+    expect(fb).toMatch(/formulaFields\(formula\)/);              // reference check
+    expect(r).toContain("it never mutates");   // docblock sits above the route slice
+    expect(fb).not.toMatch(/\.from\("nodes"\)\s*\.\s*(insert|update|upsert)/);
+    expect(fb).toContain('"IMPOSSIBLE"');                        // honest not-expressible path
+    expect(fb).toContain("errored on every sample row");
+  });
+  it("the client shows the proof + warnings and saving still requires the user's Add click", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const rt = readFileSync(join(__dirname, "../../../../apps/app/src/components/records/record-table.tsx"), "utf8");
+    expect(rt).toContain("Proof — real rows");
+    expect(rt).toMatch(/fbWarnings\.map/);
+    expect(rt).toContain("nothing saves until you click Add");
+  });
+});

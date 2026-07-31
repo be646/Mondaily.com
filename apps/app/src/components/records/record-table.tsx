@@ -8,7 +8,7 @@ import {
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
-  Sigma,
+  Sigma, Loader2, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -998,12 +998,13 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
 // Types where only one instance makes sense
 const SINGLETON_TYPES = new Set(["assignee","owner","status","stage","record_id","country"]);
 
-function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingCustomTypes }: {
+function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingCustomTypes, objectTypeForFormula }: {
   onAdd: (name: string, type: string, meta?: Record<string, string>) => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | HTMLTableCellElement | null>;
   existingCols: string[];
   existingCustomTypes: string[];
+  objectTypeForFormula: string;
 }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<ColPresetType>("text");
@@ -1011,6 +1012,22 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   const [relatedTarget, setRelatedTarget] = useState("");
   const [formulaSrc, setFormulaSrc] = useState("");
   const [formulaResult, setFormulaResult] = useState<"auto" | "currency" | "percent">("auto");
+  const [fbDesc, setFbDesc] = useState("");
+  const [fbBusy, setFbBusy] = useState(false);
+  const [fbPreview, setFbPreview] = useState<{ name: string; value?: unknown; error?: string }[] | null>(null);
+  const [fbWarnings, setFbWarnings] = useState<string[]>([]);
+  const [fbMsg, setFbMsg] = useState<string | null>(null);
+  async function buildFormula() {
+    if (!fbDesc.trim()) return;
+    setFbBusy(true); setFbMsg(null); setFbPreview(null); setFbWarnings([]);
+    try {
+      const r = await apiClient.post<{ ok: boolean; formula?: string; preview?: { name: string; value?: unknown; error?: string }[]; warnings?: string[]; detail?: string }>(
+        "/records/formula-builder", { object_type: objectTypeForFormula, description: fbDesc.trim() });
+      if (r.ok && r.formula) { setFormulaSrc(r.formula); setFbPreview(r.preview ?? []); setFbWarnings(r.warnings ?? []); }
+      else setFbMsg(r.detail ?? "Couldn't express that as a formula.");
+    } catch (e) { setFbMsg(e instanceof Error ? e.message : "AI is unavailable — write the formula by hand."); }
+    finally { setFbBusy(false); }
+  }
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -1096,6 +1113,19 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       {type === "formula" && (
         <div className="px-3 py-2 border-t border-[var(--border-soft)]">
           <p className="mb-1.5 text-body text-[var(--text-secondary)]">Formula</p>
+          {/* AI builder — describe it; the SERVER proves the result against real rows before you
+              see it, and nothing saves until you click Add (approval stays with the user). */}
+          <div className="mb-2 flex items-center gap-1.5">
+            <input value={fbDesc} onChange={e => setFbDesc(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void buildFormula(); } }}
+              placeholder="Describe it — e.g. days until the due date"
+              className="min-w-0 flex-1 rounded-md border border-[var(--border-soft)] bg-transparent px-2.5 py-1.5 text-[11.5px] text-[var(--text-primary)] outline-none focus:border-stone-500/30" />
+            <button onClick={() => void buildFormula()} disabled={fbBusy || !fbDesc.trim()}
+              className="btn-primary h-7 shrink-0 gap-1 px-2.5 text-[11px] font-semibold">
+              {fbBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} Build
+            </button>
+          </div>
+          {fbMsg && <p className="mb-1.5 text-[10.5px]" style={{ color: "var(--status-warn)" }}>{fbMsg}</p>}
           <textarea value={formulaSrc} onChange={e => setFormulaSrc(e.target.value)} rows={2}
             placeholder={"{price} * {qty}  ·  IF({paid}, 0, {total})  ·  DAYS({due date}, TODAY())"}
             className="w-full resize-none rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 font-mono text-[11px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"/>
@@ -1110,6 +1140,20 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
               </button>
             ))}
           </div>
+          {fbPreview && fbPreview.length > 0 && (
+            <div className="mt-1.5 space-y-0.5 rounded-md border px-2 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+              <p className="text-[10px] font-semibold" style={{ color: "var(--text-faint)" }}>Proof — real rows</p>
+              {fbPreview.map((pv, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 text-[10.5px]">
+                  <span className="truncate" style={{ color: "var(--text-muted)" }}>{pv.name}</span>
+                  {"error" in pv && pv.error
+                    ? <span title={pv.error} style={{ color: "var(--status-error)" }}>#ERR</span>
+                    : <span className="tabular-nums" style={{ color: "var(--text-primary)" }}>{String(pv.value ?? "—")}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {fbWarnings.map((wr, i) => <p key={i} className="mt-1 text-[10px]" style={{ color: "var(--status-warn)" }}>{wr}</p>)}
           <p className="mt-1 text-[10px] text-[var(--text-secondary)]">Fields as {"{name}"} · IF, ROUND, ABS, MIN, MAX, SUM, DAYS, TODAY, CONCAT, LEN · read-only, computed per row</p>
         </div>
       )}
@@ -3305,6 +3349,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 </button>
                 {openPanel === "addcol" && (
                   <AddColumnDropdown
+                    objectTypeForFormula={objectType}
                     onAdd={(key, type, meta) => {
                       saveCustomCols([...customCols, { key, type, ...(meta ? { meta } : {}) }]);
                       // ALSO persist the type to object_definitions — the server type is what other

@@ -3,6 +3,8 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { aiGateway } from "../lib/ai-gateway";
+import { evaluateFormula, formulaFields } from "@mondaily/shared/formula";
 import { loadRates, userDisplayCurrency, workspaceBaseCurrency } from "../lib/currency-store";
 import { aggregateGrouped, aggregateRows, aggregateTop, applyFilters, type AggRow, type MoneyCtx } from "../lib/aggregate";
 
@@ -172,6 +174,59 @@ router.post("/sheet-config/:objectType", async (c) => {
     if (error) return c.json({ error: "Could not save sheet columns." }, 500);
   }
   return c.json({ ok: true, columns });
+});
+
+/**
+ * POST /records/formula-builder — describe a computed column in words, get a formula WITH PROOF.
+ * The AI proposes only the expression; everything that matters is verified in code:
+ *   • the formula is parsed + executed by the shared safe evaluator against REAL sample rows
+ *   • referenced fields are checked against the sheet's actual columns (unknown → warning)
+ *   • the client shows the preview and the user APPROVES before anything is saved
+ * Nothing is saved here — this endpoint proposes and proves, it never mutates.
+ */
+router.post("/formula-builder", async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ object_type?: string; description?: string }>().catch(() => ({} as never));
+  const objectType = String(body.object_type ?? "").trim();
+  const description = String(body.description ?? "").trim().slice(0, 500);
+  if (!objectType || !description) return c.json({ error: "object_type and description required" }, 400);
+
+  // Real sample rows — both the field inventory and the proof come from actual data.
+  const { data: rows } = await supabase.from("nodes").select("data").eq("workspace_id", ws)
+    .eq("object_type", objectType).order("updated_at", { ascending: false }).limit(5);
+  const samples = (rows ?? []).map(r => (r.data ?? {}) as Record<string, unknown>);
+  const fieldSet = new Set<string>();
+  for (const sm of samples) for (const k of Object.keys(sm)) fieldSet.add(k);
+  const fields = [...fieldSet].slice(0, 60);
+
+  const system = `You translate a plain-language request into ONE formula for a records sheet. Reply with ONLY the formula — no prose, no backticks.
+Grammar: field references as {field_name}; operators + - * / % & (concat) = != > < >= <=; AND OR NOT; functions IF(cond,a,b), ROUND(x,digits), ABS(x), MIN(...), MAX(...), SUM(...), DAYS(a,b), TODAY(), CONCAT(...), LEN(x).
+Use ONLY fields from the provided list. If the request cannot be expressed in this grammar, reply exactly: IMPOSSIBLE`;
+  const prompt = `Available fields: ${fields.join(", ") || "(none yet)"}\nRequest: ${description}`;
+
+  let formula = "";
+  try {
+    const { text } = await aiGateway({ system, prompt, maxTokens: 120, workspaceId: ws, userId: c.get("userId"), feature: "formula_builder" });
+    formula = (text ?? "").trim().replace(/^`+|`+$/g, "").split("\n")[0]!.trim();
+  } catch { return c.json({ error: "AI is unavailable right now — you can still write the formula by hand." }, 503); }
+  if (!formula || formula.toUpperCase() === "IMPOSSIBLE") {
+    return c.json({ ok: false, reason: "not_expressible", detail: "That can't be expressed in the formula grammar — try describing a per-row calculation over this sheet's fields." });
+  }
+
+  // ── PROOF: execute against the real samples; check field references ──
+  const known = new Set(fields.map(f => f.toLowerCase().replace(/\s+/g, "_")));
+  const unknown = formulaFields(formula).filter(f => !known.has(f.toLowerCase().replace(/\s+/g, "_")));
+  const preview = samples.slice(0, 3).map(sm => {
+    const res = evaluateFormula(formula, sm);
+    return { name: String(sm.name ?? sm.title ?? "—").slice(0, 60), ...(res.ok ? { value: res.value } : { error: res.error }) };
+  });
+  const allFailed = preview.length > 0 && preview.every(pv => "error" in pv);
+  const warnings = [
+    ...(unknown.length ? [`References field(s) not present on sample rows: ${unknown.join(", ")}`] : []),
+    ...(allFailed ? ["The formula errored on every sample row — review before adding."] : []),
+    ...(preview.length === 0 ? ["No records yet to preview against — the formula parsed but is unproven."] : []),
+  ];
+  return c.json({ ok: true, formula, fields_used: formulaFields(formula), preview, warnings });
 });
 
 export const recordsRouter = router;
