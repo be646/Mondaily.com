@@ -30,7 +30,9 @@ describe("Graph audit — a page size is never presented as a total", () => {
   it("the record table reads its total from /nodes/counts, not the loaded page", () => {
     expect(table()).toMatch(/apiClient\.get<\{ total: number; by_type: Record<string, number> \}>\("\/nodes\/counts"\)/);
     expect(table()).toMatch(/const totalOfType = countsQuery\.data\?\.by_type\?\.\[objectType\] \?\? records\.length/);
-    expect(table()).toMatch(/\{sorted\.length\} of \{totalOfType\}/);
+    // 2026-08-01: the grid renders visibleRows (sorted page, optionally narrowed to health-flagged
+    // rows) — the count reflects what is actually shown, still against the exact type total.
+    expect(table()).toMatch(/\{visibleRows\.length\} of \{totalOfType\}/);
     // and says so plainly when the PAGE hit its cap. (2026-08-01: records is now the server-filtered
     // result, so a bare totalOfType > records.length would flag every narrowed search as truncation.)
     expect(table()).toMatch(/const truncated = records\.length >= PAGE_LIMIT && totalOfType > records\.length/);

@@ -1842,6 +1842,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // removable chips. The old model was a permanent dropdown-per-column row.
   const [toolbarSearch, setToolbarSearch] = useState("");
   const [conditions, setConditions] = useState<Cond[]>([]);
+  const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
   // Search + SQL-representable conditions also go to the SERVER (debounced), so filtering covers
   // every record of the type — not just the loaded page. The client predicate below still runs for
   // instant feedback and for the numeric ops jsonb text-compare can't do honestly (gt/lt).
@@ -2139,7 +2140,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
       }));
     }
     return base;
-  }, [records, toolbarSearch, conditions, owners]);   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
+  }, [records, toolbarSearch, conditions, owners]);
+  // Health filter is applied over the sorted page below (healthOf needs dupCounts, declared later).   // `owners` IS read above (owner/assignee branch) — without it a reassignment left the filtered view stale
 
   const sorted = useMemo(() => {
     // The page arrives pre-ordered by the primary rule (SQL); re-sorting here is a no-op for rule
@@ -2465,6 +2467,27 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
       });
   }
 
+  // ── Row health (2026-08-01): RULE-based data-quality checks — computed locally, zero AI cost,
+  // display only. Flags what is mechanically verifiable: malformed email/URL, duplicate name,
+  // stale record, a won/closed deal with no value. "Fixing" stays a human action — the dot links
+  // to the record, where enrichment PROPOSES values; nothing here writes.
+  const healthOf = (record: NodeRecord): string[] => {
+    const issues: string[] = [];
+    const d = record.data;
+    const email = String(d.email ?? "");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) issues.push("Email looks malformed");
+    for (const k of ["source_url", "linkedin", "website", "url"]) {
+      const v = String(d[k] ?? "");
+      if (v && !/^https?:\/\//i.test(v) && v !== "—") issues.push(`${colLabel(k)} is not a valid link`);
+    }
+    if (dupCountOf(record) > 1) issues.push(`${dupCountOf(record)} records share this name — possible duplicate`);
+    const ageDays = (Date.now() - new Date(record.updated_at).getTime()) / 86400_000;
+    if (ageDays > 90) issues.push(`No activity in ${Math.floor(ageDays)} days`);
+    const stage = String(d.deal_stage ?? d.stage ?? "").toLowerCase();
+    const value = parseFloat(String(d.deal_value ?? d.value ?? d.amount ?? ""));
+    if (/won|closed won/.test(stage) && (isNaN(value) || value === 0)) issues.push("Won deal with no value");
+    return issues;
+  };
   // Possible-duplicate indicator (display ONLY — no data is touched): identical primary names on
   // the loaded page get a small ×N marker, so three "Bassem Epra" rows read as one person entered
   // three times instead of silently looking like three people. Merging stays a separate,
@@ -2481,6 +2504,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     const n = String(record.data.name ?? record.data.title ?? record.data.full_name ?? "").trim().toLowerCase();
     return n ? (dupCounts.get(n) ?? 0) : 0;
   };
+
+  const flaggedCount = useMemo(() => sorted.reduce((n, r) => n + (healthOf(r).length ? 1 : 0), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sorted, dupCounts]);
+  // What the grid actually renders: the sorted page, optionally narrowed to rows needing attention.
+  const visibleRows = useMemo(() => showFlaggedOnly ? sorted.filter(r => healthOf(r).length > 0) : sorted,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sorted, showFlaggedOnly, dupCounts]);
+
 
   function renderCell(col: string, record: NodeRecord) {
     const val = cellValue(record, col);
@@ -2774,6 +2806,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           {fmtDate(record.updated_at)}
         </td>
         <td className="border-b border-b-[var(--border-faint)] w-10 px-2">
+          <div className="flex items-center gap-1">
+          {healthOf(record).length > 0 && (
+            <Link to={`/objects/${objectType}/${record.id}`}
+              title={`Needs attention:\n· ${healthOf(record).join("\n· ")}\n\nOpen the record to review or enrich.`}
+              className="flex h-6 w-6 items-center justify-center rounded-sm">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--status-warn)" }}/>
+            </Link>
+          )}
           <button
             onClick={() => deleteRow(record)}
             className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-sm text-stone-400 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-500/10 transition-all"
@@ -2781,6 +2821,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           >
             <Trash2 size={12}/>
           </button>
+          </div>
         </td>
       </tr>
     );
@@ -2813,13 +2854,21 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
           )}
         </div>
         {(conditions.length > 0 || toolbarSearch || sortRules.length > 0) && (
-          <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {totalOfType}</span>
+          <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{visibleRows.length} of {totalOfType}</span>
         )}
         {truncated && (
           <span
             className="mr-2 rounded-sm border border-[var(--status-warn)]/30 px-1.5 py-px text-[10px] text-[var(--status-warn)]"
             title={`This view holds the first ${records.length} of ${totalOfType} records. Search and filters query ALL records; sorting and export apply to what is loaded.`}
           >first {records.length} of {totalOfType}</span>
+        )}
+        {flaggedCount > 0 && (
+          <button onClick={() => setShowFlaggedOnly(v => !v)}
+            title="Rule-based checks: malformed email/link, duplicate name, stale record, won deal with no value. Click to show only flagged rows."
+            className={`mr-2 flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[10.5px] transition-colors ${showFlaggedOnly ? "border-[var(--status-warn)]/50 text-[var(--status-warn)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--status-warn)" }}/>
+            {flaggedCount} need attention
+          </button>
         )}
         <div className="ml-auto flex items-center gap-0.5">
           {/* Columns (was "View") */}
@@ -3407,7 +3456,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
             </tr>
           </thead>
           <tbody>
-            {sorted.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
                   No results{toolbarSearch ? ` for "${toolbarSearch}"` : conditions.length ? " for the active filters" : ""}
@@ -3454,7 +3503,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
                   groupRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
                 }
               } else {
-                sorted.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
+                visibleRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
               }
               return rowsToRender;
             })()}
