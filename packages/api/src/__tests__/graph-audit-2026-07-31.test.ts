@@ -103,7 +103,9 @@ describe("Graph audit — nothing writes or claims on the user's behalf", () => 
 describe("Graph audit — table wiring", () => {
   it("every column stays reachable; extras start hidden rather than discarded", () => {
     expect(table()).toMatch(/const base = nameKey \? \[nameKey, \.\.\.rest\] : allKeys;/);
-    expect(table()).toMatch(/setHiddenCols\(new Set\(allColumns\.slice\(DEFAULT_VISIBLE_COLS\)\)\)/);
+    // 2026-08-01: AI columns (lead_score/relationship_health) are exempt from the hidden seed —
+    // they vanished from sheets and the user rightly asked where the lead scoring went.
+    expect(table()).toMatch(/setHiddenCols\(new Set\(allColumns\.slice\(DEFAULT_VISIBLE_COLS\)\.filter\(c => !NODE_LEVEL_COLS\.includes\(c\)\)\)\)/);
     expect(table()).not.toMatch(/: allKeys\)\.slice\(0, 8\)/);
   });
 

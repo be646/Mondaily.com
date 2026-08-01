@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Plus, Check, X, ChevronRight, ChevronDown } from "lucide-react";
 import { LeadScoreBadge } from "./lead-score-badge";
+import { PortalDropdown } from "./record-table";
 import { apiClient } from "../../lib/api-client";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 
@@ -151,28 +152,24 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
 // ─── Stage pill ───────────────────────────────────────────────────────────────
 function StagePill({ value, stages, onMove }: { value: string; stages: string[]; onMove: (s: string) => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const { dot, text } = stageStyle(value);
 
-  useEffect(() => {
-    if (!open) return;
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={btnRef}
         onClick={() => setOpen(o => !o)}
-        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-[var(--border-soft)] bg-stone-900/60 transition-colors ${text}`}
+        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-[var(--border-soft)] bg-transparent transition-colors ${text}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`}/>
         {value}
         <ChevronRight size={9} className={`transition-transform ${open ? "rotate-90" : ""}`}/>
       </button>
+      {/* Portal: the absolute panel rendered INSIDE the column's overflow containers and was
+          clipped after a few pixels — stages below the fold were unpickable. */}
       {open && (
-        <div className="dropdown-panel absolute left-0 top-full z-20">
+        <PortalDropdown triggerRef={btnRef} onClose={() => setOpen(false)} minWidth={150}>
           {stages.map(s => {
             const sc = stageStyle(s);
             return (
@@ -183,7 +180,7 @@ function StagePill({ value, stages, onMove }: { value: string; stages: string[];
               </button>
             );
           })}
-        </div>
+        </PortalDropdown>
       )}
     </div>
   );

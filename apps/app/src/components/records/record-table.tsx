@@ -299,7 +299,7 @@ function getColumnIcon(col: string) {
 // (Removed dead component `useClickOutside` — 2026-07-31 audit: defined once, imported nowhere;//  superseded by the inline toolbar bars that are actually rendered.)
 
 // ─── Portal dropdown — renders over ALL overflow/z-index traps ────────────────
-function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down", minWidth, className = "", children }: {
+export function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down", minWidth, className = "", children }: {
   triggerRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   align?: "left" | "right";
@@ -319,10 +319,17 @@ function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down
       visibility: "visible",
       minWidth: minWidth ?? r.width,
     };
-    if (direction === "down") s.top = r.bottom + 4;
-    else s.bottom = window.innerHeight - r.top + 4;
-    if (align === "right") s.right = window.innerWidth - r.right;
-    else s.left = r.left;
+    // Viewport-bounded + scrollable: the panel had NO max height, so a tall menu (Add column:
+    // 18 presets ≈ 750px) ran past the fold with no scrollbar — its lower options unreachable.
+    // Auto-flip up when the space below is too tight to be usable.
+    const spaceBelow = window.innerHeight - (r.bottom + 4) - 8;
+    const dir = direction === "down" && spaceBelow < 180 && r.top > spaceBelow ? "up" : direction;
+    if (dir === "down") { s.top = r.bottom + 4; s.maxHeight = spaceBelow; }
+    else { s.bottom = window.innerHeight - r.top + 4; s.maxHeight = r.top - 12; }
+    // Clamp horizontally — align="right" on the last column of a scrolled table went negative and
+    // hung the panel off the right edge of the screen.
+    if (align === "right") s.right = Math.max(8, window.innerWidth - r.right);
+    else s.left = Math.max(8, Math.min(r.left, window.innerWidth - (minWidth ?? r.width) - 8));
     setStyle(s);
   }, []);
 
@@ -344,7 +351,7 @@ function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down
   return createPortal(
     <div
       ref={panelRef}
-      className={`fixed z-[9999] overflow-hidden rounded border border-stone-800/70 bg-[var(--surface-card)] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm ${className}`}
+      className={`fixed z-[9999] overflow-y-auto overflow-x-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_8px_24px_rgba(0,0,0,0.28)] ${className}`}
       style={style}
     >
       {children}
@@ -474,10 +481,11 @@ export function stageStyle(value: string) {
 }
 
 // Clickable stage pill — opens a dropdown to change the value inline
-export function StagePill({ value, options, onSelect }: {
+export function StagePill({ value, options, onSelect, placeholder }: {
   value: string;
   options?: string[];
   onSelect?: (v: string) => void;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -498,10 +506,12 @@ export function StagePill({ value, options, onSelect }: {
       <button
         ref={ref}
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80 ${pill}`}
+        className={value
+          ? `inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80 ${pill}`
+          : "inline-flex items-center gap-1 px-2 py-0.5 text-[12px] whitespace-nowrap transition-colors text-[var(--text-faint)] hover:text-[var(--text-muted)]"}
       >
-        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>
-        {value}
+        {value && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>}
+        {value || placeholder || "— set"}
         <ChevronDown size={9} className="opacity-50 ml-0.5"/>
       </button>
       {open && (
@@ -1807,6 +1817,14 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
               ) : !draftOp ? (
                 <>
                   <p className="px-2.5 py-1 text-[10px] text-[var(--text-faint)] first-letter:uppercase">{label(draftCol)}</p>
+                  {/owner|assign/i.test(draftCol) && (
+                    <>
+                      <button onClick={() => commit("empty")}
+                        className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">Unassigned</button>
+                      <button onClick={() => commit("not_empty")}
+                        className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">Assigned</button>
+                    </>
+                  )}
                   {draftCol === LAST_ACTIVITY && ([["No activity in 30 days", 30], ["No activity in 60 days", 60], ["No activity in 90 days", 90]] as const).map(([txt, d]) => (
                     <button key={d} onClick={() => commit("before", daysAgoIso(d))}
                       className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">{txt}</button>
@@ -1961,7 +1979,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   useEffect(() => {
     if (seededFor.current === objectType || allColumns.length === 0) return;
     seededFor.current = objectType;
-    setHiddenCols(new Set(allColumns.slice(DEFAULT_VISIBLE_COLS)));
+    setHiddenCols(new Set(allColumns.slice(DEFAULT_VISIBLE_COLS).filter(c => !NODE_LEVEL_COLS.includes(c))));   // AI columns (lead_score/relationship_health) never start hidden
   }, [objectType, allColumns]);
   function toggleCol(col: string) {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
@@ -2299,12 +2317,16 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   const bulkEditRef = useRef<HTMLDivElement>(null);
 
   function applyBulkEdit(col: string, value: string) {
-    const ids = [...selected];
-    ids.forEach(id => {
-      const record = records.find(r => r.id === id);
-      if (record) saveCell(record, col, value);
-    });
+    const rows = visibleRows.filter(r => selected.has(r.id));
+    // Already-set rows are SKIPPED and reported — assigning someone who is already the assignee
+    // silently rewrote rows and told the user nothing.
+    const already = rows.filter(r => String((owners[r.id]?.[col] ?? cellValue(r, col)) ?? "").trim().toLowerCase() === value.trim().toLowerCase());
+    const toChange = rows.filter(r => !already.includes(r));
+    toChange.forEach(record => saveCell(record, col, value));
     setBulkEditField(null);
+    if (already.length && !toChange.length) showFlash(`All ${already.length} selected record${already.length === 1 ? " is" : "s are"} already set to "${value}" — nothing changed.`, "warn");
+    else if (already.length) showFlash(`Set ${toChange.length}; ${already.length} already "${value}" and skipped.`, "ok");
+    else if (toChange.length) showFlash(`Set ${colLabel(col)} = "${value}" on ${toChange.length} record${toChange.length === 1 ? "" : "s"}.`, "ok");
   }
 
   // Columns suitable for bulk edit — all except name/id/date/number
@@ -2667,14 +2689,13 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       const opts = [...new Set([...(serverAttrOptions.get(col) ?? []), ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
       const shown = String(val ?? "");
       if (!opts.length) return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
-      if (!shown) return (
-        <button className="text-stone-700 text-xs hover:text-stone-400 transition-colors px-2 py-1.5"
-          onClick={() => saveCell(record, col, opts[0]!)}>— set</button>
-      );
-      return <StagePill value={shown} options={opts} onSelect={v => saveCell(record, col, v)} />;
+      return <StagePill value={shown} options={opts} onSelect={v => saveCell(record, col, v)} placeholder="— set" />;
     }
     // Multi-select — read chips from an array or comma string; unknown shapes degrade to text.
     if (kind === "multi_select") {
+      if (val == null || (Array.isArray(val) && val.length === 0) || String(val).trim() === "") {
+        return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
+      }
       return <div className="px-2 py-1.5"><MultiSelectChips value={val} /></div>;
     }
     // Date / datetime — honest formatted display, editable as raw text; bad values degrade to text.
@@ -2683,6 +2704,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     }
     // Typed contact/link values — email/phone/url as links when plausible, else plain text.
     if (kind === "url" || kind === "email" || kind === "phone") {
+      if (val == null || String(val).trim() === "") {
+        // typing into an empty url/email/phone cell was impossible — read-only '—'
+        return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
+      }
       return <div className="px-2 py-1.5"><ContactCell value={val} kind={kind} /></div>;
     }
 
@@ -2754,13 +2779,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       const shown = String(val ?? "");
       const defaults = customDef.type === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
       const existingOptions = [...new Set([...defaults, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
-      if (!shown) return (
-        <button className="text-stone-700 text-xs hover:text-stone-400 transition-colors"
-          onClick={() => saveCell(record, col, defaults[0]!)}>
-          — set {customDef.type}
-        </button>
-      );
-      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
+      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)} placeholder={`— set ${customDef.type}`}/>;
     }
 
     // Relation column — link to a record in another object
@@ -2768,8 +2787,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       return <RelationCell value={val} relatedObjectType={customDef.meta?.relatedObjectType} onSave={v => saveCell(record, col, v as object)}/>;
     }
 
-    // Custom column — empty by default
-    if (customDef) return <span className="text-stone-700 text-xs">—</span>;
+    // Custom column with an unmatched type (text is the DEFAULT) — a real editable cell. This
+    // returned a dead '—' span: the most common custom column a user creates was uneditable.
+    if (customDef) return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
 
     // Built-in categories column — same component, same data.categories field
     if (col === "categories") return <CategoryCell value={val} onSave={cats => saveCell(record, "categories", cats)}/>;
@@ -2798,13 +2818,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       const defaults = isStatusCol ? DEFAULT_STATUS_OPTIONS : DEFAULT_STAGE_OPTIONS;
       const existingOptions = [...new Set([...defaults, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
       const shown = String(val ?? "");
-      if (!shown) return (
-        <button className="text-stone-700 text-xs hover:text-stone-400 transition-colors"
-          onClick={() => saveCell(record, col, defaults[0]!)}>
-          — set {isStatusCol ? "status" : "stage"}
-        </button>
-      );
-      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
+      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)} placeholder={isStatusCol ? "— set status" : "— set stage"}/>;
     }
 
     // Logo URL — render as image, skip base64
@@ -2957,7 +2971,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // Toolbar button styles — clean clickable pills with real borders in light mode
   const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-colors duration-150 select-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]";
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]`;
-  const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-[var(--border-soft)] dark:text-[var(--text-primary)] dark:bg-[var(--surface-hover)]`;
+  const TB_ON   = `${TB} border-[var(--border-strong)] bg-transparent text-[var(--text-primary)] dark:border-[var(--border-strong)] dark:bg-transparent`;   // hairline active state — no filled tint
   const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-[var(--surface-hover)] dark:text-stone-300";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-[var(--text-primary)]";
 
@@ -3103,7 +3117,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                 ariaLabel="Sort column" className="capitalize max-w-[120px]"
                 options={[...allColumnsWithCustom, "__updated_at"].map(c => ({ value: c, label: colLabel(c) }))} />
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
-                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784]" : "bg-[#c6892e]/10 text-[#c6892e]"}`}>
+                className={`flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap bg-transparent ${rule.dir === "asc" ? "border-[#717784]/40 text-[#717784]" : "border-[#c6892e]/40 text-[#c6892e]"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
               <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
@@ -3533,7 +3547,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                   <th
                     key={col}
                     style={{ width: w, minWidth: w, maxWidth: w }}
-                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
+                    className={`group/th relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[var(--border-soft)] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -3568,6 +3582,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                         <span className="whitespace-nowrap text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{colLabel(col)}</span>
                         {colMeta[col]?.required && <span className="text-stone-400/70 text-[10px] leading-none">*</span>}
                         <SortIcon col={col}/>
+                      </button>
+                      {/* Visible column menu — the context menu (remove/hide/type) existed ONLY on
+                          right-click, which nobody discovers. Same menu, visible affordance. */}
+                      <button
+                        onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setColCtxMenu({ col, x: r.left, y: r.bottom + 4 }); }}
+                        className="shrink-0 rounded-sm p-0.5 text-[var(--text-faint)] opacity-0 transition-opacity hover:text-[var(--text-primary)] group-hover/th:opacity-100"
+                        aria-label={`Column options for ${colLabel(col)}`}>
+                        <ChevronDown size={10}/>
                       </button>
                     </div>
                     {/* Resize handle */}
@@ -3789,21 +3811,22 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           <div className="px-3 py-1.5 text-body text-[var(--text-secondary)] border-b border-[var(--border-soft)] mb-1">
             {colLabel(colCtxMenu.col)}
           </div>
-          <button
-            onClick={() => {
-              const col = colCtxMenu.col;
-              // Hide data column OR remove custom column
-              if (customCols.some(c => c.key === col)) {
+          {customCols.some(c => c.key === colCtxMenu.col) && (
+            <button
+              onClick={() => {
+                const col = colCtxMenu.col;
+                // Workspace-wide removal of the column DEFINITION (row values stay in data) —
+                // confirmed explicitly; for built-in columns this menu offers Hide only (the old
+                // Remove was identical to Hide there, two buttons doing one thing).
+                if (!window.confirm(`Remove the "${colLabel(col)}" column for the whole workspace? Values already stored on records are kept.`)) return;
                 saveCustomCols(customCols.filter(c => c.key !== col));
-              } else {
-                toggleCol(col);
-              }
-              setColCtxMenu(null);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-stone-400 hover:bg-stone-500/10 transition-colors"
-          >
-            <Trash2 size={12}/> Remove column
-          </button>
+                setColCtxMenu(null);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-stone-400 hover:bg-stone-500/10 transition-colors"
+            >
+              <Trash2 size={12}/> Remove column
+            </button>
+          )}
           <button
             onClick={() => {
               toggleCol(colCtxMenu.col);

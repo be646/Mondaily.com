@@ -1212,8 +1212,10 @@ html[data-theme="dark"] .minimal-sparkline {
     color: var(--text-primary);
   }
   .dropdown-item-active {
-    background: var(--surface-selected);
+    /* hairline selection — a filled row reads as the tinted boxes the user flagged */
+    background: transparent;
     color: var(--text-primary);
+    box-shadow: inset 2px 0 0 var(--section-accent);
   }
 }
 
