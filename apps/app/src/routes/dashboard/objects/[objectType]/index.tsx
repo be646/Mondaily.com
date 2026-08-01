@@ -218,7 +218,7 @@ function CreateRecordModal({
         vertical: "shared", object_type: safeType,
         data: { ...data, ...(selectedCats.length ? { categories: selectedCats } : {}) }
       });
-      queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
       const t = objectType.toLowerCase();
       const isEnrichable = t.includes("compan") || t.includes("person") || t.includes("people") || t.includes("contact") || t.includes("lead") || t.includes("account");
       if (isEnrichable && data.name) onEnrichStart(node.id, data.name);
@@ -290,7 +290,7 @@ function CreateRecordModal({
       done++;
       setAiSaveProgress(Math.round((done / toCreate.length) * 100));
     }
-    queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+    queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
     setAiSaving(false);
     onClose();
   };
@@ -673,7 +673,7 @@ function AIFillModal({
       done++;
       setProgress(Math.round((done / toCreate.length) * 100));
     }
-    queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+    queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
     setSaving(false);
     // Never fake success: if some (or all) inserts failed, tell the user honestly instead of
     // silently closing on a 100% bar.
@@ -828,7 +828,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
       for (const key of ["sidebar-objects", "objects-schema", "object-defs"]) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
-      queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
       onDeleted();
     } catch (e: any) { setError(e.message || "Failed to delete"); setDeleting(false); }
   };
@@ -954,7 +954,7 @@ export function ObjectIndexPage() {
         const node = await apiClient.get<{ enrichment_status?: string }>(`/nodes/${recordId}`);
         if (node.enrichment_status === "done" || node.enrichment_status === "failed") {
           clearInterval(interval);
-          queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+          queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
           setEnriching(prev => ({ ...prev, [recordId]: { name, done: true } }));
           setTimeout(() => setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; }), 6000);
         }
@@ -1057,7 +1057,7 @@ export function ObjectIndexPage() {
       {/* Collapsible CSV importer */}
       {importOpen && (
         <div className="border-b px-6 py-3 shrink-0" style={{ borderColor: "var(--border-soft)" }}>
-          <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ queryKey: ["records", objectType] }); setImportOpen(false); }}/>
+          <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) }); setImportOpen(false); }}/>
         </div>
       )}
 

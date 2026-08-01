@@ -924,7 +924,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
     if (t === "owner" && cols.some(c => c.includes("owner"))) return true;
     if (t === "status" && cols.some(c => c === "status" || c === "deal_status")) return true;
     if (t === "stage" && cols.some(c => c.includes("stage"))) return true;
-    if (t === "country" && cols.some(c => c.includes("country"))) return true;
+    if (t === "country" && existingCustomTypes.includes("country")) return true;
     if (t === "record_id" && existingCustomTypes.includes("record_id")) return true;
     return false;
   }
@@ -1115,7 +1115,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
         setTimeout(() => setStatus("idle"), 2500);
         return;
       }
-      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {});
+      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {}, []);
       setLastApplied(trimmed);
       setStatus("applied");
       setTimeout(() => setStatus("idle"), 2500);
@@ -1750,6 +1750,7 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
   const [draftOp, setDraftOp] = useState<CondOp | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftValue, setDraftValue] = useState("");
+  const [colSearch, setColSearch] = useState("");
 
   const kindOf = (col: string) => inferColKind(records, col, customCols.find(c => c.key === col)?.type);
   const label = (col: string) => (col === LAST_ACTIVITY ? "last activity" : colLabel(col));
@@ -1765,7 +1766,7 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
   const daysAgoIso = (d: number) => new Date(Date.now() - d * 86400_000).toISOString().slice(0, 10);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+    <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
       {conditions.map((c, i) => (
         <span key={i} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-[11px] text-[var(--text-primary)]">
           <span className="text-[var(--text-muted)] first-letter:uppercase">{label(c.col)}</span>
@@ -1787,12 +1788,22 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
             <div className="fixed inset-0 z-40" onClick={() => { setPickerOpen(false); setDraftCol(null); setDraftOp(null); }}/>
             <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
               {!draftCol ? (
-                columns.map(col => (
-                  <button key={col} onClick={() => setDraftCol(col)}
-                    className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
-                    {label(col)}
-                  </button>
-                ))
+                <>
+                  {/* Searchable + capped: the raw list rendered EVERY column unbounded, running
+                      off-screen on wide sheets — fields looked broken because they were unreachable. */}
+                  {columns.length > 8 && (
+                    <input autoFocus value={colSearch} onChange={e => setColSearch(e.target.value)}
+                      placeholder="Find a field…" className="mb-1 w-full rounded-sm border border-[var(--border-soft)] bg-transparent px-2 py-1 text-[11.5px] text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"/>
+                  )}
+                  <div className="max-h-64 overflow-y-auto">
+                    {columns.filter(col => !colSearch || label(col).toLowerCase().includes(colSearch.toLowerCase())).map(col => (
+                      <button key={col} onClick={() => { setDraftCol(col); setColSearch(""); }}
+                        className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                        {label(col)}
+                      </button>
+                    ))}
+                  </div>
+                </>
               ) : !draftOp ? (
                 <>
                   <p className="px-2.5 py-1 text-[10px] text-[var(--text-faint)] first-letter:uppercase">{label(draftCol)}</p>
@@ -1809,10 +1820,12 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
                 <div className="p-1.5">
                   <p className="mb-1 text-[10px] text-[var(--text-faint)]"><span className="first-letter:uppercase">{label(draftCol)}</span> {OP_LABEL[draftOp]}…</p>
                   {kindOf(draftCol) === "select" && (draftOp === "is" || draftOp === "is_not") ? (
-                    valueOptions(draftCol).map(v => (
+                    <div className="max-h-56 overflow-y-auto">
+                    {valueOptions(draftCol).map(v => (
                       <button key={v} onClick={() => commit(draftOp, v)}
                         className="flex w-full items-center rounded-sm px-2 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">{v}</button>
-                    ))
+                    ))}
+                    </div>
                   ) : (
                     <input autoFocus
                       type={kindOf(draftCol) === "date" ? "date" : kindOf(draftCol) === "number" ? "number" : "text"}
@@ -2086,6 +2099,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // ── Owner cell state: recordId → owner name ──
   // owners[recordId][col] — separate tracker per column so Deal Owner ≠ Assigned To
   const [owners, setOwners] = useState<Record<string, Record<string, string>>>({});
+  // Local display overlay only — MUST reset when the sheet changes or a reassignment made on one
+  // sheet haunted rows with the same ids… and simply never expired against server truth.
+  useEffect(() => { setOwners({}); }, [objectType]);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function resolveOwner(raw: unknown): string {
     const s = String(raw ?? "");
@@ -2320,7 +2336,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   const groupCalcKind = groupCalcCol ? effectiveType(groupCalcCol) : undefined;
   // Only send filters when the whole active set is server-representable; otherwise disable the server
   // group query and fall back to the client per-group calc (honest, over the visible rows).
-  const groupFiltersRepresentable = !toolbarSearch.trim() && serverFilters(conditions).length === conditions.length;
+  const groupByIsDate = groupByCol ? inferColKind(records, groupByCol, customCols.find(cc => cc.key === groupByCol)?.type) === "date" : false;
+  const groupFiltersRepresentable = !toolbarSearch.trim() && serverFilters(conditions).length === conditions.length && !groupByIsDate;
   const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
     queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(conditions) : "client")],
     queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, group_exact: true, currency: groupCalcKind === "currency", ...(serverFilters(conditions).length ? { filters: serverFilters(conditions) } : {}) }),
@@ -2431,11 +2448,25 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
+  // Applies an optimistic update to EVERY cached records query for this type (table + board),
+  // whatever search/filter/sort segments their keys carry — setQueryData with the old exact
+  // 2-part key hit nothing once the key grew, so edits/deletes only appeared after a refetch.
+  function patchRecordsCache(fn: (old: NodeRecord[]) => NodeRecord[]) {
+    qc.setQueriesData<NodeRecord[]>(
+      { predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) },
+      (old) => fn(old ?? []),
+    );
+  }
+
   async function bulkDelete() {
-    const ids = [...selected];
+    const ids = visibleRows.filter(r => selected.has(r.id)).map(r => r.id);   // visible ∩ selected — never rows filtered out of sight
+    // Explicit, exact confirm — the user must see precisely what is being deleted.
+    if (!window.confirm(`Delete ${ids.length} selected record${ids.length === 1 ? "" : "s"}? Only these ${ids.length} are deleted — nothing else.`)) return;
     setSelected(new Set());
-    qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => !ids.includes(r.id)));
+    patchRecordsCache(old => old.filter(r => !ids.includes(r.id)));
     await Promise.all(ids.map(id => apiClient.delete(`/nodes/${id}`).catch((e) => console.error("[bg-task] swallowed error:", e))));
+    qc.invalidateQueries({ queryKey: ["records"] });
+    qc.invalidateQueries({ queryKey: ["node-counts"] });
   }
 
   async function bulkAddToList(listId: string) {
@@ -2500,7 +2531,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       apiClient.delete(`/nodes/${undoToast.record.id}`).catch((e) => console.error("[bg-task] swallowed error:", e));
     }
     // Optimistic remove
-    qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => r.id !== record.id));
+    patchRecordsCache(old => old.filter(r => r.id !== record.id));
     // Show undo toast for 6 seconds before actually deleting
     const timer = setTimeout(() => {
       apiClient.delete(`/nodes/${record.id}`)
@@ -2517,7 +2548,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   function undoDelete() {
     if (!undoToast) return;
     clearTimeout(undoToast.timer);
-    qc.setQueryData<NodeRecord[]>(["records", objectType], old => [...(old ?? []), undoToast.record]);
+    patchRecordsCache(old => [...old, undoToast.record]);
     setUndoToast(null);
   }
 
@@ -2532,11 +2563,12 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       return;
     }
     const newData = { ...record.data, [col]: newVal, ...(extra ?? {}) };
-    qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
-      (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
-    );
+    patchRecordsCache(old => old.map(r => r.id === record.id ? { ...r, data: newData } : r));
     apiClient.patch(`/nodes/${record.id}`, { data: newData })
-      .then(invalidateAggregates)
+      .then(() => {
+        invalidateAggregates();
+        if (col === primarySort?.col || serverConds.some(cd => cd.col === col)) qc.invalidateQueries({ queryKey: ["records"] });
+      })
       .catch((e) => {
         // The optimistic value used to just snap back with no message — a viewer-role user (blocked
         // by denyViewerWrites) watched their edit appear and silently vanish.
@@ -2696,8 +2728,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       );
     }
 
-    // Country column — searchable dropdown
-    if (customDef?.type === "country") {
+    // Country column — searchable dropdown. Name-based fallback so a country column that arrived
+    // via CSV/AI/schema renders the same picker on EVERY sheet, not only where a per-sheet custom
+    // column existed (the same column looked completely different across sheets).
+    if (customDef?.type === "country" || (/country/i.test(col) && !customDef)) {
       return <CountryCell value={String(val ?? "")} onSelect={v => saveCell(record, col, v)}/>;
     }
 
@@ -3035,7 +3069,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Columns inline bar ── */}
       {openPanel === "view" && (
-        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0 overflow-x-auto">
           <span className="text-body text-[var(--text-secondary)] shrink-0 mr-2">Columns</span>
           {allColumnsWithCustom.map(col => {
             const visible = !hiddenCols.has(col);
@@ -3057,7 +3091,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Sort inline bar ── */}
       {openPanel === "sort" && (
-        <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
           <span className="text-body text-[var(--text-secondary)] shrink-0">Sort by</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {sortRules.length === 0 && (
@@ -3090,7 +3124,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Group inline bar ── */}
       {openPanel === "groupby" && (
-        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0 overflow-x-auto">
           <span className="text-body text-[var(--text-secondary)] shrink-0 mr-1">Group by</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
@@ -3110,7 +3144,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Export inline bar ── */}
       {openPanel === "export" && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
           <span className="text-body text-[var(--text-secondary)] shrink-0">Export</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={exportCSV} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
@@ -3125,7 +3159,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Ask (natural-language commands) inline bar ── */}
       {openPanel === "ask" && (
-        <div className="px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+        <div className="px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
           <NLPCommandBar
             // ALL columns, not the visible subset — with only visible names the model couldn't
             // reference a hidden column ("high confidence" → confidence_label was hidden), so its
@@ -3140,7 +3174,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Saved views inline bar ── */}
       {openPanel === "views" && (
-        <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0 overflow-x-auto">
           <span className="text-body text-[var(--text-secondary)] shrink-0">Saved</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {savedViews.length === 0 && <span className="text-[11px] text-[var(--text-secondary)]">No saved views yet</span>}
@@ -3189,7 +3223,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
           <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
             <div className="h-4 w-4 rounded-md bg-stone-500 flex items-center justify-center text-[9px] font-bold text-[var(--text-primary)]">{selected.size}</div>
             selected

@@ -314,7 +314,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
       await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data });
-      qc.invalidateQueries({ queryKey: ["records", objectType] });
+      qc.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
       onCreated(); onClose();
     } catch (e: any) { setError(e?.message || "Failed"); } finally { setSaving(false); }
   }, [values, objectType, qc, onClose, onCreated]);
@@ -423,26 +423,26 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
   const moveRecord = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => apiClient.patch(`/nodes/${id}`, { data }),
     onMutate: async ({ id, data }) => {
-      await qc.cancelQueries({ queryKey: ["records", objectType] });
-      const prev = qc.getQueryData<NodeRecord[]>(["records", objectType]);
-      qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
+      await qc.cancelQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
+      const prev = recordsQuery.data;
+      qc.setQueriesData<NodeRecord[]>({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) }, old =>
         (old ?? []).map(r => r.id === id ? { ...r, data: { ...r.data, ...data } } : r)
       );
       return { prev };
     },
-    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(["records", objectType], ctx.prev); },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["records", objectType] }),
+    onError: () => qc.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) }),
+    onSettled: () => qc.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) }),
   });
 
   function patchRecord(id: string, fields: Record<string, unknown>) {
-    const rec = (qc.getQueryData<NodeRecord[]>(["records", objectType]) ?? []).find(r => r.id === id);
+    const rec = (recordsQuery.data ?? []).find(r => r.id === id);
     if (!rec) return;
     const newData = { ...rec.data, ...fields };
-    qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
+    qc.setQueriesData<NodeRecord[]>({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) }, old =>
       (old ?? []).map(r => r.id === id ? { ...r, data: newData } : r)
     );
     apiClient.patch(`/nodes/${id}`, { data: newData }).catch(() => {
-      qc.invalidateQueries({ queryKey: ["records", objectType] });
+      qc.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "records" && q.queryKey.includes(objectType) });
     });
   }
 
