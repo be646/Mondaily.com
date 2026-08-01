@@ -143,6 +143,86 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
 });
 
 /**
+ * POST /records/schema-unify — the supervised data pass behind schema single-source (2026-08-01).
+ * Owner/admin only, dry_run by default. Two operations, both MEASURED live before this was built:
+ *
+ *  1. CASE-normalize categorical columns: values equal ignoring case merge to the most common
+ *     casing ("negotiation" → "Negotiation"). STRICTLY case-only — two values that differ in more
+ *     than casing are never touched (the measured lesson: similar names are usually
+ *     distinct populations).
+ *  2. Owner unification: on NON-task types, assigned_to MOVES to owner when owner is empty, and
+ *     is dropped when identical to owner. CONFLICTS (both set, different values — 47 measured on
+ *     people) are NEVER auto-resolved; they are counted and reported for human review.
+ */
+router.post("/schema-unify", denyViewerWrites, zValidator("json", z.object({
+  dry_run: z.boolean().default(true),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const { dry_run } = c.req.valid("json");
+
+  const CAT = /stage|status|priority|country|region|label|^category$|^type$/;
+  const report: Record<string, { caseMerges: Record<string, Record<string, string>>; ownerMoved: number; ownerDeduped: number; ownerConflicts: number; updated: number }> = {};
+
+  const { data: typeRows } = await supabase.rpc("object_type_counts", { ws });
+  const types = ((typeRows ?? []) as { object_type: string }[]).map(r => r.object_type)
+    .filter(t => !/task/.test(t) && t !== "sheet_config" && t !== "support_ticket");
+
+  for (const t of types) {
+    const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws).eq("object_type", t).limit(2000);
+    const rows = (data ?? []) as { id: string; data: Record<string, unknown> }[];
+    if (!rows.length) continue;
+
+    // 1) canonical casing per categorical column: most common variant wins
+    const canonical: Record<string, Record<string, string>> = {};
+    const catCols = [...new Set(rows.flatMap(r => Object.keys(r.data)))].filter(k => CAT.test(k.toLowerCase()));
+    for (const col of catCols) {
+      const variants = new Map<string, Map<string, number>>();
+      for (const r of rows) {
+        const v = String(r.data[col] ?? "").trim();
+        if (!v || v.length > 30) continue;
+        const inner = variants.get(v.toLowerCase()) ?? new Map<string, number>();
+        inner.set(v, (inner.get(v) ?? 0) + 1); variants.set(v.toLowerCase(), inner);
+      }
+      for (const [, inner] of variants) {
+        if (inner.size < 2) continue;
+        const winner = [...inner.entries()].sort((a, b) => b[1] - a[1])[0]![0];
+        for (const [variant] of inner) {
+          if (variant !== winner) (canonical[col] = canonical[col] ?? {})[variant] = winner;
+        }
+      }
+    }
+
+    let ownerMoved = 0, ownerDeduped = 0, ownerConflicts = 0, updated = 0;
+    for (const r of rows) {
+      const next = { ...r.data };
+      let changed = false;
+      for (const [col, map] of Object.entries(canonical)) {
+        const v = String(next[col] ?? "").trim();
+        if (v && map[v]) { next[col] = map[v]; changed = true; }
+      }
+      const owner = String(next.owner ?? "").trim();
+      const assigned = String(next.assigned_to ?? "").trim();
+      if (assigned && !owner) { next.owner = assigned; delete next.assigned_to; ownerMoved++; changed = true; }
+      else if (assigned && owner && assigned === owner) { delete next.assigned_to; ownerDeduped++; changed = true; }
+      else if (assigned && owner && assigned !== owner) { ownerConflicts++; }   // NEVER auto-resolved
+      if (changed) {
+        updated++;
+        if (!dry_run) {
+          const { error } = await supabase.from("nodes").update({ data: next }).eq("id", r.id).eq("workspace_id", ws);
+          if (error) return c.json({ error: `Update failed on ${t}/${r.id}: ${error.message}`, partial_report: report }, 500);
+        }
+      }
+    }
+    if (updated || ownerConflicts || Object.keys(canonical).length) {
+      report[t] = { caseMerges: canonical, ownerMoved, ownerDeduped, ownerConflicts, updated };
+    }
+  }
+  return c.json({ dry_run, report });
+});
+
+/**
  * GET /records/export/:objectType — SERVER-side CSV of every matching record (same q/filters/sort
  * params as GET /nodes), so an export is the whole filtered set — the client button used to
  * serialize only the loaded page and silently stop at its edge.
