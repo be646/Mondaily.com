@@ -92,14 +92,7 @@ const CALC_LABELS: Record<CalcType, string> = {
 function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecord[]; valueCol: string | null; sym?: string; toDisplay?: BoardValueReader }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CalcType>("count");
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const total = cards.length;
   function result(): string {
@@ -123,10 +116,11 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
   }
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div className="relative shrink-0">
       <button
+        ref={btnRef}
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-400 hover:bg-stone-800/30 border-t border-stone-800/50 transition-colors"
+        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-400 border-t border-[var(--border-soft)] transition-colors"
       >
         <span className="text-stone-600">{CALC_LABELS[type]}</span>
         <div className="flex items-center gap-1">
@@ -135,7 +129,7 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
         </div>
       </button>
       {open && (
-        <div className="dropdown-panel absolute bottom-full left-0 right-0 mb-1">
+        <PortalDropdown triggerRef={btnRef} onClose={() => setOpen(false)} direction="up" minWidth={170}>
           {(Object.keys(CALC_LABELS) as CalcType[]).map(t => (
             <button key={t} onClick={() => { setType(t); setOpen(false); }}
               className={`dropdown-item justify-between ${t === type ? "dropdown-item-active" : ""}`}>
@@ -143,7 +137,7 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
               {t === type && <Check size={10} className="text-stone-400"/>}
             </button>
           ))}
-        </div>
+        </PortalDropdown>
       )}
     </div>
   );

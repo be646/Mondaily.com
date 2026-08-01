@@ -1286,7 +1286,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
     <div ref={ref} className="relative min-w-0">
       <div className="flex items-center gap-1 flex-wrap cursor-pointer" onClick={() => setOpen(o => !o)}>
         {activeTags.length === 0
-          ? <span className="text-stone-700 text-xs hover:text-stone-500 transition-colors">+ tag</span>
+          ? <span className="text-[12px] text-[var(--text-faint)] hover:text-stone-500 transition-colors">+ tag</span>
           : activeTags.map(t => (
             <span key={t.id} onClick={e => { e.stopPropagation(); removeTag.mutate(t.id); }}
               className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium cursor-pointer hover:opacity-70 transition-opacity"
@@ -1390,7 +1390,7 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
   return (
     <button onClick={() => setEditing(true)}
       className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-      {displayVal ?? <span className="text-stone-700">— number</span>}
+      {displayVal ?? <span className="text-[var(--text-faint)]">— number</span>}
     </button>
   );
 }
@@ -1441,7 +1441,7 @@ function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: s
   return (
     <button onClick={() => setEditing(true)}
       className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-      {shown ?? <span className="text-stone-700">— amount</span>}
+      {shown ?? <span className="text-[var(--text-faint)]">— amount</span>}
     </button>
   );
 }
@@ -1472,7 +1472,7 @@ function PercentCell({ value, onSave }: { value: unknown; onSave: (v: number | s
   return (
     <button onClick={() => setEditing(true)}
       className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-      {shown ?? <span className="text-stone-700">— %</span>}
+      {shown ?? <span className="text-[var(--text-faint)]">— %</span>}
     </button>
   );
 }
@@ -1506,7 +1506,7 @@ function DateCell({ value, withTime, onSave }: { value: unknown; withTime: boole
   }
   return (
     <button onClick={() => setEditing(true)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-left w-full truncate rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-      {text ? <span className={ok ? "tabular-nums" : ""}>{text}</span> : <span className="text-stone-700">— date</span>}
+      {text ? <span className={ok ? "tabular-nums" : ""}>{text}</span> : <span className="text-[var(--text-faint)]">— date</span>}
     </button>
   );
 }
@@ -1516,7 +1516,7 @@ function MultiSelectChips({ value }: { value: unknown }) {
   const parts = Array.isArray(value)
     ? value.map(v => String(v)).filter(Boolean)
     : String(value ?? "").split(",").map(s => s.trim()).filter(Boolean);
-  if (!parts.length) return <span className="text-stone-700 text-xs">—</span>;
+  if (!parts.length) return <span className="text-[12px] text-[var(--text-faint)]">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {parts.slice(0, 6).map((p, i) => (
@@ -1529,7 +1529,7 @@ function MultiSelectChips({ value }: { value: unknown }) {
 // url / email / phone — a typed link when the value plausibly matches, else honest plain text.
 function ContactCell({ value, kind }: { value: unknown; kind: "url" | "email" | "phone" }) {
   const s = String(value ?? "").trim();
-  if (!s) return <span className="text-stone-700 text-xs">—</span>;
+  if (!s) return <span className="text-[12px] text-[var(--text-faint)]">—</span>;
   const linkClass = "text-[#717784] hover:text-[var(--text-primary)] text-[11px] underline underline-offset-2 truncate block max-w-[160px]";
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   if (kind === "email" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
@@ -1609,7 +1609,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
         className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors max-w-[140px] truncate">
         {current
           ? <><Link2 size={10} className="text-[#717784] shrink-0"/><span className="truncate">{current.label}</span></>
-          : <span className="text-stone-700">— link record</span>
+          : <span className="text-[var(--text-faint)]">— link record</span>
         }
       </button>
       {open && createPortal(
@@ -2082,6 +2082,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     if (local) return local;
     return serverAttrType.get(col);
   }, [customCols, serverAttrType]);
+  // Numeric treatment (right-align, mono, header alignment) comes from the RESOLVED type first;
+  // the name heuristic only covers untyped columns — one type source, not two disagreeing ones.
+  const isNumericCol = useCallback((col: string): boolean => {
+    const t = effectiveType(col);
+    if (t) return ["number", "currency", "percentage", "formula", "finance_billed", "finance_outstanding"].includes(t);
+    if (/phone/i.test(col)) return false;   // phone numbers are identifiers, not quantities
+    return isNumeric(col);
+  }, [effectiveType]);
 
   // Finance rollup — one query powers the "Finance · Billed/Outstanding" computed columns for the
   // whole sheet (no per-row fetch). Only runs when such a column is actually added.
@@ -2874,7 +2882,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       <div className="max-w-[180px] truncate">
         <EditableCell
           raw={val}
-          numeric={isNumeric(col)}
+          numeric={isNumericCol(col)}
           onSave={v => saveCell(record, col, v)}
         />
       </div>
@@ -2921,7 +2929,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           <td
             key={col}
             style={{ width: effectiveWidth(col), minWidth: effectiveWidth(col), maxWidth: effectiveWidth(col) }}
-            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap text-ellipsis ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
+            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap text-ellipsis ${isNumericCol(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -3577,7 +3585,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                         </div>
                       )}
                       <button onClick={() => handleHeaderSort(col)}
-                        className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
+                        className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors min-w-0 flex-1 ${isNumericCol(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="whitespace-nowrap text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{colLabel(col)}</span>
                         {colMeta[col]?.required && <span className="text-stone-400/70 text-[10px] leading-none">*</span>}
@@ -3729,7 +3737,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
-                    className={`inline-block ${isNumeric(col) ? "ml-auto" : ""}`}
+                    className={`inline-block ${isNumericCol(col) ? "ml-auto" : ""}`}
                   >
                     {openCalcCol === col && (
                       <CalcDropdown col={col} current={calculations[col] ?? null} kind={effectiveType(col)}
