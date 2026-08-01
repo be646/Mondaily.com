@@ -341,8 +341,11 @@ export function PortalDropdown({ triggerRef, onClose, align = "left", direction 
     }
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     // Close when anything OUTSIDE the panel scrolls — the fixed panel doesn't track its trigger,
-    // so scrolling the sheet left it floating detached from its cell.
-    function onScroll(e: Event) { if (!panelRef.current?.contains(e.target as Node)) onClose(); }
+    // so scrolling the sheet left it floating detached from its cell. ARMED after 250ms: the
+    // open itself can scroll (autofocusing a search input scrolls the table), which closed the
+    // menu the same instant it opened — clicks looked like they did nothing.
+    const armedAt = Date.now() + 250;
+    function onScroll(e: Event) { if (Date.now() >= armedAt && !panelRef.current?.contains(e.target as Node)) onClose(); }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKey);
     document.addEventListener("scroll", onScroll, true);
@@ -590,13 +593,13 @@ function calcResultTyped(
     return v % 1 === 0 ? v.toLocaleString() : v.toFixed(2);
   }
   if (kind === "checkbox") {
-    const checked = records.filter(r => truthy(r.data[col])).length;
-    if (op === "filled") { const f = records.filter(r => r.data[col] != null && r.data[col] !== "").length; return `${Math.round((f / Math.max(records.length, 1)) * 100)}% filled`; }
+    const checked = records.filter(r => truthy(cellValue(r, col))).length;
+    if (op === "filled") { const f = records.filter(r => cellValue(r, col) != null && cellValue(r, col) !== "").length; return `${Math.round((f / Math.max(records.length, 1)) * 100)}% filled`; }
     return `${checked} checked`;
   }
   if (kind === "currency" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
     const items = records
-      .map(r => ({ n: parseNumeric(r.data[col]) ?? NaN, cur: String(r.data.currency ?? ctx.base) }))
+      .map(r => ({ n: parseNumeric(cellValue(r, col)) ?? NaN, cur: String(r.data.currency ?? ctx.base) }))
       .filter(x => !isNaN(x.n));
     if (!items.length) return "—";
     let missing = 0;
@@ -612,7 +615,7 @@ function calcResultTyped(
     return formatMoney(agg, ctx.display) + (missing > 0 ? ` · ${missing} unconverted` : "");
   }
   if (kind === "percentage" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
-    const nums = records.map(r => parseNumeric(r.data[col]) ?? NaN).filter(n => !isNaN(n));
+    const nums = records.map(r => parseNumeric(cellValue(r, col)) ?? NaN).filter(n => !isNaN(n));
     if (!nums.length) return "—";
     const agg = op === "sum" ? nums.reduce((a, b) => a + b, 0)
       : op === "avg" ? nums.reduce((a, b) => a + b, 0) / nums.length
@@ -718,7 +721,7 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
   const numericKind = kind === "currency" || kind === "percentage" || kind === "number" || kind === "formula";
   // Text-like server types never aggregate to sums/averages — only count / % filled (even if the
   // column NAME would otherwise trip the numeric heuristic, e.g. "phone_number").
-  const textKind = kind === "select" || kind === "multi_select" || kind === "url" || kind === "email" || kind === "phone" || kind === "datetime" || kind === "date" || kind === "text";
+  const textKind = kind === "select" || kind === "multi_select" || kind === "url" || kind === "email" || kind === "phone" || kind === "datetime" || kind === "date" || kind === "text" || kind === "long_text";
   const options: { op: CalcOp; label: string }[] = kind === "checkbox"
     ? [{ op:"count",label:"Checked" },{ op:"filled",label:"% Filled" }]
     : numericKind
@@ -966,7 +969,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   const activePreset = COLUMN_TYPE_PRESETS.find(p => p.type === (hovered ?? type))!;
 
   return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64 !overflow-hidden flex flex-col">
       <div className="px-3 pt-3 pb-2 border-b border-[var(--border-soft)]">
         <p className="text-body text-[var(--text-secondary)] mb-2">Add column</p>
         <input
@@ -978,7 +981,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
           className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30"
         />
       </div>
-      <div className="py-1">
+      <div className="flex-1 min-h-0 overflow-y-auto py-1">
         {COLUMN_TYPE_PRESETS.map(({ type: t, label, icon: Icon, color }) => {
           const taken = isTypeTaken(t);
           return (
@@ -1168,6 +1171,25 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
       </div>
       {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-stone-400/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
       {status === "error" && <p className="mt-1.5 text-[10px] text-stone-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
+    </div>
+  );
+}
+
+// ─── Editable link cell — click follows the link, double-click edits ──────────
+function EditableContactCell({ val, kind, onSave }: { val: unknown; kind: "url" | "email" | "phone"; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+  if (editing) return (
+    <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)}
+      onBlur={() => { setEditing(false); if (draft.trim() !== String(val ?? "")) onSave(draft.trim()); }}
+      onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditing(false); }}
+      className="w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none"/>
+  );
+  return (
+    <div onDoubleClick={() => { setDraft(String(val ?? "")); setEditing(true); }} title="Double-click to edit">
+      <ContactCell value={val} kind={kind}/>
     </div>
   );
 }
@@ -1371,7 +1393,10 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
     if (!s) { onSave(""); setEditing(false); return; }
     if (s.startsWith("=")) {
       const result = evalFormula(s.slice(1));
-      if (result !== null) { onSave(result); setEditing(false); return; }
+      // A failed '=' entry is NEVER stored as text — the cell reverts instead of silently saving
+      // the literal string "=A*0.1" as a value.
+      if (result !== null) onSave(result);
+      setEditing(false); return;
     }
     const n = parseNumeric(s);   // shared parser — the regex strip corrupted "1.200,50" to 1.2 AND STORED IT
     onSave(n == null ? s : n);
@@ -1388,7 +1413,7 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
       <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-        placeholder="0 or =A*0.1"
+        placeholder="0 or =100*0.1"
         className="w-full max-w-[100px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
     );
   }
@@ -1428,7 +1453,7 @@ function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: s
   function commit() {
     const s = draft.trim();
     if (!s) { onSave(""); setEditing(false); return; }
-    if (s.startsWith("=")) { const r = evalFormula(s.slice(1)); if (r !== null) { onSave(r); setEditing(false); return; } }
+    if (s.startsWith("=")) { const r = evalFormula(s.slice(1)); if (r !== null) onSave(r); setEditing(false); return; }
     const n = parseNumeric(s);   // shared parser — the regex strip corrupted "1.200,50" to 1.2 AND STORED IT
     onSave(n == null ? s : n);
     setEditing(false);
@@ -1439,7 +1464,7 @@ function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: s
     return (
       <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-        placeholder="0 or =A*0.1"
+        placeholder="0 or =100*0.1"
         className="w-full max-w-[110px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
     );
   }
@@ -1609,7 +1634,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
   }, [open]);
 
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button ref={btnRef} onClick={openDropdown}
         className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors max-w-[140px] truncate">
         {current
@@ -1984,7 +2009,25 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   useEffect(() => {
     if (seededFor.current === objectType || allColumns.length === 0) return;
     seededFor.current = objectType;
-    setHiddenCols(new Set(allColumns.slice(DEFAULT_VISIBLE_COLS).filter(c => !NODE_LEVEL_COLS.includes(c))));   // AI columns (lead_score/relationship_health) never start hidden
+    // Default visibility, with three rules on top of "first N":
+    //  • AI columns (lead_score/relationship_health) never start hidden.
+    //  • Only ONE owner-ish column starts visible (deal_owner > owner > assigned_to) — sheets
+    //    were showing Owner AND Deal owner side by side saying the same thing.
+    //  • Only ONE stage-ish and ONE status-ish column start visible, same reason.
+    // Everything hidden here stays recoverable from the Columns panel.
+    const ownerish = allColumns.filter(c => /owner|assign/i.test(c));
+    const keepOwner = ownerish.find(c => /^deal_owner$/i.test(c)) ?? ownerish.find(c => /^owner$/i.test(c)) ?? ownerish[0];
+    const stageish = allColumns.filter(c => /stage/i.test(c));
+    const statusish = allColumns.filter(c => /status/i.test(c) && !/stage/i.test(c));
+    const dupExtras = [
+      ...ownerish.filter(c => c !== keepOwner),
+      ...stageish.slice(1),
+      ...statusish.slice(1),
+    ];
+    setHiddenCols(new Set([
+      ...allColumns.slice(DEFAULT_VISIBLE_COLS).filter(c => !NODE_LEVEL_COLS.includes(c)),
+      ...dupExtras,
+    ]));
   }, [objectType, allColumns]);
   function toggleCol(col: string) {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
@@ -2287,7 +2330,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       }
       const total = calculations[col] ? calcResultTyped(calculations[col], col, records, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase }) : "";
       maxLen = Math.max(maxLen, total.length);
-      out[col] = Math.round(Math.min(min + Math.max(0, maxLen - 8) * 7.2, Math.max(cap, total.length * 7.2 + 34)));
+      const pillChrome = kind === "select" ? 40 : 0;
+      out[col] = Math.round(Math.min(min + pillChrome + Math.max(0, maxLen - 8) * 7.2, Math.max(cap + pillChrome, total.length * 7.2 + 34)));
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2698,7 +2742,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     }
     // Select — a clean picker built from any persisted options ∪ the distinct values already in the
     // column. If there are genuinely no options yet, degrade to a plain editable cell (never crash).
-    if (kind === "select") {
+    if (kind === "select" && !/country/i.test(col)) {
       const opts = [...new Set([...(serverAttrOptions.get(col) ?? []), ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
       const shown = String(val ?? "");
       if (!opts.length) return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
@@ -2709,7 +2753,12 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       if (val == null || (Array.isArray(val) && val.length === 0) || String(val).trim() === "") {
         return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
       }
-      return <div className="px-2 py-1.5"><MultiSelectChips value={val} /></div>;
+      return (
+        <div className="px-2 py-1.5" title="Double-click to edit"
+          onDoubleClick={e => { e.stopPropagation(); const next = window.prompt("Values (comma-separated):", Array.isArray(val) ? (val as unknown[]).join(", ") : String(val ?? "")); if (next != null) saveCell(record, col, next.split(",").map(x => x.trim()).filter(Boolean)); }}>
+          <MultiSelectChips value={val} />
+        </div>
+      );
     }
     // Date / datetime — honest formatted display, editable as raw text; bad values degrade to text.
     if (kind === "datetime" || kind === "date") {
@@ -2721,7 +2770,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         // typing into an empty url/email/phone cell was impossible — read-only '—'
         return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
       }
-      return <div className="px-2 py-1.5"><ContactCell value={val} kind={kind} /></div>;
+      return <div className="px-2 py-1.5"><EditableContactCell val={val} kind={kind} onSave={v => saveCell(record, col, v)}/></div>;
     }
 
     // Custom assignee/owner/stage/status columns
@@ -2934,7 +2983,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           <td
             key={col}
             style={{ width: effectiveWidth(col), minWidth: effectiveWidth(col), maxWidth: effectiveWidth(col) }}
-            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap text-ellipsis ${isNumericCol(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
+            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap ${isNumericCol(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -3126,9 +3175,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           )}
           {sortRules.map((rule, i) => (
             <div key={i} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
-              <FieldSelect value={rule.col} onChange={v => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: v } : x))}
+              <FieldSelect value={rule.col} onChange={v => setSortRules(r => r.filter((x, idx) => idx === i || x.col !== v).map((x, idx) => idx === i ? { ...x, col: v } : x))}
                 ariaLabel="Sort column" className="capitalize max-w-[120px]"
-                options={[...allColumnsWithCustom, "__updated_at"].map(c => ({ value: c, label: colLabel(c) }))} />
+                options={[...allColumnsWithCustom, "__updated_at"].filter(c => c === rule.col || !sortRules.some(x => x.col === c)).map(c => ({ value: c, label: colLabel(c) }))} />
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
                 className={`flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap bg-transparent ${rule.dir === "asc" ? "border-[#717784]/40 text-[#717784]" : "border-[#c6892e]/40 text-[#c6892e]"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}

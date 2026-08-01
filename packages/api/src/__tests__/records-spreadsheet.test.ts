@@ -53,7 +53,8 @@ describe("record table — currency-aware, fail-closed column totals (no fabrica
     expect(table).toMatch(/missing > 0 \? ` · \$\{missing\} unconverted`/);
   });
   it("checkbox totals COUNT the checked rows; percentage totals AVERAGE — not a raw sum", () => {
-    expect(table).toMatch(/kind === "checkbox"[\s\S]*?records\.filter\(r => truthy\(r\.data\[col\]\)\)\.length/);
+    // 2026-08-01: reads via cellValue so node-level columns aggregate too.
+    expect(table).toMatch(/kind === "checkbox"[\s\S]*?records\.filter\(r => truthy\(cellValue\(r, col\)\)\)\.length/);
     expect(table).toMatch(/\$\{checked\} checked/);
     expect(table).toMatch(/kind === "percentage"[\s\S]*?op === "avg"/);
   });

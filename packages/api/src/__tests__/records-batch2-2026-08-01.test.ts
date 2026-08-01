@@ -36,7 +36,10 @@ describe("sort rebuild — one model, ordered in SQL", () => {
 
 describe("cells — single line, auto-fit with caps, compact totals", () => {
   it("cells never wrap; width comes from content with a per-kind cap", () => {
-    expect(table()).toMatch(/whitespace-nowrap text-ellipsis/);
+    // 2026-08-01: ellipsis moved INSIDE text cells (EditableCell 'block truncate') — the td-level
+    // text-ellipsis painted a stray '…' right after pill components.
+    expect(table()).toMatch(/overflow-hidden whitespace-nowrap/);
+    expect(table()).not.toMatch(/whitespace-nowrap text-ellipsis $\{isNumericCol/);
     expect(table()).toMatch(/const autoWidths = useMemo/);
     expect(table()).toMatch(/number: \[96, 150\], date: \[110, 160\], select: \[110, 180\], text: \[120, 360\]/);
   });

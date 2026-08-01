@@ -894,7 +894,16 @@ export function ObjectIndexPage() {
   // the same filters — switching views used to silently discard them (it was table-local state).
   const [viewSearch, setViewSearch] = useState("");
   const [viewConditions, setViewConditions] = useState<Cond[]>([]);
-  const [viewSortRules, setViewSortRules] = useState<SortRule[]>([]);
+  const [viewSortRules, setViewSortRulesRaw] = useState<SortRule[]>([]);
+  // One rule per column, first occurrence wins — dedupe lives HERE so every writer (header
+  // clicks, saved views, NLP, the sort bar) is normalized, not just the picker.
+  const setViewSortRules: typeof setViewSortRulesRaw = useCallback((v) => {
+    setViewSortRulesRaw(prev => {
+      const next = typeof v === "function" ? (v as (p: SortRule[]) => SortRule[])(prev) : v;
+      const seen = new Set<string>();
+      return next.filter(r => r?.col && !seen.has(r.col) && seen.add(r.col) !== undefined);
+    });
+  }, []);
   useEffect(() => { setViewSearch(""); setViewConditions([]); setViewSortRules([]); }, [objectType]);
   const sheetView: SheetViewState = {
     search: viewSearch, setSearch: setViewSearch,

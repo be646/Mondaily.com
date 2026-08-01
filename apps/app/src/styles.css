@@ -1422,9 +1422,11 @@ html[data-theme="dark"] .minimal-sparkline {
 
   /* Popover / custom-dropdown menus — consistent surface for non-native menus */
   .ui-menu {
-    background: var(--surface-modal);
+    /* Matches THE standard dropdown skin (PortalDropdown): same surface, same 4px radius —
+       FieldSelect menus looked like a different product next to the sheet's menus. */
+    background: var(--surface-card);
     border: 1px solid var(--border-soft);
-    border-radius: 6px;
+    border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0,0,0,.28);
     overflow: hidden;
   }

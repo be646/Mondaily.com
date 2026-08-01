@@ -105,7 +105,10 @@ describe("Graph audit — table wiring", () => {
     expect(table()).toMatch(/const base = nameKey \? \[nameKey, \.\.\.rest\] : allKeys;/);
     // 2026-08-01: AI columns (lead_score/relationship_health) are exempt from the hidden seed —
     // they vanished from sheets and the user rightly asked where the lead scoring went.
-    expect(table()).toMatch(/setHiddenCols\(new Set\(allColumns\.slice\(DEFAULT_VISIBLE_COLS\)\.filter\(c => !NODE_LEVEL_COLS\.includes\(c\)\)\)\)/);
+    // 2026-08-01: the seed also default-hides DUPLICATE owner-ish/stage-ish/status-ish columns
+    // (Owner + Deal owner side by side confused users) — still recoverable from Columns.
+    expect(table()).toMatch(/const keepOwner = ownerish\.find/);
+    expect(table()).toMatch(/\.\.\.allColumns\.slice\(DEFAULT_VISIBLE_COLS\)\.filter\(c => !NODE_LEVEL_COLS\.includes\(c\)\)/);
     expect(table()).not.toMatch(/: allKeys\)\.slice\(0, 8\)/);
   });
 
