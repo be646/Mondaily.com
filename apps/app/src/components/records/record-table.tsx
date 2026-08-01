@@ -8,7 +8,7 @@ import {
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
-  Sigma, Loader2, Sparkles,
+  Sigma, Loader2, Sparkles, MoreHorizontal,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -1964,6 +1964,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
   // ── Toolbar dropdown open state ──
   const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|"ask"|null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Add column lives in the table header now
   const addColHeaderRef = useRef<HTMLTableCellElement>(null);
@@ -2989,38 +2990,46 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
             {activeSortCount > 0 && <span className={TB_DOT}>{activeSortCount}</span>}
           </button>
 
-          {/* Group */}
-          <button onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
-            className={groupByCol || openPanel === "groupby" ? TB_ON : TB_IDLE}>
-            <Rows3 size={11}/>
-            <span>Group</span>
-            {groupByCol && <span className={TB_DOT}>{colLabel(groupByCol)}</span>}
-          </button>
-
-          {/* Ask — natural-language table commands (was built but never mounted) */}
-          <button onClick={() => setOpenPanel(p => p === "ask" ? null : "ask")}
-            className={openPanel === "ask" ? TB_ON : TB_IDLE} title="Describe what you want to see">
-            <LogoMark size={11}/>
-            <span>Ask</span>
-            {nlpActive && <span className={TB_DOT}>on</span>}
-          </button>
-
-          <div className="w-px h-3 bg-[var(--surface-hover)] mx-1"/>
-
-          {/* Export */}
-          <button onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
-            className={openPanel === "export" ? TB_ON : TB_IDLE}>
-            <Download size={11}/>
-            <span>Export</span>
-          </button>
-
-          {/* Saved (was "Views") */}
-          <button onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
-            className={openPanel === "views" ? TB_ON : TB_IDLE}>
-            <BookmarkCheck size={11}/>
-            <span>Saved</span>
-            {savedViews.length > 0 && <span className={TB_DOT}>{savedViews.length}</span>}
-          </button>
+          {/* ⋯ — the occasional tools fold behind one menu (Group / Ask / Export / Saved).
+              Seven equal buttons implied seven equally-daily tools; Search + Filter + Sort are
+              the daily three. An ACTIVE occasional tool surfaces its own chip so its state is
+              never hidden behind the menu. */}
+          {groupByCol && (
+            <button onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")} className={TB_ON}>
+              <Rows3 size={11}/><span>Group</span><span className={TB_DOT}>{colLabel(groupByCol)}</span>
+            </button>
+          )}
+          {nlpActive && (
+            <button onClick={() => setOpenPanel(p => p === "ask" ? null : "ask")} className={TB_ON}>
+              <LogoMark size={11}/><span>Ask</span><span className={TB_DOT}>on</span>
+            </button>
+          )}
+          <div className="relative">
+            <button onClick={() => setMoreOpen(o => !o)}
+              className={["groupby", "ask", "export", "views"].includes(openPanel ?? "") || moreOpen ? TB_ON : TB_IDLE}
+              aria-label="More tools">
+              <MoreHorizontal size={13}/>
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)}/>
+                <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+                  {([
+                    ["groupby", Rows3, "Group", groupByCol ? colLabel(groupByCol) : null],
+                    ["ask", LogoMark, "Ask", nlpActive ? "on" : null],
+                    ["export", Download, "Export", null],
+                    ["views", BookmarkCheck, "Saved views", savedViews.length ? String(savedViews.length) : null],
+                  ] as const).map(([panel, Icon, label, badge]) => (
+                    <button key={panel} onClick={() => { setOpenPanel(p => p === panel ? null : panel); setMoreOpen(false); }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                      <Icon size={11}/>{label}
+                      {badge && <span className="ml-auto text-[10px] text-[var(--text-faint)]">{badge}</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
