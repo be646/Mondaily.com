@@ -379,6 +379,26 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
   // Same SQL search + conditions as the table view (state lives on the page) — switching
   // Table→Board used to silently drop every active filter.
   const serverConds = conditions.filter(c => c.op !== "gt" && c.op !== "lt" && !/owner|assign/i.test(c.col));
+  // Conditions the server can't take (numeric ranges, owner cols) apply CLIENT-side here — the
+  // board showed the chips but rendered the unfiltered set.
+  const clientConds = conditions.filter(c => !serverConds.includes(c));
+  const applyClientConds = useCallback((rows: NodeRecord[]): NodeRecord[] => {
+    if (!clientConds.length) return rows;
+    return rows.filter(r => clientConds.every(c => {
+      const v = String(r.data[c.col] ?? "");
+      const want = String(c.value ?? "");
+      switch (c.op) {
+        case "is": return v.toLowerCase() === want.toLowerCase();
+        case "is_not": return v.toLowerCase() !== want.toLowerCase();
+        case "contains": return v.toLowerCase().includes(want.toLowerCase());
+        case "empty": return v === "";
+        case "not_empty": return v !== "";
+        case "gt": return parseFloat(v) > parseFloat(want);
+        case "lt": return parseFloat(v) < parseFloat(want);
+        default: return true;
+      }
+    }));
+  }, [clientConds]);
   const recordsQuery = useQuery({
     queryKey: ["records", "board", objectType, search.trim(), JSON.stringify(serverConds)],
     queryFn: () => {
@@ -393,7 +413,7 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
     queryFn: () => apiClient.get<Member[]>("/members"),
   });
 
-  const records = recordsQuery.data ?? [];
+  const records = applyClientConds(recordsQuery.data ?? []);
   const members = membersQuery.data ?? [];
   const groupCol  = detectGroupCol(records);
   const valueCol  = groupCol ? detectValueCol(records, groupCol) : null;
@@ -459,10 +479,14 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
     acc[s] = records.filter(r => String(r.data[groupCol!] ?? "") === s);
     return acc;
   }, {} as Record<string, NodeRecord[]>);
+  // Rows whose group value is empty matched NO column and silently vanished from the board.
+  const unstaged = records.filter(r => !String(r.data[groupCol!] ?? "").trim());
+  if (unstaged.length) byStage["No stage"] = unstaged;
+  const boardStages = unstaged.length ? [...stages, "No stage"] : stages;
 
   return (
     <div className="flex flex-1 min-h-0 overflow-x-auto px-4 py-4 gap-2">
-      {stages.map(stage => {
+      {boardStages.map(stage => {
         const cards = byStage[stage] ?? [];
         const { dot, text } = stageStyle(stage);
         return (

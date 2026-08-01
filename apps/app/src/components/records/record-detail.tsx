@@ -2122,10 +2122,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 return (
                   <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
                     <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
-                    {shown
-                      ? <StagePill value={shown} options={defaults} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, defaults[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
-                    }
+                    <StagePill value={shown} options={defaults} onSelect={v => save(key, v)} placeholder="— set value"/>
                   </div>
                 );
               }
@@ -2134,10 +2131,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 return (
                   <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
                     <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
-                    {shown
-                      ? <StagePill value={shown} options={DEFAULT_STAGE_OPTIONS} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, DEFAULT_STAGE_OPTIONS[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
-                    }
+                    <StagePill value={shown} options={DEFAULT_STAGE_OPTIONS} onSelect={v => save(key, v)} placeholder="— set stage"/>
                   </div>
                 );
               }
@@ -2146,10 +2140,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 return (
                   <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
                     <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
-                    {shown
-                      ? <StagePill value={shown} options={DEFAULT_STATUS_OPTIONS} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, DEFAULT_STATUS_OPTIONS[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
-                    }
+                    <StagePill value={shown} options={DEFAULT_STATUS_OPTIONS} onSelect={v => save(key, v)} placeholder="— set status"/>
                   </div>
                 );
               }

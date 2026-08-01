@@ -63,8 +63,13 @@ describe("record detail structure", () => {
   });
 
   it("invites a value instead of showing a broken-looking dash", () => {
-    expect(detail).toMatch(/Set a value…/);
-    expect(detail).not.toMatch(/— set (stage|status|\{customType\})/);
+    // 2026-08-01 final audit: 'Set a value…' WROTE defaults[0] on a single click (the same
+    // auto-write bug removed from the grid). Placeholder pills open the picker instead.
+    expect(detail).toMatch(/placeholder="— set stage"/);
+    expect(detail).toMatch(/placeholder="— set status"/);
+    expect(detail).not.toMatch(/save\(key, DEFAULT_STAGE_OPTIONS\[0\]!\)/);
+    // (superseded by the same-day fix above: '— set stage/status' is now the PICKER placeholder,
+    // which is exactly the invitation this guard wanted — without the silent write.)
     // Highlight cards state the absence in words so the grid never collapses
     expect(detail).toMatch(/Not set<\/span>/);
   });

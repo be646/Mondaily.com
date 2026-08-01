@@ -902,7 +902,7 @@ export function ObjectIndexPage() {
     sortRules: viewSortRules, setSortRules: setViewSortRules,
   };
 
-  // Detect empty state — shares the same cache key as RecordTable
+  // Detect empty state — independent fetch (the table key now carries search/filter/sort segments)
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
   const hasActiveEnrichment = Object.values(enriching).some(v => !v.done);
 

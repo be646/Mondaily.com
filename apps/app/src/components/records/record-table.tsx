@@ -292,7 +292,7 @@ function getColumnIcon(col: string) {
   if (lower.includes("date") || lower.includes("updated")) return <Calendar size={12} className="text-stone-600"/>;
   if (lower.includes("tag") || lower.includes("label") || lower.includes("status") || lower.includes("stage")) return <Tag size={12} className="text-stone-600"/>;
   if (lower.includes("url") || lower.includes("website") || lower.includes("link") || lower.includes("linkedin") || lower.includes("twitter")) return <Globe size={12} className="text-stone-600"/>;
-  if (isNumeric(col)) return <Hash size={12} className="text-stone-600"/>;
+  if (isNumeric(col) && !/phone/i.test(col)) return <Hash size={12} className="text-stone-600"/>;
   return <Database size={12} className="text-stone-600"/>;
 }
 
@@ -324,8 +324,8 @@ export function PortalDropdown({ triggerRef, onClose, align = "left", direction 
     // Auto-flip up when the space below is too tight to be usable.
     const spaceBelow = window.innerHeight - (r.bottom + 4) - 8;
     const dir = direction === "down" && spaceBelow < 180 && r.top > spaceBelow ? "up" : direction;
-    if (dir === "down") { s.top = r.bottom + 4; s.maxHeight = spaceBelow; }
-    else { s.bottom = window.innerHeight - r.top + 4; s.maxHeight = r.top - 12; }
+    if (dir === "down") { s.top = r.bottom + 4; s.maxHeight = Math.max(120, spaceBelow); }
+    else { s.bottom = window.innerHeight - r.top + 4; s.maxHeight = Math.max(120, r.top - 12); }
     // Clamp horizontally — align="right" on the last column of a scrolled table went negative and
     // hung the panel off the right edge of the screen.
     if (align === "right") s.right = Math.max(8, window.innerWidth - r.right);
@@ -340,11 +340,16 @@ export function PortalDropdown({ triggerRef, onClose, align = "left", direction 
       onClose();
     }
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    // Close when anything OUTSIDE the panel scrolls — the fixed panel doesn't track its trigger,
+    // so scrolling the sheet left it floating detached from its cell.
+    function onScroll(e: Event) { if (!panelRef.current?.contains(e.target as Node)) onClose(); }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKey);
+    document.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKey);
+      document.removeEventListener("scroll", onScroll, true);
     };
   }, [onClose]);
 
@@ -2208,7 +2213,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       base = base.filter(r => conditions.every(c => {
         // last_activity is the record's updated_at — a real filterable dimension now.
         const raw = c.col === "last_activity" ? r.updated_at
-          : /owner|assign/i.test(c.col) ? (owners[r.id]?.[c.col] ?? cellValue(r, c.col))
+          : /owner|assign/i.test(c.col) ? (owners[r.id]?.[c.col] ?? resolveOwner(cellValue(r, c.col)))
           : cellValue(r, c.col);
         const v = String(raw ?? "");
         const want = String(c.value ?? "");
@@ -2328,7 +2333,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     const rows = visibleRows.filter(r => selected.has(r.id));
     // Already-set rows are SKIPPED and reported — assigning someone who is already the assignee
     // silently rewrote rows and told the user nothing.
-    const already = rows.filter(r => String((owners[r.id]?.[col] ?? cellValue(r, col)) ?? "").trim().toLowerCase() === value.trim().toLowerCase());
+    const already = rows.filter(r => String((owners[r.id]?.[col] ?? resolveOwner(cellValue(r, col))) ?? "").trim().toLowerCase() === value.trim().toLowerCase());
     const toChange = rows.filter(r => !already.includes(r));
     toChange.forEach(record => saveCell(record, col, value));
     setBulkEditField(null);
@@ -2898,7 +2903,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // table — toolbar included — the moment a filter matched nothing, leaving no way to clear the
   // filter. With a filter or search active, the table renders normally and shows its own
   // "No results" row instead.
-  if (!records.length && !debouncedSearch && serverConds.length === 0) return (
+  if (!records.length && !debouncedSearch && conditions.length === 0) return (
     <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-sm border border-dashed px-6 text-center" style={{ borderColor: "var(--border-soft)" }}>
       <Database className="mb-3" size={26} style={{ color: "var(--text-faint)" }}/>
       <h2 className="text-sm font-medium text-[var(--text-secondary)]">No {objectType} yet</h2>
@@ -3814,7 +3819,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
         <div
           className="fixed z-[9999] rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] py-1 shadow-xl min-w-[160px]"
-          style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
+          style={{ left: Math.max(8, Math.min(colCtxMenu.x, window.innerWidth - 180)), top: Math.max(8, Math.min(colCtxMenu.y, window.innerHeight - 220)) }}
         >
           <div className="px-3 py-1.5 text-body text-[var(--text-secondary)] border-b border-[var(--border-soft)] mb-1">
             {colLabel(colCtxMenu.col)}
