@@ -67,28 +67,42 @@ function CreateRecordModal({
   // Workspace members feed the Owner picker — an owner is always a member, never free text.
   const membersQ = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<{ id: string; name?: string; email?: string }[]>("/members"), staleTime: 60_000 });
 
-  // Field KIND from the live data (same idea as the sheet's inferColKind): dates get a date input,
-  // numbers a number input, small value sets become option pills, owner columns a member picker.
+  // Field KIND — pills appear ONLY for columns that are categorical BY NAME (stage/status/
+  // priority/category/country/region/label). The old value-based fallback ("≤12 distinct values")
+  // turned description/twitter/linkedin fields into walls of giant text pills the moment a sheet
+  // had few rows. Everything non-categorical is a clean EMPTY input of the right type.
   const fieldKind = (k: string): "date" | "number" | "select" | "owner" | "text" => {
     const l = k.toLowerCase();
     if (/owner|assignee|assigned/.test(l)) return "owner";
-    const vals: string[] = [];
-    for (const r of existingRows) { const v = r.data[k]; if (v != null && v !== "") { vals.push(String(v)); if (vals.length >= 40) break; } }
-    if (l.includes("date") || vals.length > 2 && vals.every(v => /^\d{4}-\d{2}-\d{2}/.test(v))) return "date";
-    if (/value|amount|price|arr|revenue|funding|count|score|size|qty|quantity/.test(l) || (vals.length > 2 && vals.every(v => !isNaN(parseFloat(v)) && /^[\d.,%$€£\s-]+$/.test(v)))) return "number";
-    if (/stage|status|priority|category|type|country|region|label/.test(l) || (vals.length > 2 && new Set(vals.map(v => v.toLowerCase())).size <= 12)) return "select";
+    if (l.includes("date") || l.endsWith("_at")) return "date";
+    if (/value|amount|price|arr|revenue|funding|count|score|size|qty|quantity|followers/.test(l)) return "number";
+    if (/stage|status|priority|country|region|label|^category$|^type$/.test(l)) return "select";
     return "text";
   };
+  // Canonical option sets first (the sheet's own vocabulary — data-derived options showed ONLY
+  // whatever happened to exist, e.g. a lone "In Progress" on status), then real data values merged
+  // in, case-deduped, and NEVER long free text (a pill longer than 24 chars is data, not an option).
+  const CANON: Record<string, string[]> = {
+    stage: ["Lead", "Qualified", "Proposal", "Negotiation", "Closed Won", "Closed Lost", "On Hold"],
+    status: ["Not Started", "In Progress", "Completed", "On Hold", "Cancelled"],
+    priority: ["Low", "Medium", "High", "Urgent"],
+  };
   const optionsFor = (k: string): string[] => {
-    const byLower = new Map<string, Map<string, number>>();
+    const l = k.toLowerCase();
+    const canon = l.includes("stage") ? CANON.stage! : l.includes("status") ? CANON.status! : l.includes("priority") ? CANON.priority! : [];
+    const byLower = new Map<string, string>();
+    for (const c of canon) byLower.set(c.toLowerCase(), c);
+    const counts = new Map<string, Map<string, number>>();
     for (const r of existingRows) {
-      const v = String(r.data[k] ?? ""); if (!v) continue;
-      const inner = byLower.get(v.toLowerCase()) ?? new Map<string, number>();
-      inner.set(v, (inner.get(v) ?? 0) + 1); byLower.set(v.toLowerCase(), inner);
+      const v = String(r.data[k] ?? "").trim();
+      if (!v || v.length > 24) continue;                     // long values are data, not options
+      const inner = counts.get(v.toLowerCase()) ?? new Map<string, number>();
+      inner.set(v, (inner.get(v) ?? 0) + 1); counts.set(v.toLowerCase(), inner);
     }
-    // one option per distinct value ignoring case, shown in its most common casing — the raw list
-    // offered "Closed Lost" AND "closed" side by side, mirroring the data fragmentation
-    return [...byLower.values()].map(inner => [...inner.entries()].sort((a, b) => b[1] - a[1])[0]![0]).sort().slice(0, 12);
+    for (const [lower, inner] of counts) {
+      if (!byLower.has(lower)) byLower.set(lower, [...inner.entries()].sort((a, b) => b[1] - a[1])[0]![0]);
+    }
+    return [...byLower.values()].slice(0, 14);
   };
 
   // Schema-aware fields — the create form now uses THIS sheet's real defined columns (object_definitions
@@ -131,6 +145,12 @@ function CreateRecordModal({
     Object.fromEntries(fieldKeys.map(k => [k, colMeta[k]?.defaultValue ?? ""]))
   );
   const [selectedCats, setCats] = useState<{ name: string; color: string }[]>([]);
+  // Fields the user adds on the fly — they become real columns on save (the sheet's column
+  // universe picks new keys up from the created record).
+  const [extraFields, setExtraFields] = useState<{ key: string; type: "text" | "number" | "date" }[]>([]);
+  const [addFieldOpen, setAddFieldOpen] = useState(false);
+  const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldType, setNewFieldType] = useState<"text" | "number" | "date">("text");
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
   const [createMore, setCreateMore] = useState(false);
@@ -386,9 +406,52 @@ function CreateRecordModal({
                   </div>
                 );
               })}
+              {extraFields.map(f => (
+                <div key={f.key} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)]">
+                  <span className="flex items-center gap-1 truncate text-[11.5px] font-medium text-[var(--text-secondary)] select-none first-letter:uppercase">
+                    {label(f.key)}
+                    <button type="button" onClick={() => { setExtraFields(prev => prev.filter(x => x.key !== f.key)); setValues(prev => { const n = { ...prev }; delete n[f.key]; return n; }); }}
+                      className="text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]" aria-label={`Remove ${f.key}`}><X size={10}/></button>
+                  </span>
+                  <input type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}
+                    value={values[f.key] ?? ""} onChange={e => setValues(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    placeholder="—"
+                    className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none transition-colors focus:border-stone-500/30"/>
+                </div>
+              ))}
+              {/* Add a NEW column from here — typed, appears on the sheet with the record. */}
+              <div className="py-2 border-b border-[var(--border-soft)]">
+                {!addFieldOpen ? (
+                  <button type="button" onClick={() => setAddFieldOpen(true)}
+                    className="flex items-center gap-1.5 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]">
+                    <Plus size={10}/> Add field
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input autoFocus value={newFieldName} onChange={e => setNewFieldName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Escape") { setAddFieldOpen(false); setNewFieldName(""); } }}
+                      placeholder="Field name" className="w-36 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[12px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"/>
+                    <div className="flex items-center gap-1">
+                      {(["text", "number", "date"] as const).map(t => (
+                        <button key={t} type="button" onClick={() => setNewFieldType(t)}
+                          className={`rounded-sm border px-2 py-0.5 text-[10.5px] transition-colors ${newFieldType === t ? "border-[var(--border-strong)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)]"}`}>{t}</button>
+                      ))}
+                    </div>
+                    <button type="button" disabled={!newFieldName.trim()}
+                      onClick={() => {
+                        const key = newFieldName.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                        if (!key || fieldKeys.includes(key) || extraFields.some(f => f.key === key)) { setAddFieldOpen(false); setNewFieldName(""); return; }
+                        setExtraFields(prev => [...prev, { key, type: newFieldType }]);
+                        setAddFieldOpen(false); setNewFieldName("");
+                      }}
+                      className="btn-secondary h-6 px-2 text-[11px] disabled:opacity-50">Add</button>
+                    <button type="button" onClick={() => { setAddFieldOpen(false); setNewFieldName(""); }} className="text-[11px] text-[var(--text-muted)]">Cancel</button>
+                  </div>
+                )}
+              </div>
               <div className="py-2 border-b border-[var(--border-soft)]">
                 <div className="grid grid-cols-[130px_1fr] items-start gap-3">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 select-none pt-1">Categories</span>
+                  <span className="text-[11px] font-medium text-[var(--text-muted)] select-none pt-1">Categories</span>
                   <CategoryPills categories={selectedCats} onUpdate={setCats}/>
                 </div>
               </div>

@@ -2547,7 +2547,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
     // edit whose save destroyed the agent's structure. pipeline_health gets its real badge; any
     // other object renders read-only.
     if (val && typeof val === "object") {
-      if (col === "pipeline_health") return <div className="px-2 py-1"><PipelineHealthBadge health={val as PipelineHealth}/></div>;
+      if (col === "pipeline_health") return <div className="px-2"><PipelineHealthBadge health={val as PipelineHealth} compact/></div>;
       return <span className="px-2 text-[11px]" style={{ color: "var(--text-faint)" }} title="Structured field — edited by agents, not by hand">structured</span>;
     }
     const isEnriched = enrichedIds.includes(record.id);

@@ -27,12 +27,25 @@ function money(n: number | null | undefined): string | null {
  * risk band, a risk-adjusted (weighted) forecast value, and idle days. Honest: renders nothing until
  * the agent has run for this record. Companion to the AI Lead Score.
  */
-export function PipelineHealthBadge({ health }: { health?: PipelineHealth | null }) {
+export function PipelineHealthBadge({ health, compact = false }: { health?: PipelineHealth | null; compact?: boolean }) {
   if (!health || !health.band) return null;
   const b = BANDS[health.band] ?? BANDS.watch;
   const momentum = typeof health.momentum === "number" ? health.momentum : null;
   const value = money(health.value);
   const weighted = money(health.weighted_value);
+
+  // Compact: ONE line for table cells — the full card blew every row up to card height and
+  // wrecked the sheet. Band pill + momentum; the record page keeps the full card.
+  if (compact) {
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-sm border ${b.bg} px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap`}
+        title={`Forecast health: ${b.label}${momentum != null ? ` · momentum ${momentum}/100` : ""}${health.days_idle != null ? ` · idle ${health.days_idle}d` : ""}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${b.bar}`}/>
+        <span className={b.text}>{b.label}</span>
+        {momentum != null && <span className="text-[var(--text-muted)]">{momentum}</span>}
+      </span>
+    );
+  }
 
   return (
     <div className={`rounded-sm border ${b.bg} px-4 py-3`}>
