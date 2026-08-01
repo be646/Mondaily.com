@@ -55,7 +55,10 @@ describe("filter redesign — the UI is search-first chips, not a dropdown row",
   it("one text filter, one condition list — the parallel filters are gone", () => {
     expect(table()).not.toMatch(/const \[filterText, setFilterText\]/);
     expect(table()).not.toMatch(/quickFilters/);
-    expect(table()).toMatch(/const \[conditions, setConditions\] = useState<Cond\[\]>/);
+    // 2026-08-01 board parity: the state was LIFTED to the page so Table and Board share it —
+    // switching views used to silently discard the active filter set.
+    expect(table()).toMatch(/conditions, setConditions \} = view/);
+    expect(read('apps/app/src/routes/dashboard/objects/\[objectType\]/index.tsx')).toMatch(/const \[viewConditions, setViewConditions\] = useState<Cond\[\]>/);
   });
 
   it("conditions are added field → operator → value, typed by the column's kind", () => {

@@ -52,7 +52,7 @@ function colLabel(col: string): string {
 }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 type SortDir = "asc" | "desc";
-interface SortRule { col: string; dir: SortDir }
+export interface SortRule { col: string; dir: SortDir }
 
 // ─── Cell overflow tooltip ────────────────────────────────────────────────────
 // Used directly on <td> via onMouseEnter/Move/Leave props.
@@ -1693,8 +1693,8 @@ const PAGE_LIMIT = 1000;
 // ── Filter conditions (search-first redesign, 2026-07-31) ─────────────────────
 /** ops before/after are dates; gt/lt are numeric and CLIENT-side only (jsonb text-compare lies
  *  about numbers, so the server never pretends to answer them — see ubc.NodeFilter). */
-type CondOp = "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after" | "gt" | "lt";
-type Cond = { col: string; op: CondOp; value?: string };
+export type CondOp = "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after" | "gt" | "lt";
+export type Cond = { col: string; op: CondOp; value?: string };
 const OP_LABEL: Record<CondOp, string> = {
   is: "is", is_not: "is not", contains: "contains", empty: "is empty", not_empty: "is not empty",
   before: "before", after: "after", gt: "more than", lt: "less than",
@@ -1840,14 +1840,20 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
 // ─── Main table ───────────────────────────────────────────────────────────────
 // `filterQuery` prop removed (2026-07-31 audit): the only call site never passed it, so it was
 // permanently "" — one of three identical free-text filters. filterText + toolbarSearch remain.
-export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: { objectType: string; enrichedIds?: string[]; onColumnsChange?: (cols: string[]) => void }) {
+export interface SheetViewState {
+  search: string; setSearch: (v: string) => void;
+  conditions: Cond[]; setConditions: (v: Cond[] | ((p: Cond[]) => Cond[])) => void;
+  sortRules: SortRule[]; setSortRules: (v: SortRule[] | ((p: SortRule[]) => SortRule[])) => void;
+}
+export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, view }: { objectType: string; enrichedIds?: string[]; onColumnsChange?: (cols: string[]) => void; view: SheetViewState }) {
   const qc = useQueryClient();
   // ── Filter — search-first + structured condition chips (2026-07-31 redesign) ──
   // ONE text filter (the always-visible toolbar search) instead of the previous three parallel
   // ones, plus explicit conditions added via "+ Filter": field → operator → value, rendered as
   // removable chips. The old model was a permanent dropdown-per-column row.
-  const [toolbarSearch, setToolbarSearch] = useState("");
-  const [conditions, setConditions] = useState<Cond[]>([]);
+  // LIFTED to the page (2026-08-01): switching Table→Board silently discarded the user's whole
+  // filter set because this state lived here. Both views now share it.
+  const { search: toolbarSearch, setSearch: setToolbarSearch, conditions, setConditions } = view;
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
   // Search + SQL-representable conditions also go to the SERVER (debounced), so filtering covers
   // every record of the type — not just the loaded page. The client predicate below still runs for
@@ -1861,7 +1867,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   // server so SQL orders the whole type and the page received is the true top-N — sorting only
   // the loaded page silently sorted the wrong subset on any type past the cap. Numeric columns
   // sort via the jsonb value (data->col), where numbers compare numerically.
-  const [sortRules, setSortRules] = useState<SortRule[]>([]);
+  const { sortRules, setSortRules } = view;
   const primarySort = sortRules[0] ?? null;
   // Whether the primary sort column is numeric is LEARNED from the loaded rows (declared below),
   // so it lives in state and joins the query key — the first fetch may order as text, and the
@@ -2102,9 +2108,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
   });
 
   useEffect(() => {
-    // Column visibility is NOT reset here — the seeding effect above owns it per object type
-    // (clearing it here would race that effect and briefly show every column).
-    setToolbarSearch(""); setConditions([]); setSortRules([]);
+    // Column visibility is NOT reset here — the seeding effect above owns it per object type.
+    // (search/conditions/sort reset lives on the PAGE now, which owns that state.)
   }, [objectType]);
 
   function handleHeaderSort(col: string) {

@@ -6,7 +6,7 @@ import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Plus, X, Check, Loader2, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
 import { EmptyState } from "../../../../components/ui/page-state";
-import { RecordTable } from "../../../../components/records/record-table";
+import { RecordTable, type SheetViewState, type Cond, type SortRule } from "../../../../components/records/record-table";
 import { BoardView, stageStyle } from "../../../../components/records/board-view";
 import { CategoryPills } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
@@ -890,6 +890,17 @@ export function ObjectIndexPage() {
   const [dedupOpen, setDedupOpen] = useState(false);
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
+  // The sheet's view state (search / filter conditions / sort) lives HERE so Table and Board see
+  // the same filters — switching views used to silently discard them (it was table-local state).
+  const [viewSearch, setViewSearch] = useState("");
+  const [viewConditions, setViewConditions] = useState<Cond[]>([]);
+  const [viewSortRules, setViewSortRules] = useState<SortRule[]>([]);
+  useEffect(() => { setViewSearch(""); setViewConditions([]); setViewSortRules([]); }, [objectType]);
+  const sheetView: SheetViewState = {
+    search: viewSearch, setSearch: setViewSearch,
+    conditions: viewConditions, setConditions: setViewConditions,
+    sortRules: viewSortRules, setSortRules: setViewSortRules,
+  };
 
   // Detect empty state — shares the same cache key as RecordTable
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -1068,9 +1079,9 @@ export function ObjectIndexPage() {
             />
           </div>
         ) : view === "board" ? (
-          <BoardView objectType={objectType}/>
+          <BoardView objectType={objectType} search={viewSearch} conditions={viewConditions}/>
         ) : (
-          <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
+          <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns} view={sheetView}/>
         )}
       </div>
 

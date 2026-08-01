@@ -365,7 +365,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
 }
 
 // ─── Board View (exported) ────────────────────────────────────────────────────
-export function BoardView({ objectType }: { objectType: string }) {
+export function BoardView({ objectType, search = "", conditions = [] }: { objectType: string; search?: string; conditions?: { col: string; op: string; value?: string }[] }) {
   const qc = useQueryClient();
   // Currency — column calc footers show money in the workspace display currency (same FX source
   // as Finance Reports / Pipeline / the sales report). Per-card editable values stay raw.
@@ -385,9 +385,17 @@ export function BoardView({ objectType }: { objectType: string }) {
 
   useEffect(() => { if (addingStage) setTimeout(() => newStageRef.current?.focus(), 50); }, [addingStage]);
 
+  // Same SQL search + conditions as the table view (state lives on the page) — switching
+  // Table→Board used to silently drop every active filter.
+  const serverConds = conditions.filter(c => c.op !== "gt" && c.op !== "lt" && !/owner|assign/i.test(c.col));
   const recordsQuery = useQuery({
-    queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=1000`),
+    queryKey: ["records", "board", objectType, search.trim(), JSON.stringify(serverConds)],
+    queryFn: () => {
+      const params = new URLSearchParams({ object_type: objectType, limit: "1000" });
+      if (search.trim()) params.set("q", search.trim());
+      if (serverConds.length) params.set("filters", JSON.stringify(serverConds));
+      return apiClient.get<NodeRecord[]>(`/nodes?${params}`);
+    },
   });
   const membersQuery = useQuery({
     queryKey: ["members"],
