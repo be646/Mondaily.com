@@ -3101,9 +3101,12 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       {openPanel === "ask" && (
         <div className="px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
           <NLPCommandBar
-            columns={orderedColumns}
+            // ALL columns, not the visible subset — with only visible names the model couldn't
+            // reference a hidden column ("high confidence" → confidence_label was hidden), so its
+            // structured conditions were rejected and it degraded to a useless text search.
+            columns={allColumnsWithCustom}
             onApply={handleNLPApply}
-            onClear={() => { setToolbarSearch(""); setSortRules([]); setNlpActive(false); }}
+            onClear={() => { setToolbarSearch(""); setConditions([]); setSortRules([]); setNlpActive(false); }}
             hasActive={nlpActive}
           />
         </div>
