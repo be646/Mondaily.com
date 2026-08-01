@@ -2301,6 +2301,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
   // ── Group by ──
   const groupByKey = `mondaily_groupby_${objectType}`;
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [groupByCol, setGroupByCol] = useState<string | null>(() => {
     try { return localStorage.getItem(groupByKey) ?? null; } catch { return null; }
   });
@@ -2446,6 +2447,22 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     else if (succeeded > 0 && failed > 0) showFlash(`Added ${succeeded}, but ${failed} couldn't be added — the list type may not match.`, "warn");
     else if (failed > 0) showFlash(`Couldn't add ${failed} record${failed === 1 ? "" : "s"} — the list type may not match.`, "warn");
   }
+
+  // ── Bulk set-field (2026-08-01): "set stage for the 40 selected" — categorical columns only,
+  // real per-row PATCHes with honest per-row success/failure feedback, never a silent partial. ──
+  const [setFieldOpen, setSetFieldOpen] = useState(false);
+  const [setFieldCol, setSetFieldCol] = useState<string | null>(null);
+  async function bulkSetField(col: string, value: string) {
+    const rows = visibleRows.filter(r => selected.has(r.id));
+    const results = await Promise.allSettled(rows.map(r => apiClient.patch(`/nodes/${r.id}`, { data: { ...r.data, [col]: value } })));
+    const failed = results.filter(r => r.status === "rejected").length;
+    const ok = results.length - failed;
+    setSelected(new Set()); setSetFieldOpen(false); setSetFieldCol(null);
+    qc.invalidateQueries({ queryKey: ["records", objectType] });
+    if (failed === 0) showFlash(`Set ${colLabel(col)} = "${value}" on ${ok} record${ok === 1 ? "" : "s"}.`, "ok");
+    else showFlash(`Set on ${ok}, failed on ${failed} — those rows were not changed.`, "warn");
+  }
+  const bulkEditableCols = allColumnsWithCustom.filter(c => /stage|status|priority|country|region|label|^category$|^type$/.test(c.toLowerCase()));
 
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [assignPickerOpen, setAssignPickerOpen] = useState(false);
@@ -3170,10 +3187,46 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           </span>
           <div className="h-3 w-px bg-[var(--surface-hover)]" />
 
+          {/* Set field — bulk stage/status/priority change on the selection */}
+          {bulkEditableCols.length > 0 && (
+            <div className="relative">
+              <button onClick={() => { setSetFieldOpen(o => !o); setSetFieldCol(null); setListPickerOpen(false); setAssignPickerOpen(false); }}
+                className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                <Tag size={12}/> Set field
+              </button>
+              {setFieldOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => { setSetFieldOpen(false); setSetFieldCol(null); }}/>
+                  <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+                    {!setFieldCol ? bulkEditableCols.map(col => (
+                      <button key={col} onClick={() => setSetFieldCol(col)}
+                        className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                        {colLabel(col)}
+                      </button>
+                    )) : (
+                      <>
+                        <p className="px-2.5 py-1 text-[10px] text-[var(--text-faint)] first-letter:uppercase">{colLabel(setFieldCol)} →</p>
+                        {[...new Set([
+                          ...(/stage/.test(setFieldCol.toLowerCase()) ? DEFAULT_STAGE_OPTIONS : /status/.test(setFieldCol.toLowerCase()) ? DEFAULT_STATUS_OPTIONS : []),
+                          ...records.map(r => String(cellValue(r, setFieldCol) ?? "")).filter(v => v && v.length <= 24),
+                        ])].slice(0, 14).map(v => (
+                          <button key={v} onClick={() => void bulkSetField(setFieldCol, v)}
+                            className="flex w-full items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                            <span className={`h-1.5 w-1.5 rounded-full ${stageStyle(v).dot}`}/>{v}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Add to list */}
           <div className="relative">
             <button
-              onClick={() => { setListPickerOpen(o => !o); setAssignPickerOpen(false); }}
+              onClick={() => { setListPickerOpen(o => !o); setAssignPickerOpen(false); setSetFieldOpen(false); }}
               className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <List size={12} /> Add to list
@@ -3541,18 +3594,35 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               // Build row list — optionally grouped
               const rowsToRender: React.ReactNode[] = [];
               if (groupByCol) {
+                // Date columns bucket by MONTH — grouping by exact day/timestamp produced a wall
+                // of one-row groups that helped nobody.
+                const isDateGroup = inferColKind(records, groupByCol, customCols.find(cc => cc.key === groupByCol)?.type) === "date";
+                const groupKeyOfRow = (r: NodeRecord): string => {
+                  const raw = String(cellValue(r, groupByCol) ?? "—");
+                  if (!isDateGroup || raw === "—" || !/^\d{4}-\d{2}/.test(raw)) return raw;
+                  return raw.slice(0, 7);   // YYYY-MM
+                };
                 const groups = new Map<string, NodeRecord[]>();
                 for (const r of visibleRows) {
-                  const key = String(cellValue(r, groupByCol) ?? "—");
+                  const key = groupKeyOfRow(r);
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(r);
                 }
-                for (const [groupVal, groupRows] of groups) {
+                // Largest first: by server subtotal when a calc is active, else by row count —
+                // insertion order was arbitrary (whatever order rows arrived in).
+                const orderedGroups = [...groups.entries()].sort((a, b) => {
+                  const sa = groupSubtotals.get(a[0])?.value; const sb = groupSubtotals.get(b[0])?.value;
+                  if (sa != null && sb != null && sa !== sb) return sb - sa;
+                  return b[1].length - a[1].length;
+                });
+                for (const [groupVal, groupRows] of orderedGroups) {
                   const ss = stageStyle(groupVal);
+                  const isCollapsed = collapsedGroups.has(groupVal);
                   rowsToRender.push(
-                    <tr key={`grp-${groupVal}`}>
+                    <tr key={`grp-${groupVal}`} onClick={() => setCollapsedGroups(prev => { const n = new Set(prev); n.has(groupVal) ? n.delete(groupVal) : n.add(groupVal); return n; })} className="cursor-pointer select-none">
                       <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
                         <div className="flex items-center gap-2">
+                          <ChevronDown size={11} className={`shrink-0 text-[var(--text-muted)] transition-transform ${isCollapsed ? "-rotate-90" : ""}`}/>
                           <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
                           <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
                           <span className="text-[10px] text-stone-400 dark:text-[var(--text-secondary)] ml-1">{groupRows.length}</span>
@@ -3575,7 +3645,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                       </td>
                     </tr>
                   );
-                  groupRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
+                  if (!isCollapsed) groupRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
                 }
               } else {
                 visibleRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
