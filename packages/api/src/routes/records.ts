@@ -181,6 +181,49 @@ router.post("/sheet-config/:objectType", denyViewerWrites, async (c) => {
 });
 
 /**
+ * Saved views — WORKSPACE-SHARED, stored on the same sheet_config row (read-merge-write, only
+ * the `views` key is replaced). Previously views lived in per-browser localStorage: invisible to
+ * teammates and absent on a new device. Same house pattern as columns above.
+ */
+router.get("/sheet-views/:objectType", async (c) => {
+  const ws = c.get("workspaceId");
+  const objectType = c.req.param("objectType");
+  const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws)
+    .eq("object_type", "sheet_config").eq("data->>sheet", objectType).limit(1).maybeSingle();
+  return c.json({ views: (data?.data as { views?: unknown[] } | null)?.views ?? [] });
+});
+
+router.post("/sheet-views/:objectType", denyViewerWrites, async (c) => {
+  const ws = c.get("workspaceId");
+  const userId = c.get("userId");
+  const objectType = c.req.param("objectType");
+  const body = await c.req.json<{ views?: unknown[] }>().catch(() => ({} as never));
+  // Bounded, shape-checked: each view is a small config object, never free-form.
+  const views = (Array.isArray(body.views) ? body.views : []).slice(0, 30).map((v) => {
+    const view = (v ?? {}) as Record<string, unknown>;
+    return {
+      id: String(view.id ?? "").slice(0, 60),
+      name: String(view.name ?? "").slice(0, 60),
+      filters: (Array.isArray(view.filters) ? view.filters : []).slice(0, 20),
+      sortRules: (Array.isArray(view.sortRules) ? view.sortRules : []).slice(0, 5),
+      hiddenCols: (Array.isArray(view.hiddenCols) ? view.hiddenCols : []).slice(0, 100).map(String),
+      groupBy: view.groupBy == null ? null : String(view.groupBy).slice(0, 120),
+    };
+  }).filter(v => v.id && v.name);
+  const { data: existing } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws)
+    .eq("object_type", "sheet_config").eq("data->>sheet", objectType).limit(1).maybeSingle();
+  if (existing) {
+    const merged = { ...(existing.data as Record<string, unknown>), views };
+    const { error } = await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", ws);
+    if (error) return c.json({ error: "Could not save views." }, 500);
+  } else {
+    const { error } = await supabase.from("nodes").insert({ workspace_id: ws, vertical: "shared", object_type: "sheet_config", created_by: userId, data: { sheet: objectType, views } });
+    if (error) return c.json({ error: "Could not save views." }, 500);
+  }
+  return c.json({ ok: true, views });
+});
+
+/**
  * POST /records/formula-builder — describe a computed column in words, get a formula WITH PROOF.
  * The AI proposes only the expression; everything that matters is verified in code:
  *   • the formula is parsed + executed by the shared safe evaluator against REAL sample rows

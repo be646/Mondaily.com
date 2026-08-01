@@ -2327,15 +2327,35 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     : f.col.endsWith("__from") ? { col: f.col.slice(0, -6), op: "after", value: f.value }
     : f.col.endsWith("__to") ? { col: f.col.slice(0, -4), op: "before", value: f.value }
     : { col: f.col, op: "is", value: f.value };
-  const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
-    try { return JSON.parse(localStorage.getItem(savedViewsKey) ?? "[]"); } catch { return []; }
+  // WORKSPACE-SHARED views (2026-08-01): stored on the server's sheet_config row, so your team
+  // sees the same views on every device. localStorage was per-browser — invisible to teammates,
+  // gone on a new machine. Any views already in THIS browser migrate up once, then the server owns.
+  const viewsQ = useQuery({
+    queryKey: ["sheet-views", objectType],
+    queryFn: () => apiClient.get<{ views: SavedView[] }>(`/records/sheet-views/${encodeURIComponent(objectType)}`),
+    staleTime: 60_000,
   });
+  const savedViews = viewsQ.data?.views ?? [];
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || !viewsQ.isSuccess) return;
+    migratedRef.current = true;
+    try {
+      const local: SavedView[] = JSON.parse(localStorage.getItem(savedViewsKey) ?? "[]");
+      const unseen = local.filter(l => !savedViews.some(sv => sv.id === l.id));
+      if (unseen.length) void persistViews([...savedViews, ...unseen]);
+      if (local.length) localStorage.removeItem(savedViewsKey);
+    } catch { /* nothing to migrate */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewsQ.isSuccess]);
   const [saveViewOpen, setSaveViewOpen] = useState(false);
   const [newViewName, setNewViewName] = useState("");
 
-  function persistViews(next: SavedView[]) {
-    setSavedViews(next);
-    localStorage.setItem(savedViewsKey, JSON.stringify(next));
+  async function persistViews(next: SavedView[]) {
+    try {
+      await apiClient.post(`/records/sheet-views/${encodeURIComponent(objectType)}`, { views: next });
+      qc.invalidateQueries({ queryKey: ["sheet-views", objectType] });
+    } catch { /* server rejected — the list refetches to truth on next read */ }
   }
   function saveCurrentView() {
     if (!newViewName.trim()) return;
