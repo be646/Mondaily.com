@@ -279,6 +279,8 @@ function CategoryCell({ value, onSave }: {
 
 function isNumeric(col: string) {
   const lower = col.toLowerCase();
+  // "country" contains "count" — it rendered with a # header icon and right-aligned as a number.
+  if (lower.includes("country")) return false;
   return ["amount","price","value","arr","mrr","revenue","budget","salary",
           "cost","balance","count","score","number","followers","raised"].some(k => lower.includes(k));
 }
@@ -2149,7 +2151,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     staleTime: 60_000,
   });
 
-  const allColumnsWithCustom = useMemo(() => [...allColumns, ...regularCustomCols.map(c => c.key)], [allColumns, regularCustomCols]);
+  // Dedupe: a custom column whose key collides with a data-derived key (e.g. a "Country" custom
+  // column on a sheet whose records already carry `country`) rendered the SAME key twice —
+  // duplicate React keys orphaned one td's fiber, leaving a visible but completely DEAD cell
+  // (clicks reached the handler, state updates were enqueued and never flushed). One key, one column.
+  const allColumnsWithCustom = useMemo(
+    () => [...allColumns, ...regularCustomCols.map(c => c.key).filter(k => !allColumns.some(a => a.toLowerCase() === k.toLowerCase()))],
+    [allColumns, regularCustomCols],
+  );
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
 
   // ── Column reorder ──

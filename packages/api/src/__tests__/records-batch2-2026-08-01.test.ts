@@ -52,6 +52,18 @@ describe("cells — single line, auto-fit with caps, compact totals", () => {
   });
 });
 
+describe("column keys are unique — duplicate React keys orphan fibers (dead cells)", () => {
+  it("custom column keys colliding with data-derived keys are dropped, case-insensitively", () => {
+    // 2026-08-01: a custom Country column on a sheet already carrying `country` rendered the same
+    // key twice; React orphaned one td's fiber — the cell was visible but completely dead.
+    expect(table()).toMatch(/regularCustomCols\.map\(c => c\.key\)\.filter\(k => !allColumns\.some\(a => a\.toLowerCase\(\) === k\.toLowerCase\(\)\)\)/);
+  });
+
+  it("country is never treated as numeric by the name heuristic", () => {
+    expect(table()).toMatch(/if \(lower\.includes\("country"\)\) return false/);
+  });
+});
+
 describe("Owner vs Assignee — one meaning per word", () => {
   it("record sheets display assigned-to columns as Owner", () => {
     expect(table()).toMatch(/if \(\/\^\(assigned_to\|assignee\|assigned\)\$\/i\.test\(col\)\) return "Owner"/);
