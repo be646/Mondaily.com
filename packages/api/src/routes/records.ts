@@ -187,7 +187,11 @@ router.post("/schema-unify", denyViewerWrites, zValidator("json", z.object({
       }
       for (const [, inner] of variants) {
         if (inner.size < 2) continue;
-        const winner = [...inner.entries()].sort((a, b) => b[1] - a[1])[0]![0];
+        // Title Case wins when present (the app's display standard) — pure frequency preferred
+        // lowercase "negotiation" over "Negotiation" just because more rows carried it.
+        const cands = [...inner.entries()].sort((a, b) => b[1] - a[1]);
+        const titled = cands.find(([v]) => /^[A-Z]/.test(v) && v === v.replace(/\b\w/g, ch => ch.toUpperCase()));
+        const winner = (titled ?? cands[0]!)[0];
         for (const [variant] of inner) {
           if (variant !== winner) (canonical[col] = canonical[col] ?? {})[variant] = winner;
         }
