@@ -120,13 +120,28 @@ router.post("/nlp", requireAuth, verifyAiCredits, zValidator("json", z.object({
     const input = await aiGatewayToolUse({
       maxTokens: 512,
       system: "You parse natural-language table commands into structured filter/sort/calc operations.",
-      prompt: `Available columns: ${columns.join(", ")}\n\nParse this command: "${query}"\n\nOnly include fields that are clearly requested. sortCol MUST exactly match one of the available columns — map synonyms (e.g. "AI score" or "lead score" → "lead_score"; "value"/"amount" → the closest column). filterText should be the value to search for, not the column name.`,
+      prompt: `Available columns: ${columns.join(", ")}\n\nParse this command: "${query}"\n\nOnly include fields that are clearly requested. Prefer STRUCTURED conditions over filterText: "high confidence people" → conditions:[{col:"confidence_label",op:"is",value:"high"}]. Use filterText only for genuine free-text search. sortCol and condition cols MUST exactly match available columns — map synonyms (e.g. "AI score" or "lead score" → "lead_score"; "value"/"amount" → the closest column). "no activity in N days" → {col:"last_activity",op:"before",value:"<ISO date N days ago>"} is NOT computable by you — instead emit {col:"last_activity",op:"before",value:"${new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10)}"} style dates only when the user names a period; today is ${new Date().toISOString().slice(0, 10)}.`,
       toolName: "parse_table_command",
       toolDescription: "Parse a natural language command into table filter/sort/calc operations",
       toolSchema: {
         type: "object",
         properties: {
-          filterText: { type: "string", description: "Text to filter rows by (substring match)" },
+          // Structured conditions land in the table as the SAME removable chips a manual filter
+          // creates — the user can see and undo exactly what the AI did.
+          conditions: {
+            type: "array",
+            description: "Structured filters. Each col must be one of the available columns.",
+            items: {
+              type: "object",
+              properties: {
+                col: { type: "string", description: `One of: ${columns.join(", ")}, or last_activity` },
+                op: { type: "string", enum: ["is", "is_not", "contains", "empty", "not_empty", "before", "after", "gt", "lt"] },
+                value: { type: "string" },
+              },
+              required: ["col", "op"],
+            },
+          },
+          filterText: { type: "string", description: "Free-text search ONLY when no structured condition fits" },
           sortCol:    { type: "string", description: `Column to sort by. Must be one of: ${columns.join(", ")}` },
           sortDir:    { type: "string", enum: ["asc", "desc"] },
           calcOps: {
@@ -143,8 +158,13 @@ router.post("/nlp", requireAuth, verifyAiCredits, zValidator("json", z.object({
       feature: "generate.nlp",
     });
 
-    if (!input || Object.keys(input).length === 0) return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
-    return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...input });
+    if (!input || Object.keys(input).length === 0) return c.json({ conditions: [], filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
+    // Conditions are validated against the caller's real columns — the model may not invent cols.
+    const allowed = new Set([...columns, "last_activity"]);
+    const conditions = (Array.isArray((input as Record<string, unknown>).conditions) ? (input as { conditions: { col?: string; op?: string; value?: string }[] }).conditions : [])
+      .filter(cd => cd?.col && allowed.has(cd.col) && typeof cd.op === "string")
+      .slice(0, 10);
+    return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...input, conditions });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }

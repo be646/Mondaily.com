@@ -1068,7 +1068,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
  */
 function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   columns: string[];
-  onApply: (filterText: string, sortCol: string | null, sortDir: SortDir, calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">) => void;
+  onApply: (filterText: string, sortCol: string | null, sortDir: SortDir, calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">, conditions?: Cond[]) => void;
   onClear: () => void;
   hasActive: boolean;
 }) {
@@ -1103,7 +1103,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
       if (!res.ok) throw new Error();
       const parsed = await res.json() as any;
       if (parsed.error) throw new Error();
-      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {});
+      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {}, Array.isArray(parsed.conditions) ? parsed.conditions : []);
       setLastApplied(trimmed);
       setStatus("applied");
       setTimeout(() => setStatus("idle"), 2500);
@@ -2120,20 +2120,36 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       : [{ col, dir: "asc" }]);
   }
 
-  // CSV of exactly what the view shows. `sorted` is the filtered/sorted page held in memory, so the
-  // button states its row count and the panel warns when the type has more rows than are loaded.
-  function exportCSV() {
-    const rows = [orderedColumns.join(","), ...visibleRows.map(r => orderedColumns.map(c => JSON.stringify(cellValue(r, c) ?? "")).join(","))].join("\n");
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
-    a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
+  // SERVER-side CSV: the whole filtered set (same q/filters/sort the view uses), not just the
+  // loaded page — and the role export permission from Security settings is enforced there.
+  const [exportErr, setExportErr] = useState<string | null>(null);
+  async function exportCSV() {
+    setExportErr(null);
+    try {
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set("q", debouncedSearch);
+      if (serverConds.length) params.set("filters", JSON.stringify(serverConds.map(cd => ({ col: cd.col, op: cd.op, value: cd.value }))));
+      if (primarySort) { params.set("sort_col", primarySort.col); params.set("sort_dir", primarySort.dir); }
+      const res = await apiFetch(`${(import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || ""}/api/v1/records/export/${encodeURIComponent(objectType)}?${params}`, { headers: await getAuthHeaders() });
+      if (!res.ok) { const j = await res.json().catch(() => ({})) as { error?: string }; throw new Error(j.error || "Export failed."); }
+      const blob = await res.blob();
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${objectType}.csv` });
+      a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
+    } catch (e) {
+      setExportErr(e instanceof Error ? e.message : "Export failed.");
+    }
   }
 
   const [nlpActive, setNlpActive] = useState(false);
-  const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">) => {
+  const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">, conds?: Cond[]) => {
+    // Structured conditions land as the SAME removable chips a manual filter creates — the user
+    // sees and can undo exactly what the AI applied, instead of an opaque text search.
+    if (conds?.length) { setConditions(conds); setOpenPanel("filter"); }
     if (ft) setToolbarSearch(ft);
     if (sc) setSortRules([{ col: sc, dir: sd }]);
     if (Object.keys(ops).length) setCalculations(prev => ({ ...prev, ...ops }));
     setNlpActive(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Filter → sort pipeline ──
@@ -3073,13 +3089,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={exportCSV} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={11}/> Export as CSV
-            <span className="text-[10px] text-[var(--text-secondary)] ml-1">({visibleRows.length} rows)</span>
+            {/* server-side: exports ALL matching records (filters applied), not the loaded page */}
+            <span className="text-[10px] text-[var(--text-secondary)] ml-1">(all matching records)</span>
           </button>
-          {truncated && (
-            <span className="text-[10px] text-[var(--status-warn)]">
-              exports the {records.length} loaded rows, not all {totalOfType}
-            </span>
-          )}
+          {exportErr && <span className="text-[10px] text-[var(--status-error)]">{exportErr}</span>}
           <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0"><X size={13}/></button>
         </div>
       )}

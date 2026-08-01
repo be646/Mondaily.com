@@ -36,7 +36,10 @@ describe("Graph audit — a page size is never presented as a total", () => {
     // and says so plainly when the PAGE hit its cap. (2026-08-01: records is now the server-filtered
     // result, so a bare totalOfType > records.length would flag every narrowed search as truncation.)
     expect(table()).toMatch(/const truncated = records\.length >= PAGE_LIMIT && totalOfType > records\.length/);
-    expect(table()).toMatch(/exports the \{records\.length\} loaded rows, not all \{totalOfType\}/);
+    // 2026-08-01: export moved SERVER-side — it now exports ALL matching records (role-gated),
+    // so the page-bound warning is gone and the button says what it does.
+    expect(table()).toMatch(/\/api\/v1\/records\/export\//);
+    expect(table()).toMatch(/\(all matching records\)/);
   });
 
   it("the object-type registry is not capped at the generic 100-row default", () => {

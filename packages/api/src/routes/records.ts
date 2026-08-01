@@ -8,6 +8,7 @@ import { aiGateway } from "../lib/ai-gateway";
 import { evaluateFormula, formulaFields } from "@mondaily/shared/formula";
 import { loadRates, userDisplayCurrency, workspaceBaseCurrency } from "../lib/currency-store";
 import { aggregateGrouped, aggregateRows, aggregateTop, applyFilters, type AggRow, type MoneyCtx } from "../lib/aggregate";
+import { listNodes as ubcListNodes } from "@mondaily/db/ubc";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -139,6 +140,55 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
     op, column, group_by, object_type,
     value: r.value, total_rows: r.count, truncated, unconverted: r.unconverted, currency: currencyCode,
   });
+});
+
+/**
+ * GET /records/export/:objectType — SERVER-side CSV of every matching record (same q/filters/sort
+ * params as GET /nodes), so an export is the whole filtered set — the client button used to
+ * serialize only the loaded page and silently stop at its edge.
+ *
+ * Enforces the role export permission from Security settings (access_controls.<role>.export);
+ * the toggle existed in the UI but nothing checked it on this path. Default matches the UI:
+ * owner/admin may export, member/viewer may not.
+ */
+router.get("/export/:objectType", async (c) => {
+  const ws = c.get("workspaceId");
+  const role = c.get("role") || "member";
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const controls = ((wsRow?.settings as Record<string, unknown> | null)?.access_controls ?? null) as Record<string, { export?: boolean }> | null;
+  const mayExport = controls ? Boolean(controls[role]?.export) : role === "owner" || role === "admin";
+  if (!mayExport) return c.json({ error: "Your role does not have CSV export permission — ask a workspace admin." }, 403);
+
+  const objectType = c.req.param("objectType");
+  const q = c.req.query("q") || undefined;
+  let filters: import("@mondaily/db/ubc").NodeFilter[] | undefined;
+  try { const raw = c.req.query("filters"); filters = raw ? JSON.parse(raw).slice(0, 20) : undefined; } catch { filters = undefined; }
+  const sortCol = c.req.query("sort_col") || undefined;
+  const sortDir = c.req.query("sort_dir") === "desc" ? "desc" as const : "asc" as const;
+
+  // Page through the whole filtered set (bounded), never just the first page.
+  const EXPORT_CAP = 20_000;
+  const rows: { id: string; data: Record<string, unknown>; updated_at?: string }[] = [];
+  for (let offset = 0; offset < EXPORT_CAP; offset += 1000) {
+    const page = await ubcListNodes(ws, { object_type: objectType, q, filters, sort_col: sortCol, sort_dir: sortDir, limit: 1000, offset });
+    rows.push(...(page as typeof rows));
+    if (page.length < 1000) break;
+  }
+  const truncated = rows.length >= EXPORT_CAP;
+
+  const cols = [...new Set(rows.flatMap(r => Object.keys(r.data)))].filter(k => {
+    // structured (object-valued) fields don't belong in a CSV cell
+    return !rows.some(r => r.data[k] && typeof r.data[k] === "object");
+  }).slice(0, 60);
+  const esc = (v: unknown) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lines = [
+    [...cols, "updated_at"].map(esc).join(","),
+    ...rows.map(r => [...cols.map(k => esc(r.data[k])), esc(r.updated_at ?? "")].join(",")),
+    ...(truncated ? [`# TRUNCATED: first ${EXPORT_CAP} rows only`] : []),
+  ];
+  c.header("Content-Type", "text/csv; charset=utf-8");
+  c.header("Content-Disposition", `attachment; filename="${objectType}-${rows.length}-rows.csv"`);
+  return c.body(lines.join("\n"));
 });
 
 /**
