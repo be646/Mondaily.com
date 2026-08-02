@@ -137,8 +137,11 @@ router.get("/", requireAuth, zValidator("query", z.object({
   // ALL sort rules, in order — JSON: [{col, dir, numeric}]. Only the first rule used to reach SQL
   // (sort_col/sort_dir below, kept for existing callers); the rest were applied in the browser over
   // the loaded page, so past the page cap the tie-breaks ordered the wrong subset of records.
-  sorts: z.string().max(1000).optional()
-    .transform((raw, ctx): { col: string; dir?: "asc" | "desc"; numeric?: boolean }[] | undefined => {
+  // `rank` carries the ordered spellings for a stage/status/priority column so SQL can ORDER BY
+  // pipeline position rather than alphabet. Capped and length-limited: it is interpolated into a
+  // rank array server-side, and an unbounded list would be a free way to inflate the query.
+  sorts: z.string().max(4000).optional()
+    .transform((raw, ctx): { col: string; dir?: "asc" | "desc"; numeric?: boolean; rank?: string[] }[] | undefined => {
       if (!raw) return undefined;
       try {
         const parsed = JSON.parse(raw);
@@ -149,6 +152,9 @@ router.get("/", requireAuth, zValidator("query", z.object({
             col: String(s.col),
             dir: s.dir === "desc" ? "desc" as const : "asc" as const,
             numeric: s.numeric === true,
+            ...(Array.isArray(s.rank) && s.rank.length
+              ? { rank: (s.rank as unknown[]).slice(0, 60).map(v => String(v).slice(0, 60)) }
+              : {}),
           }));
       } catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "sorts must be a JSON array" }); return z.NEVER; }
     }),

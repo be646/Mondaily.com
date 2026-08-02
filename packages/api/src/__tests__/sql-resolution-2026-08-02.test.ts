@@ -42,8 +42,12 @@ describe("every sort rule reaches SQL, in order", () => {
   });
 
   it("the route accepts and shape-validates the rule list", () => {
-    expect(nodesRoute()).toMatch(/sorts: z\.string\(\)\.max\(1000\)\.optional\(\)/);
+    expect(nodesRoute()).toMatch(/sorts: z\.string\(\)\.max\(4000\)\.optional\(\)/);
     expect(nodesRoute()).toMatch(/parsed\.slice\(0, 4\)/);
+  });
+
+  it("rank spellings are bounded — they are interpolated into a SQL rank array", () => {
+    expect(nodesRoute()).toMatch(/\(s\.rank as unknown\[\]\)\.slice\(0, 60\)\.map\(v => String\(v\)\.slice\(0, 60\)\)/);
   });
 
   it("the client sends every rule", () => {
@@ -81,7 +85,38 @@ describe("what cannot resolve in SQL is disclosed, never presented as the answer
   });
 });
 
-describe("the list_records migration is shipped but not yet relied upon", () => {
+describe("list_records is the primary path, with a fail-soft fallback", () => {
+  it("listNodes calls the function first", () => {
+    expect(ubc()).toMatch(/supabase\.rpc\("list_records"/);
+    expect(ubc()).toMatch(/if \(!listRecordsMissing\)/);
+  });
+
+  it("a missing function degrades to the query builder instead of erroring the request", () => {
+    // 42883 = undefined_function, PGRST202 = absent from the schema cache.
+    expect(ubc()).toMatch(/error\.code === "42883" \|\| error\.code === "PGRST202"/);
+    expect(ubc()).toMatch(/listRecordsMissing = true/);
+  });
+
+  it("a REAL failure still surfaces — only 'not found' is swallowed", () => {
+    expect(ubc()).toMatch(/} else \{\s*\n\s*throw new Error\(`listNodes failed/);
+  });
+
+  it("column names are shape-validated before they reach the function", () => {
+    expect(ubc()).toMatch(/\.filter\(s => s\.col && SAFE_COL\.test\(s\.col\)\)\.slice\(0, 4\)/);
+    expect(ubc()).toMatch(/\(options\.filters \?\? \[\]\)\.filter\(f => SAFE_COL\.test\(f\.col\)\)/);
+  });
+
+  it("the ordered vocabulary is sent from the app — the database keeps no copy to drift from", () => {
+    expect(table()).toMatch(/rank: vocabRankPairs\(slot\)\.map\(p => p\.match\)/);
+    expect(migration()).not.toMatch(/'Closed Won'|'Qualified'/);
+  });
+
+  it("the pgvector column is excluded from list payloads", () => {
+    expect(migration()).toMatch(/to_jsonb\(n\.\*\) - ''embedding''/);
+  });
+});
+
+describe("the list_records migration content", () => {
   it("parses numbers the same way the app does, instead of a regexp strip", () => {
     const sql = migration();
     expect(sql).toMatch(/create or replace function mondaily_num/);
@@ -109,10 +144,18 @@ describe("the list_records migration is shipped but not yet relied upon", () => 
     expect(guards.length).toBeGreaterThanOrEqual(3);   // search cols, filter cols, sort cols
   });
 
-  it("no caller depends on the function yet — it must be applied and verified first", () => {
-    // The NAME may appear in comments pointing at the migration; what must not exist is an
-    // invocation. Unverified plpgsql (no Postgres on the build machine) stays unwired.
-    expect(ubc()).not.toMatch(/rpc\(\s*["'`]list_records/);
-    expect(read("packages/api/src/routes/nodes.ts")).not.toMatch(/rpc\(\s*["'`]list_records/);
+  it("mondaily_num mirrors parseNumeric's actual rules, not a plausible-looking approximation", () => {
+    const sql = migration();
+    // The first draft treated "1.200" as thousands (1200) where the app reads 1.2, and dropped
+    // k/M/bn suffixes entirely. Both were caught by running the function against real data.
+    expect(sql).toMatch(/a SINGLE dot is a decimal point/);
+    expect(sql).toMatch(/\[kKmMbB\]\|bn\|BN\|Bn/);
+  });
+
+  it("execute is granted to service_role only — the function takes a workspace id as an argument", () => {
+    const sql = migration();
+    expect(sql).toMatch(/revoke execute on function list_records[\s\S]*from public/);
+    expect(sql).toMatch(/grant execute on function list_records[\s\S]*to service_role;/);
+    expect(sql).not.toMatch(/grant execute on function list_records[\s\S]*(authenticated|anon)/);
   });
 });

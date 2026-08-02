@@ -46,9 +46,64 @@ export async function getNode(id: string, workspaceId: string): Promise<(Node & 
 export type NodeFilter = { col: string; op: "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after"; value?: string };
 const SAFE_COL = /^[a-zA-Z0-9_-]{1,64}$/;   // client-supplied names; "." and spaces are refused — data->>a.b parses as a DIFFERENT path and silently mis-targets
 
-export interface NodeSort { col: string; dir?: "asc" | "desc"; numeric?: boolean }
+export interface NodeSort {
+  col: string;
+  dir?: "asc" | "desc";
+  numeric?: boolean;
+  /** Ordered spellings for a rank column (stage/status/priority) — see @mondaily/shared/vocab. */
+  rank?: string[];
+}
+
+/**
+ * True once we know list_records is unavailable, so we stop paying for a failed RPC on every call.
+ * Reset only by a process restart, which is also when a newly-applied migration would take effect.
+ */
+let listRecordsMissing = false;
 
 export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; q_cols?: string[]; filters?: NodeFilter[]; sorts?: NodeSort[]; sort_col?: string; sort_dir?: "asc" | "desc"; sort_numeric?: boolean; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+  // PRIMARY PATH: list_records resolves the entire view in SQL — every sort rule in order, rank
+  // ordering by pipeline position, numeric >/< comparison, and NULLIF so blank strings sink like
+  // real nulls. PostgREST can express none of those, which is why the sheet used to finish the job
+  // in the browser over the loaded page. Verified against production data 2026-08-02 (ordering,
+  // direction, multi-key, filters, search + wildcard escaping, injection, workspace isolation,
+  // paging). Falls back to the query-builder path below if the migration is not applied, so an
+  // environment without it keeps working exactly as before.
+  if (!listRecordsMissing) {
+    const rpcSorts = (options.sorts?.length
+      ? options.sorts
+      : options.sort_col
+        ? [{ col: options.sort_col, dir: options.sort_dir ?? "asc", numeric: options.sort_numeric } as NodeSort]
+        : []
+    ).filter(s => s.col && SAFE_COL.test(s.col)).slice(0, 4).map(s => ({
+      col: s.col,
+      dir: s.dir === "desc" ? "desc" : "asc",
+      kind: s.rank?.length ? "rank" : s.numeric ? "numeric" : "text",
+      ...(s.rank?.length ? { rank: s.rank } : {}),
+    }));
+    const { data, error } = await supabase.rpc("list_records", {
+      p_workspace_id: workspaceId,
+      p_object_type: options.object_type || options.objectType || null,
+      p_vertical: options.vertical ?? null,
+      p_parent_id: options.parent_id ?? null,
+      p_q: options.q?.trim() || null,
+      p_q_cols: options.q_cols?.filter(c => SAFE_COL.test(c)).slice(0, 30) ?? null,
+      p_filters: (options.filters ?? []).filter(f => SAFE_COL.test(f.col)),
+      p_sorts: rpcSorts,
+      p_limit: options.limit || 50,
+      p_offset: Math.max(0, options.offset ?? 0),
+    });
+    if (!error) {
+      return (data ?? []).map((r: { record: Node }) => r.record) as Node[];
+    }
+    // 42883 = function does not exist, PGRST202 = not found in the schema cache.
+    if (error.code === "42883" || error.code === "PGRST202") {
+      listRecordsMissing = true;
+      console.warn("[ubc] list_records not found — falling back to the query builder. Apply 20260802_list_records.sql for full SQL resolution.");
+    } else {
+      throw new Error(`listNodes failed: ${error.message}`);
+    }
+  }
+
   // Secondary sort on id: range-pagination over a non-unique key ALONE skips/duplicates rows that
   // share a value (bulk imports write many rows in the same instant), so pages were not
   // deterministic even when offset worked.

@@ -26,7 +26,7 @@ import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
 import { PipelineHealthBadge } from "./pipeline-health-badge";
 import { parseNumeric } from "@mondaily/shared/numbers";
-import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor } from "@mondaily/shared/vocab";
+import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor, vocabRankPairs } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
@@ -2066,7 +2066,18 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       // (formula/finance) have no stored value to order by, so they are skipped here and ranked
       // client-side; the disclosure below covers the difference.
       const sqlSorts = sortRules.filter(r => !isDerivedCol(r.col)).slice(0, 4)
-        .map(r => ({ col: r.col, dir: r.dir, numeric: r.col === primarySort?.col ? primarySortNumeric : false }));
+        .map(r => {
+          const slot = vocabSlotOf(r.col);
+          return {
+            col: r.col,
+            dir: r.dir,
+            numeric: r.col === primarySort?.col ? primarySortNumeric : false,
+            // Ordered spellings let SQL rank by pipeline position instead of alphabet. Sent from
+            // here so the vocabulary has ONE definition — the database does not get its own copy
+            // that could drift from what the sheet displays.
+            ...(slot ? { rank: vocabRankPairs(slot).map(p => p.match) } : {}),
+          };
+        });
       if (sqlSorts.length) params.set("sorts", JSON.stringify(sqlSorts));
       if (primarySort) {
         // kept for older API builds that only understand a single rule
