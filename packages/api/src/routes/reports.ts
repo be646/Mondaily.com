@@ -101,7 +101,7 @@ export async function runReportData(
   workspaceId: string,
   reportId: string,
   input: { type?: string; config?: Record<string, unknown> } = {}
-): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number | null; average_days?: number; forecast?: boolean }[]; total?: number; change?: number | null; chart_type: string; forecast_from?: number; slope?: number }> {
+): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number | null; average_days?: number; forecast?: boolean }[]; total?: number; change?: number | null; chart_type: string; forecast_from?: number; slope?: number; truncated?: boolean }> {
   const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("object_type", "report").eq("id", reportId).maybeSingle();
   if (!reportNode) return { error: "Report not found" };
   const stored = reportNode.data as { type?: string; config?: Record<string, unknown> };
@@ -117,6 +117,10 @@ export async function runReportData(
   ]));
   type ReportNode = { id: string; data: Record<string, any> | null; created_at: string; updated_at: string };
   let nodes: ReportNode[] = [];
+  // pagedSelect already knows when it stopped at the ceiling; that fact was computed and then
+  // discarded, so a report built from a partial scan presented its numbers as the whole picture.
+  // A report is read as fact, so the shortfall has to travel with the figures.
+  let truncated = false;
   for (const v of variants) {
     const r = await pagedSelect<ReportNode>((from, to) =>
       supabase.from("nodes").select("id,data,created_at,updated_at")
@@ -124,6 +128,7 @@ export async function runReportData(
         .order("created_at", { ascending: true })
         .range(from, to) as unknown as PromiseLike<{ data: ReportNode[] | null; error: unknown }>);
     nodes = r.rows;
+    truncated = truncated || r.truncated;
     if (nodes.length) break; // found real data for this variant
   }
 
@@ -180,7 +185,7 @@ export async function runReportData(
       // average_days omitted: it was hardcoded 0 and shipped as if it were a real metric.
       return { label: stage, value, dropoff };
     });
-    return { data: values, chart_type: "funnel" };
+    return { data: values, chart_type: "funnel", truncated };
   }
   if (type === "time_in_stage") {
     const stageField = String(config.stage_field ?? "stage");
@@ -206,7 +211,7 @@ export async function runReportData(
       const days = Math.max(0, (now - since) / 86_400_000);
       grouped.set(stage, [...(grouped.get(stage) ?? []), days]);
     }
-    return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(1)) })), chart_type: "bar" };
+    return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(1)) })), chart_type: "bar", truncated };
   }
   if (type === "historical") {
     const field = String(config.field ?? "value");
@@ -225,7 +230,7 @@ export async function runReportData(
       const value = Number(raw);
       return Number.isFinite(value) ? [{ label: new Date(activity.created_at).toLocaleDateString(), value }] : [];
     });
-    return { data, chart_type: "line" };
+    return { data, chart_type: "line", truncated };
   }
 
   const metric = String(config.metric ?? "count");
@@ -276,10 +281,10 @@ export async function runReportData(
     }));
     // change is NOT computed here (config.compare is never read and no prior-period query
     // runs), so report null rather than a fabricated 0 that the UI rendered as "+0%" in green.
-    return { data: [...data, ...projected], total, change: null, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)) };
+    return { data: [...data, ...projected], total, change: null, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)), truncated };
   }
 
-  return { data, total, change: null, chart_type: String(config.chart_type ?? "line") };
+  return { data, total, change: null, chart_type: String(config.chart_type ?? "line"), truncated };
 }
 
 router.post("/:id/run", async (c) => {

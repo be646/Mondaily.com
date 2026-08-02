@@ -1306,9 +1306,13 @@ async function executeTool(
         sources.push({ type: "report", title: `Report run: ${input.report_id}`, node_id: input.report_id, object_type: "report", match_reason: `chart_type: ${result.chart_type}` });
         const points = result.data.slice(0, 12).map(p => `- ${p.label}: ${p.value}`).join("\n");
         return [
-          `Report run results (real computed data, chart type: ${result.chart_type}):`,
+          // A truncated scan must say so IN the tool result: the model reads "Total: N" as the
+          // complete picture and will restate it as fact. The number is a lower bound, not a total.
+          result.truncated
+            ? `Report run results (real computed data, chart type: ${result.chart_type}) — WARNING: this report hit its scan ceiling, so these figures cover only part of the data and are a LOWER BOUND. Say so when reporting them.`
+            : `Report run results (real computed data, chart type: ${result.chart_type}):`,
           points || "(no data points)",
-          result.total !== undefined ? `Total: ${result.total}` : "",
+          result.total !== undefined ? `${result.truncated ? "Total so far (partial)" : "Total"}: ${result.total}` : "",
         ].filter(Boolean).join("\n");
       }
 
