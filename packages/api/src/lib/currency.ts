@@ -135,6 +135,53 @@ export function parseEcbXml(xml: string): FxRates | null {
   return { base: "EUR", date: dateMatch?.[1] ?? new Date().toISOString().slice(0, 10), rates };
 }
 
+/** ECB's 90-day history feed — the same reference series, one Cube per trading day. */
+export const DEFAULT_FX_HISTORY_SOURCE = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml";
+
+/**
+ * Parse the ECB multi-day history XML into one FxRates per trading day.
+ *
+ * The daily parser can't be reused: it regex-scans the WHOLE document for currency/rate pairs, so
+ * on a history file it would flatten ninety days into a single bogus snapshot (last value wins).
+ * Each `<Cube time="…">` block is its own day; inner cubes are self-closing, so a block ends at the
+ * first closing tag.
+ */
+export function parseEcbHistoryXml(xml: string): FxRates[] {
+  if (!xml || typeof xml !== "string") return [];
+  const days: FxRates[] = [];
+  const dayRe = /<Cube\s+time=["'](\d{4}-\d{2}-\d{2})["']\s*>([\s\S]*?)<\/Cube>/g;
+  let d: RegExpExecArray | null;
+  while ((d = dayRe.exec(xml)) !== null) {
+    const date = d[1]!;
+    const body = d[2]!;
+    const rates: Record<string, number> = {};
+    const re = /currency=["']([A-Za-z]{3})["']\s+rate=["']([\d.]+)["']/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(body)) !== null) {
+      const rate = Number(m[2]);
+      if (Number.isFinite(rate) && rate > 0) rates[m[1]!.toUpperCase()] = rate;
+    }
+    if (Object.keys(rates).length > 0) days.push({ base: "EUR", date, rates });
+  }
+  return days;
+}
+
+/**
+ * Fetch the rate history. Used to seed `fx_rates` so records written before the table kept history
+ * can still be valued at the rate that actually applied on their transaction date — otherwise the
+ * only options are "no value" or today's rate, and the second one is a lie.
+ */
+export async function fetchFxHistory(): Promise<FxRates[]> {
+  const url = process.env.FX_HISTORY_URL || DEFAULT_FX_HISTORY_SOURCE;
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/xml,text/xml" } });
+    if (!res.ok) return [];
+    return parseEcbHistoryXml(await res.text());
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Fetch fresh reference rates from the configured source (default ECB). Returns null on any failure
  * — the caller keeps the last stored rates rather than wiping them. No third-party call at request

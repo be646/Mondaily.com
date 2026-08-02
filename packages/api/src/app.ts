@@ -38,6 +38,7 @@ import { callsRouter } from "./routes/calls";
 import { adminReadinessRouter } from "./routes/admin-readiness";
 import { reportsRouter } from "./routes/reports";
 import { recordsRouter } from "./routes/records";
+import { moneyRouter } from "./routes/money";
 import { dashboardsRouter } from "./routes/dashboards";
 import { sequencesRouter } from "./routes/sequences";
 import { listsRouter } from "./routes/lists";
@@ -90,6 +91,7 @@ app.route("/api/v1/import", importRouter);
 app.route("/api/v1/generate", generateRouter);
 app.route("/api/v1/nodes", nodesRouter);
 app.route("/api/v1/records", recordsRouter);
+app.route("/api/v1/money", moneyRouter);
 app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/briefing", briefingRouter);
 app.route("/api/v1/owner", ownerRouter);      // owner/admin console (requireAdminRole on the route)

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   buildMoney, buildSettlement, hasMoney, readMoney, roundToCurrency, currencyDecimals,
 } from "@mondaily/shared/money";
+import { parseEcbHistoryXml, parseEcbXml } from "../lib/currency";
 
 /**
  * FX step 2 — the five-field money model. An amount is not a number: it is a number, the currency
@@ -169,5 +170,83 @@ describe("the write path stores the model without disturbing existing readers", 
     // Same-currency is rate 1 by definition; requiring a rate row would block a single-currency
     // workspace from recording anything.
     expect(read("packages/api/src/lib/currency-store.ts")).toMatch(/source: "identity"/);
+  });
+});
+
+describe("ECB history parsing — a 90-day file is 90 days, not one", () => {
+  it("returns one snapshot per trading day, each with its own rates", () => {
+    const xml = `<Cube>
+      <Cube time="2026-07-31"><Cube currency="USD" rate="1.1485"/><Cube currency="PLN" rate="4.3135"/></Cube>
+      <Cube time="2026-07-30"><Cube currency="USD" rate="1.1500"/><Cube currency="PLN" rate="4.3000"/></Cube>
+    </Cube>`;
+    const days = parseEcbHistoryXml(xml);
+    expect(days.length).toBe(2);
+    expect(days[0]!.date).toBe("2026-07-31");
+    expect(days[0]!.rates.PLN).toBe(4.3135);
+    expect(days[1]!.date).toBe("2026-07-30");
+    expect(days[1]!.rates.PLN).toBe(4.3);
+  });
+
+  it("the DAILY parser would flatten that file into one bogus snapshot — hence a separate parser", () => {
+    const xml = `<Cube>
+      <Cube time="2026-07-31"><Cube currency="PLN" rate="4.3135"/></Cube>
+      <Cube time="2026-07-30"><Cube currency="PLN" rate="4.3000"/></Cube>
+    </Cube>`;
+    const flat = parseEcbXml(xml)!;
+    expect(flat.rates.PLN).toBe(4.3);          // last value wins — the 30th, stamped as the 31st
+    expect(flat.date).toBe("2026-07-31");
+    expect(parseEcbHistoryXml(xml)[0]!.rates.PLN).toBe(4.3135);   // correct
+  });
+
+  it("returns [] for junk rather than throwing", () => {
+    expect(parseEcbHistoryXml("")).toEqual([]);
+    expect(parseEcbHistoryXml("<html>nope</html>")).toEqual([]);
+  });
+});
+
+describe("backfill values history honestly", () => {
+  const money = () => read("packages/api/src/routes/money.ts");
+
+  it("is owner/admin only and dry-run by default", () => {
+    const src = money();
+    expect(src).toMatch(/dry_run: z\.boolean\(\)\.default\(true\)/);
+    expect(src).toMatch(/if \(role !== "owner" && role !== "admin"\) return c\.json\(\{ error: "Owner\/admin only\." \}, 403\)/);
+  });
+
+  it("values each record at ITS OWN transaction date, never today's rate", () => {
+    const src = money();
+    expect(src).toMatch(/makeHistoricalConverter\(ws, candidates\.map\(dateOf\)\)/);
+    expect(src).toMatch(/dateKeys: \["issued_on", "sent_at", "created_at"\]/);
+  });
+
+  it("skips — never guesses — when no rate covers the date", () => {
+    const src = money();
+    expect(src).toMatch(/no \$\{currency\}→\$\{base\} rate on or before \$\{date\}/);
+    expect(src).not.toMatch(/loadRates\(\)[\s\S]{0,200}skipped/);
+  });
+
+  it("only touches records that lack the model, so re-running changes nothing", () => {
+    expect(money()).toMatch(/!hasMoney\(r\.data\)/);
+  });
+
+  it("captures settlement for already-paid invoices — it cannot be recovered later", () => {
+    expect(money()).toMatch(/String\(row\.data\.status \?\? ""\) === "paid"/);
+    expect(money()).toMatch(/buildSettlement\(p\.money, \{ rate: s\.rate, on: paidOn/);
+  });
+
+  it("reads the three legacy amount shapes correctly", () => {
+    const src = money();
+    expect(src).toMatch(/invoice:\s*\{ amount: d => Number\(d\.total \?\? 0\)/);
+    expect(src).toMatch(/credit_note:\s*\{ amount: d => \(Number\(d\.amount_cents \?\? 0\) \|\| 0\) \/ 100/);
+  });
+
+  it("exposes coverage so the gap is visible rather than assumed closed", () => {
+    const src = money();
+    expect(src).toMatch(/router\.get\("\/coverage"/);
+    expect(src).toMatch(/rates_earliest/);
+  });
+
+  it("writes are workspace-scoped", () => {
+    expect(money()).toMatch(/\.update\(\{ data: next \}\)\.eq\("workspace_id", ws\)\.eq\("id", p\.id\)/);
   });
 });

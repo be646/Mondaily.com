@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { fetchFxRates, convert, convertCurrency, rateBetween, DEFAULT_BASE_CURRENCY, type FxRates, type Conversion } from "./currency";
+import { fetchFxRates, fetchFxHistory, convert, convertCurrency, rateBetween, DEFAULT_BASE_CURRENCY, type FxRates, type Conversion } from "./currency";
 import { buildMoney, type MoneyFields } from "@mondaily/shared/money";
 
 /** Collapse rate rows to the newest quote per currency. */
@@ -69,6 +69,32 @@ export async function storeRates(fx: FxRates): Promise<number> {
   if (legacyErr) return 0;
   console.warn("[fx] stored without history — apply 20260802_fx_rates_history.sql to keep historical rates.");
   return rows.length;
+}
+
+/**
+ * Seed `fx_rates` with the ECB history feed (90 trading days).
+ *
+ * Needed because the table only started keeping history on 2026-08-02: every record written before
+ * that has a transaction date with no rate behind it, so it can only be valued at today's rate —
+ * which is exactly the lie this whole model removes. Idempotent: days already stored are upserted
+ * to the same values.
+ */
+export async function seedFxHistory(): Promise<{ days: number; rows: number; earliest: string | null; latest: string | null }> {
+  const history = await fetchFxHistory();
+  if (history.length === 0) return { days: 0, rows: 0, earliest: null, latest: null };
+  const rows = history.flatMap(day =>
+    Object.entries(day.rates).map(([currency, rate]) => ({
+      currency, rate, as_of: day.date, source: "ecb", updated_at: new Date().toISOString(),
+    })),
+  );
+  // Chunked: ~30 currencies × 90 days is ~2,700 rows, past a comfortable single-statement size.
+  let stored = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const { error } = await supabase.from("fx_rates").upsert(rows.slice(i, i + 500), { onConflict: "currency,as_of" });
+    if (!error) stored += rows.slice(i, i + 500).length;
+  }
+  const dates = history.map(h => h.date).sort();
+  return { days: history.length, rows: stored, earliest: dates[0] ?? null, latest: dates[dates.length - 1] ?? null };
 }
 
 /** Refresh rates from the configured source (daily cron entry). Returns how many currencies stored. */
