@@ -244,6 +244,20 @@ export function DataHealthSettings() {
             </p>
           )}
 
+          {/* The scan and the plan apply DIFFERENT identity rules, on purpose: the scan flags a
+              shared source URL or email so a human can look, while the plan requires the URL AND a
+              matching name before it will delete anything, because one website hosts two real
+              businesses often enough to matter. Left unexplained, "1 duplicate found → 0 to remove"
+              reads as a broken tool rather than a deliberately cautious one. */}
+          {scan && plan.summary.groups_to_collapse < scan.summary.strong_group_count && (
+            <p className="mt-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+              The scan flagged {scan.summary.strong_group_count} group{scan.summary.strong_group_count === 1 ? "" : "s"} but
+              only {plan.summary.groups_to_collapse} can be collapsed automatically. Removing a record needs a
+              stricter match than flagging one for review: a shared web address is enough to look, but not
+              enough to delete, because one site can host two real businesses.
+            </p>
+          )}
+
           {plan.blocked.length > 0 && (
             <div className="mt-3">
               <p className="text-[11px] font-medium" style={{ color: "var(--status-warn)" }}>

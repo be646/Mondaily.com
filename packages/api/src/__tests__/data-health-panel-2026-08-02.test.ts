@@ -83,3 +83,18 @@ describe("the panel is reachable", () => {
     expect(read("apps/app/src/App.tsx")).toMatch(/const DataHealthSettings = lazy\(/);
   });
 });
+
+describe("the scan and the plan disagree on purpose, and the panel says so", () => {
+  it("explains the gap instead of letting '1 found, 0 removable' read as a bug", () => {
+    // Measured live on discovered-leads: the scan reports 1 strong group, the plan 0. The scan
+    // flags a shared source_url so a human can look; the plan requires source_url AND a matching
+    // name before deleting, because one website hosts two real businesses often enough to matter.
+    const src = panel();
+    expect(src).toMatch(/plan\.summary\.groups_to_collapse < scan\.summary\.strong_group_count/);
+    expect(src).toMatch(/enough to look, but not\s*\n?\s*enough to delete/);
+  });
+
+  it("the stricter rule is the server's, not something the panel invented", () => {
+    expect(clean()).toMatch(/Never source_url alone — one website can host two real entities/);
+  });
+});
