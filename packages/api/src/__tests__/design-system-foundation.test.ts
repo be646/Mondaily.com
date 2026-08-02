@@ -249,7 +249,7 @@ describe("finance/quotes fully adopts the shared type scale (Pass 3O)", () => {
     expect(Q).toMatch(/text-label text-\[var\(--text-secondary\)\]/); // date cells stay weight-400 (no font-* added)
   });
   it("behaviour/formatting untouched — amount field, status badge, telemetry, DataTable intact", () => {
-    expect(Q).toMatch(/fmt\(q\.total, q\.currency\)/);
+    expect(Q).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(Q).toMatch(/STATUS_CONFIG\[q\.status\]/);
     expect(Q).toMatch(/formatMoney\(totalPending, currency\)/);   // telemetry unchanged
     expect(Q).toMatch(/<DataTable<Quote>/);
@@ -467,9 +467,9 @@ describe("redundant control text classes removed where the 4A floor already prov
   });
   it("no handlers/finance fields changed by the cleanup", () => {
     expect(Q).toMatch(/apiClient\.post\("\/quotes"/);
-    expect(Q).toMatch(/fmt\(q\.total, q\.currency\)/);
+    expect(Q).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(CN).toMatch(/onClick=\{\(\) => setShowNew\(true\)\}/);
-    expect(CN).toMatch(/fmt\(cn\.amount_cents, cn\.currency\)/);
+    expect(CN).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
   });
 });
 
@@ -1076,7 +1076,7 @@ describe("finance/quotes pilots the shared DataTable", () => {
   });
   it("cell formatting + status badge stay page-owned (fmt + STATUS_CONFIG in the column model)", () => {
     expect(Q).toMatch(/const QUOTE_COLUMNS: DataTableColumn<Quote>\[\]/);
-    expect(Q).toMatch(/fmt\(q\.total, q\.currency\)/);          // money formatting (major-unit total)
+    expect(Q).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(Q).toMatch(/STATUS_CONFIG\[q\.status\]/);            // status badge unchanged
   });
 });
@@ -1086,7 +1086,7 @@ describe("quotes amount reads the REAL API field (no more £NaN)", () => {
   it("never reads the non-existent q.amount_cents; uses q.total (major units) for amount + telemetry", () => {
     expect(Q).not.toMatch(/q\.amount_cents/);                  // the field the API never returns
     expect(Q).toMatch(/total: number/);                        // Quote type matches the API contract
-    expect(Q).toMatch(/fmt\(q\.total, q\.currency\)/);          // amount column
+    expect(Q).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(Q).toMatch(/amount: q\.total \?\? 0/);               // telemetry sum input
   });
 });
@@ -1123,7 +1123,7 @@ describe("finance/credit-notes uses the shared DataTable", () => {
   it("status badges + money formatting stay page-owned, credit-note amount field UNCHANGED", () => {
     expect(CN).toMatch(/const CREDIT_NOTE_COLUMNS: DataTableColumn<CreditNote>\[\]/);
     expect(CN).toMatch(/STATUS_CONFIG\[cn\.status\]/);
-    expect(CN).toMatch(/fmt\(cn\.amount_cents, cn\.currency\)/);   // credit-note math/field untouched
+    expect(CN).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
   });
   it("keeps its richer shared loading/error/empty states (routed through the expected UI)", () => {
     expect(CN).toMatch(/<ConsoleSkeleton/);
@@ -1150,7 +1150,7 @@ describe("finance/credit-notes fully adopts the shared type scale (Pass 3Q)", ()
     expect(CN).toMatch(/<KPITile/);                                           // KPI numbers via shared tile (2026-07-30)
   });
   it("behavior intact — amount field, status config, DataTable + row navigation untouched", () => {
-    expect(CN).toMatch(/fmt\(cn\.amount_cents, cn\.currency\)/);
+    expect(CN).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(CN).toMatch(/STATUS_CONFIG\[cn\.status\]/);
     expect(CN).toMatch(/columns=\{CREDIT_NOTE_COLUMNS\}/);
     expect(CN).toMatch(/onRowClick=\{\(cn\) => navigate\(`\/finance\/credit-notes\/\$\{cn\.id\}`\)\}/);
@@ -1265,7 +1265,7 @@ describe("finance/invoices uses the shared DataTable", () => {
   it("status badge, amount (inv.total), date + the Open→ link stay page-owned; amount field UNCHANGED", () => {
     expect(INV).toMatch(/const INVOICE_COLUMNS: DataTableColumn<Invoice>\[\]/);
     expect(INV).toMatch(/STATUS_CONFIG\[inv\.status\]/);
-    expect(INV).toMatch(/formatCurrency\(inv\.total, inv\.currency\)/);   // amount math/field untouched
+    expect(INV).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(INV).toMatch(/formatDate\(inv\.due_date\)/);
     expect(INV).toMatch(/to=\{`\/finance\/invoices\/\$\{inv\.id\}`\}/);   // Open→ link preserved
   });
@@ -1301,7 +1301,7 @@ describe("finance/invoices fully adopts the shared type scale (Pass 3R)", () => 
     expect(INV).toMatch(/text-caption font-medium \$\{cfg\.color\}/);              // status badge
   });
   it("behavior intact — amount field, status, Open→ link + row navigation untouched", () => {
-    expect(INV).toMatch(/formatCurrency\(inv\.total, inv\.currency\)/);
+    expect(INV).toMatch(/<MoneyCell row=/);   // money column renders via MoneyCell (readMoney reads the same field)
     expect(INV).toMatch(/STATUS_CONFIG\[inv\.status\]/);
     expect(INV).toMatch(/to=\{`\/finance\/invoices\/\$\{inv\.id\}`\}/);
     expect(INV).toMatch(/onRowClick=\{\(inv\) => navigate\(`\/finance\/invoices\/\$\{inv\.id\}`\)\}/);

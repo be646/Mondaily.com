@@ -444,3 +444,38 @@ describe("reports read the frozen value, and say when they can't", () => {
     expect(s).not.toMatch(/SHARE_COLORS = \[[^\]]*--status-(ok|error|warn)/);
   });
 });
+
+describe("dual-currency cells distinguish a fixed value from a moving one", () => {
+  const cell = () => read("apps/app/src/components/finance/money-cell.tsx");
+
+  it("the charged amount is the primary line and is never converted", () => {
+    expect(cell()).toMatch(/const primary = formatMoney\(m\.amount, m\.currency\)/);
+  });
+
+  it("no second line when it would just repeat the first", () => {
+    expect(cell()).toMatch(/if \(charged === target\)/);
+  });
+
+  it("a frozen value renders exact; a live one is marked approximate", () => {
+    // Without the marker a figure that drifts every morning looks identical to one fixed forever.
+    const s = cell();
+    expect(s).toMatch(/\{frozen \? "" : "≈"\}\{secondary\}/);
+    expect(s).toMatch(/frozen = true/);
+  });
+
+  it("says which case it is, in words, on hover", () => {
+    const s = cell();
+    expect(s).toMatch(/Fixed at the rate on the transaction date/);
+    expect(s).toMatch(/converted at today's rate and will change as rates move/);
+  });
+
+  it("an unconvertible amount says so instead of rendering nothing", () => {
+    expect(cell()).toMatch(/no \{target\} rate/);
+  });
+
+  it("all four finance lists use it", () => {
+    for (const f of ["invoices", "quotes", "credit-notes", "expenses"]) {
+      expect(read(`apps/app/src/routes/dashboard/finance/${f}.tsx`), f).toMatch(/<MoneyCell row=/);
+    }
+  });
+});

@@ -12,6 +12,7 @@ import { PeriodSelector } from "../../../components/ui/period-selector";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { isOutstanding } from "@mondaily/shared/finance";
+import { MoneyCell } from "../../../components/finance/money-cell";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -76,7 +77,7 @@ const INVOICE_COLUMNS: DataTableColumn<Invoice>[] = [
         {inv.client_email && <div className="text-label text-[var(--text-secondary)]">{inv.client_email}</div>}
       </>
     ) },
-  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (inv) => formatCurrency(inv.total, inv.currency) },
+  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (inv) => <MoneyCell row={inv as unknown as Record<string, unknown>}/> },
   { key: "status", header: "Status", cell: (inv) => {
       const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.draft;
       const Icon = cfg.icon;

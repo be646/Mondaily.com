@@ -14,6 +14,7 @@ import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
   CheckCircle2, XCircle, Clock, Trash2,
 } from "lucide-react";
+import { MoneyCell } from "../../../components/finance/money-cell";
 
 interface Expense {
   id: string;
@@ -192,7 +193,7 @@ const EXPENSE_COLUMNS: DataTableColumn<Expense>[] = [
         </span>
       );
     } },
-  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (e) => fmt(e.amount_cents, e.currency) },
+  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (e) => <MoneyCell row={e as unknown as Record<string, unknown>}/> },
   { key: "status", header: "Status", cell: (e) => {
       const stsCfg = STATUS_CONFIG[e.status] ?? STATUS_CONFIG["draft"]!;
       const StsIcon = stsCfg.icon;

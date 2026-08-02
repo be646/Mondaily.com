@@ -11,6 +11,7 @@ import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCur
 import {
   Plus, ReceiptText, Clock, CheckCircle2, XCircle, Send, FileOutput,
 } from "lucide-react";
+import { MoneyCell } from "../../../components/finance/money-cell";
 
 type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
 
@@ -45,10 +46,6 @@ const FILTERS = [
   { key: "declined", label: "Declined" },
   { key: "expired",  label: "Expired"  },
 ];
-
-function fmt(amount: number, currency: string) {
-  return (amount ?? 0).toLocaleString("en-GB", { style: "currency", currency, minimumFractionDigits: 2 });
-}
 
 function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: () => void }) {
   const { base, currencies } = useCurrency();
@@ -181,7 +178,7 @@ const dateGB = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day:
 const QUOTE_COLUMNS: DataTableColumn<Quote>[] = [
   { key: "number",  header: "Number", cellClassName: "text-body font-mono text-[var(--text-faint)]",    cell: (q) => q.number },
   { key: "client",  header: "Client", cellClassName: "text-body font-medium text-[var(--text-primary)]", cell: (q) => q.client_name },
-  { key: "amount",  header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (q) => fmt(q.total, q.currency) },
+  { key: "amount",  header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (q) => <MoneyCell row={q as unknown as Record<string, unknown>}/> },
   { key: "status",  header: "Status", cell: (q) => {
       const cfg = STATUS_CONFIG[q.status] ?? STATUS_CONFIG.draft;
       const Icon = cfg.icon;

@@ -13,6 +13,7 @@ import {
   Plus, ReceiptText, Clock, CheckCircle2,
   XCircle, ChevronRight,
 } from "lucide-react";
+import { MoneyCell } from "../../../components/finance/money-cell";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
 // Mirrors the backend state machine: draft → pending_review → verified → executed (+ rejected, void).
@@ -186,7 +187,7 @@ const CREDIT_NOTE_COLUMNS: DataTableColumn<CreditNote>[] = [
         </div>
       ) : <span className="text-label text-[var(--text-secondary)]">—</span>
     ) },
-  { key: "amount", header: "Amount", align: "right", cellClassName: "text-row font-semibold tabular-nums text-[var(--text-primary)]", cell: (cn) => fmt(cn.amount_cents, cn.currency) },
+  { key: "amount", header: "Amount", align: "right", cellClassName: "text-row font-semibold tabular-nums text-[var(--text-primary)]", cell: (cn) => <MoneyCell row={cn as unknown as Record<string, unknown>} align="right"/> },
   { key: "created", header: "Created", cellClassName: "text-label text-[var(--text-secondary)]", cell: (cn) => cnDateGB(cn.created_at) },
   { key: "chevron", header: "", cell: () => <ChevronRight size={13} className="text-[var(--text-secondary)] transition-colors" /> },
 ];
