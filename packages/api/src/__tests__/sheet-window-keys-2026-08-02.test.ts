@@ -247,7 +247,8 @@ describe("the window is measured off the scroll event itself", () => {
     // rAF is throttled, and in a background tab suspended entirely, so the coalescing frame never
     // ran. Browsers already fire scroll at most once per frame.
     const src = read("apps/app/src/components/records/row-window.ts");
-    expect(src).not.toMatch(/requestAnimationFrame/);
+    // The CALL, not the word — the comment above the listener names rAF to explain why.
+    expect(src).not.toMatch(/=\s*requestAnimationFrame\(|\brequestAnimationFrame\(\(/);
     expect(src).toMatch(/el\.addEventListener\("scroll", measure, \{ passive: true \}\)/);
   });
 
