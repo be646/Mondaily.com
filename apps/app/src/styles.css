@@ -155,7 +155,11 @@ html[data-theme="paper"] {
 }
 
 /* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
-html[data-theme="daylight"], html[data-theme="light"] {
+/* `[data-theme="light"]` is intentionally NOT restricted to <html>: the onboarding layout forces a
+   light context on a div regardless of the user's theme, and a token scope is the right way to do
+   that. It was previously html-only, so that div inherited nothing and the forced-light intent
+   silently did nothing. */
+html[data-theme="daylight"], [data-theme="light"] {
   --surface-page:     #ffffff;
   --surface-sidebar:  #fbfbfa;
   --surface-card:     #ffffff;
@@ -1690,65 +1694,26 @@ aside nav button,
    net outlived them. A rule that matches nothing is not free: it is the reason the next person
    believes those classes are still in use and keeps writing them. */
 /* Red-tinted selected rows → indigo tint */
-html[data-theme="light"] [class*="bg-[#130d0d]"],
-html[data-theme="light"] [class*="bg-[#170f0f]"] {
-  background-color: rgba(255,255,255,0.04) !important;
-}
+/* The selected-row tint override — REMOVED 2026-08-02 with the rest of the dead net. The eight
+   sites that use #130d0d / #170f0f are the sheet's selected rows, which read correctly in every
+   real theme; nothing was relying on this. */
 
 /* 2. Semi-transparent white backgrounds — REMOVED 2026-08-02.
    Measured: zero components carry the bracket form bg-white/[.01] … bg-white/[.15]. The eight
    surviving bg-white/N uses are video-call overlays (call tiles, guest call), where white over
    video is correct in both themes and must NOT be flattened to a panel colour. */
 
-/* 3. Dark borders → light. `border-white/` dropped 2026-08-02 (zero components use it); the
-   zinc halves stay until the six auth screens that still carry border-zinc-700/800 are migrated. */
-html[data-theme="light"] [class*="border-zinc-8"],
-html[data-theme="light"] [class*="border-zinc-7"] {
-  border-color: #f5f5f5 !important;
-}
-
-/* 4. White text → near-black, EXCEPT where the element paints its own background.
-   The blanket rule could not tell "white text on a dark panel" (which light mode must flip) from
-   "white text on a solid coloured button" (which it must not). Measured live: text-white on a
-   #d1524a button computed to rgb(24,24,27) in light mode — near-black on red, on destructive
-   actions like Purge data and Leave call.
-   An element carrying any bg-* utility, or an inline background, chose white deliberately for a
-   background it controls; the net has no business overriding that. */
-html[data-theme="light"] [class*="text-white"]:not([class*="bg-"]):not([style*="background"]) {
-  color: #18181b !important;
-}
-
-/* 5. Slate text — REMOVED 2026-08-02. Measured: zero components use any text-slate-* or
-   bg-slate-* or border-slate-* class. The palette was fully retired. */
-html[data-theme="light"] [class*="text-zinc-5"],
-html[data-theme="light"] [class*="text-zinc-6"],
-html[data-theme="light"] [class*="text-zinc-7"] {
-  color: #71717a !important;
-}
-
-/* 6. Placeholder colors */
-html[data-theme="light"] ::placeholder {
-  color: #a1a1aa !important;
-}
-
-/* 7–11: dropdown-panel, key-input/key-button, settings-section, md-toggle and
-   .md-topbar now read directly from the design tokens (see top of file) and
-   no longer need an override here — they already render correctly in both
-   themes without this block. */
-
-/* 12. Hover backgrounds (pseudo-class can't be targeted by attribute selector,
-   so we use generic hover rules scoped to light mode) */
-html[data-theme="light"] a:hover [class*="bg-white"],
-html[data-theme="light"] button:hover [class*="bg-white"] {
-  background-color: #f5f5f5 !important;
-}
-
-/* The dark-mode half of net 1 — REMOVED 2026-08-02 for the same measured reason: the classes it
-   forced to #000000 exist in no component. */
+/* Rules 3–12 of the old light net — REMOVED 2026-08-02.
+   Every one of them was scoped to html[data-theme="light"], and MEASURED: no theme id is "light".
+   The four themes are console, paper, daylight and rose, so that selector never matched a single
+   element in production. The net had been quietly dead the whole time, which is why components
+   kept accumulating hardcoded colours that "the net would handle".
+   Light now works the way the other three themes do: by redefining tokens, not by overriding
+   painted values after the fact. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DARK MODE — preserve existing dark theme as-is.
-   The rules above are all scoped to html[data-theme="light"] so they don't interfere.
+   The old light net that lived here is gone; light is a token scope like every other theme.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Record table scroll container ───────────────────────────────────────── */
@@ -1767,9 +1732,17 @@ html[data-theme="light"] button:hover [class*="bg-white"] {
 .record-scroll::-webkit-scrollbar-corner { background: transparent; }
 .record-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
 
-html[data-theme="light"] .record-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
-html[data-theme="light"] .record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
-html[data-theme="light"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) transparent; }
+/* Keyed off the REAL light theme ids. These were html[data-theme="light"]-only, so the light
+   scrollbar never appeared in daylight, paper or rose — a dark thumb on a white sheet. */
+html[data-theme="daylight"] .record-scroll::-webkit-scrollbar-thumb,
+html[data-theme="paper"] .record-scroll::-webkit-scrollbar-thumb,
+html[data-theme="rose"] .record-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+html[data-theme="daylight"] .record-scroll::-webkit-scrollbar-thumb:hover,
+html[data-theme="paper"] .record-scroll::-webkit-scrollbar-thumb:hover,
+html[data-theme="rose"] .record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+html[data-theme="daylight"] .record-scroll,
+html[data-theme="paper"] .record-scroll,
+html[data-theme="rose"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) transparent; }
 
 /* ── Sidebar scroll ───────────────────────────────────────────────────────── */
 .sidebar-scroll {

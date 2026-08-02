@@ -44,9 +44,11 @@ describe("dead overrides are gone, and only the dead ones", () => {
     expect(allTsx()).not.toMatch(/\b(text|bg|border)-slate-\d/);
   });
 
-  it("kept the overrides that still have live targets", () => {
-    // Honesty check in the other direction: a net whose sites were NOT migrated must survive.
-    expect(css()).toMatch(/\[class\*="border-zinc-8"\]/);
+  it("removed the border override only after its last site was migrated", () => {
+    // Order matters: the six auth screens moved onto --border-soft FIRST, and the rule went once
+    // nothing carried border-zinc-700/800 any more.
+    expect(allTsx()).not.toMatch(/border-zinc-[78]00/);
+    expect(css()).not.toMatch(/\[class\*="border-zinc-8"\]/);
   });
 });
 
@@ -67,11 +69,34 @@ describe("the sites the nets used to paper over were migrated to tokens", () => 
   });
 });
 
-describe("white text on a coloured button stays white in light mode", () => {
-  it("the override skips any element that paints its own background", () => {
-    // Measured live: text-white on a #d1524a button computed to rgb(24,24,27) in light mode —
-    // near-black on red, on destructive actions like Purge data and Leave call.
-    expect(css()).toMatch(/\[class\*="text-white"\]:not\(\[class\*="bg-"\]\):not\(\[style\*="background"\]\)/);
+describe("the light-mode override net is gone, because it never ran", () => {
+  it("no !important override is scoped to a theme id that does not exist", () => {
+    // MEASURED: the four theme ids are console, paper, daylight and rose. Every rule in the old
+    // net was scoped to html[data-theme="light"], so none of them ever matched an element in
+    // production. That is also why components kept accumulating hardcoded colours that "the net
+    // would handle" — it never handled anything.
+    const src = css();
+    // Selector USE, not the words: the notes left behind name the selector to explain its removal.
+    expect(src).not.toMatch(/html\[data-theme="light"\]\s*[.[]/);
+    expect(src).not.toMatch(/html\[data-theme="light"\]\s*\{/);
+  });
+
+  it("light is a TOKEN SCOPE, and works on any element, not just <html>", () => {
+    // The onboarding layout forces a light context on a div. As an html-only scope it inherited
+    // nothing, so that intent silently did nothing.
+    expect(css()).toMatch(/html\[data-theme="daylight"\], \[data-theme="light"\] \{/);
+    expect(read("apps/app/src/routes/onboarding/onboarding-layout.tsx")).toMatch(/data-theme="light"/);
+  });
+
+  it("the light scrollbar keys off the REAL light theme ids", () => {
+    // It was html[data-theme="light"]-only, so daylight/paper/rose got a dark thumb on a white sheet.
+    const src = css();
+    expect(src).toMatch(/html\[data-theme="daylight"\] \.record-scroll::-webkit-scrollbar-thumb/);
+    expect(src).toMatch(/html\[data-theme="rose"\] \.record-scroll/);
+  });
+
+  it("the override count came down, and what remains is not theme-scoped dead weight", () => {
+    expect((css().match(/!important/g) ?? []).length).toBeLessThanOrEqual(13);
   });
 });
 
