@@ -32,6 +32,10 @@ const invoiceBodySchema = z.object({
   due_date: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["draft", "sent", "viewed", "paid", "overdue", "cancelled"]).default("draft"),
+  // When the money actually arrived. Accepted so a payment entered late lands in the period it
+  // BELONGS to rather than the period it was typed in — the difference between a correct month
+  // and a plausible one.
+  paid_at: z.string().datetime().optional(),
   linked_record_id: z.string().uuid().optional(),
   is_recurring: z.boolean().default(false),
   recurring_frequency: z.enum(["monthly", "quarterly", "annual"]).optional(),
@@ -312,7 +316,11 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
 
   const statusUpdates: Record<string, unknown> = {};
   if (body.status === "sent" && !current.sent_at) statusUpdates.sent_at = new Date().toISOString();
-  if (body.status === "paid" && !current.paid_at) statusUpdates.paid_at = new Date().toISOString();
+  if (body.status === "paid" && !current.paid_at) {
+    // now() only when the caller did not say when. Defaulting to the data-entry date silently
+    // books revenue into whichever month someone happened to update the record.
+    statusUpdates.paid_at = body.paid_at ?? new Date().toISOString();
+  }
 
   // Money is only editable while the invoice is a draft (guarded above), so a changed total means
   // the document has not been issued yet — re-freeze it at today's rate, which is its issue date.
@@ -430,7 +438,17 @@ router.post("/:id/payments", zValidator("json", z.object({
   const canAutoClose = (VALID_TRANSITIONS[String(current.status)] ?? []).includes("paid");
   if (invoiceTotal > 0 && totalPaid >= invoiceTotal && current.status !== "paid" && canAutoClose) {
     statusUpdates.status = "paid";
-    statusUpdates.paid_at = new Date().toISOString();
+    // The date the invoice became paid is the date of the payment that closed it — NOT now().
+    // Stamping now() put a backdated payment's revenue in the month it was ENTERED rather than the
+    // month the money arrived, which silently books cash into the wrong period. Found while
+    // verifying the period close: a payment recorded as 2026-07-15 landed in August.
+    // The closing payment is the latest-dated one, since an earlier payment cannot be what tipped
+    // the invoice over its total.
+    statusUpdates.paid_at = updatedPayments
+      .map(p => String(p.paid_at ?? ""))
+      .filter(d => Number.isFinite(Date.parse(d)))
+      .sort()
+      .pop() ?? new Date().toISOString();
   }
 
   const updatedData = { ...current, payments: updatedPayments, ...statusUpdates };

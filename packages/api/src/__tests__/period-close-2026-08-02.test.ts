@@ -190,3 +190,28 @@ describe("all four period types are supported", () => {
     expect(PERIOD_TYPES).toEqual(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]);
   });
 });
+
+describe("a backdated payment books revenue in the month the money arrived", () => {
+  it("stamps paid_at from the closing PAYMENT, not from now()", () => {
+    // Found live while verifying the close: a payment recorded as 2026-07-15 marked the invoice
+    // paid today, so its revenue landed in August. Period accounting cannot be correct if the
+    // event date is the data-entry date.
+    const src = read("packages/api/src/routes/invoices.ts");
+    expect(src).not.toMatch(/if \(body\.status === "paid" && !current\.paid_at\) statusUpdates\.paid_at = new Date/);
+    expect(src).toMatch(/statusUpdates\.paid_at = updatedPayments/);
+    expect(src).toMatch(/\.sort\(\)\s*\n?\s*\.pop\(\)/);
+  });
+
+  it("falls back to now() only when no payment carries a usable date", () => {
+    expect(read("packages/api/src/routes/invoices.ts"))
+      .toMatch(/\.pop\(\) \?\? new Date\(\)\.toISOString\(\)/);
+  });
+
+  it("the PATCH can carry a real payment date, so backdating is possible at all", () => {
+    // Until now the field was not in the schema, so zod stripped it and a backdated payment was
+    // silently impossible — the reason my first live probe appeared to show no drift.
+    const src = read("packages/api/src/routes/invoices.ts");
+    expect(src).toMatch(/paid_at: z\.string\(\)\.datetime\(\)\.optional\(\)/);
+    expect(src).toMatch(/statusUpdates\.paid_at = body\.paid_at \?\? new Date\(\)\.toISOString\(\)/);
+  });
+});
