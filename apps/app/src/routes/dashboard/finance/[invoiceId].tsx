@@ -10,6 +10,7 @@ import { AIInspector } from "../../../components/ai/ai-inspector";
 import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 import { FieldSelect } from "../../../components/ui/controls";
+import { isOutstanding } from "@mondaily/shared/finance";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -445,7 +446,7 @@ export function InvoiceDetailPage() {
               <Send size={12}/> Send Invoice
             </button>
           )}
-          {["sent", "viewed", "overdue"].includes(invoice.status) && (
+          {isOutstanding(invoice.status) && (
             <button
               onClick={() => save({ status: "paid" })}
               // The server refuses to mark an invoice paid until recorded payments cover the total

@@ -127,6 +127,10 @@ router.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c) 
   const { data, error } = await supabase
     .from("nodes")
     .update({ data: updatedData, updated_at: new Date().toISOString() })
+    // Scoped on the WRITE too, not only on the read above. The prior fetch already 404s a
+    // foreign id, so this is defence in depth: it keeps the guarantee local to the statement
+    // that mutates, instead of depending on a check several lines away staying correct.
+    .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
     .select("id,data,updated_at")
     .single();

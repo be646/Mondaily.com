@@ -8,6 +8,7 @@ import { KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../lib/period";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
+import { isOutstanding } from "@mondaily/shared/finance";
 
 interface Invoice { id: string; total: number; currency: string; status: string; paid_at?: string | null; created_at: string }
 interface CreditNote { amount_cents: number; currency: string; status: string; updated_at?: string; created_at?: string }
@@ -77,7 +78,7 @@ export function InsightsPage() {
 
   const revenue = revenueIn(range);
   const net = netIn(range);
-  const outstandingSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$));
+  const outstandingSum = sumInDisplay(invoices.filter(i => isOutstanding(i.status)).map(inv$));
   const outstanding = outstandingSum.value;
   // sumInDisplay adds unlike currencies at FACE VALUE when a rate is missing and reports it via
   // `missing`. Every caller here discarded it, so mixed-currency KPIs were shown as exact.

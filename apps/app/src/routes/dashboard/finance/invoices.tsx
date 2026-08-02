@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from "../../../components/ui/data-tab
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
+import { isOutstanding } from "@mondaily/shared/finance";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -149,7 +150,7 @@ export function InvoicesPage() {
   // Keep `missing`: when an FX rate is absent, sumInDisplay adds unlike currencies at FACE
   // VALUE. Presenting that as an exact figure under one symbol is a wrong number, so the
   // card is marked approximate (same treatment expenses already uses).
-  const owedSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(owed$));
+  const owedSum = sumInDisplay(invoices.filter(i => isOutstanding(i.status)).map(owed$));
   const paidSum = sumInDisplay(invoices.filter(i => i.status === "paid" && (period === "all" || inRange(i.paid_at ?? i.created_at, range))).map(inv$));
   const totalOwed = owedSum.value;
   const totalPaid = paidSum.value;

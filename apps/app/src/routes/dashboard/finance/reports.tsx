@@ -6,6 +6,7 @@ import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { compareWindows } from "@mondaily/shared/baseline";
+import { isBilled, isCollected, isOutstanding, moneyEventDate } from "@mondaily/shared/finance";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
@@ -162,7 +163,7 @@ export function FinanceReportsPage() {
   const cnDate = (cn: CreditNote) => cn.updated_at ?? cn.created_at ?? "";  // when it was executed
   const expDate = (e: { date?: string; created_at?: string }) => e.date ?? e.created_at ?? "";
 
-  const revenueIn = (r: DateRange) => sumInDisplay(invoices.filter(i => i.status === "paid" && inRange(paidDate(i), r)).map(inv$)).value;
+  const revenueIn = (r: DateRange) => sumInDisplay(invoices.filter(i => isCollected(i.status) && inRange(paidDate(i), r)).map(inv$)).value;
   const creditsIn = (r: DateRange) => sumInDisplay(creditNotes.filter(cn => cn.status === "executed" && inRange(cnDate(cn), r)).map(cn$)).value;
   const expensesIn = (r: DateRange) => sumInDisplay(expenses.filter(e => e.status === "approved" && inRange(expDate(e), r)).map(exp$)).value;
 
@@ -171,7 +172,7 @@ export function FinanceReportsPage() {
   const totalExpenses = expensesIn(range);
   const netRevenue = totalRevenue - creditsIssued - totalExpenses;
   // Outstanding is a point-in-time balance, not a period flow — always current.
-  const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
+  const outstanding = sumInDisplay(invoices.filter(i => isOutstanding(i.status)).map(inv$)).value;
 
   // Period-over-period deltas (null when there's no comparable prior window — e.g. "All").
   const revDelta = prev ? deltaPct(totalRevenue, revenueIn(prev)) : null;
@@ -183,25 +184,34 @@ export function FinanceReportsPage() {
   const unconverted = sumInDisplay([...invoices.map(inv$), ...creditNotes.map(cn$)]).missing;
   const mixedCurrency = new Set([...invoices.map(i => i.currency), ...creditNotes.map(c => c.currency)]).size > 1;
 
-  // Monthly chart data
+  // Monthly chart data. Two corrections (measured on live data 2026-08-02):
+  //  • Billed counted DRAFT and CANCELLED invoices, while the server's own rollup excludes them
+  //    ("a draft or cancelled invoice was never billed to the client"). Same word, two numbers.
+  //  • Collected was bucketed by created_at, so a June invoice paid in July counted as June cash —
+  //    £95,801 of July receipts, 93% of the period's money, sat in the wrong bar.
   const months = getLastNMonths(6);
   const monthlyData = months.map(m => {
-    const monthInvoices = invoices.filter(i => i.created_at.slice(0, 7) === m.key);
-    const billed = sumInDisplay(monthInvoices.map(inv$)).value;
-    const collected = sumInDisplay(monthInvoices.filter(i => i.status === "paid").map(inv$)).value;
+    const billedInMonth = invoices.filter(i => isBilled(i.status) && i.created_at.slice(0, 7) === m.key);
+    const collectedInMonth = invoices.filter(i => isCollected(i.status) && moneyEventDate(i).slice(0, 7) === m.key);
+    const billed = sumInDisplay(billedInMonth.map(inv$)).value;
+    const collected = sumInDisplay(collectedInMonth.map(inv$)).value;
     return { name: m.label, Billed: Math.round(billed * 100) / 100, Collected: Math.round(collected * 100) / 100 };
   });
 
-  // Top clients
-  const clientMap: Record<string, { billed: number; paid: number; count: number }> = {};
+  // Top clients — same billing definition as the server rollup and the chart above. Counting
+  // drafts here inflated both what a client had been billed and, through billed − paid, what they
+  // still owed; a client with an unsent draft appeared to be in arrears.
+  const clientMap: Record<string, { billed: number; paid: number; outstanding: number; count: number }> = {};
   for (const inv of invoices) {
-    if (!clientMap[inv.client_name]) clientMap[inv.client_name] = { billed: 0, paid: 0, count: 0 };
-    clientMap[inv.client_name]!.billed += sumInDisplay([inv$(inv)]).value;
-    if (inv.status === "paid") clientMap[inv.client_name]!.paid += sumInDisplay([inv$(inv)]).value;
-    clientMap[inv.client_name]!.count++;
+    const entry = (clientMap[inv.client_name] ??= { billed: 0, paid: 0, outstanding: 0, count: 0 });
+    const amount = sumInDisplay([inv$(inv)]).value;
+    if (isBilled(inv.status)) entry.billed += amount;
+    if (isCollected(inv.status)) entry.paid += amount;
+    if (isOutstanding(inv.status)) entry.outstanding += amount;
+    entry.count++;   // every document, so the count still reflects the whole relationship
   }
   const topClients = Object.entries(clientMap)
-    .map(([name, d]) => ({ name, ...d, outstanding: d.billed - d.paid }))
+    .map(([name, d]) => ({ name, ...d }))
     .sort((a, b) => b.billed - a.billed)
     .slice(0, 8);
 

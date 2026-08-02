@@ -348,7 +348,9 @@ describe("Tasks field contracts (audit fixes)", () => {
     const inv = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/finance/invoices.tsx", import.meta.url)), "utf8");
     expect(inv).toMatch(/const owed\$ = \(i: Invoice\) =>/);
     expect(inv).toMatch(/Math\.max\(0, Math\.round\(\(i\.total - paid\) \* 100\) \/ 100\)/);
-    expect(inv).toMatch(/\.includes\(i\.status\)\)\.map\(owed\$\)\)/);
+    // 2026-08-02: the inline status list moved to @mondaily/shared/finance (six copies had
+    // drifted); same statuses, one definition.
+    expect(inv).toMatch(/isOutstanding\(i\.status\)\)\.map\(owed\$\)\)/);
   });
 
   it("the approvals executed card is not mislabelled as period-scoped", () => {

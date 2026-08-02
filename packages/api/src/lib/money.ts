@@ -1,4 +1,5 @@
 import { supabase } from "@mondaily/db/client";
+import { isOutstanding } from "@mondaily/shared/finance";
 
 /**
  * THE money model — the single place "closed won", "pipeline created", "cash collected" and
@@ -150,7 +151,7 @@ export function closersIn(rows: NodeRow[], range: MsRange): { owner: string; cou
 }
 
 // ── Invoices ─────────────────────────────────────────────────────────────────────────────────────
-const OUTSTANDING = new Set(["sent", "viewed", "overdue"]);
+// Status meanings live in @mondaily/shared/finance — one definition for the whole product.
 
 export interface InvoiceMetrics {
   collected: number;            // paid within the range (flow)
@@ -181,7 +182,7 @@ export function invoiceMetrics(
     const status = String(d.status ?? "draft");
     if (status === "paid" && inRange(String(d.paid_at ?? r.created_at), range)) collected += amt;
     if (status !== "draft" && inRange(String(d.issued_at ?? r.created_at), range)) invoiced += amt;
-    if (OUTSTANDING.has(status)) outstanding += amt;
+    if (isOutstanding(status)) outstanding += amt;
     if (status === "overdue") {
       overdueCount++; overdueTotal += amt;
       const due = Date.parse(String(d.due_date ?? ""));

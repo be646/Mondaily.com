@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter } from "../lib/currency-store";
+import { isBilled, isCollected, isOutstanding } from "@mondaily/shared/finance";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -86,9 +87,9 @@ router.get("/rollup", async (c) => {
     supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice"),
     makeBaseConverter(workspaceId),
   ]);
-  const OUTSTANDING = new Set(["sent", "viewed", "overdue"]);
-  // "Billed" = real committed billing — a draft or cancelled invoice was never billed to the client.
-  const BILLED = new Set(["sent", "viewed", "overdue", "paid"]);
+  // Status meanings come from @mondaily/shared/finance — the SAME source the reports chart, the
+  // invoice list, insights and the detail page read. They were written out by hand in six places
+  // and had already drifted: the reports chart counted drafts as billed while this rollup didn't.
   const byClient: Record<string, { billed: number; collected: number; outstanding: number; count: number }> = {};
   for (const row of data ?? []) {
     const d = (row.data ?? {}) as Record<string, unknown>;
@@ -98,9 +99,9 @@ router.get("/rollup", async (c) => {
     const st = String(d.status ?? "draft");
     const b = (byClient[name] ??= { billed: 0, collected: 0, outstanding: 0, count: 0 });
     b.count += 1;
-    if (BILLED.has(st)) b.billed += amt;
-    if (st === "paid") b.collected += amt;
-    if (OUTSTANDING.has(st)) b.outstanding += amt;
+    if (isBilled(st)) b.billed += amt;
+    if (isCollected(st)) b.collected += amt;
+    if (isOutstanding(st)) b.outstanding += amt;
   }
   return c.json({ base, clients: byClient });
 });
@@ -264,6 +265,10 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
   const { data, error } = await supabase
     .from("nodes")
     .update({ data: updatedData, updated_at: new Date().toISOString() })
+    // Scoped on the WRITE too, not only on the read above. The prior fetch already 404s a
+    // foreign id, so this is defence in depth: it keeps the guarantee local to the statement
+    // that mutates, instead of depending on a check several lines away staying correct.
+    .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
     .select("id,data,updated_at")
     .single();
@@ -333,6 +338,10 @@ router.post("/:id/payments", zValidator("json", z.object({
   const { data, error } = await supabase
     .from("nodes")
     .update({ data: updatedData, updated_at: new Date().toISOString() })
+    // Scoped on the WRITE too, not only on the read above. The prior fetch already 404s a
+    // foreign id, so this is defence in depth: it keeps the guarantee local to the statement
+    // that mutates, instead of depending on a check several lines away staying correct.
+    .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
     .select("id,data,updated_at")
     .single();
