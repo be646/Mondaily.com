@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { nextInvoiceNumber, nextQuoteNumber } from "../lib/document-numbers";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { moneyAt } from "../lib/currency-store";
 import { toMinor, fromMinor } from "@mondaily/shared/money";
@@ -55,29 +56,8 @@ function calcTotals(lineItems: z.infer<typeof lineItemSchema>[], currency = "USD
   };
 }
 
-// Next sequence number from the MAX existing number, not count+1 — count collides after any deletion
-// (delete QUO-0003 of 5 → count 4 → next QUO-0005, which already exists). Highest-number + 1 is stable.
-async function nextSeqNumber(workspaceId: string, objectType: "quote" | "invoice", prefix: string): Promise<string> {
-  const { data } = await supabase
-    .from("nodes")
-    .select("data")
-    .eq("workspace_id", workspaceId)
-    .eq("vertical", "finance")
-    .eq("object_type", objectType)
-    .order("data->>number", { ascending: false })
-    .limit(1);
-  const last = String((data?.[0]?.data as Record<string, unknown> | undefined)?.number ?? "");
-  const lastN = parseInt(last.replace(/\D/g, ""), 10) || 0;
-  return `${prefix}-${String(lastN + 1).padStart(4, "0")}`;
-}
-
-async function nextQuoteNumber(workspaceId: string): Promise<string> {
-  return nextSeqNumber(workspaceId, "quote", "QUO");
-}
-
-async function nextInvoiceNumber(workspaceId: string): Promise<string> {
-  return nextSeqNumber(workspaceId, "invoice", "INV");
-}
+// Numbering lives in lib/document-numbers: an atomic counter, because reading the max and adding
+// one lets two overlapping creates mint the same number. See the note there.
 
 router.get("/", async (c) => {
   const status = c.req.query("status");

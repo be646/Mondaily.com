@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { nextInvoiceNumber } from "../lib/document-numbers";
 import { makeBaseConverter, moneyAt, settlementRateAt } from "../lib/currency-store";
 import { buildSettlement, hasMoney, readMoney, toMinor, fromMinor } from "@mondaily/shared/money";
 import { isBilled, isCollected, isOutstanding } from "@mondaily/shared/finance";
@@ -75,20 +76,6 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 /** Money (line items / currency) is only editable while the document is still a draft. */
 const MONEY_LOCKED_AFTER = new Set(["sent", "viewed", "paid", "overdue", "cancelled"]);
 
-async function nextInvoiceNumber(workspaceId: string): Promise<string> {
-  // Highest existing number + 1 (not count+1, which collides after a deletion).
-  const { data } = await supabase
-    .from("nodes")
-    .select("data")
-    .eq("workspace_id", workspaceId)
-    .eq("vertical", "finance")
-    .eq("object_type", "invoice")
-    .order("data->>number", { ascending: false })
-    .limit(1);
-  const last = String((data?.[0]?.data as Record<string, unknown> | undefined)?.number ?? "");
-  const lastN = parseInt(last.replace(/\D/g, ""), 10) || 0;
-  return `INV-${String(lastN + 1).padStart(4, "0")}`;
-}
 
 // Per-client finance rollup for the records sheet (one query powers a whole column, no N+1).
 // Totals are converted to the workspace BASE currency server-side via the sovereign ECB rates.
