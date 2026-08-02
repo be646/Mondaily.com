@@ -3521,7 +3521,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                     }}
                     className="flex items-center gap-1.5 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:opacity-50">
                     <Plus size={9}/>
-                    <span className="first-letter:uppercase">{colLabel(u.key)}</span>
+                    {/* Two keys can share a display label (owner / owner_id both read "Owner"),
+                        which made the chips indistinguishable — show the raw key when that happens,
+                        since the whole point here is deciding about a SPECIFIC stored field. */}
+                    <span className="first-letter:uppercase">
+                      {schemaAudit.data!.unmapped.filter(o => colLabel(o.key) === colLabel(u.key)).length > 1
+                        ? u.key
+                        : colLabel(u.key)}
+                    </span>
                     <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{u.suggested_type} · {u.coverage}%</span>
                   </button>
                 ))}

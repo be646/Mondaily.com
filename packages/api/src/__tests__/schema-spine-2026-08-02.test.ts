@@ -31,6 +31,17 @@ describe("the audit is read-only and honest about coverage", () => {
     expect(records()).toMatch(/return all\(\/%\\s\*\$\/\) \? "percentage" : "number"/);
   });
 
+  it("records SEMANTIC types from the key name — a value scan cannot see them", () => {
+    // A stage column is just short strings, indistinguishable from any other option set. Marking
+    // these properly is what eventually lets the schema say which attribute IS the stage/owner,
+    // instead of every surface re-deriving it from a regex over column names.
+    const src = records();
+    expect(src).toMatch(/if \(\/country\/\.test\(k\)\) return "country"/);
+    expect(src).toMatch(/return "owner"/);
+    expect(src).toMatch(/if \(\/stage\/\.test\(k\)\) return "stage"/);
+    expect(src).toMatch(/suggested_type: inferAttrType\(vals, k\)/);
+  });
+
   it("is scoped to the workspace on every query it makes", () => {
     const audit = records().slice(records().indexOf('router.get("/schema-audit'), records().indexOf('router.post("/schema-adopt'));
     expect(audit.match(/\.eq\("workspace_id", ws\)/g)?.length).toBeGreaterThanOrEqual(2);

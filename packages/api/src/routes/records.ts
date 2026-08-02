@@ -432,8 +432,23 @@ Use ONLY fields from the provided list. If the request cannot be expressed in th
  */
 const SCHEMA_KEY = (n: string) => String(n).toLowerCase().trim().replace(/\s+/g, "_");
 
-/** Type inference from real values — mirrors the sheet's inferColKind so a sheet keeps its look. */
-function inferAttrType(values: unknown[]): string {
+/**
+ * Type inference from real values — mirrors the sheet's inferColKind so a sheet keeps its look.
+ *
+ * The KEY NAME decides the semantic types (stage/status/owner/country). Those are not shapes a
+ * value scan can see: a stage column is just short strings, indistinguishable from any other
+ * option set. Recording them properly is what eventually lets the schema say which attribute IS
+ * the stage and which IS the owner, instead of every surface re-deriving it from a regex over
+ * column names.
+ */
+function inferAttrType(values: unknown[], key = ""): string {
+  const k = key.toLowerCase();
+  if (/country/.test(k)) return "country";
+  if (/^(owner|deal_owner|owner_id|account_owner)$/.test(k)) return "owner";
+  if (/^(assigned_to|assignee)$/.test(k)) return "assignee";
+  if (/stage/.test(k)) return "stage";
+  if (/status/.test(k)) return "status";
+
   const vals = values.filter(v => v != null && String(v).trim() !== "").slice(0, 200);
   if (!vals.length) return "text";
   const all = (re: RegExp) => vals.every(v => re.test(String(v).trim()));
@@ -477,7 +492,7 @@ router.get("/schema-audit/:objectType", async (c) => {
     .map(([k, vals]) => ({
       key: k, filled: vals.length,
       coverage: rows.length ? Math.round((vals.length / rows.length) * 100) : 0,
-      suggested_type: inferAttrType(vals),
+      suggested_type: inferAttrType(vals, k),
       samples: [...new Set(vals.map(v => String(v).slice(0, 40)))].slice(0, 3),
     }))
     .sort((a, b) => b.filled - a.filled);
