@@ -4,7 +4,8 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
-import { makeBaseConverter } from "../lib/currency-store";
+import { makeBaseConverter, moneyAt, settlementRateAt } from "../lib/currency-store";
+import { buildSettlement, hasMoney } from "@mondaily/shared/money";
 import { isBilled, isCollected, isOutstanding } from "@mondaily/shared/finance";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -157,6 +158,14 @@ router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
   const number = body.number || await nextInvoiceNumber(c.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals(body.line_items);
 
+  // Freeze the money at issue: what the client is charged, in their currency, and the rate that
+  // related it to the workspace's reporting currency THAT DAY. Without this the base value is
+  // recomputed on every read at whatever today's rate happens to be, so a June invoice is worth a
+  // different number each morning. Additive — `total`/`currency` stay exactly as they were, so
+  // every existing reader is untouched. Null when no rate exists: fail-closed, never a guess.
+  const issuedOn = new Date().toISOString().slice(0, 10);
+  const money = await moneyAt(c.get("workspaceId"), total, body.currency, issuedOn);
+
   const invoiceData = {
     number,
     client_name: body.client_name,
@@ -167,6 +176,8 @@ router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
     subtotal,
     tax_total,
     total,
+    ...(money ?? {}),
+    issued_on: issuedOn,
     status: body.status,
     due_date: body.due_date ?? null,
     notes: body.notes ?? null,
@@ -252,6 +263,40 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
   if (body.status === "sent" && !current.sent_at) statusUpdates.sent_at = new Date().toISOString();
   if (body.status === "paid" && !current.paid_at) statusUpdates.paid_at = new Date().toISOString();
 
+  // Money is only editable while the invoice is a draft (guarded above), so a changed total means
+  // the document has not been issued yet — re-freeze it at today's rate, which is its issue date.
+  const issuedOn = String(current.issued_on ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10);
+  const currency = String(body.currency ?? current.currency ?? "");
+  const moneyUpdates = editsMoney || !hasMoney(current)
+    ? (await moneyAt(c.get("workspaceId"), total, currency, issuedOn)) ?? {}
+    : {};
+
+  // Settlement: the rate on the day the money actually arrives is rarely the rate at issue, and the
+  // difference is a real gain or loss the business made by waiting. Recording it here is what makes
+  // that derivable at all — recomputing later would only ever find TODAY's rate.
+  let settlementUpdates: Record<string, unknown> = {};
+  if (body.status === "paid" && currentStatus !== "paid") {
+    const paidOn = String(statusUpdates.paid_at ?? current.paid_at ?? new Date().toISOString()).slice(0, 10);
+    const merged = { ...current, ...moneyUpdates } as Record<string, unknown>;
+    if (hasMoney(merged)) {
+      const s = await settlementRateAt(c.get("workspaceId"), String(merged.currency_presentment), paidOn);
+      if (s) {
+        settlementUpdates = buildSettlement(
+          {
+            amount_presentment: Number(merged.amount_presentment),
+            currency_presentment: String(merged.currency_presentment),
+            fx_rate: Number(merged.fx_rate),
+            amount_base: Number(merged.amount_base),
+            currency_base: String(merged.currency_base),
+            fx_rate_as_of: (merged.fx_rate_as_of as string | null) ?? null,
+            fx_rate_source: String(merged.fx_rate_source ?? "ecb"),
+          },
+          { rate: s.rate, on: paidOn, as_of: s.as_of },
+        ) as unknown as Record<string, unknown>;
+      }
+    }
+  }
+
   const updatedData = {
     ...current,
     ...body,
@@ -259,6 +304,9 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
     subtotal,
     tax_total,
     total,
+    ...moneyUpdates,
+    ...settlementUpdates,
+    issued_on: issuedOn,
     ...statusUpdates,
   };
 

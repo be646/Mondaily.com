@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
-import { fetchFxRates, convert, convertCurrency, DEFAULT_BASE_CURRENCY, type FxRates, type Conversion } from "./currency";
+import { fetchFxRates, convert, convertCurrency, rateBetween, DEFAULT_BASE_CURRENCY, type FxRates, type Conversion } from "./currency";
+import { buildMoney, type MoneyFields } from "@mondaily/shared/money";
 
 /** Collapse rate rows to the newest quote per currency. */
 function newestPerCurrency(rows: { currency: unknown; rate: unknown; as_of: unknown }[]): { rates: Record<string, number>; as_of: string | null } {
@@ -143,6 +144,50 @@ export async function makeHistoricalConverter(
     return convertCurrency(amount, cur, base, rates, { as_of, source: "ecb" });
   };
   return { base, at };
+}
+
+/**
+ * Build the stored money block for ONE amount, valued at its own transaction date.
+ *
+ * This is what every financial write should call: it resolves the rate quoted for that date (not
+ * today's), and returns the five fields plus provenance. Returns null when no rate exists for the
+ * pair — fail-closed, so a record is never stamped with a rate that was guessed. Callers store the
+ * presentment amount regardless; only the base valuation is withheld.
+ */
+export async function moneyAt(
+  workspaceId: string,
+  amount: number,
+  currency: string,
+  date: string,
+): Promise<MoneyFields | null> {
+  const base = await workspaceBaseCurrency(workspaceId);
+  const cur = (currency || "").toUpperCase();
+  const day = String(date).slice(0, 10);
+  if (!cur) return null;
+  if (cur === base) {
+    // Same currency: rate is exactly 1, no lookup needed and none should be required — a workspace
+    // with no FX rates at all must still be able to record its own currency.
+    return buildMoney({ amount, currency: cur, base, rate: 1, as_of: day, source: "identity" });
+  }
+  const { rates, as_of } = await loadRatesAsOf(day);
+  const rate = rateBetween(cur, base, rates);
+  if (rate == null) return null;
+  return buildMoney({ amount, currency: cur, base, rate, as_of, source: "ecb" });
+}
+
+/** The rate for a settlement event, so realised FX gain/loss can be recorded. */
+export async function settlementRateAt(
+  workspaceId: string,
+  currency: string,
+  date: string,
+): Promise<{ rate: number; as_of: string | null } | null> {
+  const base = await workspaceBaseCurrency(workspaceId);
+  const cur = (currency || "").toUpperCase();
+  if (!cur) return null;
+  if (cur === base) return { rate: 1, as_of: String(date).slice(0, 10) };
+  const { rates, as_of } = await loadRatesAsOf(String(date).slice(0, 10));
+  const rate = rateBetween(cur, base, rates);
+  return rate == null ? null : { rate, as_of };
 }
 
 type RateRow = { currency: string; rate: number; as_of: string };

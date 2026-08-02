@@ -19,7 +19,8 @@
     "./numbers": "./src/numbers.ts",
     "./baseline": "./src/baseline.ts",
     "./vocab": "./src/vocab.ts",
-    "./finance": "./src/finance.ts"
+    "./finance": "./src/finance.ts",
+    "./money": "./src/money.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

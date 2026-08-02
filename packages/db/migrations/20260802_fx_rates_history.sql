@@ -18,8 +18,8 @@ declare
   pk_name text;
   pk_cols int;
 begin
-  -- conkey is smallint[], so the column count comes from array_length. (Comparing pg_attribute.attnum
-  -- against the array directly is a type error: smallint = smallint[].)
+  -- conkey is smallint[], so the key width comes from array_length. Comparing a scalar column
+  -- number against that array is a type error (smallint = smallint[]).
   select conname, coalesce(array_length(conkey, 1), 0)
     into pk_name, pk_cols
     from pg_constraint
