@@ -188,8 +188,16 @@ export function sumInBase(
   for (const row of rows) {
     const m = readMoney(row);
     if (!m.amount) continue;
-    if (m.modelled && m.base_amount != null && (m.base_currency ?? "").toUpperCase() === base) {
-      value += m.base_amount; modelled += 1; continue;
+    if (m.modelled && m.base_amount != null) {
+      const stored = (m.base_currency ?? "").toUpperCase();
+      if (stored === base) { value += m.base_amount; modelled += 1; continue; }
+      // Viewing in a currency other than the one the value was frozen in. Re-express the FROZEN
+      // figure rather than re-deriving from the presentment amount: the historical valuation is
+      // preserved and only the final display hop uses today's rate. Re-deriving would throw the
+      // freeze away entirely — which is what this did at first, so a workspace based in USD viewed
+      // in PLN reported "0 fixed" even though every record was modelled.
+      const reexpressed = opts.convertNow(m.base_amount, stored);
+      if (reexpressed != null) { value += reexpressed; modelled += 1; continue; }
     }
     if ((m.currency || "").toUpperCase() === base) { value += m.amount; live += 1; continue; }
     const converted = opts.convertNow(m.amount, m.currency);

@@ -146,7 +146,7 @@ export function FinanceReportsPage() {
 
   // All money is normalized to the caller's DISPLAY currency via sovereign ECB rates, so
   // mixed-currency invoices (EUR/USD/GBP…) sum honestly instead of being mislabeled as one.
-  const { display, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay, rates } = useCurrency();
+  const { display, base, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay, rates } = useCurrency();
   const currency = display;
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   const cn$ = (cn: CreditNote) => ({ amount: cn.amount_cents / 100, currency: cn.currency });
@@ -382,12 +382,16 @@ export function FinanceReportsPage() {
                   </div>
                 </div>
                 {/* Frozen vs live is the one thing a reader cannot infer from the numbers. */}
-                {moneyQuality.live > 0 && (
-                  <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}
-                    title={`${moneyQuality.modelled} record(s) hold a rate fixed at their transaction date. ${moneyQuality.live} predate that and are converted at today's rate, so their contribution moves with the market.`}>
-                    {moneyQuality.modelled} fixed · {moneyQuality.live} at today’s rate
-                  </span>
-                )}
+                <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}
+                  title={
+                    `${moneyQuality.modelled} record(s) hold a rate fixed at their transaction date`
+                    + (display !== base ? `, re-expressed from ${base} into ${display} at today's rate for display` : "")
+                    + `. ${moneyQuality.live} predate the money model and are valued entirely at today's rate, so their contribution moves with the market.`
+                  }>
+                  {moneyQuality.modelled} fixed
+                  {moneyQuality.live > 0 && <> · {moneyQuality.live} at today’s rate</>}
+                  {display !== base && moneyQuality.modelled > 0 && <> · shown in {display}</>}
+                </span>
               </div>
 
               <div className="flex h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>

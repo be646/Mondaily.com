@@ -349,12 +349,22 @@ describe("sumInBase — never add 1,000 USD to 1,000 PLN", () => {
     expect(s.unconvertible).toBe(0);
   });
 
-  it("ignores a frozen value stored against a DIFFERENT base than the one asked for", () => {
-    // Workspace base changed since the record was written; the old base_amount is not comparable.
+  it("RE-EXPRESSES a frozen value stored in another currency instead of discarding the freeze", () => {
+    // Frozen as 400 PLN; viewing in USD. The historical valuation must survive — only the final
+    // display hop uses today's rate. Discarding it reported "0 fixed" on a fully modelled set.
     const row = buildMoney({ amount: 100, currency: "EUR", base: "PLN", rate: 4 });
-    const s = sumInBase([row], opts);
-    expect(s.value).toBe(115);    // re-derived, not the stale 400 PLN
+    const s = sumInBase([row], { base: "USD", convertNow: (a, f) => (f === "PLN" ? a * 0.25 : null) });
+    expect(s.value).toBe(100);        // 400 PLN re-expressed, not re-derived from 100 EUR
+    expect(s.modelled).toBe(1);
+    expect(s.live).toBe(0);
+  });
+
+  it("falls back to the presentment amount only when the frozen value cannot be re-expressed", () => {
+    const row = buildMoney({ amount: 100, currency: "EUR", base: "PLN", rate: 4 });
+    const s = sumInBase([row], opts);   // opts knows EUR but not PLN
+    expect(s.value).toBe(115);
     expect(s.modelled).toBe(0);
+    expect(s.live).toBe(1);
   });
 
   it("survives empty and malformed rows", () => {
@@ -410,7 +420,16 @@ describe("reports read the frozen value, and say when they can't", () => {
 
   it("discloses how much of the total is fixed vs valued at today's rate", () => {
     const s = rep();
-    expect(s).toMatch(/\{moneyQuality\.modelled\} fixed · \{moneyQuality\.live\} at today’s rate/);
+    expect(s).toMatch(/\{moneyQuality\.modelled\} fixed/);
+    expect(s).toMatch(/\{moneyQuality\.live\} at today’s rate/);
+  });
+
+  it("says when a fixed figure is being re-expressed for display", () => {
+    // Viewing a USD-based workspace in PLN: the valuation is still frozen, but the last hop to the
+    // display currency uses today's rate, and the label must not imply otherwise.
+    const s = rep();
+    expect(s).toMatch(/shown in \{display\}/);
+    expect(s).toMatch(/re-expressed from \$\{base\} into \$\{display\} at today's rate for display/);
   });
 
   it("the currency mix ranks by base value and shows unconvertible separately", () => {
