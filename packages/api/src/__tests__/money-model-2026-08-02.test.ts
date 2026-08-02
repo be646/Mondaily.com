@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildMoney, buildSettlement, hasMoney, readMoney, roundToCurrency, currencyDecimals,
-  sumInBase, currencyBreakdown,
+  sumInBase, currencyBreakdown, unrealisedFx,
 } from "@mondaily/shared/money";
 import { parseEcbHistoryXml, parseEcbXml } from "../lib/currency";
 
@@ -477,5 +477,64 @@ describe("dual-currency cells distinguish a fixed value from a moving one", () =
     for (const f of ["invoices", "quotes", "credit-notes", "expenses"]) {
       expect(read(`apps/app/src/routes/dashboard/finance/${f}.tsx`), f).toMatch(/<MoneyCell row=/);
     }
+  });
+});
+
+describe("unrealisedFx — exposure on money owed but not yet paid", () => {
+  // A EUR invoice booked at 1.10 when today's rate is 1.20.
+  const openEur = buildMoney({ amount: 1000, currency: "EUR", base: "USD", rate: 1.1 });
+  const rateNow = (from: string) => (from === "EUR" ? 1.2 : from === "USD" ? 1 : null);
+  const opts = { base: "USD", rateNow: (f: string) => rateNow(f) };
+
+  it("measures the movement between the booked rate and today's rate", () => {
+    const fx = unrealisedFx([openEur], opts);
+    expect(fx.at_issue).toBe(1100);
+    expect(fx.at_today).toBe(1200);
+    expect(fx.unrealised).toBe(100);
+    expect(fx.count).toBe(1);
+  });
+
+  it("reports a LOSS when the currency moved against you — not an absolute value", () => {
+    const fx = unrealisedFx([openEur], { base: "USD", rateNow: () => 1.0 });
+    expect(fx.unrealised).toBe(-100);
+  });
+
+  it("an invoice in your own currency carries no exposure and is not counted", () => {
+    const own = buildMoney({ amount: 500, currency: "USD", base: "USD", rate: 1 });
+    const fx = unrealisedFx([own], opts);
+    expect(fx.count).toBe(0);
+    expect(fx.unrealised).toBe(0);
+    expect(fx.unmeasured).toBe(0);   // not exposed ≠ unmeasurable
+  });
+
+  it("counts a row with no frozen valuation as unmeasured rather than guessing one", () => {
+    const fx = unrealisedFx([{ total: 1000, currency: "EUR" }], opts);
+    expect(fx.count).toBe(0);
+    expect(fx.unmeasured).toBe(1);
+    expect(fx.unrealised).toBe(0);   // silence, not an invented figure
+  });
+
+  it("counts a row with no CURRENT rate as unmeasured — the frozen half alone is not exposure", () => {
+    const fx = unrealisedFx([openEur], { base: "USD", rateNow: () => null });
+    expect(fx.unmeasured).toBe(1);
+    expect(fx.at_issue).toBe(0);     // must not report half the comparison
+    expect(fx.at_today).toBe(0);
+  });
+
+  it("ignores a frozen value stored against a DIFFERENT base than the one asked for", () => {
+    const inPln = buildMoney({ amount: 1000, currency: "EUR", base: "PLN", rate: 4.3 });
+    const fx = unrealisedFx([inPln], opts);
+    expect(fx.unmeasured).toBe(1);
+    expect(fx.count).toBe(0);
+  });
+
+  it("accumulates in minor units, so many small invoices do not drift", () => {
+    const rows = Array.from({ length: 300 }, () =>
+      buildMoney({ amount: 0.1, currency: "EUR", base: "USD", rate: 1.1 }));
+    const fx = unrealisedFx(rows, opts);
+    expect(fx.count).toBe(300);
+    expect(fx.at_issue).toBe(33);   // 300 × 0.11
+    expect(fx.at_today).toBe(36);   // 300 × 0.12
+    expect(fx.unrealised).toBe(3);
   });
 });

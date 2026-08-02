@@ -7,7 +7,7 @@ import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { compareWindows } from "@mondaily/shared/baseline";
 import { isBilled, isCollected, isOutstanding, moneyEventDate } from "@mondaily/shared/finance";
-import { sumInBase, currencyBreakdown } from "@mondaily/shared/money";
+import { sumInBase, currencyBreakdown, unrealisedFx } from "@mondaily/shared/money";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
@@ -190,6 +190,24 @@ export function FinanceReportsPage() {
   const netRevenue = totalRevenue - creditsIssued - totalExpenses;
   // Outstanding is a point-in-time balance, not a period flow — always current.
   const outstanding = inBase(invoices.filter(i => isOutstanding(i.status)) as unknown as Record<string, unknown>[]).value;
+
+  // Unrealised FX on money owed but not yet paid. Realised gain/loss is settled history; an open
+  // foreign-currency invoice was booked at the rate on its issue day and the currency has moved
+  // every day since. That movement is real exposure whether or not anyone measures it — but it is
+  // NOT income, and the figure changes daily, so it is labelled as exposure and only shown when
+  // there is something to be exposed to.
+  const openInvoices = invoices.filter(i => isOutstanding(i.status)) as unknown as Record<string, unknown>[];
+  const fxExposure = useMemo(
+    () => unrealisedFx(openInvoices, {
+      base: display,
+      rateNow: (from, to) => {
+        const one = convertAmount(1, from, to, rates);
+        return one == null ? null : one;
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [invoices, display, rates],
+  );
 
   // Period-over-period deltas (null when there's no comparable prior window — e.g. "All").
   const revDelta = prev ? deltaPct(totalRevenue, revenueIn(prev)) : null;
@@ -416,6 +434,39 @@ export function FinanceReportsPage() {
                   <span className="font-mono text-[11px]" style={{ color: "var(--status-warn)" }}
                     title="No exchange rate is stored for these, so they are excluded from the mix rather than counted at face value.">
                     {breakdown.unconvertible} unconvertible
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Unrealised FX exposure — only when foreign-currency invoices are actually open. */}
+          {fxExposure.count > 0 && (
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <div className="text-[13px] font-medium tracking-tight text-[var(--text-primary)]">Open FX exposure</div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    {fxExposure.count} unpaid invoice{fxExposure.count === 1 ? "" : "s"} billed in another currency ·
+                    booked at {fmt(fxExposure.at_issue, currency)}, worth {fmt(fxExposure.at_today, currency)} today
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-[18px] tabular-nums" style={{
+                    color: fxExposure.unrealised === 0 ? "var(--text-primary)"
+                      : fxExposure.unrealised > 0 ? "#2f9e6b" : "#d1524a",
+                  }}>
+                    {fxExposure.unrealised > 0 ? "+" : ""}{fmt(fxExposure.unrealised, currency)}
+                  </div>
+                  <div className="text-[10px]" style={{ color: "var(--text-faint)" }}>unrealised · moves daily</div>
+                </div>
+              </div>
+              <div className="mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Nothing has been gained or lost yet — this is only what the rate has done since these
+                invoices were issued. It settles at the rate on the day each one is actually paid.
+                {fxExposure.unmeasured > 0 && (
+                  <span style={{ color: "var(--status-warn)" }}>
+                    {" "}{fxExposure.unmeasured} open invoice{fxExposure.unmeasured === 1 ? "" : "s"} excluded — no stored rate to compare against.
                   </span>
                 )}
               </div>

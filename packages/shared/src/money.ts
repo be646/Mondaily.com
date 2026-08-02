@@ -180,6 +180,65 @@ export function readMoney(data: Record<string, unknown> | null | undefined): {
   return { amount, currency, base_amount: null, base_currency: null, rate: null, modelled: false };
 }
 
+export interface FxExposure {
+  /** What the open invoices were worth when issued, at the rates then. */
+  at_issue: number;
+  /** What the same invoices are worth at today's rate. */
+  at_today: number;
+  /** at_today − at_issue. Positive = the currency has moved in your favour SO FAR. */
+  unrealised: number;
+  currency: string;
+  /** Open invoices actually exposed (foreign currency, with a stored valuation). */
+  count: number;
+  /** Open invoices skipped: no stored valuation or no current rate. */
+  unmeasured: number;
+}
+
+/**
+ * Unrealised FX on money you are owed but have not been paid.
+ *
+ * Realised gain/loss is settled history — it needs the rate on the day the cash arrived. An invoice
+ * still OPEN has no such day yet, so its exposure is live: it was booked at the rate on the day it
+ * was issued, and every day since, the currency has moved. A business invoicing in a currency it
+ * does not report in is carrying that movement whether or not anyone measures it.
+ *
+ * This is explicitly NOT a gain. Nothing has been earned or lost until the invoice settles, and the
+ * number moves daily — callers must present it as exposure, not income.
+ *
+ * Same-currency invoices carry no exposure by definition and are excluded from `count`.
+ */
+export function unrealisedFx(
+  rows: Array<Record<string, unknown> | null | undefined>,
+  opts: { base: string; rateNow: (from: string, to: string) => number | null },
+): FxExposure {
+  const base = (opts.base || "").toUpperCase();
+  let issueMinor = 0, todayMinor = 0, count = 0, unmeasured = 0;
+
+  for (const row of rows) {
+    const m = readMoney(row);
+    if (!m.amount) continue;
+    const cur = (m.currency || "").toUpperCase();
+    if (!cur || cur === base) continue;                       // no exposure in your own currency
+    // Needs BOTH a frozen valuation to compare against and a rate to compare with. Missing either
+    // means the exposure is unknown, which is reported — never estimated.
+    if (!m.modelled || m.base_amount == null || (m.base_currency ?? "").toUpperCase() !== base) { unmeasured += 1; continue; }
+    const rate = opts.rateNow(cur, base);
+    if (rate == null) { unmeasured += 1; continue; }
+    issueMinor += toMinor(m.base_amount, base);
+    todayMinor += toMinor(m.amount * rate, base);
+    count += 1;
+  }
+
+  return {
+    at_issue: fromMinor(issueMinor, base),
+    at_today: fromMinor(todayMinor, base),
+    unrealised: fromMinor(todayMinor - issueMinor, base),
+    currency: base,
+    count,
+    unmeasured,
+  };
+}
+
 export interface BaseSum {
   /** Total in the base currency. */
   value: number;
