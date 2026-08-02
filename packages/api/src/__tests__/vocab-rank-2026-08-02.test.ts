@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   vocabSlotOf, vocabRank, vocabSortKey, vocabValues, vocabCanonical, vocabDirWords, vocabRankPairs,
+  defaultSortFor,
 } from "@mondaily/shared/vocab";
 
 /**
@@ -98,6 +99,51 @@ describe("display + direction wording", () => {
       expect(pair, `${spelling} must be rankable in SQL`).toBeTruthy();
       expect(pair!.rank).toBe(vocabRank("stage", spelling));
     }
+  });
+});
+
+describe("sheets open in the order their object is read", () => {
+  it("deals arrive by pipeline position, then biggest money first", () => {
+    expect(defaultSortFor("deals", ["name", "stage", "amount"])).toEqual([
+      { col: "stage", dir: "asc" },
+      { col: "amount", dir: "desc" },
+    ]);
+  });
+
+  it("uses whichever spelling the sheet actually has", () => {
+    expect(defaultSortFor("deals", ["name", "deal_stage", "deal_value"])).toEqual([
+      { col: "deal_stage", dir: "asc" },
+      { col: "deal_value", dir: "desc" },
+    ]);
+  });
+
+  it("skips rules whose column is absent instead of inventing one", () => {
+    expect(defaultSortFor("deals", ["name", "stage"])).toEqual([{ col: "stage", dir: "asc" }]);
+    expect(defaultSortFor("deals", ["name"])).toEqual([]);
+  });
+
+  it("tasks lead with what is due soonest", () => {
+    expect(defaultSortFor("tasks", ["name", "due_date", "priority"])[0]).toEqual({ col: "due_date", dir: "asc" });
+  });
+
+  it("lead lists are queues — freshest first, using the row's real timestamp", () => {
+    expect(defaultSortFor("discovered-leads", ["name"])).toEqual([{ col: "__updated_at", dir: "desc" }]);
+  });
+
+  it("an object with no natural order is left alone", () => {
+    expect(defaultSortFor("people", ["name", "email"])).toEqual([]);
+    expect(defaultSortFor("custom_thing", ["name"])).toEqual([]);
+  });
+
+  it("never emits the same column twice — a duplicate rule is unrepresentable downstream", () => {
+    const rules = defaultSortFor("deals", ["stage", "amount", "value"]);
+    expect(new Set(rules.map(r => r.col)).size).toBe(rules.length);
+  });
+
+  it("seeds once per sheet and never overrides a sort the user already has", () => {
+    const table = read("apps/app/src/components/records/record-table.tsx");
+    expect(table).toMatch(/if \(sortRules\.length > 0\) return;/);
+    expect(table).toMatch(/sortSeededFor\.current === objectType/);
   });
 });
 

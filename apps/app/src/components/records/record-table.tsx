@@ -26,7 +26,7 @@ import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
 import { PipelineHealthBadge } from "./pipeline-health-badge";
 import { parseNumeric } from "@mondaily/shared/numbers";
-import { vocabSlotOf, vocabSortKey, vocabDirWords } from "@mondaily/shared/vocab";
+import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
@@ -2152,6 +2152,20 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       ...dupExtras,
     ]));
   }, [objectType, allColumns]);
+  // Open each sheet in the order that object is actually read — deals by pipeline then value,
+  // tasks by what is due soonest, leads freshest first. Arriving in raw database order is not an
+  // answer to any question. Seeded ONCE per object type and only when no sort is set, so clearing
+  // the sort or setting your own is never overridden (the ref is what stops it re-seeding).
+  const sortSeededFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (sortSeededFor.current === objectType || allColumns.length === 0) return;
+    sortSeededFor.current = objectType;
+    if (sortRules.length > 0) return;                       // a saved view or the user got here first
+    const seed = defaultSortFor(objectType, allColumns);
+    if (seed.length) setSortRules(seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objectType, allColumns]);
+
   function toggleCol(col: string) {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
   }

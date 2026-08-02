@@ -113,6 +113,44 @@ export function vocabDirWords(slot: VocabSlot, dir: "asc" | "desc"): string {
 }
 
 /**
+ * The order a sheet should ARRIVE in, by what the object means. An unsorted sheet is a pile: the
+ * rows come back in whatever order the database returns them, which is not an answer to any
+ * question a user has. These are defaults only — the moment someone sets their own sort it wins,
+ * and it is never silently replaced.
+ *
+ * Columns are given as candidates because the same concept is spelled differently per sheet
+ * (`deal_stage` vs `stage`, `amount` vs `value`); the first candidate that exists on the sheet is
+ * used, and a rule whose column is absent is simply skipped.
+ */
+export interface DefaultSortRule { candidates: string[]; dir: "asc" | "desc" }
+
+const DEFAULT_SORTS: { match: RegExp; rules: DefaultSortRule[] }[] = [
+  // Pipeline first, biggest money first inside each stage — how a deal list is actually read.
+  { match: /^deals?$/i,            rules: [{ candidates: ["deal_stage", "stage"], dir: "asc" }, { candidates: ["amount", "value", "deal_value"], dir: "desc" }] },
+  // Money owed: largest outstanding first, then oldest.
+  { match: /invoice/i,             rules: [{ candidates: ["status"], dir: "asc" }, { candidates: ["due_date", "date"], dir: "asc" }] },
+  { match: /quote|credit.?note/i,  rules: [{ candidates: ["status"], dir: "asc" }, { candidates: ["date", "created_at"], dir: "desc" }] },
+  { match: /expense/i,             rules: [{ candidates: ["status"], dir: "asc" }, { candidates: ["date"], dir: "desc" }] },
+  // Work: what is due soonest, most urgent first.
+  { match: /task|todo/i,           rules: [{ candidates: ["due_date", "due"], dir: "asc" }, { candidates: ["priority"], dir: "desc" }] },
+  // Leads: freshest first — a lead list is a queue.
+  { match: /lead|prospect/i,       rules: [{ candidates: ["__updated_at"], dir: "desc" }] },
+];
+
+/** The default sort rules for an object type, or [] when it has no meaningful natural order. */
+export function defaultSortFor(objectType: string, availableCols: string[]): { col: string; dir: "asc" | "desc" }[] {
+  const entry = DEFAULT_SORTS.find(d => d.match.test(objectType));
+  if (!entry) return [];
+  const have = new Set(availableCols);
+  const out: { col: string; dir: "asc" | "desc" }[] = [];
+  for (const rule of entry.rules) {
+    const col = rule.candidates.find(c => have.has(c) || c === "__updated_at");
+    if (col && !out.some(o => o.col === col)) out.push({ col, dir: rule.dir });
+  }
+  return out;
+}
+
+/**
  * Every recognised spelling paired with its rank — what a SQL ranker needs so ORDER BY can use a
  * CASE rank instead of a text compare, and the ordering survives paging. Flat (not index-based)
  * because several spellings share one rank.
