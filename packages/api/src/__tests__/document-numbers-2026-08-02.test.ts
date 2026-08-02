@@ -18,7 +18,7 @@ describe("numbers are claimed atomically, not read-then-written", () => {
   });
 
   it("the counter can only ever move FORWARD, so a concurrent caller cannot reuse a number", () => {
-    expect(sql()).toMatch(/set next_value = greatest\(dc\.next_value, greatest\(seed_from, 0\) \+ 1\) \+ 1/);
+    expect(sql()).toMatch(/set next_value = greatest\(dc\.next_value, greatest\(p_seed, 0\) \+ 1\) \+ 1/);
   });
 
   it("no route computes a number for itself any more", () => {
@@ -61,5 +61,23 @@ describe("it fails loudly rather than falling back", () => {
   it("does not hand the counter to the browser's roles", () => {
     expect(sql()).toMatch(/revoke all on function next_document_number\(text, text, bigint\) from public, anon, authenticated/);
     expect(sql()).toMatch(/grant execute on function next_document_number\(text, text, bigint\) to service_role/);
+  });
+});
+
+describe("the lesson from the first live attempt", () => {
+  it("uses p_-prefixed parameters — a bare doc_type is ambiguous against the column", () => {
+    // The function installed cleanly and then failed on EVERY call: plpgsql resolves the
+    // ambiguity at call time, not at create time, so "Success, no rows returned" proved nothing.
+    const src = sql();
+    expect(src).toMatch(/p_ws text,\s*\n\s*p_doc_type text,\s*\n\s*p_seed bigint/);
+    expect(src).toMatch(/drop function if exists next_document_number\(text, text, bigint\)/);
+    expect(read("packages/api/src/lib/document-numbers.ts")).toMatch(/p_ws: workspaceId,\s*\n\s*p_doc_type: objectType,\s*\n\s*p_seed: seed,/);
+  });
+
+  it("returns the real reason instead of a bare Internal Server Error", () => {
+    // The first failure gave no clue which of the four moving parts had broken.
+    for (const f of ["packages/api/src/routes/invoices.ts", "packages/api/src/routes/quotes.ts"]) {
+      expect(read(f)).toMatch(/catch \(e\) \{\s*\n\s*return c\.json\(\{ error: e instanceof Error \? e\.message/);
+    }
   });
 });

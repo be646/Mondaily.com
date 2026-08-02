@@ -107,7 +107,12 @@ router.get("/:id", async (c) => {
 
 router.post("/", zValidator("json", quoteBodySchema), async (c) => {
   const body = c.req.valid("json");
-  const number = body.number || await nextQuoteNumber(c.get("workspaceId"));
+  let number: string;
+  try {
+    number = body.number || await nextQuoteNumber(c.get("workspaceId"));
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Could not allocate a quote number." }, 500);
+  }
   const { subtotal, tax_total, total } = calcTotals(body.line_items, body.currency);
 
   // Same money model as invoices: freeze what the client is quoted and the rate that valued it

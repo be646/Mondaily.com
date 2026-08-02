@@ -25,18 +25,23 @@ alter table document_counters enable row level security;
 -- Reached only through the security-definer function below, which is granted to the API role.
 revoke all on document_counters from public, anon, authenticated;
 
+-- Parameters are p_-prefixed. `doc_type` as a bare parameter name is AMBIGUOUS against the column
+-- of the same name in the ON CONFLICT target, and plpgsql raises at call time, not at create time
+-- so the function installs cleanly and then fails on every single call.
+drop function if exists next_document_number(text, text, bigint);
+
 /**
  * Claim the next number for a document type, atomically.
  *
- * `seed_from` carries the highest number already in use, so an existing workspace continues its
+ * `p_seed` carries the highest number already in use, so an existing workspace continues its
  * series instead of restarting at 1 and colliding with every document it has already issued. It is
  * applied with GREATEST on every call rather than only at creation: a workspace that imported
  * documents after the counter existed would otherwise mint numbers that are already taken.
  */
 create or replace function next_document_number(
-  ws text,
-  doc_type text,
-  seed_from bigint default 0
+  p_ws text,
+  p_doc_type text,
+  p_seed bigint default 0
 ) returns bigint
 language plpgsql
 security definer
@@ -54,9 +59,9 @@ begin
   -- GREATEST on the update branch is what makes it safe under concurrency and under a later
   -- import: the counter can only ever move forward, never back onto a number already issued.
   insert into document_counters as dc (workspace_id, doc_type, next_value)
-  values (ws, doc_type, greatest(seed_from, 0) + 2)
+  values (p_ws, p_doc_type, greatest(p_seed, 0) + 2)
   on conflict (workspace_id, doc_type) do update
-    set next_value = greatest(dc.next_value, greatest(seed_from, 0) + 1) + 1,
+    set next_value = greatest(dc.next_value, greatest(p_seed, 0) + 1) + 1,
         updated_at = now()
   returning dc.next_value - 1 into claimed;
 

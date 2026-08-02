@@ -68,9 +68,9 @@ export async function nextDocumentNumber(
 ): Promise<string> {
   const seed = await highestIssued(workspaceId, objectType);
   const { data, error } = await supabase.rpc("next_document_number", {
-    ws: workspaceId,
-    doc_type: objectType,
-    seed_from: seed,
+    p_ws: workspaceId,
+    p_doc_type: objectType,
+    p_seed: seed,
   });
   if (error) throw new Error(`Could not allocate a ${objectType} number: ${error.message}`);
   const n = Number(data);

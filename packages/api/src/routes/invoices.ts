@@ -198,7 +198,15 @@ router.get("/:id", async (c) => {
 
 router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
   const body = c.req.valid("json");
-  const number = body.number || await nextInvoiceNumber(c.get("workspaceId"));
+  // Surfaced rather than thrown: numbering failing produced a bare "Internal Server Error" with
+  // no clue which of the four things involved had broken. An operator-facing message costs nothing
+  // and is the difference between a two-minute fix and a bisect.
+  let number: string;
+  try {
+    number = body.number || await nextInvoiceNumber(c.get("workspaceId"));
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Could not allocate an invoice number." }, 500);
+  }
   const { subtotal, tax_total, total } = calcTotals(body.line_items, body.currency);
 
   // Freeze the money at issue: what the client is charged, in their currency, and the rate that
