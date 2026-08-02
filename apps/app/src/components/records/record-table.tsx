@@ -3966,6 +3966,32 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           <div className="px-3 py-1.5 text-body text-[var(--text-secondary)] border-b border-[var(--border-soft)] mb-1">
             {colLabel(colCtxMenu.col)}
           </div>
+          {/* Formula columns were write-once: a typo meant deleting the column and rebuilding it.
+              The formula is workspace-shared (sheet_config meta), so an edit fixes it for everyone. */}
+          {customCols.find(c => c.key === colCtxMenu.col)?.type === "formula" && (
+            <button
+              onClick={() => {
+                const col = colCtxMenu.col;
+                const def = customCols.find(c => c.key === col);
+                const next = window.prompt(`Formula for "${colLabel(col)}" — reference columns by name, e.g. amount * 0.2`, def?.meta?.formula ?? "");
+                if (next == null || !next.trim()) { setColCtxMenu(null); return; }
+                // Validate against a real row before saving: an invalid formula silently turned
+                // every cell in the column into #ERR with no way back to the previous one.
+                const probe = records[0]?.data as Record<string, unknown> | undefined;
+                const check = evaluateFormula(next.trim(), probe ?? {});
+                if (!check.ok && records.length > 0) {
+                  window.alert(`That formula could not be evaluated: ${check.error}\n\nThe column keeps its current formula.`);
+                  setColCtxMenu(null);
+                  return;
+                }
+                saveCustomCols(customCols.map(c => c.key === col ? { ...c, meta: { ...(c.meta ?? {}), formula: next.trim() } } : c));
+                setColCtxMenu(null);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <Sigma size={12}/> Edit formula
+            </button>
+          )}
           {customCols.some(c => c.key === colCtxMenu.col) && (
             <button
               onClick={() => {
