@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-s
 import { SegmentedControl } from "../../components/ui/segmented";
 import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { useLanguage } from "../../hooks/useLanguage";
-import { isOverdue as isPastDue } from "@mondaily/shared/dates";
+import { isOverdue as isPastDue, localStartOfTodayISO } from "@mondaily/shared/dates";
 
 
 /** <input type="datetime-local"> reads/writes LOCAL wall-clock time, but due_date is stored as
@@ -436,7 +436,18 @@ export function TasksPage() {
   const [highlightId, setHighlightId]     = useState<string | null>(null);
   const [searchParams, setSearchParams]   = useSearchParams();
 
-  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}${priorityFilter ? `&priority=${priorityFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
+  // The Overdue list is filtered in SQL, but "overdue" means past due in THIS reader's day — so the
+  // viewer's midnight goes with the request. Without it the server used UTC midnight and the chip
+  // count (computed locally, right here) disagreed with the list it opened.
+  const query = useQuery({
+    queryKey: ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir],
+    queryFn: () => apiClient.get<Task[]>(
+      `/tasks?filter=${filter}`
+      + (filter === "overdue" ? `&before=${encodeURIComponent(localStartOfTodayISO())}` : "")
+      + (labelFilter ? `&label=${labelFilter}` : "")
+      + (priorityFilter ? `&priority=${priorityFilter}` : "")
+      + `&sort=${sortBy}&dir=${sortDir}`),
+  });
 
   // Deep-link resolver: when arriving with ?id=<taskId> (e.g. from a chat card),
   // open that task's detail panel, highlight + scroll to its row, then strip the

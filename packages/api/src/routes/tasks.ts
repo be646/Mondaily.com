@@ -27,7 +27,19 @@ tasks.get("/", async (c) => {
     .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : sortBy === "assignee" ? "assignee_email" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
 
   if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
-  if (filter === "overdue") query = query.lt("due_date", overdueCutoffISO()).eq("completed", false).neq("status", "done");
+  if (filter === "overdue") {
+    // The cutoff is the VIEWER's midnight when the client sends one, because "overdue" means past
+    // due in the reader's day. The server alone can only compute UTC midnight, which is a different
+    // instant everywhere except UTC+0 — so the Overdue chip (counted locally) and the Overdue list
+    // (filtered in SQL) disagreed for anyone not on UTC. Validated, and never trusted beyond a
+    // day's slack in either direction so a caller cannot widen the filter arbitrarily.
+    const asked = c.req.query("before") ?? "";
+    const utcCutoff = overdueCutoffISO();
+    const parsed = /^\d{4}-\d{2}-\d{2}T/.test(asked) ? Date.parse(asked) : NaN;
+    const withinADay = Number.isFinite(parsed) && Math.abs(parsed - Date.parse(utcCutoff)) <= 36 * 3600_000;
+    const cutoff = withinADay ? new Date(parsed).toISOString() : utcCutoff;
+    query = query.lt("due_date", cutoff).eq("completed", false).neq("status", "done");
+  }
   if (filter === "review") query = query.eq("status", "review");
   if (labelFilter) query = query.contains("labels", [labelFilter]);
   if (priorityFilter) query = query.eq("priority", priorityFilter);

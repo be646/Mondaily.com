@@ -240,7 +240,7 @@ describe("PHASE 4 — page wiring uses t(); route paths + handlers untouched", (
     expect(src).toMatch(/t\("tasks\.new"\)/);
     expect(src).toMatch(/t\("tasks\.filter\.mine"\)/);
     expect(src).toMatch(/t\("tasks\.empty"\)/);
-    expect(src).toMatch(/apiClient\.get<Task\[\]>\(`\/tasks/);   // API route literal intact
+    expect(src).toMatch(/apiClient\.get<Task\[\]>\(\s*`\/tasks/);   // API route literal intact (may wrap)
     expect(src).toMatch(/apiClient\.post\("\/tasks"/);           // create handler intact
   });
   it("Notifications: labels via t(), poll + routes intact", () => {

@@ -28,3 +28,17 @@ export function isOverdue(dueDate?: string | null, now: Date = new Date()): bool
 export function overdueCutoffISO(now: Date = new Date()): string {
   return `${now.toISOString().slice(0, 10)}T00:00:00.000Z`;
 }
+
+/**
+ * The start of the VIEWER's today, as a UTC instant — the cutoff a client should send so the server
+ * filters by the same day boundary the user sees.
+ *
+ * `isOverdue` measures against local midnight (what "yesterday" means to a person) while
+ * `overdueCutoffISO` measures against UTC midnight (what the server can compute alone). Those are
+ * the same instant only at UTC+0. In Warsaw they are two hours apart, so a task due late yesterday
+ * UTC was counted by the Overdue chip but missing from the Overdue list, or the reverse — one word,
+ * two numbers, decided by where the reader happens to be sitting.
+ */
+export function localStartOfTodayISO(now: Date = new Date()): string {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+}
