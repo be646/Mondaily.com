@@ -50,14 +50,25 @@ describe("no native browser dialogs where a user types or decides", () => {
   });
 });
 
-describe("the reporting line follows the ledger, not the viewer", () => {
-  it("money cells convert to the workspace BASE currency, not the display selector", () => {
-    // A EUR invoice shows its USD value because USD is what the business reports in — whether or
-    // not this particular person is viewing the page in PLN. Tying it to the selector showed two
-    // colleagues different second lines for the same invoice.
+describe("a column and its own total must be addable", () => {
+  it("money cells report in the SAME currency as the page's totals", () => {
+    // Cells briefly reported in the workspace base while totals followed the selector. Rows in USD
+    // under a KPI in PLN cannot be reconciled, which is the one thing a finance page is for.
     const cell = read("apps/app/src/components/finance/money-cell.tsx");
-    expect(cell).toMatch(/const target = \(base \|\| display \|\| ""\)\.toUpperCase\(\)/);
-    expect(cell).toMatch(/const \{ base, display, rates \} = useCurrency\(\)/);
+    expect(cell).toMatch(/const target = \(display \|\| base \|\| ""\)\.toUpperCase\(\)/);
+  });
+
+  it("the page says when it is NOT showing the reporting currency, and offers to switch back", () => {
+    // Without this a USD business can read PLN totals for weeks and quote them, never learning the
+    // figures were neither the charged amounts nor the reported ones.
+    const notice = read("apps/app/src/components/finance/currency-basis-notice.tsx");
+    expect(notice).toMatch(/This workspace reports in/);
+    expect(notice).toMatch(/setDisplay\.mutate\(b\)/);
+    expect(notice).toMatch(/if \(!b \|\| !d \|\| b === d\) return null;/);   // silent when they agree
+  });
+
+  it("it is mounted once for the whole finance surface", () => {
+    expect(read("apps/app/src/routes/dashboard/finance/shell.tsx")).toMatch(/<CurrencyBasisNotice \/>/);
   });
 });
 

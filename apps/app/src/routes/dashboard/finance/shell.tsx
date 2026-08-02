@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "@/components/ui/tabs";
 import { apiClient } from "../../../lib/api-client";
+import { CurrencyBasisNotice } from "../../../components/finance/currency-basis-notice";
 
 /**
  * FINANCE SHELL — the tab-shell merge. Six finance surfaces (Invoices, Quotes, Credit notes,
@@ -56,6 +57,9 @@ export function FinanceShell() {
         {/* Same border-b as Tabs, so the hairline runs unbroken under tabs AND actions. */}
         <div id="finance-shell-actions" className="flex min-w-0 flex-1 items-center justify-end gap-2 border-b border-[var(--border-soft)] pl-3"/>
       </div>
+      {/* One line, once, above every finance page — the reporting basis belongs to the whole
+          surface, not to whichever page happens to render a total. */}
+      <CurrencyBasisNotice />
       <Outlet />
     </div>
   );

@@ -25,13 +25,17 @@ export function MoneyCell({ row, align = "left" }: {
 
   const primary = formatMoney(m.amount, m.currency);
   const charged = (m.currency || "").toUpperCase();
-  // The second line reports in the workspace BASE currency, not the display selector. The base is
-  // the ledger — it is what amount_base was frozen in and what every total is computed in — while
-  // the display currency is a per-user viewing preference. A EUR invoice must show its USD value
-  // because USD is what this business reports in, whether or not someone is currently looking at
-  // the page in PLN. Tying it to the selector meant the same invoice showed a different second
-  // line to two colleagues.
-  const target = (base || display || "").toUpperCase();
+  // The reporting line follows the SAME currency as the page's totals.
+  //
+  // It briefly reported in the workspace base while the totals followed the "Show in" selector, on
+  // the reasoning that the base is the ledger. That was wrong for a simpler reason: a column and
+  // its own total must be addable. Showing USD in the rows and PLN in the KPI above them makes the
+  // page impossible to reconcile, which is the one thing a finance page is for.
+  //
+  // So one currency per page. When that is not the reporting currency, the page says so and offers
+  // to switch back (see CurrencyBasisNotice) rather than quietly showing a figure the business
+  // does not report in.
+  const target = (display || base || "").toUpperCase();
 
   // Same currency: a second line would just repeat the first.
   if (charged === target) {
