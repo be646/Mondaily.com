@@ -43,6 +43,20 @@ router.post("/", async (c) => {
 router.patch("/:id", async (c) => {
   const body = await c.req.json() as { title?: string; messages?: unknown[] };
   const id = c.req.param("id");
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+
+  // OWNERSHIP CHECK — an upsert conflicts on `id` ALONE, so the .eq() filters that protect every
+  // other handler in this file do not apply to it. Without this, a request carrying someone else's
+  // thread id overwrites that row: their messages are replaced and user_id/workspace_id are
+  // rewritten to the caller's, so the thread changes hands silently. Ids are client-generated,
+  // which is exactly why the row must be checked before it is written.
+  const { data: existing } = await supabase
+    .from("chat_threads").select("user_id, workspace_id").eq("id", id).maybeSingle();
+  if (existing && (existing.user_id !== me || existing.workspace_id !== ws)) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
   const { data, error } = await supabase
     .from("chat_threads")
     .upsert({
