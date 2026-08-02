@@ -16,17 +16,17 @@
 do $$
 declare
   pk_name text;
+  pk_cols int;
 begin
-  select conname into pk_name
+  -- conkey is smallint[], so the column count comes from array_length. (Comparing pg_attribute.attnum
+  -- against the array directly is a type error: smallint = smallint[].)
+  select conname, coalesce(array_length(conkey, 1), 0)
+    into pk_name, pk_cols
     from pg_constraint
    where conrelid = 'fx_rates'::regclass and contype = 'p';
 
   -- Already re-keyed? Then this migration has run; do nothing.
-  if pk_name is not null and (
-      select count(*) from pg_attribute
-       where attrelid = 'fx_rates'::regclass
-         and attnum = any((select conkey from pg_constraint where conname = pk_name))
-     ) = 2 then
+  if pk_cols = 2 then
     raise notice 'fx_rates already keyed on (currency, as_of)';
     return;
   end if;
