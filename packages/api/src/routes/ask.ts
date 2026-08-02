@@ -18,6 +18,8 @@ import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gate
 import { recallContext } from "../lib/memory-recall";
 import { isOverdue } from "@mondaily/shared/dates";
 import { resolveEntitlement } from "../lib/entitlements";
+import { readMoney, toMinor, fromMinor } from "@mondaily/shared/money";
+import { workspaceBaseCurrency } from "../lib/currency-store";
 
 // Naive English pluralization (covers the common custom-object-type names: company/property/box/
 // dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
@@ -1214,14 +1216,29 @@ async function executeTool(
         // reported as "£102,501 paid" — the face-value sum of three currencies, labelled as pounds,
         // when the real GBP figure is zero. Grouping is the honest fix: no FX rate is invented, and
         // a mixed-currency workspace reads as mixed.
+        // Plus the reporting-currency total, from each invoice's FROZEN amount_base — the same
+        // figure the Finance pages show. Without it Ask answered "9,814.16 EUR + 92,686.84 USD"
+        // while Reports said "US$115,692.57": both true, neither reconcilable against the other,
+        // and the reader left to do FX in their head. Any invoice without a stored valuation is
+        // EXCLUDED from that line and counted, rather than converted at a rate nobody recorded.
+        const baseCur = (await workspaceBaseCurrency(workspaceId)).toUpperCase();
         const sum = (list: any[]) => {
           const byCur = new Map<string, number>();
+          let baseMinor = 0, unvalued = 0;
           for (const d of list) {
             const cur = String(d.currency ?? "").toUpperCase() || "UNSPECIFIED";
             byCur.set(cur, (byCur.get(cur) ?? 0) + (Number(d.total) || 0));
+            const m = readMoney(d);
+            if (m.modelled && m.base_amount != null && (m.base_currency ?? "").toUpperCase() === baseCur) {
+              baseMinor += toMinor(m.base_amount, baseCur);
+            } else unvalued += 1;
           }
           if (byCur.size === 0) return "0";
-          return [...byCur].map(([c, v]) => `${v.toFixed(2)} ${c}`).join(" + ");
+          const perCurrency = [...byCur].map(([c, v]) => `${v.toFixed(2)} ${c}`).join(" + ");
+          // Only add the reporting total when it says something the per-currency line doesn't.
+          if (byCur.size === 1 && byCur.has(baseCur)) return perCurrency;
+          const suffix = unvalued > 0 ? `, excluding ${unvalued} with no stored rate` : "";
+          return `${perCurrency} (= ${fromMinor(baseMinor, baseCur).toFixed(2)} ${baseCur} at the rate recorded on each invoice${suffix})`;
         };
         const overdue = byStatus("overdue");
         const draft = byStatus("draft");
