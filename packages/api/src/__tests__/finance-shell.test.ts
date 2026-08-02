@@ -29,7 +29,9 @@ describe("the finance tab shell", () => {
 
   it("uses THE tab component with real counts, honest about unknowns", () => {
     expect(shell).toMatch(/import \{ Tabs \} from "@\/components\/ui\/tabs"/);
-    expect(shell).toMatch(/apiClient\.get\("\/clean\/types"\)/);   // the exact SQL aggregate
+    // 2026-08-02: scoped to the finance vertical. object_type alone spans populations — `expense`
+    // counted 11 (1 Finance document + 10 rows of a user-built expenses sheet) over a list of 1.
+    expect(shell).toMatch(/apiClient\.get\("\/clean\/types\?vertical=finance"\)/);
     expect(shell).toMatch(/if \(!type \|\| !counts\.data\) return undefined;/);  // unknown → no badge
   });
 

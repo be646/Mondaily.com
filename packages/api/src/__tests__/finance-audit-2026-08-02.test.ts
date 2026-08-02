@@ -166,3 +166,27 @@ describe("expenses can be corrected, not just created", () => {
     expect(ui()).toMatch(/\{rowErr && \(/);
   });
 });
+
+describe("the finance tab counts match the lists they label", () => {
+  it("counts can be scoped to a vertical — object_type alone spans populations", () => {
+    // Measured 2026-08-02: object_type 'expense' is 11 rows — 1 Finance document
+    // (amount_cents/category/status) and 10 rows of a user-built expenses SHEET
+    // (gross_amount/main_category/name). The strip badged "Expenses 11" over a list of 1.
+    const src = read("packages/api/src/routes/clean.ts");
+    expect(src).toMatch(/const vertical = c\.req\.query\("vertical"\)/);
+    expect(src).toMatch(/\.eq\("vertical", vertical\)/);
+    expect(src).toMatch(/SAFE_VERTICAL\.test\(vertical\)/);
+  });
+
+  it("the finance strip asks for the finance vertical", () => {
+    const shell = read("apps/app/src/routes/dashboard/finance/shell.tsx");
+    expect(shell).toMatch(/\/clean\/types\?vertical=finance/);
+    expect(shell).toMatch(/queryKey: \["finance-type-counts", "finance"\]/);
+  });
+
+  it("the two expense populations are NOT merged — they are different shapes", () => {
+    // The finance list is right to filter vertical=finance; the fix was the count, not the query.
+    const exp = read("packages/api/src/routes/expenses.ts");
+    expect(exp).toMatch(/\.eq\("vertical", "finance"\)/);
+  });
+});

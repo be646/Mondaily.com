@@ -26,8 +26,11 @@ export function FinanceShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const counts = useQuery<{ types: { object_type: string; n: number }[] }>({
-    queryKey: ["finance-type-counts"],
-    queryFn: () => apiClient.get("/clean/types"),
+    // Scoped to the finance vertical: an object_type alone spans populations. `expense` is both a
+    // Finance document and a row of the user-built "expenses" records sheet, so the unscoped count
+    // badged this strip "Expenses 11" over a list of 1.
+    queryKey: ["finance-type-counts", "finance"],
+    queryFn: () => apiClient.get("/clean/types?vertical=finance"),
     staleTime: 120_000,
     retry: false,
   });

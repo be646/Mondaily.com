@@ -63,6 +63,32 @@ function confusable(a: string, b: string): boolean {
  */
 router.get("/types", async (c) => {
   const ws = c.get("workspaceId");
+  // Optional vertical scope. An object_type alone does NOT identify one population: `expense`
+  // exists both as a Finance document (vertical=finance: amount_cents/category/status) and as rows
+  // of a user-built "expenses" records sheet (vertical=shared: gross_amount/main_category/name).
+  // Counting the type across both made the Finance tab read "Expenses 11" over a list of 1 — the
+  // ten it counted are a different shape entirely and that list can never show them.
+  const vertical = c.req.query("vertical");
+  const SAFE_VERTICAL = /^[a-z_]{1,32}$/;
+  if (vertical && SAFE_VERTICAL.test(vertical)) {
+    const acc = new Map<string, number>();
+    const PAGE = 1000;
+    for (let from = 0; from < 100_000; from += PAGE) {
+      const { data: page, error: pErr } = await supabase
+        .from("nodes").select("object_type").eq("workspace_id", ws).eq("vertical", vertical)
+        .order("id", { ascending: true }).range(from, from + PAGE - 1);
+      if (pErr) return c.json({ error: pErr.message }, 500);
+      const rows = page ?? [];
+      for (const r of rows) {
+        const t = String((r as { object_type?: string }).object_type ?? "");
+        if (t) acc.set(t, (acc.get(t) ?? 0) + 1);
+      }
+      if (rows.length < PAGE) break;
+    }
+    const scoped = [...acc].map(([object_type, n]) => ({ object_type, n })).sort((a, b) => b.n - a.n);
+    return c.json({ types: scoped, vertical, pairs: [] });
+  }
+
   const { data, error } = await supabase.rpc("object_type_counts", { ws });
   let counts: { object_type: string; n: number }[];
 
