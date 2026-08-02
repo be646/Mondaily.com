@@ -156,7 +156,12 @@ export function defaultSortFor(objectType: string, availableCols: string[]): { c
  * because several spellings share one rank.
  */
 export function vocabRankPairs(slot: VocabSlot): { match: string; rank: number }[] {
+  const seen = new Set<string>();
   return VOCAB[slot].flatMap((e, i) =>
-    [e.value.toLowerCase(), ...e.aliases].map(match => ({ match, rank: i })),
+    // The display value is usually also listed as an alias ("Lead"/"lead"), which sent the same
+    // spelling twice in every query's rank array. Harmless to array_position, but it is payload.
+    [e.value.toLowerCase(), ...e.aliases]
+      .filter(m => !seen.has(m) && seen.add(m) !== undefined)
+      .map(match => ({ match, rank: i })),
   );
 }
