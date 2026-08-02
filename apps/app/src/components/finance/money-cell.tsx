@@ -19,13 +19,19 @@ export function MoneyCell({ row, align = "left" }: {
   row: Record<string, unknown> | null | undefined;
   align?: "left" | "right";
 }) {
-  const { display, rates } = useCurrency();
+  const { base, display, rates } = useCurrency();
   const m = readMoney(row);
   if (!m.currency && !m.amount) return <span style={{ color: "var(--text-faint)" }}>—</span>;
 
   const primary = formatMoney(m.amount, m.currency);
   const charged = (m.currency || "").toUpperCase();
-  const target = (display || "").toUpperCase();
+  // The second line reports in the workspace BASE currency, not the display selector. The base is
+  // the ledger — it is what amount_base was frozen in and what every total is computed in — while
+  // the display currency is a per-user viewing preference. A EUR invoice must show its USD value
+  // because USD is what this business reports in, whether or not someone is currently looking at
+  // the page in PLN. Tying it to the selector meant the same invoice showed a different second
+  // line to two colleagues.
+  const target = (base || display || "").toUpperCase();
 
   // Same currency: a second line would just repeat the first.
   if (charged === target) {

@@ -16,6 +16,7 @@ import { PendingPlanBanner } from "../../components/ui/pending-plan-banner";
 import { BillingAlertBanner } from "../../components/ui/billing-alert-banner";
 import { useLanguage } from "../../hooks/useLanguage";
 import { HelpProvider } from "../../components/help/help-panel";
+import { DialogProvider } from "../../components/ui/dialog-service";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -176,6 +177,7 @@ export function DashboardLayout() {
 
   return (
    <HelpProvider>
+    <DialogProvider>
     {/* Dual-font: the shell defaults to Geist Sans (UI/structure); data/AI surfaces opt into font-mono. */}
     <div className="flex h-screen w-screen overflow-hidden surface-page">
       {/* Change toasts — slide-in pop-ups for new notifications/activity */}
@@ -264,6 +266,7 @@ export function DashboardLayout() {
       <CallHost />
       <MobileNav />
     </div>
+    </DialogProvider>
    </HelpProvider>
   );
 }

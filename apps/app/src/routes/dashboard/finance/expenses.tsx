@@ -10,6 +10,7 @@ import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/perio
 import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import { parseNumeric } from "@mondaily/shared/numbers";
+import { dialogs } from "../../../components/ui/dialog-service";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
   CheckCircle2, XCircle, Clock, Trash2,
@@ -254,12 +255,26 @@ export function ExpensesPage() {
         <div className="flex items-center justify-end gap-2">
           {editable(e) ? (
             <button
-              onClick={(ev) => {
+              onClick={async (ev) => {
                 ev.stopPropagation();
-                const next = window.prompt(`Amount for "${e.description}" (${e.currency})`, String(e.amount_cents / 100));
+                const next = await dialogs.prompt({
+                  title: `Edit amount — ${e.description}`,
+                  description: `Charged in ${e.currency}. The reporting value is recalculated at the rate for ${String(e.date ?? "").slice(0, 10) || "the expense date"}.`,
+                  defaultValue: String(e.amount_cents / 100),
+                  inputMode: "number",
+                  confirmLabel: "Save",
+                  // Validated in the dialog so a typo is corrected in place rather than dismissing
+                  // the box and reporting the failure somewhere else on the page.
+                  validate: (v) => {
+                    const n = parseNumeric(v);
+                    if (n == null) return "That isn’t a number.";
+                    if (n < 0) return "An expense can’t be negative.";
+                    return null;
+                  },
+                });
                 if (next == null) return;
                 const major = parseNumeric(next);
-                if (major == null || major < 0) { setRowErr("That amount isn’t a number."); return; }
+                if (major == null || major < 0) return;
                 patchExpense.mutate({ id: e.id, patch: { amount_cents: Math.round(major * 100) } });
               }}
               className="text-caption text-[var(--text-muted)] underline underline-offset-2 transition-colors hover:text-[var(--text-primary)]">

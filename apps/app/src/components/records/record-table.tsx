@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { dialogs } from "../ui/dialog-service";
 import { evaluateFormula } from "@mondaily/shared/formula";
 import { LossReasonModal, isLostStage, type PendingLoss } from "./loss-reason";
 import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency";
@@ -3011,7 +3012,16 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
       }
       return (
         <div className="px-2 py-1.5" title="Double-click to edit"
-          onDoubleClick={e => { e.stopPropagation(); const next = window.prompt("Values (comma-separated):", Array.isArray(val) ? (val as unknown[]).join(", ") : String(val ?? "")); if (next != null) saveCell(record, col, next.split(",").map(x => x.trim()).filter(Boolean)); }}>
+          onDoubleClick={async e => {
+            e.stopPropagation();
+            const next = await dialogs.prompt({
+              title: `Edit ${colLabel(col)}`,
+              description: "Separate values with commas.",
+              defaultValue: Array.isArray(val) ? (val as unknown[]).join(", ") : String(val ?? ""),
+              confirmLabel: "Save",
+            });
+            if (next != null) saveCell(record, col, next.split(",").map(x => x.trim()).filter(Boolean));
+          }}>
           <MultiSelectChips value={val} />
         </div>
       );
@@ -4226,20 +4236,26 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               The formula is workspace-shared (sheet_config meta), so an edit fixes it for everyone. */}
           {customCols.find(c => c.key === colCtxMenu.col)?.type === "formula" && (
             <button
-              onClick={() => {
+              onClick={async () => {
                 const col = colCtxMenu.col;
                 const def = customCols.find(c => c.key === col);
-                const next = window.prompt(`Formula for "${colLabel(col)}" — reference columns by name, e.g. amount * 0.2`, def?.meta?.formula ?? "");
-                if (next == null || !next.trim()) { setColCtxMenu(null); return; }
-                // Validate against a real row before saving: an invalid formula silently turned
-                // every cell in the column into #ERR with no way back to the previous one.
                 const probe = records[0]?.data as Record<string, unknown> | undefined;
-                const check = evaluateFormula(next.trim(), probe ?? {});
-                if (!check.ok && records.length > 0) {
-                  window.alert(`That formula could not be evaluated: ${check.error}\n\nThe column keeps its current formula.`);
-                  setColCtxMenu(null);
-                  return;
-                }
+                const next = await dialogs.prompt({
+                  title: `Formula for ${colLabel(col)}`,
+                  description: "Reference columns by name — e.g. amount * 0.2",
+                  defaultValue: def?.meta?.formula ?? "",
+                  confirmLabel: "Save",
+                  // Validated IN the dialog against a real row, so an invalid formula is corrected
+                  // in place. Previously it was accepted, then rejected by a second native alert,
+                  // and the column was left on its old formula with no way to see the attempt.
+                  validate: (v) => {
+                    if (!v.trim()) return "Enter a formula.";
+                    if (!records.length) return null;
+                    const check = evaluateFormula(v.trim(), probe ?? {});
+                    return check.ok ? null : `That formula could not be evaluated: ${check.error}`;
+                  },
+                });
+                if (next == null || !next.trim()) { setColCtxMenu(null); return; }
                 saveCustomCols(customCols.map(c => c.key === col ? { ...c, meta: { ...(c.meta ?? {}), formula: next.trim() } } : c));
                 setColCtxMenu(null);
               }}
@@ -4289,10 +4305,10 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               }
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const col = colCtxMenu.col;
                 const current = colMeta[col]?.defaultValue ?? "";
-                const val = window.prompt(`Default value for "${colLabel(col)}"`, current);
+                const val = await dialogs.prompt({ title: `Default value for ${colLabel(col)}`, defaultValue: current, confirmLabel: "Save" });
                 if (val !== null) saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
                 setColCtxMenu(null);
               }}
