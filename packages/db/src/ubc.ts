@@ -59,8 +59,13 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   // numerically; text/date use data->>col (ISO dates compare correctly as text).
   // EVERY sort rule is applied, in order — chained .order() is a real multi-key ORDER BY. Only the
   // first rule used to reach SQL; rules 2+ were applied in the browser over the loaded page, so on
-  // any type past the page cap the tie-breaks ranked the wrong subset. NULLS LAST in both
-  // directions: reversing a sort used to fill the first page with blank cells.
+  // any type past the page cap the tie-breaks ranked the wrong subset.
+  //
+  // nullsFirst:false sinks real SQL NULLs in both directions. It does NOT sink empty STRINGS — ""
+  // is a value, and PostgREST cannot express NULLIF(col,''), so a column holding blanks still
+  // orders blanks-first here (confirmed live on deals.amount). The client comparator sinks them, so
+  // the rendered page is correct; past the page cap the SELECTION is not, and the table discloses
+  // that (sqlUnsortable). list_records in 20260802_list_records.sql closes it properly.
   const sorts = options.sorts?.length
     ? options.sorts
     : options.sort_col

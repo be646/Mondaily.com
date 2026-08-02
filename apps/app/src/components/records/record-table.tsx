@@ -2222,8 +2222,19 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // (20260802_list_records.sql) is applied. partialReasons discloses it whenever the loaded page
   // is not the whole table.
   const sqlUnsortable = useMemo(
-    () => sortRules.filter(r => vocabSlotOf(r.col) || isDerivedCol(r.col)),
-    [sortRules, isDerivedCol],
+    () => sortRules.filter(r => {
+      if (vocabSlotOf(r.col) || isDerivedCol(r.col)) return true;
+      // Empty STRINGS are the third case, and the easiest to miss: `nullsFirst:false` sinks real
+      // SQL NULLs, but a stored "" is a value, and PostgREST cannot express NULLIF(col,''). So a
+      // column holding blanks orders blanks-first in SQL while the client sinks them — verified
+      // live on deals/amount. Only matters when the page is not the whole table, which is exactly
+      // when this list is consulted.
+      return records.some(rec => {
+        const v = cellValue(rec, r.col);
+        return typeof v === "string" && v.trim() === "";
+      });
+    }),
+    [sortRules, isDerivedCol, records],
   );
 
   // Record-ID column is handled separately (locked between checkbox and name)

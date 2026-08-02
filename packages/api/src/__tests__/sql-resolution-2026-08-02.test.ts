@@ -20,8 +20,17 @@ describe("every sort rule reaches SQL, in order", () => {
     expect(ubc()).toMatch(/const applied = sorts\.filter\(s => s\.col && SAFE_COL\.test\(s\.col\)\)/);
   });
 
-  it("empty values sink in BOTH directions", () => {
+  it("SQL NULLs sink in both directions", () => {
     expect(ubc()).toMatch(/nullsFirst: false/);
+  });
+
+  it("the empty-STRING limit is documented, not claimed as solved", () => {
+    // Verified live on deals.amount: "" sorted first ascending. nullsFirst only covers real NULLs.
+    expect(ubc()).toMatch(/does NOT sink empty STRINGS/);
+  });
+
+  it("a sort over a column holding blanks is disclosed as page-scoped", () => {
+    expect(table()).toMatch(/typeof v === "string" && v\.trim\(\) === ""/);
   });
 
   it("a stable id key always terminates the ordering so pages cannot skip or repeat rows", () => {
@@ -101,6 +110,9 @@ describe("the list_records migration is shipped but not yet relied upon", () => 
   });
 
   it("no caller depends on the function yet — it must be applied and verified first", () => {
-    expect(ubc()).not.toMatch(/list_records/);
+    // The NAME may appear in comments pointing at the migration; what must not exist is an
+    // invocation. Unverified plpgsql (no Postgres on the build machine) stays unwired.
+    expect(ubc()).not.toMatch(/rpc\(\s*["'`]list_records/);
+    expect(read("packages/api/src/routes/nodes.ts")).not.toMatch(/rpc\(\s*["'`]list_records/);
   });
 });
