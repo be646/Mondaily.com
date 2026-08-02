@@ -240,3 +240,19 @@ describe("the windowing hooks run on every render", () => {
     }
   });
 });
+
+describe("the window is measured off the scroll event itself", () => {
+  it("does not coalesce through requestAnimationFrame", () => {
+    // Verified live: inside rAF the window froze at row 1 while the container sat at the bottom.
+    // rAF is throttled, and in a background tab suspended entirely, so the coalescing frame never
+    // ran. Browsers already fire scroll at most once per frame.
+    const src = read("apps/app/src/components/records/row-window.ts");
+    expect(src).not.toMatch(/requestAnimationFrame/);
+    expect(src).toMatch(/el\.addEventListener\("scroll", measure, \{ passive: true \}\)/);
+  });
+
+  it("still refuses to re-render when the numbers did not change", () => {
+    expect(read("apps/app/src/components/records/row-window.ts"))
+      .toMatch(/prev\.scrollTop === next\.scrollTop && prev\.viewport === next\.viewport \? prev : next/);
+  });
+});

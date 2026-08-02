@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Row windowing for the sheet.
@@ -85,15 +85,14 @@ export function useRowWindow(opts: {
   const { heights, enabled, containerRef } = opts;
   const overscan = opts.overscan ?? 8;
   const [metrics, setMetrics] = useState({ scrollTop: 0, viewport: 0 });
-  const frame = useRef<number | null>(null);
 
   const measure = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     setMetrics(prev => {
       const next = { scrollTop: el.scrollTop, viewport: el.clientHeight };
-      // Re-rendering the whole sheet on every scroll event of one pixel is its own performance
-      // bug; only publish when the numbers actually changed.
+      // Re-rendering the whole sheet on a scroll that moved nothing is its own performance bug;
+      // only publish when the numbers actually changed.
       return prev.scrollTop === next.scrollTop && prev.viewport === next.viewport ? prev : next;
     });
   }, [containerRef]);
@@ -102,20 +101,18 @@ export function useRowWindow(opts: {
     if (!enabled) return;
     const el = containerRef.current;
     if (!el) return;
-    // Coalesce to one measurement per frame — scroll fires far more often than the screen updates.
-    const onScroll = () => {
-      if (frame.current != null) return;
-      frame.current = requestAnimationFrame(() => { frame.current = null; measure(); });
-    };
+    // Measured straight off the scroll event, NOT inside requestAnimationFrame. rAF is throttled
+    // (and in a background tab, suspended entirely), so a coalescing frame that never runs leaves
+    // the window frozen at whatever it last was while the container scrolls underneath it — the
+    // sheet keeps showing row 1 while the scrollbar sits at the bottom. Browsers already fire
+    // scroll at most once per frame, and the equality check above absorbs the rest.
+    el.addEventListener("scroll", measure, { passive: true });
     measure();
-    el.addEventListener("scroll", onScroll, { passive: true });
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => {
-      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scroll", measure);
       ro.disconnect();
-      if (frame.current != null) cancelAnimationFrame(frame.current);
-      frame.current = null;
     };
   }, [enabled, containerRef, measure]);
 
