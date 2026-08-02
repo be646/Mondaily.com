@@ -241,6 +241,40 @@ describe("the windowing hooks run on every render", () => {
   });
 });
 
+describe("row heights are measured, never assumed", () => {
+  it("uses the constants only as an ESTIMATE and measures the rendered rows", () => {
+    // Hard-coded 29px was wrong in production on the first try: the real data row is 43px, because
+    // cells carry pills and two-line notes. A spacer built on a wrong constant makes the scroll
+    // height come out short and the list drifts out from under the viewport.
+    const src = table();
+    expect(src).toMatch(/const DATA_ROW_H_ESTIMATE = \d+;/);
+    expect(src).toMatch(/const \[rowH, setRowH\] = useState\(\{ row: DATA_ROW_H_ESTIMATE, group: GROUP_ROW_H_ESTIMATE \}\)/);
+    expect(src).toMatch(/dataRow\?\.offsetHeight \|\| rowH\.row/);
+  });
+
+  it("feeds the MEASURED heights into the plan, not the estimates", () => {
+    expect(table()).toMatch(/rowPlan\.map\(i => i\.kind === "group" \? rowH\.group : rowH\.row\)/);
+  });
+
+  it("marks both row kinds so there is something to measure", () => {
+    const src = table();
+    expect(src).toMatch(/data-row="1"/);
+    expect(src).toMatch(/data-group="1"/);
+  });
+
+  it("ignores sub-pixel jitter, which would otherwise loop the layout effect forever", () => {
+    expect(table()).toMatch(/Math\.abs\(next\.row - rowH\.row\) > 0\.5 \|\| Math\.abs\(next\.group - rowH\.group\) > 0\.5/);
+  });
+
+  it("a taller row still balances the pads against the whole list", () => {
+    const heights = uniform(132, 43);
+    const total = heights.reduce((a, b) => a + b, 0);
+    const w = computeWindow(heights, 3000, 581, 8);
+    const rendered = heights.slice(w.start, w.end).reduce((a, b) => a + b, 0);
+    expect(w.padTop + rendered + w.padBottom).toBe(total);
+  });
+});
+
 describe("the window is measured from the FIRST ROW, not the top of the scroller", () => {
   it("subtracts where the tbody starts, since the toolbar and header scroll past first", () => {
     // Found live: the scroll container also holds the toolbar and thead (~494px on a 132-row

@@ -33,16 +33,17 @@ import { nextFocus, scrollTopToReveal, selectionRange, shouldHandleKey, type Cel
 /**
  * Row windowing thresholds and heights.
  *
- * The heights are the rendered heights of the two row kinds (data rows are `py-1.5` around 12px
- * text; group headers are `py-2` with a border above and below). They only need to be right enough
- * for the spacers to hold the scrollbar steady — the rendered rows size themselves, so a small
- * error moves the scroll thumb slightly and never clips or overlaps content.
+ * The heights are MEASURED from the rendered rows; the constants are only the first guess, used
+ * for the frame before anything exists to measure. Hard-coding them was wrong in production on the
+ * first try — the real data row is 43px, not the 29px the padding maths predicted, because cells
+ * carry pills and two-line notes. A spacer built on a wrong constant does not degrade gracefully:
+ * the scroll height comes out short and the list drifts out from under the viewport.
  *
  * VIRTUALIZE_ABOVE is set well past a screenful: under it, every row is on screen or one flick
  * away, so windowing would add machinery and risk for no gain.
  */
-const DATA_ROW_H = 29;
-const GROUP_ROW_H = 35;
+const DATA_ROW_H_ESTIMATE = 43;
+const GROUP_ROW_H_ESTIMATE = 35;
 const VIRTUALIZE_ABOVE = 120;
 
 /** One entry in the rendered list: a collapsible group header, or a record row. */
@@ -3245,6 +3246,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // The <tbody>: the heights array starts here, not at the top of the scroll container.
   const bodyRef = useRef<HTMLTableSectionElement | null>(null);
+  // Row heights are measured, never assumed — see the note on the estimates above.
+  const [rowH, setRowH] = useState({ row: DATA_ROW_H_ESTIMATE, group: GROUP_ROW_H_ESTIMATE });
 
   /**
    * The row PLAN — descriptors, not React nodes.
@@ -3300,9 +3303,23 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // Heights drive the spacers, so they must describe the plan entry-by-entry: a group header and a
   // data row are different heights, and one averaged constant drifts further the longer the list.
   const planHeights = useMemo(
-    () => rowPlan.map(i => i.kind === "group" ? GROUP_ROW_H : DATA_ROW_H),
-    [rowPlan],
+    () => rowPlan.map(i => i.kind === "group" ? rowH.group : rowH.row),
+    [rowPlan, rowH],
   );
+  // Measure the real heights once rows exist, and again whenever density could have changed
+  // (column set, grouping). Only publish a real difference: a sub-pixel jitter here would loop.
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const dataRow = body.querySelector<HTMLElement>('tr[data-row="1"]');
+    const groupRow = body.querySelector<HTMLElement>('tr[data-group="1"]');
+    const next = {
+      row: dataRow?.offsetHeight || rowH.row,
+      group: groupRow?.offsetHeight || rowH.group,
+    };
+    if (Math.abs(next.row - rowH.row) > 0.5 || Math.abs(next.group - rowH.group) > 0.5) setRowH(next);
+  });
+
   const rowWindow = useRowWindow({
     heights: planHeights,
     enabled: rowPlan.length > VIRTUALIZE_ABOVE,
@@ -3429,6 +3446,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     return (
       <tr
         key={record.id}
+        data-row="1"
         className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-[var(--surface-hover)]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-[var(--surface-hover)] ${rowAccent(record)}`}
       >
         <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-1.5 border-b border-b-[var(--border-faint)] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
@@ -4280,7 +4298,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                 const { groupVal, groupRows, isCollapsed } = item;
                 const ss = stageStyle(groupVal);
                 return (
-                      <tr key={`grp-${groupVal}`} onClick={() => setCollapsedGroups(prev => { const n = new Set(prev); n.has(groupVal) ? n.delete(groupVal) : n.add(groupVal); return n; })} className="cursor-pointer select-none">
+                      <tr key={`grp-${groupVal}`} data-group="1" onClick={() => setCollapsedGroups(prev => { const n = new Set(prev); n.has(groupVal) ? n.delete(groupVal) : n.add(groupVal); return n; })} className="cursor-pointer select-none">
                         <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
                           <div className="flex items-center gap-2">
                             <ChevronDown size={11} className={`shrink-0 text-[var(--text-muted)] transition-transform ${isCollapsed ? "-rotate-90" : ""}`}/>
