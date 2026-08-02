@@ -87,7 +87,19 @@ tasks.patch("/:id", async (c) => {
 
   // Extract meta fields before saving
   const userName = body._user_name || "Someone";
-  const { _user_name, ...updateBody } = body;
+
+  // Whitelist the columns a client may set. Taking the raw body minus one key left every column on
+  // `tasks` writable — including workspace_id, which would move the task out of this workspace
+  // entirely, and created_by/id. The .eq() filters below pick the right ROW; they do not stop that
+  // row's own scope keys from being rewritten.
+  const EDITABLE = [
+    "title", "notes", "status", "priority", "completed", "due_date",
+    "assignee_id", "assignee_email", "record_id", "labels",
+    "reviewer_id", "reviewer_name", "review_result", "reviewed_at",
+  ] as const;
+  const updateBody: Record<string, unknown> = {};
+  for (const k of EDITABLE) if (k in body) updateBody[k] = body[k];
+  if (Object.keys(updateBody).length === 0) return c.json({ error: "Nothing to update." }, 400);
 
   // Keep `status` and `completed` in sync — they drifted before (a task marked
   // "done" via status without `completed` being set), which made finished tasks
@@ -127,9 +139,9 @@ tasks.patch("/:id", async (c) => {
   const activities: string[] = [];
 
   if (updateBody.status && oldTask?.status !== updateBody.status)
-    activities.push(`changed status to ${statusLabels[updateBody.status] || updateBody.status}`);
+    activities.push(`changed status to ${statusLabels[updateBody.status as string] || updateBody.status}`);
   if (updateBody.priority && oldTask?.priority !== updateBody.priority)
-    activities.push(`changed priority to ${priorityLabels[updateBody.priority] || updateBody.priority}`);
+    activities.push(`changed priority to ${priorityLabels[updateBody.priority as string] || updateBody.priority}`);
   if (updateBody.assignee_id !== undefined && oldTask?.assignee_id !== updateBody.assignee_id) {
     activities.push(updateBody.assignee_id ? `assigned task to ${updateBody.assignee_email || updateBody.assignee_id}` : "removed assignee");
     if (updateBody.assignee_id && updateBody.assignee_id !== userId) {
@@ -152,7 +164,7 @@ tasks.patch("/:id", async (c) => {
     }
   }
   if (updateBody.due_date !== undefined)
-    activities.push(updateBody.due_date ? `set due date to ${new Date(updateBody.due_date).toLocaleDateString()}` : "removed due date");
+    activities.push(updateBody.due_date ? `set due date to ${new Date(updateBody.due_date as string).toLocaleDateString()}` : "removed due date");
   if (updateBody.title && oldTask && (updateBody.title as any) !== (oldTask as any).title)
     activities.push(`renamed task to "${updateBody.title}"`);
   if (updateBody.notes !== undefined)

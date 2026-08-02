@@ -48,9 +48,20 @@ router.post("/:id/assignees", async (c) => {
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, workspaceId);
   const body = await c.req.json() as { user_id: string; email: string; name: string; permission: string };
+  if (!body.user_id) return c.json({ error: "user_id is required." }, 400);
+  // Fields are listed explicitly and the scope keys come LAST. Spreading the body after them let it
+  // override task_id/workspace_id — and the conflict target is (task_id, user_id), so a crafted
+  // task_id wrote an assignee onto a task the caller never proved they own.
   const { data, error } = await supabase
     .from("task_assignees")
-    .upsert({ task_id: taskId, workspace_id: workspaceId, ...body }, { onConflict: "task_id,user_id" })
+    .upsert({
+      user_id: body.user_id,
+      email: body.email ?? null,
+      name: body.name ?? null,
+      permission: body.permission ?? "edit",
+      task_id: taskId,
+      workspace_id: workspaceId,
+    }, { onConflict: "task_id,user_id" })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
   await supabase.from("task_activity").insert({
@@ -103,11 +114,26 @@ router.patch("/:id/checklist/:itemId", async (c) => {
   const workspaceId = c.get("workspaceId");
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, workspaceId);
-  const body = await c.req.json() as { completed: boolean; _user_name?: string };
-  const { _user_name, ...updateBody } = body;
+  const body = await c.req.json() as { completed?: boolean; text?: string; _user_name?: string };
+  const { _user_name } = body;
+
+  // Whitelist the columns. Spreading the request body wrote whatever it contained — the cast above
+  // is compile-time only — so task_id and position were reachable too.
+  const updateBody: Record<string, unknown> = {};
+  if (typeof body.completed === "boolean") updateBody.completed = body.completed;
+  if (typeof body.text === "string") updateBody.text = body.text.slice(0, 500);
+  if (Object.keys(updateBody).length === 0) return c.json({ error: "Nothing to update." }, 400);
+
+  // Scope to the OWNERSHIP-VERIFIED task, not the item id alone. assertTaskOwnership above proves
+  // the caller owns `taskId` — it says nothing about `itemId`, which is a separate caller-supplied
+  // value. Without this, one's own task id plus another task's item id updated that item.
   const { data, error } = await supabase
-    .from("task_checklist").update(updateBody).eq("id", c.req.param("itemId")).select().single();
+    .from("task_checklist").update(updateBody)
+    .eq("id", c.req.param("itemId"))
+    .eq("task_id", taskId)
+    .select().maybeSingle();
   if (error) return c.json({ error: error.message }, 500);
+  if (!data) return c.json({ error: "Checklist item not found on this task." }, 404);
   if (body.completed !== undefined) {
     await supabase.from("task_activity").insert({
       task_id: taskId, workspace_id: workspaceId,
@@ -122,7 +148,9 @@ router.delete("/:id/checklist/:itemId", async (c) => {
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { error } = await supabase
-    .from("task_checklist").delete().eq("id", c.req.param("itemId"));
+    .from("task_checklist").delete()
+    .eq("id", c.req.param("itemId"))
+    .eq("task_id", taskId);      // isolation: the item must belong to the ownership-verified task
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });
@@ -326,6 +354,7 @@ router.delete("/:id/attachments/:attachmentId", async (c) => {
   const { error } = await supabase
     .from("task_attachments").delete()
     .eq("id", c.req.param("attachmentId"))
+    .eq("task_id", taskId)                 // same rule as comments: belongs to the verified task
     .eq("uploaded_by", c.get("userId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
