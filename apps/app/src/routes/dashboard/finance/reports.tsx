@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
-import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
+import { useCurrency, formatMoney, convertAmount } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { compareWindows } from "@mondaily/shared/baseline";
 import { isBilled, isCollected, isOutstanding, moneyEventDate } from "@mondaily/shared/finance";
+import { sumInBase, currencyBreakdown } from "@mondaily/shared/money";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
@@ -55,6 +56,9 @@ function getLastNMonths(n: number) {
   }
   return months;
 }
+
+/** Identity colours for the currency mix — a currency is not a status. */
+const SHARE_COLORS = ["var(--section-accent)", "#717784", "#c6892e", "#2f9e6b", "#8b7ec8", "#d1524a"];
 
 function fmt(amount: number, currency: string) {
   return formatMoney(amount, currency);
@@ -142,7 +146,7 @@ export function FinanceReportsPage() {
 
   // All money is normalized to the caller's DISPLAY currency via sovereign ECB rates, so
   // mixed-currency invoices (EUR/USD/GBP…) sum honestly instead of being mislabeled as one.
-  const { display, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay } = useCurrency();
+  const { display, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay, rates } = useCurrency();
   const currency = display;
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   const cn$ = (cn: CreditNote) => ({ amount: cn.amount_cents / 100, currency: cn.currency });
@@ -163,16 +167,30 @@ export function FinanceReportsPage() {
   const cnDate = (cn: CreditNote) => cn.updated_at ?? cn.created_at ?? "";  // when it was executed
   const expDate = (e: { date?: string; created_at?: string }) => e.date ?? e.created_at ?? "";
 
-  const revenueIn = (r: DateRange) => sumInDisplay(invoices.filter(i => isCollected(i.status) && inRange(paidDate(i), r)).map(inv$)).value;
-  const creditsIn = (r: DateRange) => sumInDisplay(creditNotes.filter(cn => cn.status === "executed" && inRange(cnDate(cn), r)).map(cn$)).value;
-  const expensesIn = (r: DateRange) => sumInDisplay(expenses.filter(e => e.status === "approved" && inRange(expDate(e), r)).map(exp$)).value;
+  // Totals come from each record's FROZEN base value where it has one, so a figure computed today
+  // and the same figure computed next year agree. Records predating the money model have no frozen
+  // value and are converted at today's rate — counted separately, and disclosed below, because a
+  // total mixing frozen and live figures is not wrong but must not pretend to be uniform.
+  //
+  // sumInBase also refuses to add an unconvertible amount at face value. sumInDisplay adds it raw,
+  // which is how 1,000 PLN could land in a USD total as "1,000".
+  const inBase = useCallback(
+    (rows: Record<string, unknown>[]) => sumInBase(rows, {
+      base: display,
+      convertNow: (amount, from) => convertAmount(amount, from, display, rates),
+    }),
+    [display, rates],
+  );
+  const revenueIn = (r: DateRange) => inBase(invoices.filter(i => isCollected(i.status) && inRange(paidDate(i), r)) as unknown as Record<string, unknown>[]).value;
+  const creditsIn = (r: DateRange) => inBase(creditNotes.filter(cn => cn.status === "executed" && inRange(cnDate(cn), r)) as unknown as Record<string, unknown>[]).value;
+  const expensesIn = (r: DateRange) => inBase(expenses.filter(e => e.status === "approved" && inRange(expDate(e), r)) as unknown as Record<string, unknown>[]).value;
 
   const totalRevenue = revenueIn(range);
   const creditsIssued = creditsIn(range);
   const totalExpenses = expensesIn(range);
   const netRevenue = totalRevenue - creditsIssued - totalExpenses;
   // Outstanding is a point-in-time balance, not a period flow — always current.
-  const outstanding = sumInDisplay(invoices.filter(i => isOutstanding(i.status)).map(inv$)).value;
+  const outstanding = inBase(invoices.filter(i => isOutstanding(i.status)) as unknown as Record<string, unknown>[]).value;
 
   // Period-over-period deltas (null when there's no comparable prior window — e.g. "All").
   const revDelta = prev ? deltaPct(totalRevenue, revenueIn(prev)) : null;
@@ -181,8 +199,21 @@ export function FinanceReportsPage() {
   const netDelta = prev ? deltaPct(netRevenue, revenueIn(prev) - creditsIn(prev) - expensesIn(prev)) : null;
 
   // How many amounts couldn't be converted (missing rate) — surfaced honestly to the user.
-  const unconverted = sumInDisplay([...invoices.map(inv$), ...creditNotes.map(cn$)]).missing;
+  const allMoneyRows = [...invoices, ...creditNotes, ...expenses] as unknown as Record<string, unknown>[];
+  const moneyQuality = inBase(allMoneyRows);
+  const unconverted = moneyQuality.unconvertible;
   const mixedCurrency = new Set([...invoices.map(i => i.currency), ...creditNotes.map(c => c.currency)]).size > 1;
+
+  // What share of the money was actually charged in each currency, ranked by BASE value — 1,000 JPY
+  // is not the same size as 1,000 GBP, and ranking by the printed number would say otherwise.
+  const breakdown = useMemo(
+    () => currencyBreakdown(allMoneyRows, {
+      base: display,
+      convertNow: (amount, from) => convertAmount(amount, from, display, rates),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [invoices, creditNotes, expenses, display, rates],
+  );
 
   // Monthly chart data. Two corrections (measured on live data 2026-08-02):
   //  • Billed counted DRAFT and CANCELLED invoices, while the server's own rollup excludes them
@@ -339,6 +370,54 @@ export function FinanceReportsPage() {
               value={fmt(netRevenue, currency)} delta={<Delta pct={netDelta}/>}
               sub={<>after credits &amp; expenses</>} />
           </KPIGrid>
+
+          {/* Currency mix — share of value by the currency money was actually charged in. */}
+          {breakdown.shares.length > 0 && (
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-4">
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-medium tracking-tight text-[var(--text-primary)]">Currency mix</div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    Share of {fmt(breakdown.total, currency)} by the currency charged
+                  </div>
+                </div>
+                {/* Frozen vs live is the one thing a reader cannot infer from the numbers. */}
+                {moneyQuality.live > 0 && (
+                  <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}
+                    title={`${moneyQuality.modelled} record(s) hold a rate fixed at their transaction date. ${moneyQuality.live} predate that and are converted at today's rate, so their contribution moves with the market.`}>
+                    {moneyQuality.modelled} fixed · {moneyQuality.live} at today’s rate
+                  </span>
+                )}
+              </div>
+
+              <div className="flex h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                {breakdown.shares.map((s, i) => (
+                  <div key={s.currency} title={`${s.currency} — ${fmt(s.base_value, currency)} (${s.count} document${s.count === 1 ? "" : "s"})`}
+                    style={{
+                      width: `${s.pct}%`,
+                      background: SHARE_COLORS[i % SHARE_COLORS.length],
+                    }}/>
+                ))}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                {breakdown.shares.map((s, i) => (
+                  <span key={s.currency} className="flex items-center gap-1.5 font-mono text-[11px] tabular-nums"
+                    title={`${s.count} document${s.count === 1 ? "" : "s"} · ${fmt(s.base_value, currency)}`}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: SHARE_COLORS[i % SHARE_COLORS.length] }}/>
+                    <span style={{ color: "var(--text-primary)" }}>{s.pct}%</span>
+                    <span style={{ color: "var(--text-muted)" }}>{s.currency}</span>
+                  </span>
+                ))}
+                {breakdown.unconvertible > 0 && (
+                  <span className="font-mono text-[11px]" style={{ color: "var(--status-warn)" }}
+                    title="No exchange rate is stored for these, so they are excluded from the mix rather than counted at face value.">
+                    {breakdown.unconvertible} unconvertible
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Revenue by month chart */}
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-4">

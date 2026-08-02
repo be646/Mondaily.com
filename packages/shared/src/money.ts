@@ -155,3 +155,96 @@ export function readMoney(data: Record<string, unknown> | null | undefined): {
     : 0;
   return { amount, currency, base_amount: null, base_currency: null, rate: null, modelled: false };
 }
+
+export interface BaseSum {
+  /** Total in the base currency. */
+  value: number;
+  /** Rows whose value was FROZEN at their transaction date — the trustworthy part. */
+  modelled: number;
+  /** Rows with no stored valuation, converted at TODAY's rate to avoid dropping them. */
+  live: number;
+  /** Rows that could not be converted at all; excluded from `value` rather than added raw. */
+  unconvertible: number;
+}
+
+/**
+ * Sum a set of records in the base currency.
+ *
+ * The rule this enforces: never add 1,000 USD to 1,000 PLN. A modelled record contributes its
+ * FROZEN `amount_base` — the value on its own transaction date — so the total does not drift as
+ * rates move. Records that predate the model have no frozen value, so they are converted at today's
+ * rate and COUNTED SEPARATELY: a total mixing frozen and live figures is not wrong, but the caller
+ * must be able to say so.
+ *
+ * A row that cannot be converted is excluded, never added at face value — adding a raw foreign
+ * amount to a base-currency total is the exact bug this replaces.
+ */
+export function sumInBase(
+  rows: Array<Record<string, unknown> | null | undefined>,
+  opts: { base: string; convertNow: (amount: number, from: string) => number | null },
+): BaseSum {
+  const base = (opts.base || "").toUpperCase();
+  let value = 0, modelled = 0, live = 0, unconvertible = 0;
+  for (const row of rows) {
+    const m = readMoney(row);
+    if (!m.amount) continue;
+    if (m.modelled && m.base_amount != null && (m.base_currency ?? "").toUpperCase() === base) {
+      value += m.base_amount; modelled += 1; continue;
+    }
+    if ((m.currency || "").toUpperCase() === base) { value += m.amount; live += 1; continue; }
+    const converted = opts.convertNow(m.amount, m.currency);
+    if (converted == null) { unconvertible += 1; continue; }
+    value += converted; live += 1;
+  }
+  return { value: roundToCurrency(value, base), modelled, live, unconvertible };
+}
+
+export interface CurrencyShare {
+  currency: string;
+  /** Value in the BASE currency — shares must be comparable, so they cannot be raw amounts. */
+  base_value: number;
+  /** Percentage of the total, rounded to a whole number. */
+  pct: number;
+  count: number;
+}
+
+/**
+ * What share of the money was actually charged in each currency.
+ *
+ * Shares are computed on BASE value, not on the raw presentment amounts: 1,000 JPY and 1,000 GBP
+ * are not the same size, and ranking them by the number printed on the document would put the yen
+ * first. Currencies are ordered largest first, and the percentages are adjusted so they total 100
+ * — six 16.67% slices rendering as 100.02% reads as a bug.
+ */
+export function currencyBreakdown(
+  rows: Array<Record<string, unknown> | null | undefined>,
+  opts: { base: string; convertNow: (amount: number, from: string) => number | null },
+): { shares: CurrencyShare[]; total: number; unconvertible: number } {
+  const byCurrency = new Map<string, { base_value: number; count: number }>();
+  let total = 0, unconvertible = 0;
+  for (const row of rows) {
+    const m = readMoney(row);
+    if (!m.amount) continue;
+    const cur = (m.currency || "").toUpperCase();
+    if (!cur) continue;
+    const one = sumInBase([row], opts);
+    if (one.unconvertible) { unconvertible += 1; continue; }
+    const e = byCurrency.get(cur) ?? { base_value: 0, count: 0 };
+    e.base_value += one.value; e.count += 1;
+    byCurrency.set(cur, e);
+    total += one.value;
+  }
+  const shares = [...byCurrency.entries()]
+    .map(([currency, v]) => ({ currency, base_value: roundToCurrency(v.base_value, opts.base), pct: 0, count: v.count }))
+    .sort((a, b) => b.base_value - a.base_value);
+
+  if (total > 0 && shares.length) {
+    let assigned = 0;
+    shares.forEach((s, i) => {
+      // Largest-remainder: give the last (smallest) slice whatever is left, so the row totals 100.
+      s.pct = i === shares.length - 1 ? Math.max(0, 100 - assigned) : Math.round((s.base_value / total) * 100);
+      assigned += s.pct;
+    });
+  }
+  return { shares, total: roundToCurrency(total, opts.base), unconvertible };
+}

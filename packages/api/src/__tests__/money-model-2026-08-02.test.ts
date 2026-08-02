@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildMoney, buildSettlement, hasMoney, readMoney, roundToCurrency, currencyDecimals,
+  sumInBase, currencyBreakdown,
 } from "@mondaily/shared/money";
 import { parseEcbHistoryXml, parseEcbXml } from "../lib/currency";
 
@@ -300,5 +301,127 @@ describe("every financial type writes the model, not just invoices", () => {
     expect(src("quotes")).toMatch(/total,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
     expect(src("expenses")).toMatch(/amount_cents: body\.amount_cents,\s*\n\s*currency: body\.currency,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
     expect(src("credit-notes")).toMatch(/currency:      body\.currency,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
+  });
+});
+
+describe("sumInBase — never add 1,000 USD to 1,000 PLN", () => {
+  const RATES: Record<string, number> = { USD: 1, EUR: 1.15, GBP: 1.34 };
+  const convertNow = (amount: number, from: string) => {
+    const r = RATES[(from || "").toUpperCase()];
+    return r == null ? null : amount * r;
+  };
+  const opts = { base: "USD", convertNow };
+  const modelled = (amount: number, currency: string, base_amount: number) =>
+    buildMoney({ amount, currency, base: "USD", rate: base_amount / amount });
+
+  it("uses the FROZEN base value, so the total does not drift with today's rate", () => {
+    // Stored at 3.0 when today's rate says 1.15 — the frozen figure must win.
+    const row = buildMoney({ amount: 100, currency: "EUR", base: "USD", rate: 3 });
+    const s = sumInBase([row], opts);
+    expect(s.value).toBe(300);
+    expect(s.modelled).toBe(1);
+    expect(s.live).toBe(0);
+  });
+
+  it("falls back to today's rate for legacy rows, and counts them separately", () => {
+    const s = sumInBase([{ total: 100, currency: "EUR" }], opts);
+    expect(s.value).toBe(115);
+    expect(s.modelled).toBe(0);
+    expect(s.live).toBe(1);
+  });
+
+  it("reports a mixed total honestly instead of hiding it", () => {
+    const s = sumInBase([modelled(100, "EUR", 300), { total: 100, currency: "EUR" }], opts);
+    expect(s.value).toBe(415);
+    expect(s.modelled).toBe(1);
+    expect(s.live).toBe(1);
+  });
+
+  it("EXCLUDES what it cannot convert — adding a raw foreign amount is the bug being replaced", () => {
+    const s = sumInBase([{ total: 1000, currency: "XYZ" }, { total: 50, currency: "USD" }], opts);
+    expect(s.value).toBe(50);
+    expect(s.unconvertible).toBe(1);
+  });
+
+  it("a base-currency row needs no rate at all", () => {
+    const s = sumInBase([{ total: 250, currency: "USD" }], { base: "USD", convertNow: () => null });
+    expect(s.value).toBe(250);
+    expect(s.unconvertible).toBe(0);
+  });
+
+  it("ignores a frozen value stored against a DIFFERENT base than the one asked for", () => {
+    // Workspace base changed since the record was written; the old base_amount is not comparable.
+    const row = buildMoney({ amount: 100, currency: "EUR", base: "PLN", rate: 4 });
+    const s = sumInBase([row], opts);
+    expect(s.value).toBe(115);    // re-derived, not the stale 400 PLN
+    expect(s.modelled).toBe(0);
+  });
+
+  it("survives empty and malformed rows", () => {
+    expect(sumInBase([null, undefined, {}], opts).value).toBe(0);
+  });
+});
+
+describe("currencyBreakdown ranks by real value, not by the number on the document", () => {
+  const RATES: Record<string, number> = { USD: 1, JPY: 0.0068, GBP: 1.34 };
+  const opts = { base: "USD", convertNow: (a: number, f: string) => (RATES[f.toUpperCase()] ?? null) && a * RATES[f.toUpperCase()]! };
+
+  it("1,000 JPY does not outrank 1,000 GBP", () => {
+    const { shares } = currencyBreakdown([{ total: 1000, currency: "JPY" }, { total: 1000, currency: "GBP" }], opts);
+    expect(shares[0]!.currency).toBe("GBP");
+    expect(shares[1]!.currency).toBe("JPY");
+  });
+
+  it("percentages total exactly 100 — no 100.02% row", () => {
+    const rows = Array.from({ length: 6 }, () => ({ total: 100, currency: "USD" as const }));
+    const { shares } = currencyBreakdown(rows, opts);
+    expect(shares.reduce((s, x) => s + x.pct, 0)).toBe(100);
+  });
+
+  it("counts documents per currency alongside value", () => {
+    const { shares, total } = currencyBreakdown(
+      [{ total: 100, currency: "USD" }, { total: 200, currency: "USD" }, { total: 100, currency: "GBP" }], opts);
+    expect(shares.find(s => s.currency === "USD")!.count).toBe(2);
+    expect(total).toBe(434);
+  });
+
+  it("excludes unconvertible rows and says how many", () => {
+    const { shares, unconvertible } = currencyBreakdown([{ total: 5, currency: "ZZZ" }, { total: 10, currency: "USD" }], opts);
+    expect(unconvertible).toBe(1);
+    expect(shares.length).toBe(1);
+  });
+
+  it("an empty set is empty, not NaN%", () => {
+    const { shares, total } = currencyBreakdown([], opts);
+    expect(shares).toEqual([]);
+    expect(total).toBe(0);
+  });
+});
+
+describe("reports read the frozen value, and say when they can't", () => {
+  const rep = () => read("apps/app/src/routes/dashboard/finance/reports.tsx");
+
+  it("totals go through sumInBase, not a live re-conversion of every row", () => {
+    const s = rep();
+    expect(s).toMatch(/sumInBase\(rows, \{/);
+    expect(s).toMatch(/const revenueIn = \(r: DateRange\) => inBase\(/);
+    expect(s).toMatch(/const outstanding = inBase\(/);
+  });
+
+  it("discloses how much of the total is fixed vs valued at today's rate", () => {
+    const s = rep();
+    expect(s).toMatch(/\{moneyQuality\.modelled\} fixed · \{moneyQuality\.live\} at today’s rate/);
+  });
+
+  it("the currency mix ranks by base value and shows unconvertible separately", () => {
+    const s = rep();
+    expect(s).toMatch(/currencyBreakdown\(allMoneyRows, \{/);
+    expect(s).toMatch(/\{breakdown\.unconvertible\} unconvertible/);
+  });
+
+  it("mix colours are identity, not status tokens — a currency is not a state", () => {
+    const s = rep();
+    expect(s).toMatch(/const SHARE_COLORS = /);
+    expect(s).not.toMatch(/SHARE_COLORS = \[[^\]]*--status-(ok|error|warn)/);
   });
 });
