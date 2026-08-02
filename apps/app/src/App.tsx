@@ -54,6 +54,7 @@ const WorkspaceSettings = lazy(() => import("./routes/dashboard/settings/workspa
 const MembersSettings = lazy(() => import("./routes/dashboard/settings/members").then(m => ({ default: m.MembersSettings })));
 const BillingSettings = lazy(() => import("./routes/dashboard/settings/billing").then(m => ({ default: m.BillingSettings })));
 const ObjectsSettings = lazy(() => import("./routes/dashboard/settings/objects").then(m => ({ default: m.ObjectsSettings })));
+const DataHealthSettings = lazy(() => import("./routes/dashboard/settings/data-health").then(m => ({ default: m.DataHealthSettings })));
 const SupportSettings = lazy(() => import("./routes/dashboard/settings/support").then(m => ({ default: m.SupportSettings })));
 const CallsSettings = lazy(() => import("./routes/dashboard/settings/calls").then(m => ({ default: m.CallsSettings })));
 const IntegrationsSettings = lazy(() => import("./routes/dashboard/settings/integrations").then(m => ({ default: m.IntegrationsSettings })));
@@ -201,6 +202,7 @@ export function App() {
           <Route path="members" element={<MembersSettings />} />
           <Route path="billing" element={<BillingSettings />} />
           <Route path="objects" element={<ObjectsSettings />} />
+          <Route path="data-health" element={<DataHealthSettings />} />
           <Route path="integrations" element={<IntegrationsSettings />} />
           <Route path="email" element={<EmailSettings />} />
           <Route path="calls" element={<CallsSettings />} />
