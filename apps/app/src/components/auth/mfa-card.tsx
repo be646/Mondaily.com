@@ -41,7 +41,7 @@ export function MfaCard({ onSubmit, onBack, backLabel, trustOffered = true }: {
       <form onSubmit={submit} className="space-y-4">
         <input value={code} onChange={e => setCode(e.target.value)} autoFocus inputMode="text" autoComplete="one-time-code"
           placeholder="123 456" aria-label="Two-factor code"
-          className="w-full rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-center font-mono text-[17px] tracking-[0.25em] text-zinc-100 outline-none transition-colors placeholder:text-zinc-700 focus:border-[#8fcf7f]" />
+          className="w-full rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3 text-center font-mono text-[17px] tracking-[0.25em] text-zinc-100 outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[#8fcf7f]" />
         {trustOffered && (
           <label className="flex cursor-pointer items-center gap-2.5 text-[11.5px] text-zinc-400">
             <button type="button" role="checkbox" aria-checked={trust} onClick={() => setTrust(t => !t)}

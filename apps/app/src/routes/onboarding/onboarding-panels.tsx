@@ -85,7 +85,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200 bg-white"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -125,7 +125,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
               <FadeIn key={f} show={hasEmail} delay={300 + i * 80}>
                 <div className="flex items-center gap-2">
                   <Check size={10} className="shrink-0 text-indigo-500" />
-                  <span className="font-mono text-[12px] text-zinc-600">{f}</span>
+                  <span className="font-mono text-[12px] text-[var(--text-muted)]">{f}</span>
                 </div>
               </FadeIn>
             ))}
@@ -214,7 +214,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
                 <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                   {done && <Check size={9} className="text-white" strokeWidth={3} />}
                 </div>
-                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
               </div>
             ))}
           </div>
@@ -279,7 +279,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
                 <FadeIn key={label} show={hasName} delay={i * 80}>
                   <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 cursor-default">
                     <Icon size={11} className="text-zinc-400 shrink-0" />
-                    <span className="font-mono text-[10px] text-zinc-500">{label}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)]">{label}</span>
                   </div>
                 </FadeIn>
               ))}
@@ -301,7 +301,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
                 <FadeIn key={deal} show={hasName} delay={200 + i * 120}>
                   <div className="flex items-center gap-2 rounded-lg border border-black/[.05] bg-zinc-50 px-3 py-2">
                     <div className="h-3 w-3 rounded bg-indigo-500/20 shrink-0" />
-                    <span className="font-mono text-[10px] text-zinc-600 truncate">{deal}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)] truncate">{deal}</span>
                   </div>
                 </FadeIn>
               ))}
@@ -323,7 +323,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -359,7 +359,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
               }}
             >
               <Mail size={14} style={{ color: isConnected ? color : "#d4d4d8" }} className="transition-colors duration-300 shrink-0" />
-              <span className="flex-1 font-mono text-[12px] text-zinc-700">{label}</span>
+              <span className="flex-1 font-mono text-[12px] text-[var(--text-muted)]">{label}</span>
               {isConnected && (
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -406,7 +406,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
               <FadeIn key={f} show={anyConnected} delay={200 + i * 100}>
                 <div className="flex items-center gap-2">
                   <Check size={9} className="text-indigo-500 shrink-0" />
-                  <span className="font-mono text-[11px] text-zinc-500">{f}</span>
+                  <span className="font-mono text-[11px] text-[var(--text-muted)]">{f}</span>
                 </div>
               </FadeIn>
             ))}
@@ -446,11 +446,11 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           {valid.map((email, i) => (
             <FadeIn key={email} show delay={i * 80}>
               <div className="flex items-center gap-3 rounded-xl border border-black/[.06] bg-white px-3 py-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold text-zinc-600 text-xs">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold text-[var(--text-muted)] text-xs">
                   {email.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-mono text-[12px] font-medium text-zinc-700 truncate">{email.split("@")[0]}</p>
+                  <p className="font-mono text-[12px] font-medium text-[var(--text-muted)] truncate">{email.split("@")[0]}</p>
                   <p className="font-mono text-[10px] text-zinc-400 truncate">{email}</p>
                 </div>
                 <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[9px] text-amber-600">
@@ -546,9 +546,9 @@ export function ImportPanel({ file }: { file: string }) {
                 transform: i < visibleRows ? "translateX(0)" : "translateX(-8px)",
               }}
             >
-              <span className="truncate text-zinc-700">{row.name}</span>
+              <span className="truncate text-[var(--text-muted)]">{row.name}</span>
               <span className="text-zinc-400">{row.type}</span>
-              <span className="text-zinc-600">{row.arr}</span>
+              <span className="text-[var(--text-muted)]">{row.arr}</span>
             </div>
           ))}
         </div>
@@ -567,7 +567,7 @@ export function ImportPanel({ file }: { file: string }) {
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -647,7 +647,7 @@ export function PlanPanel({ selected }: { selected: string }) {
               >
                 <Check size={10} className={i < unlockedCount ? "text-white" : "text-zinc-300"} strokeWidth={3} />
               </div>
-              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-zinc-700" : "text-zinc-300"}`}>
+              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>
                 {feature}
               </span>
               {i === unlockedCount - 1 && (

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { categorizeNotification, extractSource } from "../lib/notify";
-import { withReadState, markRead, markAllRead } from "../lib/notification-reads";
+import { withReadState, markRead, markAllRead, deleteNotification, clearRead } from "../lib/notification-reads";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -87,6 +87,19 @@ router.patch("/:id/read", async (c) => {
   const ok = await markRead(c.get("workspaceId"), c.get("userId"), c.req.param("id"));
   // Not found rather than a silent ok: the previous version reported success even when its filters
   // matched no row, so a caller could never tell the difference.
+  if (!ok) return c.json({ error: "Not found" }, 404);
+  return c.json({ ok: true });
+});
+
+// DELETE /notifications/clear-read — must be before /:id
+router.delete("/clear-read", async (c) => {
+  const removed = await clearRead(c.get("workspaceId"), c.get("userId"));
+  return c.json({ ok: true, removed });
+});
+
+// DELETE /notifications/:id
+router.delete("/:id", async (c) => {
+  const ok = await deleteNotification(c.get("workspaceId"), c.get("userId"), c.req.param("id"));
   if (!ok) return c.json({ error: "Not found" }, 404);
   return c.json({ ok: true });
 });

@@ -314,7 +314,7 @@ export function TerminalOnboardingPage() {
         <span className="h-2.5 w-2.5 rounded-full bg-[#3f3f46]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#3f3f46]" />
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--accent)" }} />
-        <span className="ml-2 text-[11px] uppercase tracking-[0.2em] text-zinc-600">mondaily — workspace architect</span>
+        <span className="ml-2 text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">mondaily — workspace architect</span>
         {canExit && (
           <button onClick={exitSetup} className="ml-auto rounded-sm border border-[#27272a] px-2.5 py-1 text-[11px] text-zinc-400 transition-colors hover:text-zinc-200">
             ✕ Cancel &amp; go back
@@ -357,7 +357,7 @@ export function TerminalOnboardingPage() {
                   value={freeText}
                   onChange={e => setFreeText(e.target.value)}
                   placeholder="Anything specific about your operation? (optional — helps the AI tailor your setup)"
-                  className="mt-4 w-full rounded-sm border bg-[#0e0e10] px-3 py-2 text-[12px] text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-[color:var(--accent)]"
+                  className="mt-4 w-full rounded-sm border bg-[#0e0e10] px-3 py-2 text-[12px] text-zinc-100 outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
                   style={{ borderColor: "#27272a" }}
                 />
                 <button
@@ -389,7 +389,7 @@ export function TerminalOnboardingPage() {
                   onChange={e => setInviteText(e.target.value)}
                   placeholder="alex@company.com, sam@company.com"
                   rows={3}
-                  className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-[color:var(--accent)]"
+                  className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
                 />
                 <div className="mt-4 flex items-center gap-3">
                   <button onClick={finishOnboarding} disabled={sending}
@@ -397,7 +397,7 @@ export function TerminalOnboardingPage() {
                     {sending ? "Creating…" : inviteText.includes("@") ? "Create invite links ›" : "Enter workspace ›"}
                   </button>
                   {inviteText.includes("@") && (
-                    <button onClick={enterWorkspace} disabled={sending} className="text-[12px] text-zinc-500 transition-colors hover:text-zinc-300 disabled:opacity-60">Skip for now</button>
+                    <button onClick={enterWorkspace} disabled={sending} className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-zinc-300 disabled:opacity-60">Skip for now</button>
                   )}
                 </div>
               </>
@@ -410,7 +410,7 @@ export function TerminalOnboardingPage() {
                       <span className="w-40 shrink-0 truncate text-[12px] text-zinc-400">{iv.email}</span>
                       {iv.link ? (
                         <>
-                          <span className="min-w-0 flex-1 truncate text-[11px] text-zinc-500">{iv.link}</span>
+                          <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-muted)]">{iv.link}</span>
                           <button onClick={() => { navigator.clipboard.writeText(iv.link!); setCopied(iv.email); setTimeout(() => setCopied(null), 1500); }}
                             className="shrink-0 rounded-sm border border-[#34343a] px-2 py-0.5 text-[11px] text-zinc-300 hover:border-[color:var(--accent)]">
                             {copied === iv.email ? "Copied ✓" : "Copy link"}
@@ -432,7 +432,7 @@ export function TerminalOnboardingPage() {
       {/* status footer — no free-text input; the survey drives everything */}
       <div className="flex items-center gap-2 border-t border-[#27272a] bg-[#0e0e10] px-5 py-3.5">
         <span style={{ color: "var(--accent)" }}>operator@mondaily:~$</span>
-        <span className="flex-1 text-zinc-600">
+        <span className="flex-1 text-[var(--text-muted)]">
           {phase === "survey" ? "select an option above…"
             : phase === "compiling" ? "compiling…"
             : phase === "plans" ? "choose a license…"
@@ -478,9 +478,9 @@ function PlanCards({ recommended, onSelect }: { recommended: PlanId; onSelect: (
             >
               <div className="text-[11px] uppercase tracking-widest" style={isRec ? { color: "var(--accent)" } : { color: "#52525b" }}>Tier · {p.name}</div>
               <div className="mt-1 text-base text-zinc-100">{p.name}</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">{p.price}<span className="text-sm text-zinc-600"> / month</span></div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">{p.price}<span className="text-sm text-[var(--text-muted)]"> / month</span></div>
               <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-zinc-400">{p.sub}</span>
-              <span className="mt-2 text-[11px] text-zinc-600">{p.blurb}</span>
+              <span className="mt-2 text-[11px] text-[var(--text-muted)]">{p.blurb}</span>
               <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
                 {isRec ? `› RECOMMENDED — CHOOSE ${p.name.toUpperCase()}` : `› CHOOSE ${p.name.toUpperCase()}`}
               </span>

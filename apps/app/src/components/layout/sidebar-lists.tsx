@@ -257,7 +257,7 @@ export function SidebarLists() {
                   <LogoMark size={10} /> AI
                 </button>
               </div>
-              <button onClick={resetModal} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+              <button onClick={resetModal} className="btn-icon">
                 <X size={13} />
               </button>
             </div>

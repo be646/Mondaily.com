@@ -29,7 +29,7 @@ export function ShadowForgotPage() {
     return (
       <AuthShell kicker="Sovereign auth" title="Check your email"
         subtitle="If an account exists for that address, we've sent a password-reset link. It expires in 30 minutes.">
-        <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3">
+        <div className="flex items-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3">
           <MailCheck size={16} style={{ color: SAGE }} />
           <span className="truncate text-[12.5px] text-zinc-200">{email}</span>
         </div>

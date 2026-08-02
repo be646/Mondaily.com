@@ -330,7 +330,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
             <span className="text-[13px] font-semibold text-[var(--text-primary)] capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-[var(--border-soft)] bg-stone-900/60 ${text}`}>{defaultStage}</span>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={14}/></button>
+          <button onClick={onClose} className="btn-icon"><X size={14}/></button>
         </div>
         <div className="max-h-[360px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (

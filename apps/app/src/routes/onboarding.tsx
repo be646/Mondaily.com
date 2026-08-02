@@ -21,7 +21,7 @@ const AVAILABLE_MODULES = [
 ];
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 font-mono text-[11px] text-zinc-500">{children}</p>;
+  return <p className="mb-1.5 font-mono text-[11px] text-[var(--text-muted)]">{children}</p>;
 }
 
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -123,7 +123,7 @@ export function OnboardingPage() {
           {step === 1 && (
             <div>
               <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Set up your workspace</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">This is how your team will see your workspace.</p>
+              <p className="mb-6 font-mono text-[12px] text-[var(--text-muted)]">This is how your team will see your workspace.</p>
 
               <div className="mb-4">
                 <Label>Workspace name</Label>
@@ -148,7 +148,7 @@ export function OnboardingPage() {
           {step === 2 && (
             <div>
               <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invite your team</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">Add teammates to collaborate. You can always do this later.</p>
+              <p className="mb-6 font-mono text-[12px] text-[var(--text-muted)]">Add teammates to collaborate. You can always do this later.</p>
 
               <div className="mb-4 flex gap-2">
                 <input
@@ -172,7 +172,7 @@ export function OnboardingPage() {
                 />
                 <button
                   onClick={handleInvite}
-                  className="rounded-md border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  className="rounded-md border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-[var(--text-muted)] hover:bg-zinc-50 transition-colors"
                 >
                   Add
                 </button>
@@ -182,7 +182,7 @@ export function OnboardingPage() {
                 <div className="space-y-1.5">
                   {sentInvites.map(inv => (
                     <div key={inv.email} className="flex items-center justify-between rounded-md border border-black/[.05] bg-zinc-50 px-4 py-2.5">
-                      <span className="font-mono text-[12px] text-zinc-700">{inv.email}</span>
+                      <span className="font-mono text-[12px] text-[var(--text-muted)]">{inv.email}</span>
                       <span className="font-mono text-[11px] capitalize text-zinc-400">{inv.role}</span>
                     </div>
                   ))}
@@ -194,7 +194,7 @@ export function OnboardingPage() {
           {step === 3 && (
             <div>
               <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Choose your modules</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">Enable the tools your team needs. Change this anytime in settings.</p>
+              <p className="mb-6 font-mono text-[12px] text-[var(--text-muted)]">Enable the tools your team needs. Change this anytime in settings.</p>
 
               <div className="space-y-2">
                 {AVAILABLE_MODULES.map(mod => (
@@ -218,7 +218,7 @@ export function OnboardingPage() {
                     />
                     <div>
                       <p className="font-mono text-[12px] font-medium text-zinc-800">{mod.name}</p>
-                      <p className="font-mono text-[11px] text-zinc-500">{mod.description}</p>
+                      <p className="font-mono text-[11px] text-[var(--text-muted)]">{mod.description}</p>
                     </div>
                   </label>
                 ))}
@@ -232,7 +232,7 @@ export function OnboardingPage() {
                 <CheckCircle2 size={24} className="text-[#2f9e6b]" />
               </div>
               <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-zinc-900">You're all set!</h1>
-              <p className="font-mono text-[12px] text-zinc-500">Your workspace is ready. Let's get started.</p>
+              <p className="font-mono text-[12px] text-[var(--text-muted)]">Your workspace is ready. Let's get started.</p>
             </div>
           )}
         </div>
@@ -242,7 +242,7 @@ export function OnboardingPage() {
           {step > 1 ? (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors"
+              className="font-mono text-[12px] text-zinc-400 hover:text-[var(--text-muted)] transition-colors"
             >
               ← Back
             </button>
@@ -252,7 +252,7 @@ export function OnboardingPage() {
             {step === 2 && (
               <button
                 onClick={() => setStep(3)}
-                className="font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors"
+                className="font-mono text-[12px] text-zinc-400 hover:text-[var(--text-muted)] transition-colors"
               >
                 Skip
               </button>

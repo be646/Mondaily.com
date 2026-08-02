@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, ArrowUpRight } from "lucide-react";
+import { Bell, ArrowUpRight, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +35,16 @@ export function NotificationsBell() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
+  const dismiss = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/notifications/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const clearRead = useMutation({
+    mutationFn: () => apiClient.delete("/notifications/clear-read"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
   const markAllRead = useMutation({
     mutationFn: () => apiClient.patch("/notifications/read-all", {}),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
@@ -42,6 +52,7 @@ export function NotificationsBell() {
 
   const notifications = notifQ.data ?? [];
   const unread = notifications.filter(n => !n.is_read).length;
+  const readCount = notifications.length - unread;
 
   function handleClick(n: Notification) {
     markRead.mutate(n.id);
@@ -79,14 +90,27 @@ export function NotificationsBell() {
                   <span className="rounded-full bg-stone-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-stone-400">{unread}</span>
                 )}
               </div>
-              {unread > 0 && (
-                <button
-                  onClick={() => markAllRead.mutate()}
-                  className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
-                >
-                  Mark all read
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {unread > 0 && (
+                  <button
+                    onClick={() => markAllRead.mutate()}
+                    className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                {/* Clears only what has been READ. A "clear all" that removes unread notifications
+                    destroys the thing the bell exists to deliver, so it is deliberately not offered. */}
+                {readCount > 0 && (
+                  <button
+                    onClick={() => clearRead.mutate()}
+                    title={`Remove ${readCount} read notification${readCount === 1 ? "" : "s"}`}
+                    className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    {clearRead.isPending ? "Clearing…" : "Clear read"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* List — grouped by category, each notification answers what/who/source/action */}
@@ -110,10 +134,15 @@ export function NotificationsBell() {
                       {items.map(n => {
                         const actor = actorLabel(n);
                         return (
-                          <button
+                          // A <button> cannot contain a <button>, so the row is a div with an
+                          // explicit role and the dismiss control is its sibling.
+                          <div
                             key={n.id}
+                            role="button"
+                            tabIndex={0}
                             onClick={() => handleClick(n)}
-                            className={`flex w-full items-start gap-3 px-4 py-2.5 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors text-left ${!n.is_read ? "bg-[var(--surface-hover)]" : ""}`}
+                            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(n); } }}
+                            className={`group relative flex w-full items-start gap-3 px-4 py-2.5 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors text-left cursor-pointer ${!n.is_read ? "bg-[var(--surface-hover)]" : ""}`}
                           >
                             <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-[color:var(--section-accent)]" : "bg-transparent"}`}/>
                             <div className="flex-1 min-w-0">
@@ -125,7 +154,15 @@ export function NotificationsBell() {
                                 <span className="inline-flex items-center gap-0.5 text-[var(--section-accent)]">{actionLabel(n)} <ArrowUpRight size={9}/></span>
                               </div>
                             </div>
-                          </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); dismiss.mutate(n.id); }}
+                              aria-label={`Dismiss ${n.title}`}
+                              title="Dismiss"
+                              className="absolute right-2 top-2 rounded-sm p-1 text-[var(--text-faint)] opacity-0 transition-opacity hover:bg-[var(--surface-card)] hover:text-[var(--text-primary)] group-hover:opacity-100 focus-visible:opacity-100"
+                            >
+                              <X size={11}/>
+                            </button>
+                          </div>
                         );
                       })}
                     </div>

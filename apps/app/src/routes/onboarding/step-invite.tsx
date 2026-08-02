@@ -28,7 +28,7 @@ export function StepInvite() {
           <CheckCircle2 size={22} className="text-indigo-500" />
         </div>
         <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invitations sent</h1>
-        <p className="mb-7 font-mono text-[12px] text-zinc-500">Your team can join securely from their invitation links.</p>
+        <p className="mb-7 font-mono text-[12px] text-[var(--text-muted)]">Your team can join securely from their invitation links.</p>
         <button
           onClick={() => navigate("/onboarding/import")}
           className="mx-auto flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
@@ -42,11 +42,11 @@ export function StepInvite() {
   return (
     <div>
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invite your team</h1>
-      <p className="mb-6 font-mono text-[12px] text-zinc-500">Add teammates now or continue on your own.</p>
+      <p className="mb-6 font-mono text-[12px] text-[var(--text-muted)]">Add teammates now or continue on your own.</p>
 
       <div className="mb-4 flex items-center gap-2">
-        <p className="font-mono text-[11px] text-zinc-500">Role</p>
-        <select value={role} onChange={e => setRole(e.target.value)} className="rounded-xl border border-black/[.08] bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 outline-none focus:border-indigo-500/40 transition-colors">
+        <p className="font-mono text-[11px] text-[var(--text-muted)]">Role</p>
+        <select value={role} onChange={e => setRole(e.target.value)} className="rounded-xl border border-black/[.08] bg-white px-3 py-1.5 font-mono text-[12px] text-[var(--text-muted)] outline-none focus:border-indigo-500/40 transition-colors">
           <option value="member">Member</option>
           <option value="admin">Admin</option>
         </select>
@@ -70,7 +70,7 @@ export function StepInvite() {
         ))}
       </div>
 
-      <button onClick={() => setEmails(c => [...c, ""])} className="mb-7 flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+      <button onClick={() => setEmails(c => [...c, ""])} className="mb-7 flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 hover:text-[var(--text-muted)] transition-colors">
         <Plus size={13} /> Add another
       </button>
 
@@ -82,7 +82,7 @@ export function StepInvite() {
         >
           {loading ? "Sending…" : "Send invites"} {!loading && <ArrowRight size={13} />}
         </button>
-        <button onClick={() => navigate("/onboarding/import")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+        <button onClick={() => navigate("/onboarding/import")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-[var(--text-muted)] hover:bg-zinc-50 transition-colors">
           Skip
         </button>
       </div>

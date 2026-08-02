@@ -335,7 +335,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="btn-icon"
           >
             <X size={13}/>
           </button>

@@ -49,7 +49,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
-          <button onClick={close} className="rounded-sm p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
+          <button onClick={close} className="btn-icon"><X size={15} /></button>
         </div>
         {children}
       </div>

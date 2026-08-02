@@ -25,4 +25,19 @@ create index if not exists notification_reads_user_idx
 alter table notification_reads enable row level security;
 -- Reached only through the API, which scopes every read and write by the authenticated user.
 revoke all on notification_reads from public, anon, authenticated;
-grant select, insert, delete on notification_reads to service_role;
+-- UPDATE is needed too: clearing read notifications flips `dismissed` on existing rows.
+grant select, insert, update, delete on notification_reads to service_role;
+
+-- Dismissal, added alongside read state because it is the same question asked twice.
+--
+-- A broadcast belongs to everyone, so one member clearing it from their bell must not delete it
+-- from their colleagues'. Deleting the shared row would be exactly the mistake the read state
+-- above fixes, so dismissal is per-user too and the notification itself is never touched.
+-- Personal notifications ARE deleted outright: they have one reader, and a row nobody can ever see
+-- again is not worth keeping.
+alter table notification_reads
+  add column if not exists dismissed boolean not null default false;
+
+-- The bell asks "what has this user not read and not dismissed", so both flags belong in the index.
+create index if not exists notification_reads_user_state_idx
+  on notification_reads (user_id, dismissed, notification_id);

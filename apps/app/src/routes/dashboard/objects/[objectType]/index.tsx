@@ -336,7 +336,7 @@ function CreateRecordModal({
               </button>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="btn-icon">
             <X size={14}/>
           </button>
         </div>
@@ -705,7 +705,7 @@ function AIFillModal({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="btn-icon">
             <X size={14}/>
           </button>
         </div>

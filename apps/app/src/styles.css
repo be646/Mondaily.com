@@ -196,6 +196,44 @@ html[data-theme="rose"] {
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
    Default = dark (landing CTA). data-btnstyle="accent" = sage green. */
+/* ── Icon button ──────────────────────────────────────────────────────────────
+   The same square icon-only control was written six slightly different ways:
+   rounded-md vs rounded-sm, text-stone-500 vs var(--text-muted), with and
+   without a hover text colour. They were meant to be the same button, so they
+   are now one class. Differences that survive in markup are real differences.
+   ────────────────────────────────────────────────────────────────────────── */
+.btn-icon {
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+  color: var(--text-muted);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.btn-icon:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.btn-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Corner radius scale ──────────────────────────────────────────────────────
+   ONE definition of every corner in the product, so "make the app a little
+   softer" is one edit rather than 1,800.
+
+   MEASURED 2026-08-02 before writing this: rounded-sm 994, rounded-full 466,
+   rounded-md 191, rounded-lg 149, rounded-xl 28, rounded-2xl 19, rounded-3xl 1.
+   The app is overwhelmingly one radius already; sm is the product's voice.
+
+   The xl/2xl/3xl outliers are NOT normalised, deliberately. All 45 sit in the
+   onboarding flow (36) and the video-call surfaces (8) — two contexts with
+   their own visual language, where a larger radius is a design decision rather
+   than drift. Flattening them would be a redesign disguised as a cleanup.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --radius-sm: 0.125rem;   /* the default: sheets, cards, inputs, buttons */
+  --radius-md: 0.375rem;   /* icon buttons and small controls */
+  --radius-lg: 0.5rem;     /* dialogs and popovers */
+  --radius-pill: 9999px;   /* pills, avatars, status dots */
+}
+
 :root { --btn-solid-bg: #18181b; --btn-solid-fg: #ffffff; }
 html[data-theme="dark"] { --btn-solid-bg: #ffffff; --btn-solid-fg: #0a0a0a; }
 html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #ffffff; }
@@ -1646,63 +1684,42 @@ aside nav button,
    migrated to tokens.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Dark hardcoded hex backgrounds → white / light panels */
-html[data-theme="light"] [class*="bg-[#0b0d10]"],
-html[data-theme="light"] [class*="bg-[#0d0f13]"],
-html[data-theme="light"] [class*="bg-[#0f1114]"],
-html[data-theme="light"] [class*="bg-[#0f1115]"],
-html[data-theme="light"] [class*="bg-[#121214]"],
-html[data-theme="light"] [class*="bg-[#111419]"],
-html[data-theme="light"] [class*="bg-[#13151a]"],
-html[data-theme="light"] [class*="bg-[#1a1118]"] {
-  background-color: #ffffff !important;
-}
+/* 1. Dark hardcoded hex backgrounds — REMOVED 2026-08-02.
+   Measured: zero components carry bg-[#0b0d10] / #0d0f13 / #0f1114 / #0f1115 / #121214 /
+   #111419 / #13151a / #1a1118. The pages that did were migrated to the surface tokens, and the
+   net outlived them. A rule that matches nothing is not free: it is the reason the next person
+   believes those classes are still in use and keeps writing them. */
 /* Red-tinted selected rows → indigo tint */
 html[data-theme="light"] [class*="bg-[#130d0d]"],
 html[data-theme="light"] [class*="bg-[#170f0f]"] {
   background-color: rgba(255,255,255,0.04) !important;
 }
 
-/* 2. Semi-transparent white backgrounds → light zinc/indigo */
-html[data-theme="light"] [class*="bg-white/[.01]"],
-html[data-theme="light"] [class*="bg-white/[.02]"],
-html[data-theme="light"] [class*="bg-white/[.03]"],
-html[data-theme="light"] [class*="bg-white/[.04]"] {
-  background-color: #ffffff !important;
-}
-html[data-theme="light"] [class*="bg-white/[.06]"],
-html[data-theme="light"] [class*="bg-white/[.07]"],
-html[data-theme="light"] [class*="bg-white/[.08]"] {
-  background-color: #ffffff !important;
-}
-html[data-theme="light"] [class*="bg-white/[.09]"],
-html[data-theme="light"] [class*="bg-white/[.10]"],
-html[data-theme="light"] [class*="bg-white/[.15]"] {
-  background-color: #ffffff !important;
-}
+/* 2. Semi-transparent white backgrounds — REMOVED 2026-08-02.
+   Measured: zero components carry the bracket form bg-white/[.01] … bg-white/[.15]. The eight
+   surviving bg-white/N uses are video-call overlays (call tiles, guest call), where white over
+   video is correct in both themes and must NOT be flattened to a panel colour. */
 
-/* 3. All borders using white/opacity → zinc-200 */
-html[data-theme="light"] [class*="border-white/"],
+/* 3. Dark borders → light. `border-white/` dropped 2026-08-02 (zero components use it); the
+   zinc halves stay until the six auth screens that still carry border-zinc-700/800 are migrated. */
 html[data-theme="light"] [class*="border-zinc-8"],
 html[data-theme="light"] [class*="border-zinc-7"] {
   border-color: #f5f5f5 !important;
 }
 
-/* 4. White text → near-black */
-html[data-theme="light"] [class*="text-white"] {
+/* 4. White text → near-black, EXCEPT where the element paints its own background.
+   The blanket rule could not tell "white text on a dark panel" (which light mode must flip) from
+   "white text on a solid coloured button" (which it must not). Measured live: text-white on a
+   #d1524a button computed to rgb(24,24,27) in light mode — near-black on red, on destructive
+   actions like Purge data and Leave call.
+   An element carrying any bg-* utility, or an inline background, chose white deliberately for a
+   background it controls; the net has no business overriding that. */
+html[data-theme="light"] [class*="text-white"]:not([class*="bg-"]):not([style*="background"]) {
   color: #18181b !important;
 }
 
-/* 5. Slate muted text → readable dark grays */
-html[data-theme="light"] [class*="text-slate-3"],
-html[data-theme="light"] [class*="text-slate-4"],
-html[data-theme="light"] [class*="text-slate-5"] {
-  color: #52525b !important;
-}
-html[data-theme="light"] [class*="text-slate-6"],
-html[data-theme="light"] [class*="text-slate-7"] {
-  color: #71717a !important;
-}
+/* 5. Slate text — REMOVED 2026-08-02. Measured: zero components use any text-slate-* or
+   bg-slate-* or border-slate-* class. The palette was fully retired. */
 html[data-theme="light"] [class*="text-zinc-5"],
 html[data-theme="light"] [class*="text-zinc-6"],
 html[data-theme="light"] [class*="text-zinc-7"] {
@@ -1726,24 +1743,8 @@ html[data-theme="light"] button:hover [class*="bg-white"] {
   background-color: #f5f5f5 !important;
 }
 
-html[data-theme="dark"] [class*="bg-[#0b0d10]"],
-html[data-theme="dark"] [class*="bg-[#0d0f13]"],
-html[data-theme="dark"] [class*="bg-[#0f1114]"],
-html[data-theme="dark"] [class*="bg-[#0f1115]"],
-html[data-theme="dark"] [class*="bg-[#121214]"],
-html[data-theme="dark"] [class*="bg-[#111419]"],
-html[data-theme="dark"] [class*="bg-[#13151a]"],
-html[data-theme="dark"] [class*="bg-[#1a1118]"],
-html.dark [class*="bg-[#0b0d10]"],
-html.dark [class*="bg-[#0d0f13]"],
-html.dark [class*="bg-[#0f1114]"],
-html.dark [class*="bg-[#0f1115]"],
-html.dark [class*="bg-[#121214]"],
-html.dark [class*="bg-[#111419]"],
-html.dark [class*="bg-[#13151a]"],
-html.dark [class*="bg-[#1a1118]"] {
-  background-color: #000000 !important;
-}
+/* The dark-mode half of net 1 — REMOVED 2026-08-02 for the same measured reason: the classes it
+   forced to #000000 exist in no component. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DARK MODE — preserve existing dark theme as-is.
