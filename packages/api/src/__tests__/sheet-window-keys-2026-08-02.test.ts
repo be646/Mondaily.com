@@ -215,3 +215,28 @@ describe("the table wires the model without regressing what it already did", () 
     expect(table()).toMatch(/dispatchEvent\(new MouseEvent\("dblclick", \{ bubbles: true \}\)\)/);
   });
 });
+
+/**
+ * React error #310 in production on first deploy: the windowing hooks were inserted after the
+ * component's loading/empty early returns, so the hook count differed between renders. The rule is
+ * not "put hooks near their use" — it is that every hook runs on every render.
+ */
+describe("the windowing hooks run on every render", () => {
+  it("declares all of them BEFORE the loading and empty-state early returns", () => {
+    const src = table();
+    const firstEarlyReturn = src.indexOf("if (query.isLoading) return");
+    expect(firstEarlyReturn).toBeGreaterThan(0);
+    for (const hook of [
+      "const scrollRef = useRef",
+      "const rowPlan = useMemo",
+      "const planHeights = useMemo",
+      "const rowWindow = useRowWindow",
+      "const [focus, setFocus] = useState",
+      "const onGridKeyDown = useCallback",
+    ]) {
+      const at = src.indexOf(hook);
+      expect(at, `${hook} must be declared before the early returns`).toBeGreaterThan(0);
+      expect(at, `${hook} is after an early return`).toBeLessThan(firstEarlyReturn);
+    }
+  });
+});
