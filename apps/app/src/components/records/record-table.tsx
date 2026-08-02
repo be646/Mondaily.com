@@ -3421,9 +3421,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     const el = scrollRef.current;
     if (el) {
       const top = scrollTopToReveal(planHeights, planIdxOfDataRow[next.row] ?? 0, el.scrollTop, el.clientHeight);
-      if (top != null) el.scrollTop = top;
+      if (top != null) {
+        el.scrollTop = top;
+        // Re-measure immediately rather than waiting for the scroll event this assignment will
+        // eventually produce: the focused row may be outside the current window, and it has to
+        // exist in the DOM for the ring to land on it.
+        rowWindow.remeasure();
+      }
     }
-  }, [focus, selectAnchor, planIdxOfDataRow, orderedColumns.length, rowPlan, planHeights]);
+  }, [focus, selectAnchor, planIdxOfDataRow, orderedColumns.length, rowPlan, planHeights, rowWindow]);
 
 
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;

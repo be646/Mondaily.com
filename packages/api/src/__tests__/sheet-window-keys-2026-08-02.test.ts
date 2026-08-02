@@ -324,3 +324,14 @@ describe("the window is measured off the scroll event itself", () => {
       .toMatch(/prev\.scrollTop === next\.scrollTop && prev\.viewport === next\.viewport && prev\.bodyTop === next\.bodyTop/);
   });
 });
+
+describe("keyboard movement does not depend on the scroll event it causes", () => {
+  it("exposes remeasure and calls it right after moving the container", () => {
+    // Verified live: Cmd+ArrowUp set scrollTop to 0 and moved the focus to row 0, but the window
+    // still held the bottom rows, so the focused cell did not exist in the DOM and the ring
+    // vanished. The window has to be recomputed for a scroll we already know we performed.
+    expect(read("apps/app/src/components/records/row-window.ts")).toMatch(/remeasure: \(\) => void/);
+    const src = table();
+    expect(src).toMatch(/el\.scrollTop = top;[\s\S]{0,300}rowWindow\.remeasure\(\)/);
+  });
+});

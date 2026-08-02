@@ -88,7 +88,16 @@ export function useRowWindow(opts: {
    * the end of the list near the bottom and render an empty band where the last rows should be.
    */
   bodyRef: React.RefObject<HTMLElement | null>;
-}): RowWindow {
+}): RowWindow & {
+  /**
+   * Re-measure NOW, without waiting for a scroll event.
+   *
+   * Needed because the keyboard model moves the container itself (a row it wants to focus may not
+   * be rendered yet). Relying on the scroll event that assignment normally produces makes the
+   * window's correctness depend on event timing for a change we already know about.
+   */
+  remeasure: () => void;
+} {
   const { heights, enabled, containerRef, bodyRef } = opts;
   const overscan = opts.overscan ?? 8;
   const [metrics, setMetrics] = useState({ scrollTop: 0, viewport: 0, bodyTop: 0 });
@@ -131,10 +140,10 @@ export function useRowWindow(opts: {
   }, [enabled, containerRef, measure]);
 
   if (!enabled) {
-    return { start: 0, end: heights.length, padTop: 0, padBottom: 0 };
+    return { start: 0, end: heights.length, padTop: 0, padBottom: 0, remeasure: measure };
   }
   // Before the first measurement the viewport is 0, which would render nothing at all and flash an
   // empty sheet. Assume a screen's worth until the real number arrives.
   const viewport = metrics.viewport || 800;
-  return computeWindow(heights, metrics.scrollTop - metrics.bodyTop, viewport, overscan);
+  return { ...computeWindow(heights, metrics.scrollTop - metrics.bodyTop, viewport, overscan), remeasure: measure };
 }
