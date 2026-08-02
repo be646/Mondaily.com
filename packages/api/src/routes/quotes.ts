@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
+import { moneyAt } from "../lib/currency-store";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -114,6 +115,11 @@ router.post("/", zValidator("json", quoteBodySchema), async (c) => {
   const number = body.number || await nextQuoteNumber(c.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals(body.line_items);
 
+  // Same money model as invoices: freeze what the client is quoted and the rate that valued it
+  // that day. Without this a quote's base value is recomputed on every read at today's rate.
+  const issuedOn = new Date().toISOString().slice(0, 10);
+  const money = await moneyAt(c.get("workspaceId"), total, body.currency, issuedOn);
+
   const quoteData = {
     number,
     client_name: body.client_name,
@@ -123,6 +129,8 @@ router.post("/", zValidator("json", quoteBodySchema), async (c) => {
     subtotal,
     tax_total,
     total,
+    ...(money ?? {}),
+    issued_on: issuedOn,
     status: body.status,
     expires_at: body.expires_at ?? null,
     notes: body.notes ?? null,
@@ -240,6 +248,11 @@ router.post("/:id/convert", async (c) => {
   }
   const invoiceNumber = await nextInvoiceNumber(workspaceId);
 
+  // The new invoice is a NEW money event: it is issued today, so it is valued at today's rate, not
+  // at the rate that valued the quote weeks ago. Copying the quote's block would misdate it.
+  const convertedOn = new Date().toISOString().slice(0, 10);
+  const invoiceMoney = await moneyAt(workspaceId, Number(qd.total ?? 0) || 0, String(qd.currency ?? "GBP"), convertedOn);
+
   const invoiceData = {
     number: invoiceNumber,
     client_name: qd.client_name ?? "",
@@ -249,6 +262,8 @@ router.post("/:id/convert", async (c) => {
     subtotal: qd.subtotal ?? 0,
     tax_total: qd.tax_total ?? 0,
     total: qd.total ?? 0,
+    ...(invoiceMoney ?? {}),
+    issued_on: convertedOn,
     status: "draft",
     sent_at: null,
     paid_at: null,

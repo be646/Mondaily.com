@@ -266,3 +266,39 @@ describe("a dry run must be able to preview a SEEDED backfill", () => {
     expect(dryBlock).toMatch(/seeded_history: seeded/);
   });
 });
+
+describe("every financial type writes the model, not just invoices", () => {
+  const src = (f: string) => read(`packages/api/src/routes/${f}.ts`);
+
+  it("quotes freeze their valuation at issue", () => {
+    expect(src("quotes")).toMatch(/const money = await moneyAt\(c\.get\("workspaceId"\), total, body\.currency, issuedOn\)/);
+  });
+
+  it("credit notes are valued too — a credit and the charge it offsets must use one basis", () => {
+    expect(src("credit-notes")).toMatch(/const money = await moneyAt\(workspaceId, body\.amount_cents \/ 100, body\.currency, issuedOn\)/);
+  });
+
+  it("an expense is valued on the date it was INCURRED, not when it was typed in", () => {
+    const s = src("expenses");
+    expect(s).toMatch(/const incurredOn = String\(body\.date \?\? new Date\(\)/);
+    expect(s).toMatch(/moneyAt\(c\.get\("workspaceId"\), body\.amount_cents \/ 100, body\.currency, incurredOn\)/);
+  });
+
+  it("editing an expense amount re-values it — a stale valuation describes the OLD amount", () => {
+    const s = src("expenses");
+    expect(s).toMatch(/const moneyChanged = body\.amount_cents !== undefined \|\| body\.currency !== undefined \|\| body\.date !== undefined/);
+    expect(s).toMatch(/moneyChanged \|\| !hasMoney\(current\)/);
+  });
+
+  it("quote→invoice values the NEW document at conversion, not at the quote's old rate", () => {
+    const s = src("quotes");
+    expect(s).toMatch(/const invoiceMoney = await moneyAt\(workspaceId, Number\(qd\.total \?\? 0\) \|\| 0/);
+    expect(s).toMatch(/issued_on: convertedOn/);
+  });
+
+  it("all four keep their legacy amount field, so existing readers are untouched", () => {
+    expect(src("quotes")).toMatch(/total,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
+    expect(src("expenses")).toMatch(/amount_cents: body\.amount_cents,\s*\n\s*currency: body\.currency,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
+    expect(src("credit-notes")).toMatch(/currency:      body\.currency,\s*\n\s*\.\.\.\(money \?\? \{\}\)/);
+  });
+});

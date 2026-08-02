@@ -5,6 +5,8 @@ import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
+import { moneyAt } from "../lib/currency-store";
+import { hasMoney } from "@mondaily/shared/money";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -79,10 +81,16 @@ router.get("/:id", async (c) => {
 router.post("/", zValidator("json", expenseBodySchema), async (c) => {
   const body = c.req.valid("json");
 
+  // An expense is dated by when it was INCURRED, not when it was typed in — a receipt entered in
+  // August for a June lunch is June money and must be valued at June's rate.
+  const incurredOn = String(body.date ?? new Date().toISOString().split("T")[0]).slice(0, 10);
+  const money = await moneyAt(c.get("workspaceId"), body.amount_cents / 100, body.currency, incurredOn);
+
   const expenseData = {
     description: body.description,
     amount_cents: body.amount_cents,
     currency: body.currency,
+    ...(money ?? {}),
     category: body.category,
     date: body.date ?? new Date().toISOString().split("T")[0],
     vendor: body.vendor ?? null,
@@ -122,7 +130,17 @@ router.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c) 
 
   const body = c.req.valid("json");
   const current = existing.data as Record<string, unknown>;
-  const updatedData = { ...current, ...body };
+
+  // Re-value when the money or its date changes, otherwise the stored valuation describes the OLD
+  // amount — a corrected 200 → 250 would still report the 200 conversion. Also fills the model in
+  // for records that predate it, so editing an old expense brings it up to date.
+  const merged = { ...current, ...body } as Record<string, unknown>;
+  const moneyChanged = body.amount_cents !== undefined || body.currency !== undefined || body.date !== undefined;
+  const incurredOn = String(merged.date ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10);
+  const money = moneyChanged || !hasMoney(current)
+    ? (await moneyAt(c.get("workspaceId"), (Number(merged.amount_cents) || 0) / 100, String(merged.currency ?? ""), incurredOn)) ?? {}
+    : {};
+  const updatedData = { ...merged, ...money };
 
   const { data, error } = await supabase
     .from("nodes")

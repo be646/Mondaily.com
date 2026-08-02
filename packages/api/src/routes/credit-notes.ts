@@ -8,6 +8,7 @@ import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
+import { moneyAt } from "../lib/currency-store";
 
 type Variables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -177,6 +178,11 @@ router.post("/", zValidator("json", creditNoteSchema), async (c) => {
   const body = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
 
+  // A credit note reverses money, so it needs the same frozen valuation as the invoice it offsets —
+  // otherwise the credit and the charge are valued at different rates and never cancel out.
+  const issuedOn = new Date().toISOString().slice(0, 10);
+  const money = await moneyAt(workspaceId, body.amount_cents / 100, body.currency, issuedOn);
+
   const { data, error } = await supabase
     .from("nodes")
     .insert({
@@ -186,6 +192,8 @@ router.post("/", zValidator("json", creditNoteSchema), async (c) => {
       data: {
         amount_cents:  body.amount_cents,
         currency:      body.currency,
+        ...(money ?? {}),
+        issued_on:     issuedOn,
         credit_reason: body.credit_reason,
         status:        body.status,
         notes:         body.notes ?? null,
