@@ -25,7 +25,16 @@ interface VocabEntry {
 const VOCAB: Record<VocabSlot, VocabEntry[]> = {
   stage: [
     { value: "Lead",         aliases: ["lead", "new", "new lead", "prospect"] },
-    { value: "Qualified",    aliases: ["qualified", "qualified lead", "contacted"] },
+    // "discovery" and "contact" are measured spellings from the contact-leads and people sheets
+    // (11 and 3 records). Both are pre-proposal qualification work, so they rank here rather than
+    // sorting after every known stage as strangers to the pipeline.
+    //
+    // Deliberately NOT mapped, and this is the important half: "closed" (10 records) and
+    // "in progress" (7). "closed" does not say won or lost — ranking it either way would move real
+    // money into or out of a won column on a guess, and the two ranks are at opposite ends of the
+    // pipeline. "in progress" is a STATUS word sitting in a stage field; it names no position.
+    // Both stay unranked, which sorts them after the known stages and shows them as themselves.
+    { value: "Qualified",    aliases: ["qualified", "qualified lead", "contacted", "contact", "discovery"] },
     { value: "Proposal",     aliases: ["proposal", "quote sent", "quoted"] },
     { value: "Negotiation",  aliases: ["negotiation", "negotiating", "in negotiation"] },
     { value: "Closed Won",   aliases: ["closed won", "closed-won", "won", "closed_won"] },

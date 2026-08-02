@@ -441,11 +441,32 @@ const SCHEMA_KEY = (n: string) => String(n).toLowerCase().trim().replace(/\s+/g,
  * the stage and which IS the owner, instead of every surface re-deriving it from a regex over
  * column names.
  */
-function inferAttrType(values: unknown[], key = ""): string {
+function inferAttrType(values: unknown[], key = "", members?: Set<string>): string {
   const k = key.toLowerCase();
   if (/country/.test(k)) return "country";
-  if (/^(owner|deal_owner|owner_id|account_owner)$/.test(k)) return "owner";
-  if (/^(assigned_to|assignee)$/.test(k)) return "assignee";
+
+  // An owner field REFERENCES a workspace member. A field merely NAMED like one does not.
+  //
+  // Measured on this workspace: `deal_owner` on people holds 46 distinct names of which exactly 1
+  // is a member — they are the counterparts named in scraped lead data, not people who own the
+  // record here. Typing them as "owner" was what made the sheet look like it had duplicate owner
+  // columns in conflict on 47 records: two fields wearing the same type, holding two unrelated
+  // populations. Nothing was wrong with the data; the type was.
+  //
+  // So the name only nominates the type; the VALUES decide it. When a majority of distinct values
+  // do not resolve to a member, this falls through to shape inference and comes out as text or a
+  // select — which is what a list of outside names actually is.
+  const nameSuggestsPeople = /^(owner|deal_owner|owner_id|account_owner)$/.test(k) || /^(assigned_to|assignee)$/.test(k);
+  if (nameSuggestsPeople) {
+    const distinct = [...new Set(values.map(v => String(v).trim().toLowerCase()).filter(Boolean))];
+    // No roster to check against → keep the historical behaviour rather than silently downgrading.
+    const resolves = members
+      ? distinct.filter(v => members.has(v)).length
+      : distinct.length;
+    if (distinct.length === 0 || resolves * 2 > distinct.length) {
+      return /^(assigned_to|assignee)$/.test(k) ? "assignee" : "owner";
+    }
+  }
   if (/stage/.test(k)) return "stage";
   if (/status/.test(k)) return "status";
 
@@ -473,6 +494,11 @@ router.get("/schema-audit/:objectType", async (c) => {
     .select("id, slug, attributes").eq("workspace_id", ws).eq("slug", objectType).maybeSingle();
   const { data: recs } = await supabase.from("nodes")
     .select("data").eq("workspace_id", ws).eq("object_type", objectType).limit(500);
+  // The roster, so an owner-shaped NAME can be checked against who actually exists here.
+  const { data: memberRows } = await supabase.from("workspace_members")
+    .select("name, email").eq("workspace_id", ws);
+  const members = new Set((memberRows ?? []).flatMap(m =>
+    [m.name, m.email].filter(Boolean).map(s => String(s).trim().toLowerCase())));
 
   const rows = (recs ?? []) as { data: Record<string, unknown> }[];
   const attrs = (Array.isArray(def?.attributes) ? def!.attributes : []) as { id?: string; name: string; type?: string }[];
@@ -492,8 +518,15 @@ router.get("/schema-audit/:objectType", async (c) => {
     .map(([k, vals]) => ({
       key: k, filled: vals.length,
       coverage: rows.length ? Math.round((vals.length / rows.length) * 100) : 0,
-      suggested_type: inferAttrType(vals, k),
+      suggested_type: inferAttrType(vals, k, members),
       samples: [...new Set(vals.map(v => String(v).slice(0, 40)))].slice(0, 3),
+      // Why an owner-shaped name did or did not become an owner type — the evidence, not a verdict.
+      ...(/^(owner|deal_owner|owner_id|account_owner|assigned_to|assignee)$/.test(k.toLowerCase())
+        ? (() => {
+            const distinct = [...new Set(vals.map(v => String(v).trim().toLowerCase()).filter(Boolean))];
+            return { distinct_values: distinct.length, resolve_to_members: distinct.filter(v => members.has(v)).length };
+          })()
+        : {}),
     }))
     .sort((a, b) => b.filled - a.filled);
   const dead = attrs
@@ -543,6 +576,85 @@ router.post("/schema-adopt/:objectType", denyViewerWrites, zValidator("json", z.
     .eq("workspace_id", ws).eq("id", def.id);
   if (error) return c.json({ error: "Could not update the schema." }, 500);
   return c.json({ ok: true, added, attributes_total: attrs.length + added.length });
+});
+
+/**
+ * POST /records/schema-prune/:objectType — the counterpart to schema-adopt.
+ *
+ * Adopt makes the schema admit fields the data actually has; prune removes attributes the data
+ * never had. A schema that lists a field nothing carries is not harmless: it types columns, feeds
+ * the AI's picture of the object, and offers the field wherever attributes are enumerated — so a
+ * stray attribute becomes a field users are invited to fill in that nothing else understands.
+ *
+ * The safety is that the SERVER decides, not the caller. The request names keys; this route
+ * re-measures each one across the records and drops only the ones it can see are empty. A caller
+ * asking to remove a field that holds data gets a refusal listing what it found, never a delete.
+ *
+ * It also refuses to act at all on a truncated sample: emptiness is a claim about EVERY row, and a
+ * capped read cannot support it.
+ */
+const PRUNE_SCAN_CAP = 5000;
+
+router.post("/schema-prune/:objectType", denyViewerWrites, zValidator("json", z.object({
+  keys: z.array(z.string().max(120)).min(1).max(60),
+  dry_run: z.boolean().default(true),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const objectType = c.req.param("objectType");
+  const { keys, dry_run } = c.req.valid("json");
+
+  const { data: def } = await supabase.from("object_definitions")
+    .select("id, attributes").eq("workspace_id", ws).eq("slug", objectType).maybeSingle();
+  if (!def) return c.json({ error: `No object definition for "${objectType}".` }, 404);
+
+  const { data: recs } = await supabase.from("nodes")
+    .select("data").eq("workspace_id", ws).eq("object_type", objectType).limit(PRUNE_SCAN_CAP);
+  const rows = (recs ?? []) as { data: Record<string, unknown> }[];
+  if (rows.length >= PRUNE_SCAN_CAP) {
+    return c.json({
+      error: `Refusing to prune: this object has at least ${PRUNE_SCAN_CAP} records, so the scan is truncated and cannot prove a field is empty.`,
+    }, 409);
+  }
+
+  // Non-empty occurrences only — the same definition of "has data" the audit uses, so a key the
+  // audit called dead is exactly a key this route will agree to remove.
+  const filled = new Map<string, number>();
+  for (const r of rows) {
+    for (const [k, v] of Object.entries(r.data ?? {})) {
+      if (v == null || String(v).trim() === "") continue;
+      filled.set(k, (filled.get(k) ?? 0) + 1);
+    }
+  }
+
+  const attrs = (Array.isArray(def.attributes) ? def.attributes : []) as { id?: string; name: string; type?: string }[];
+  const wanted = new Set(keys.map(SCHEMA_KEY));
+  const removed: { name: string; key: string; type: string }[] = [];
+  const refused: { key: string; filled: number }[] = [];
+  const not_found: string[] = [];
+
+  for (const key of wanted) {
+    const attr = attrs.find(a => SCHEMA_KEY(a.name) === key);
+    if (!attr) { not_found.push(key); continue; }
+    const n = filled.get(key) ?? 0;
+    if (n > 0) { refused.push({ key, filled: n }); continue; }
+    removed.push({ name: attr.name, key, type: attr.type ?? "text" });
+  }
+
+  const removedKeys = new Set(removed.map(r => r.key));
+  const kept = attrs.filter(a => !removedKeys.has(SCHEMA_KEY(a.name)));
+
+  if (dry_run) {
+    return c.json({ dry_run: true, records_scanned: rows.length, would_remove: removed, refused, not_found, attributes_after: kept.length });
+  }
+  if (!removed.length) return c.json({ ok: true, removed: [], refused, not_found, note: "Nothing to remove." });
+
+  const { error } = await supabase.from("object_definitions")
+    .update({ attributes: kept })
+    .eq("workspace_id", ws).eq("id", def.id);
+  if (error) return c.json({ error: "Could not update the schema." }, 500);
+  return c.json({ ok: true, records_scanned: rows.length, removed, refused, not_found, attributes_total: kept.length });
 });
 
 const ATTR_TYPES_FOR_ADOPT = ["text", "number", "date", "datetime", "select", "multi_select", "relation",

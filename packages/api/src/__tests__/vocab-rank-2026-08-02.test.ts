@@ -168,3 +168,37 @@ describe("row delete is guarded like bulk delete", () => {
     expect(table).toMatch(/function deleteRow[\s\S]{0,700}window\.confirm/);
   });
 });
+
+/**
+ * Spellings measured in the live workspace (2026-08-02). The vocabulary is only useful if it
+ * covers what the data actually says — and only honest if it refuses the values that don't mean
+ * one thing.
+ */
+describe("stage vocabulary against the spellings production really holds", () => {
+  it("ranks the qualification spellings the lead sheets use", () => {
+    const qualified = vocabRank("stage", "Qualified");
+    for (const v of ["discovery", "Discovery", "contact", "contacted", "qualified_lead"]) {
+      expect(vocabRank("stage", v)).toBe(qualified);
+    }
+  });
+
+  it("REFUSES to rank 'closed' — it does not say won or lost", () => {
+    expect(vocabRank("stage", "closed")).toBeNull();
+    // The two candidate ranks are at opposite ends, which is exactly why guessing is not allowed.
+    expect(vocabRank("stage", "Closed Won")).not.toBe(vocabRank("stage", "Closed Lost"));
+  });
+
+  it("REFUSES to rank 'in progress' as a stage — it is a status word, not a pipeline position", () => {
+    expect(vocabRank("stage", "in_progress")).toBeNull();
+    expect(vocabRank("stage", "In Progress")).toBeNull();
+    // The same spelling IS meaningful in the status slot — the slot decides, not the string.
+    expect(vocabRank("status", "in_progress")).not.toBeNull();
+  });
+
+  it("an unrankable stage still sorts — after the known ones, never hidden", () => {
+    const known = vocabSortKey("stage", "Closed Lost");
+    const unknown = vocabSortKey("stage", "closed");
+    expect(unknown).toBeGreaterThan(known);
+    expect(vocabSortKey("stage", "")).toBeGreaterThan(unknown);
+  });
+});

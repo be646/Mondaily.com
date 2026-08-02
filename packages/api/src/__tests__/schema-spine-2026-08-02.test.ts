@@ -37,9 +37,25 @@ describe("the audit is read-only and honest about coverage", () => {
     // instead of every surface re-deriving it from a regex over column names.
     const src = records();
     expect(src).toMatch(/if \(\/country\/\.test\(k\)\) return "country"/);
-    expect(src).toMatch(/return "owner"/);
+    expect(src).toMatch(/\? "assignee" : "owner"/);
     expect(src).toMatch(/if \(\/stage\/\.test\(k\)\) return "stage"/);
-    expect(src).toMatch(/suggested_type: inferAttrType\(vals, k\)/);
+    expect(src).toMatch(/suggested_type: inferAttrType\(vals, k, members\)/);
+  });
+
+  it("an OWNER type needs values that resolve to members — the name only nominates it", () => {
+    // Measured: `deal_owner` on people holds 46 distinct names, 1 of which is a member. They are
+    // counterparts from scraped lead data. Typing them "owner" is what made two unrelated
+    // populations look like duplicate owner columns in conflict on 47 records.
+    const src = records();
+    expect(src).toMatch(/const nameSuggestsPeople =/);
+    expect(src).toMatch(/resolves \* 2 > distinct\.length/);
+    // The roster is read from the workspace, not accepted from the caller.
+    expect(src).toMatch(/\.from\("workspace_members"\)\s*\n?\s*\.select\("name, email"\)\.eq\("workspace_id", ws\)/);
+  });
+
+  it("publishes the evidence for that call instead of just the verdict", () => {
+    const src = records();
+    expect(src).toMatch(/distinct_values: distinct\.length, resolve_to_members:/);
   });
 
   it("is scoped to the workspace on every query it makes", () => {
@@ -97,5 +113,55 @@ describe("the measurement that justified this order of work is recorded", () => 
     const src = records();
     expect(src).toMatch(/MEASURED LIVE FIRST/);
     expect(src).toMatch(/`name` is absent from the schema/);
+  });
+});
+
+/**
+ * schema-prune — removing an attribute is the destructive direction, so the guards are about who
+ * gets to decide it is safe. The answer is the server, from the records, every time.
+ */
+describe("schema-prune refuses to delete on the caller's word", () => {
+  it("is owner/admin only and defaults to a dry run, like adopt", () => {
+    const src = records();
+    expect(src).toMatch(/router\.post\("\/schema-prune\/:objectType", denyViewerWrites/);
+    const body = src.slice(src.indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/dry_run: z\.boolean\(\)\.default\(true\)/);
+    expect(body).toMatch(/role !== "owner" && role !== "admin"/);
+  });
+
+  it("takes only key NAMES — the caller cannot assert a key is empty", () => {
+    const src = records();
+    const body = src.slice(src.indexOf('"/schema-prune/:objectType"'), src.indexOf("ATTR_TYPES_FOR_ADOPT ="));
+    // adopt takes {key,type}; prune takes bare strings, so there is no field in the request that
+    // could carry a claim about the data.
+    expect(body).toMatch(/keys: z\.array\(z\.string\(\)\.max\(120\)\)/);
+    expect(body).toMatch(/const filled = new Map<string, number>\(\)/);
+  });
+
+  it("refuses any key it can see data for, and reports the count instead of deleting", () => {
+    const body = records().slice(records().indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/if \(n > 0\) \{ refused\.push\(\{ key, filled: n \}\); continue; \}/);
+  });
+
+  it("refuses to act at all when the scan is truncated — emptiness is a claim about every row", () => {
+    const body = records().slice(records().indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/rows\.length >= PRUNE_SCAN_CAP/);
+    expect(body).toMatch(/409/);
+  });
+
+  it("uses the SAME non-empty definition as the audit, so 'dead' means the same thing in both", () => {
+    const body = records().slice(records().indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/if \(v == null \|\| String\(v\)\.trim\(\) === ""\) continue;/);
+  });
+
+  it("writes the KEPT list, never a filtered-by-name delete that could drop an unrelated attribute", () => {
+    const body = records().slice(records().indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/const kept = attrs\.filter\(a => !removedKeys\.has\(SCHEMA_KEY\(a\.name\)\)\)/);
+    expect(body).toMatch(/\.update\(\{ attributes: kept \}\)/);
+  });
+
+  it("scopes the write to the workspace AND the definition id", () => {
+    const body = records().slice(records().indexOf('"/schema-prune/:objectType"'));
+    expect(body).toMatch(/\.eq\("workspace_id", ws\)\.eq\("id", def\.id\)/);
   });
 });
