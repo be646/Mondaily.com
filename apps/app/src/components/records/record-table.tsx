@@ -3243,6 +3243,8 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
   // The scroll container the window is measured against.
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // The <tbody>: the heights array starts here, not at the top of the scroll container.
+  const bodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   /**
    * The row PLAN — descriptors, not React nodes.
@@ -3305,6 +3307,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     heights: planHeights,
     enabled: rowPlan.length > VIRTUALIZE_ABOVE,
     containerRef: scrollRef,
+    bodyRef,
   });
 
   // ── Keyboard model ──────────────────────────────────────────────────────────
@@ -4265,7 +4268,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody ref={bodyRef}>
             {visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>

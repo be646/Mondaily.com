@@ -241,6 +241,39 @@ describe("the windowing hooks run on every render", () => {
   });
 });
 
+describe("the window is measured from the FIRST ROW, not the top of the scroller", () => {
+  it("subtracts where the tbody starts, since the toolbar and header scroll past first", () => {
+    // Found live: the scroll container also holds the toolbar and thead (~494px on a 132-row
+    // sheet). Feeding scrollTop in raw ran the window off the end of the list near the bottom and
+    // rendered an empty band where the last rows should have been.
+    const src = read("apps/app/src/components/records/row-window.ts");
+    expect(src).toMatch(/computeWindow\(heights, metrics\.scrollTop - metrics\.bodyTop, viewport, overscan\)/);
+    expect(src).toMatch(/body\.getBoundingClientRect\(\)\.top - el\.getBoundingClientRect\(\)\.top \+ el\.scrollTop/);
+  });
+
+  it("the table passes the tbody in, so the offset is real and not assumed", () => {
+    expect(table()).toMatch(/<tbody ref=\{bodyRef\}>/);
+  });
+
+  it("an offset scroll still keeps the pads and rendered rows equal to the whole list", () => {
+    const heights = uniform(132);
+    const total = heights.reduce((a, b) => a + b, 0);
+    for (const raw of [0, 500, 2000, 3800]) {
+      const w = computeWindow(heights, raw - 494, 581, 8);   // 494 = toolbar + header
+      const rendered = heights.slice(w.start, w.end).reduce((a, b) => a + b, 0);
+      expect(w.padTop + rendered + w.padBottom).toBe(total);
+    }
+  });
+
+  it("at the very bottom it renders the LAST rows, not an empty band", () => {
+    const heights = uniform(132);
+    const w = computeWindow(heights, 3741 - 494, 581, 8);
+    expect(w.end).toBe(132);
+    expect(w.start).toBeLessThan(132);
+    expect(w.padBottom).toBe(0);
+  });
+});
+
 describe("the window is measured off the scroll event itself", () => {
   it("does not coalesce through requestAnimationFrame", () => {
     // Verified live: inside rAF the window froze at row 1 while the container sat at the bottom.
@@ -254,6 +287,6 @@ describe("the window is measured off the scroll event itself", () => {
 
   it("still refuses to re-render when the numbers did not change", () => {
     expect(read("apps/app/src/components/records/row-window.ts"))
-      .toMatch(/prev\.scrollTop === next\.scrollTop && prev\.viewport === next\.viewport \? prev : next/);
+      .toMatch(/prev\.scrollTop === next\.scrollTop && prev\.viewport === next\.viewport && prev\.bodyTop === next\.bodyTop/);
   });
 });

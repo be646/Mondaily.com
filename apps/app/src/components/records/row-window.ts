@@ -79,23 +79,37 @@ export function useRowWindow(opts: {
   heights: number[];
   enabled: boolean;
   overscan?: number;
-  /** Scroll container. Falls back to the nearest `.record-scroll` ancestor's element. */
+  /** The scroll container. */
   containerRef: React.RefObject<HTMLElement | null>;
+  /**
+   * The element the heights start at (the <tbody>). REQUIRED for correctness, not a nicety: the
+   * scroll container also holds the toolbar and the table header, so scrollTop is measured from
+   * well above the first row. Feeding it straight into the offset maths made the window run off
+   * the end of the list near the bottom and render an empty band where the last rows should be.
+   */
+  bodyRef: React.RefObject<HTMLElement | null>;
 }): RowWindow {
-  const { heights, enabled, containerRef } = opts;
+  const { heights, enabled, containerRef, bodyRef } = opts;
   const overscan = opts.overscan ?? 8;
-  const [metrics, setMetrics] = useState({ scrollTop: 0, viewport: 0 });
+  const [metrics, setMetrics] = useState({ scrollTop: 0, viewport: 0, bodyTop: 0 });
 
   const measure = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
+    // Where the first row sits inside the SCROLLED content — everything above it (toolbar, thead)
+    // is scrolled through before row 0 is reached.
+    const body = bodyRef.current;
+    const bodyTop = body
+      ? body.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop
+      : 0;
     setMetrics(prev => {
-      const next = { scrollTop: el.scrollTop, viewport: el.clientHeight };
+      const next = { scrollTop: el.scrollTop, viewport: el.clientHeight, bodyTop };
       // Re-rendering the whole sheet on a scroll that moved nothing is its own performance bug;
       // only publish when the numbers actually changed.
-      return prev.scrollTop === next.scrollTop && prev.viewport === next.viewport ? prev : next;
+      return prev.scrollTop === next.scrollTop && prev.viewport === next.viewport && prev.bodyTop === next.bodyTop
+        ? prev : next;
     });
-  }, [containerRef]);
+  }, [containerRef, bodyRef]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -122,5 +136,5 @@ export function useRowWindow(opts: {
   // Before the first measurement the viewport is 0, which would render nothing at all and flash an
   // empty sheet. Assume a screen's worth until the real number arrives.
   const viewport = metrics.viewport || 800;
-  return computeWindow(heights, metrics.scrollTop, viewport, overscan);
+  return computeWindow(heights, metrics.scrollTop - metrics.bodyTop, viewport, overscan);
 }
