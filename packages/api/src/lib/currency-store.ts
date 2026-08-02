@@ -1,26 +1,73 @@
 import { supabase } from "@mondaily/db/client";
-import { fetchFxRates, convert, DEFAULT_BASE_CURRENCY, type FxRates } from "./currency";
+import { fetchFxRates, convert, convertCurrency, DEFAULT_BASE_CURRENCY, type FxRates, type Conversion } from "./currency";
 
-/** Load the stored reference rates (per 1 EUR) + the date they're as-of. Empty ⇒ {} (fail-closed). */
-export async function loadRates(): Promise<{ rates: Record<string, number>; as_of: string | null }> {
-  const { data } = await supabase.from("fx_rates").select("currency, rate, as_of");
-  const rates: Record<string, number> = {};
+/** Collapse rate rows to the newest quote per currency. */
+function newestPerCurrency(rows: { currency: unknown; rate: unknown; as_of: unknown }[]): { rates: Record<string, number>; as_of: string | null } {
+  const best = new Map<string, { rate: number; as_of: string }>();
   let as_of: string | null = null;
-  for (const r of data ?? []) {
+  for (const r of rows) {
     const cur = String(r.currency).toUpperCase();
     const rate = Number(r.rate);
-    if (Number.isFinite(rate) && rate > 0) rates[cur] = rate;
-    if (!as_of || String(r.as_of) > as_of) as_of = String(r.as_of);
+    const day = String(r.as_of);
+    if (!Number.isFinite(rate) || rate <= 0) continue;
+    const prev = best.get(cur);
+    if (!prev || day > prev.as_of) best.set(cur, { rate, as_of: day });
+    if (!as_of || day > as_of) as_of = day;
   }
+  const rates: Record<string, number> = {};
+  for (const [cur, v] of best) rates[cur] = v.rate;
   return { rates, as_of };
 }
 
-/** Upsert a fresh rates snapshot. Called by the daily cron only. */
+/**
+ * The CURRENT reference rates (per 1 EUR) + the date they're as-of. Empty ⇒ {} (fail-closed).
+ *
+ * The table now holds history — many rows per currency — so this must take the NEWEST quote per
+ * currency rather than whichever row the database returned last. Ordered + capped so a long
+ * history can't be truncated into a wrong "latest".
+ */
+export async function loadRates(): Promise<{ rates: Record<string, number>; as_of: string | null }> {
+  const { data } = await supabase
+    .from("fx_rates").select("currency, rate, as_of")
+    .order("as_of", { ascending: false })
+    .limit(2000);
+  return newestPerCurrency(data ?? []);
+}
+
+/**
+ * Rates effective ON a given date: the most recent quote on or before it, per currency.
+ *
+ * Rates are not published at weekends or holidays, so Sunday's rate is Friday's — carrying forward
+ * is correct; inventing one is not. A currency with no quote at or before the date is simply
+ * absent, so conversion fails closed instead of silently borrowing today's rate.
+ */
+export async function loadRatesAsOf(date: string): Promise<{ rates: Record<string, number>; as_of: string | null }> {
+  const day = String(date).slice(0, 10);
+  const { data } = await supabase
+    .from("fx_rates").select("currency, rate, as_of")
+    .lte("as_of", day)
+    .order("as_of", { ascending: false })
+    .limit(5000);
+  return newestPerCurrency(data ?? []);
+}
+
+/**
+ * Upsert a rates snapshot. Called by the daily cron only.
+ *
+ * Conflict target is (currency, as_of) so each day is its own row and history accumulates; the
+ * previous key was `currency` alone, which meant every refresh DESTROYED the prior day. Falls back
+ * to the old target when 20260802_fx_rates_history.sql has not been applied yet, so an
+ * un-migrated environment keeps refreshing instead of silently storing nothing.
+ */
 export async function storeRates(fx: FxRates): Promise<number> {
   const rows = Object.entries(fx.rates).map(([currency, rate]) => ({ currency, rate, as_of: fx.date, updated_at: new Date().toISOString() }));
   if (rows.length === 0) return 0;
-  const { error } = await supabase.from("fx_rates").upsert(rows, { onConflict: "currency" });
-  return error ? 0 : rows.length;
+  const { error } = await supabase.from("fx_rates").upsert(rows, { onConflict: "currency,as_of" });
+  if (!error) return rows.length;
+  const { error: legacyErr } = await supabase.from("fx_rates").upsert(rows, { onConflict: "currency" });
+  if (legacyErr) return 0;
+  console.warn("[fx] stored without history — apply 20260802_fx_rates_history.sql to keep historical rates.");
+  return rows.length;
 }
 
 /** Refresh rates from the configured source (daily cron entry). Returns how many currencies stored. */
@@ -62,4 +109,90 @@ export async function makeBaseConverter(workspaceId: string): Promise<{ base: st
     return converted ?? amount; // fail-closed: face value when a rate is missing
   };
   return { base, toBase };
+}
+
+/**
+ * Value money AT THE DATE IT MOVED, not at today's rate.
+ *
+ * Converting historical amounts with the current rate is why reports move overnight: a June invoice
+ * is worth a different number of PLN every morning. This resolves each amount against the rates
+ * effective on its own transaction date, so a figure computed today and the same figure computed
+ * next year agree — and it returns the rate used, which is what the record must store.
+ *
+ * Rates for every date needed are loaded once (bounded), not per row.
+ */
+export async function makeHistoricalConverter(
+  workspaceId: string,
+  dates: string[],
+): Promise<{
+  base: string;
+  at: (amount: number, from: string | null | undefined, date: string) => Conversion | null;
+}> {
+  const days = [...new Set(dates.map(d => String(d).slice(0, 10)).filter(Boolean))].sort();
+  const earliest = days[0];
+  const [base, history] = await Promise.all([
+    workspaceBaseCurrency(workspaceId),
+    // One read covering the whole span; each date then picks its own effective quote.
+    earliest ? loadAllRatesFrom(earliest) : Promise.resolve([]),
+  ]);
+
+  const at = (amount: number, from: string | null | undefined, date: string): Conversion | null => {
+    const cur = (from ?? "").toUpperCase();
+    if (!cur) return null;
+    const { rates, as_of } = effectiveOn(history, String(date).slice(0, 10));
+    return convertCurrency(amount, cur, base, rates, { as_of, source: "ecb" });
+  };
+  return { base, at };
+}
+
+type RateRow = { currency: string; rate: number; as_of: string };
+
+/**
+ * Quotes from shortly before `from` onwards, oldest first.
+ *
+ * The lookback matters: the quote in force on the earliest date may itself be OLDER than that date
+ * (rates aren't published at weekends or over holidays), so starting exactly at `from` would drop
+ * the row that date actually needs and make conversion fail closed for no reason.
+ */
+async function loadAllRatesFrom(from: string): Promise<RateRow[]> {
+  const LOOKBACK_DAYS = 14;                       // comfortably covers any weekend or holiday run
+  const start = new Date(`${from}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - LOOKBACK_DAYS);
+  const since = start.toISOString().slice(0, 10);
+
+  const rows: RateRow[] = [];
+  const PAGE = 1000;
+  for (let offset = 0; offset < 100_000; offset += PAGE) {
+    const { data, error } = await supabase
+      .from("fx_rates").select("currency, rate, as_of")
+      .gte("as_of", since)
+      .order("as_of", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error) break;
+    const page = data ?? [];
+    for (const r of page) {
+      const rate = Number(r.rate);
+      if (Number.isFinite(rate) && rate > 0) {
+        rows.push({ currency: String(r.currency).toUpperCase(), rate, as_of: String(r.as_of) });
+      }
+    }
+    if (page.length < PAGE) break;
+  }
+  return rows;
+}
+
+/** Rates in force on a day: the newest quote per currency at or before it. */
+function effectiveOn(rows: RateRow[], day: string): { rates: Record<string, number>; as_of: string | null } {
+  const rates: Record<string, number> = {};
+  const picked: Record<string, string> = {};
+  let as_of: string | null = null;
+  for (const r of rows) {
+    if (r.as_of > day) continue;                  // ascending — everything after this is in the future
+    if (!picked[r.currency] || r.as_of >= picked[r.currency]!) {
+      rates[r.currency] = r.rate;
+      picked[r.currency] = r.as_of;
+      if (!as_of || r.as_of > as_of) as_of = r.as_of;
+    }
+  }
+  return { rates, as_of };
 }

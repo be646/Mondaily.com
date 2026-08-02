@@ -50,6 +50,64 @@ export function convert(amount: number, from: CurrencyCode, to: CurrencyCode, ra
   return inEur * rt;                   // EUR * (t per EUR) = amount(t)
 }
 
+/**
+ * The direct rate between two currencies: how many units of `to` one unit of `from` buys.
+ * Exposed separately because a stored money record must keep the rate it was converted at — the
+ * amount alone cannot be re-derived or audited later.
+ */
+export function rateBetween(from: CurrencyCode, to: CurrencyCode, rates: Record<string, number>): number | null {
+  const f = (from || "").toUpperCase();
+  const t = (to || "").toUpperCase();
+  if (f === t) return 1;
+  const r = withEur(rates);
+  const rf = r[f], rt = r[t];
+  if (!rf || !rt) return null;
+  return rt / rf;
+}
+
+export interface Conversion {
+  /** Converted amount, rounded to the target currency's minor units. */
+  amount: number;
+  /** Units of `to` per 1 unit of `from` — the rate to STORE on the record. */
+  rate: number;
+  from: CurrencyCode;
+  to: CurrencyCode;
+  /** The date the rates were quoted for, so the figure can be reproduced exactly. */
+  as_of: string | null;
+  /** Where the rate came from, so it can be defended in an audit. */
+  source: string;
+}
+
+/**
+ * Convert money and return the rate that did it, plus its provenance.
+ *
+ * `convert()` returns only a number, which is why nothing in the product could store an fx_rate:
+ * the rate was computed, used and discarded on every read. That is also why historical figures
+ * moved every morning — each render re-converted at that day's rate. This is the primitive the
+ * five-field money model is built on.
+ *
+ * Returns null rather than a guess when either currency has no rate (fail-closed, as before).
+ */
+export function convertCurrency(
+  amount: number,
+  from: CurrencyCode,
+  to: CurrencyCode,
+  rates: Record<string, number>,
+  meta?: { as_of?: string | null; source?: string },
+): Conversion | null {
+  if (!Number.isFinite(amount)) return null;
+  const rate = rateBetween(from, to, rates);
+  if (rate == null) return null;
+  return {
+    amount: roundMoney(amount * rate, to),
+    rate,
+    from: (from || "").toUpperCase(),
+    to: (to || "").toUpperCase(),
+    as_of: meta?.as_of ?? null,
+    source: meta?.source ?? "ecb",
+  };
+}
+
 /** Round to a currency's typical minor units (2 dp; 0 for JPY/HUF-style zero-decimal currencies). */
 export function roundMoney(amount: number, currency: CurrencyCode): number {
   const zeroDecimal = new Set(["JPY", "HUF", "KRW", "CLP", "ISK", "VND"]);
