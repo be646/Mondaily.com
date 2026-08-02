@@ -26,6 +26,7 @@ import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
 import { PipelineHealthBadge } from "./pipeline-health-badge";
 import { parseNumeric } from "@mondaily/shared/numbers";
+import { vocabSlotOf, vocabSortKey, vocabDirWords } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
@@ -1925,11 +1926,15 @@ function SortBar({ rules, onChange, fields, labelOf, numericOf, onClose }: {
     else if (typeof pickerFor === "number") onChange(r => r.map((x, i) => i === pickerFor ? { ...x, col } : x));
     setPickerFor(null); setSearch("");
   };
-  // Direction words follow the field's real kind — "A→Z" on a number column was a lie.
-  const dirLabel = (rule: SortRule) =>
-    rule.col === "__updated_at" ? (rule.dir === "asc" ? "Oldest" : "Newest")
-    : numericOf(rule.col) ? (rule.dir === "asc" ? "1→9" : "9→1")
-    : rule.dir === "asc" ? "A→Z" : "Z→A";
+  // Direction words follow the field's real kind — "A→Z" on a number column was a lie, and on a
+  // pipeline stage it described an alphabet nobody sorts a pipeline by.
+  const dirLabel = (rule: SortRule) => {
+    const slot = vocabSlotOf(rule.col);
+    if (slot) return vocabDirWords(slot, rule.dir);
+    if (rule.col === "__updated_at") return rule.dir === "asc" ? "Oldest" : "Newest";
+    if (numericOf(rule.col)) return rule.dir === "asc" ? "1→9" : "9→1";
+    return rule.dir === "asc" ? "A→Z" : "Z→A";
+  };
 
   // NOT a component — a plain JSX helper. Declared as <FieldPicker/> it would be a new
   // component type every render, remounting the panel on each keystroke and stealing focus
@@ -2402,6 +2407,18 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         const bEmpty = br == null || bv === "" || bv === "—";
         if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
         if (aEmpty && bEmpty) continue;
+        // Ordered categoricals sort by MEANING, not spelling: a pipeline reads Lead → Qualified →
+        // Proposal → Negotiation → Closed Won. Alphabetically that is "Closed Lost, Closed Won,
+        // Lead, Negotiation" — an order that describes nothing about the business.
+        const slot = vocabSlotOf(col);
+        if (slot) {
+          const ak = vocabSortKey(slot, ar), bk = vocabSortKey(slot, br);
+          if (ak !== bk) return dir === "asc" ? ak - bk : bk - ak;
+          // Two values sharing a rank (both unrecognised) still need a stable order.
+          const t = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
+          if (t !== 0) return dir === "asc" ? t : -t;
+          continue;
+        }
         // parseNumeric, not parseFloat-strip: the strip read "1.200,50" as 1.2, so European-format
         // money columns sorted in an order that had nothing to do with their real values.
         const an = typeof ar === "number" ? ar : parseNumeric(av);
@@ -2409,7 +2426,9 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         const cmp = an != null && bn != null ? an - bn : av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
         if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
       }
-      return 0;
+      // Stable final key: without one, rows equal on every rule reshuffle on each refetch, which
+      // looks like the sheet rearranging itself for no reason.
+      return display(cellValue(a, "name")).localeCompare(display(cellValue(b, "name")), undefined, { numeric: true });
     });
   }, [filtered, sortRules]);
 
@@ -2718,6 +2737,13 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   }
 
   function deleteRow(record: NodeRecord) {
+    // Deleting a record is permanent (DELETE /nodes/:id is a hard row delete — there is no trash).
+    // This used to fire on a SINGLE click with nothing but a 6-second undo toast, while bulk delete
+    // demanded an explicit count confirmation — the dangerous path was the unguarded one. One
+    // mis-aimed click on the row's last button destroyed a record, which is exactly how four
+    // discovered-leads were lost on 2026-08-02.
+    const label = String(cellValue(record, "name") ?? "").trim() || "this record";
+    if (!window.confirm(`Delete ${label}? This permanently removes the record and cannot be undone once the undo window passes.`)) return;
     // Clear any existing undo toast first
     if (undoToast) {
       clearTimeout(undoToast.timer);
@@ -3828,9 +3854,18 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(r);
                 }
-                // Largest first: by server subtotal when a calc is active, else by row count —
-                // insertion order was arbitrary (whatever order rows arrived in).
+                // Ordered categoricals (stage/status/priority) group in PIPELINE order — a board
+                // grouped by stage must read Lead → Closed Won every time, regardless of which
+                // stage happens to hold the most rows. Largest-first is only right for unordered
+                // categories (source, region, owner); dates read newest bucket first.
+                const groupSlot = vocabSlotOf(groupByCol);
                 const orderedGroups = [...groups.entries()].sort((a, b) => {
+                  if (groupSlot) {
+                    const ak = vocabSortKey(groupSlot, a[0]), bk = vocabSortKey(groupSlot, b[0]);
+                    if (ak !== bk) return ak - bk;
+                    return a[0].localeCompare(b[0]);
+                  }
+                  if (isDateGroup) return b[0].localeCompare(a[0]);   // newest month first
                   const sa = groupSubtotals.get(a[0])?.value; const sb = groupSubtotals.get(b[0])?.value;
                   if (sa != null && sb != null && sa !== sb) return sb - sa;
                   return b[1].length - a[1].length;

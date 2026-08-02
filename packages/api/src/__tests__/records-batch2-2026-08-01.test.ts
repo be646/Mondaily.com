@@ -53,7 +53,9 @@ describe("sort bar — same chrome as the filter bar, duplicates unrepresentable
   });
 
   it("direction words follow the column kind instead of always claiming A→Z", () => {
-    expect(table()).toMatch(/numericOf\(rule\.col\) \? \(rule\.dir === "asc" \? "1→9" : "9→1"\)/);
+    // 2026-08-02: ordered categoricals now answer first (Early→Late), then dates, then numbers.
+    expect(table()).toMatch(/if \(slot\) return vocabDirWords\(slot, rule\.dir\)/);
+    expect(table()).toMatch(/if \(numericOf\(rule\.col\)\) return rule\.dir === "asc" \? "1→9" : "9→1"/);
   });
 });
 

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Plus, Check, X, ChevronRight, ChevronDown } from "lucide-react";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { PortalDropdown } from "./record-table";
+import { vocabSlotOf, vocabSortKey } from "@mondaily/shared/vocab";
 import { apiClient } from "../../lib/api-client";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 
@@ -418,14 +419,22 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
   const groupCol  = detectGroupCol(records);
   const valueCol  = groupCol ? detectValueCol(records, groupCol) : null;
 
-  // Build stages from data + any user-added ones
+  // Build stages from data + any user-added ones, ordered by PIPELINE RANK — the board's column
+  // order was whatever order records happened to arrive in, so the same board could read
+  // "Negotiation, Lead, Closed Won" on one load and something else on the next. Unrecognised
+  // stages keep their relative order and sit after the known ones.
   useEffect(() => {
     if (!groupCol || !records.length) return;
+    const slot = vocabSlotOf(groupCol);
     const fromData = Array.from(new Set(records.map(r => String(r.data[groupCol] ?? "")).filter(Boolean)));
     setStages(prev => {
       const merged = [...fromData];
       for (const s of prev) { if (!merged.includes(s)) merged.push(s); }
-      return merged;
+      if (!slot) return merged;
+      return merged
+        .map((s, i) => ({ s, i, k: vocabSortKey(slot, s) }))
+        .sort((a, b) => a.k - b.k || a.i - b.i)
+        .map(x => x.s);
     });
   }, [records, groupCol]);
 

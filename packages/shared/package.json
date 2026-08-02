@@ -17,7 +17,8 @@
     "./captions": "./src/captions.ts",
     "./formula": "./src/formula.ts",
     "./numbers": "./src/numbers.ts",
-    "./baseline": "./src/baseline.ts"
+    "./baseline": "./src/baseline.ts",
+    "./vocab": "./src/vocab.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

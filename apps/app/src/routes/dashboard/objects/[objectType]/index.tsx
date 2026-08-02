@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PeriodSelector } from "../../../../components/ui/period-selector";
 import { CommandPageHeader, ActionMenu } from "../../../../components/ui/controls";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
+import { vocabSlotOf, vocabValues } from "@mondaily/shared/vocab";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -82,14 +83,12 @@ function CreateRecordModal({
   // Canonical option sets first (the sheet's own vocabulary — data-derived options showed ONLY
   // whatever happened to exist, e.g. a lone "In Progress" on status), then real data values merged
   // in, case-deduped, and NEVER long free text (a pill longer than 24 chars is data, not an option).
-  const CANON: Record<string, string[]> = {
-    stage: ["Lead", "Qualified", "Proposal", "Negotiation", "Closed Won", "Closed Lost", "On Hold"],
-    status: ["Not Started", "In Progress", "Completed", "On Hold", "Cancelled"],
-    priority: ["Low", "Medium", "High", "Urgent"],
-  };
+  // The canonical sets live in @mondaily/shared/vocab — the SAME source the sheet sorts by, the
+  // board orders columns by and grouping ranks by. A second private copy here is how a drawer ends
+  // up offering options the sort order has never heard of.
   const optionsFor = (k: string): string[] => {
-    const l = k.toLowerCase();
-    const canon = l.includes("stage") ? CANON.stage! : l.includes("status") ? CANON.status! : l.includes("priority") ? CANON.priority! : [];
+    const slot = vocabSlotOf(k);
+    const canon = slot ? vocabValues(slot) : [];
     const byLower = new Map<string, string>();
     for (const c of canon) byLower.set(c.toLowerCase(), c);
     const counts = new Map<string, Map<string, number>>();
