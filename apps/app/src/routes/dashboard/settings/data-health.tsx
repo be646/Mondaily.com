@@ -283,8 +283,13 @@ export function DataHealthSettings() {
               <Trash2 size={12}/>{applyMut.isPending ? "Removing…" : `Remove ${plan.summary.records_to_delete} duplicate${plan.summary.records_to_delete === 1 ? "" : "s"}`}
             </button>
           ) : (
+            /* Zero-to-delete has two very different causes and they must not share a sentence:
+               either every candidate copy carries attachments, or no group met the stricter identity
+               rule at all. Naming the wrong one sends someone looking for notes that do not exist. */
             <p className="mt-4 text-[12px]" style={{ color: "var(--text-muted)" }}>
-              Nothing can be removed automatically — every duplicate copy carries notes, tasks or links.
+              {plan.summary.groups_blocked_by_attachments > 0
+                ? "Nothing can be removed automatically — every duplicate copy carries notes, tasks or links."
+                : "Nothing meets the bar for automatic removal. Anything flagged above needs a person to open the records and decide."}
             </p>
           )}
         </div>

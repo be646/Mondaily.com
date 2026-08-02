@@ -68,8 +68,12 @@ describe("the panel reports what it could NOT do", () => {
     expect(clean()).toMatch(/survivor_rule: "richest payload wins/);
   });
 
-  it("states plainly when nothing can be removed automatically", () => {
-    expect(panel()).toMatch(/every duplicate copy carries notes, tasks or links/);
+  it("gives the RIGHT reason for zero deletions — attachments and 'no match' are not the same", () => {
+    // Seen live: with blocked=0 the panel claimed every copy carried notes, which was false and
+    // would send someone looking for notes that do not exist. The real cause was the identity rule.
+    const src = panel();
+    expect(src).toMatch(/plan\.summary\.groups_blocked_by_attachments > 0\s*\n?\s*\? "Nothing can be removed automatically/);
+    expect(src).toMatch(/: "Nothing meets the bar for automatic removal/);
   });
 });
 
