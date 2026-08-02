@@ -118,6 +118,10 @@ declare
   safe_limit int := least(greatest(coalesce(p_limit, 50), 1), 2000);
   safe_off   int := greatest(coalesce(p_offset, 0), 0);
 begin
+  -- Without this, quote_literal(null) makes where_sql NULL, format() returns NULL and the whole
+  -- call fails with an unhelpful error instead of simply returning nothing.
+  if p_workspace_id is null then return; end if;
+
   if p_object_type is not null then
     where_sql := where_sql || ' and n.object_type = ' || quote_literal(p_object_type);
   end if;
@@ -138,10 +142,13 @@ begin
       ) as x
       where x ~ '^[a-zA-Z0-9_-]{1,64}$'
     ) into search_cols;
+    -- Escape ilike wildcards, same as the PostgREST path: an unescaped "%" or "_" in the term
+    -- matched everything, so searching "50%" returned the whole table.
+    val := replace(replace(replace(btrim(p_q), '\', '\\'), '%', '\%'), '_', '\_');
     foreach c in array search_cols
     loop
       or_parts := or_parts || ('n.data->>' || quote_literal(c) || ' ilike ' ||
-                               quote_literal('%' || btrim(p_q) || '%'));
+                               quote_literal('%' || val || '%'));
     end loop;
     if array_length(or_parts, 1) > 0 then
       where_sql := where_sql || ' and (' || array_to_string(or_parts, ' or ') || ')';
@@ -233,6 +240,13 @@ $$;
 comment on function list_records is
   'Resolves a record view entirely in SQL: search, all filters (including numeric gt/lt and owner), all sort rules in order with rank-aware ordering and NULLS LAST. total_count is the real filtered count, not the page length.';
 
-grant execute on function mondaily_num(text) to authenticated, service_role, anon;
+-- SERVICE ROLE ONLY, deliberately. This function takes p_workspace_id as an argument, so any role
+-- that can execute it can ask for any workspace. The API is the only caller and holds the service
+-- key behind requireAuth (which validates membership before trusting the header). `nodes` is not in
+-- the RLS backstop list of 20260626_rls_complete.sql, so granting `authenticated`/`anon` here would
+-- be a cross-tenant read path reachable straight through PostgREST.
+revoke execute on function list_records(uuid, text, text, text, text, text[], jsonb, jsonb, int, int) from public;
+revoke execute on function mondaily_num(text) from public;
+grant execute on function mondaily_num(text) to service_role;
 grant execute on function list_records(uuid, text, text, text, text, text[], jsonb, jsonb, int, int)
-  to authenticated, service_role, anon;
+  to service_role;
