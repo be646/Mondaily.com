@@ -146,11 +146,10 @@ export function FinanceReportsPage() {
 
   // All money is normalized to the caller's DISPLAY currency via sovereign ECB rates, so
   // mixed-currency invoices (EUR/USD/GBP…) sum honestly instead of being mislabeled as one.
-  const { display, base, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay, rates } = useCurrency();
+  const { display, base, currencies, ratesAsOf, hasRates, setDisplay, rates } = useCurrency();
   const currency = display;
-  const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
-  const cn$ = (cn: CreditNote) => ({ amount: cn.amount_cents / 100, currency: cn.currency });
-  const exp$ = (e: { amount_cents: number; currency: string }) => ({ amount: e.amount_cents / 100, currency: e.currency });
+  // No per-type money adapters any more: readMoney (inside sumInBase) understands every shape a
+  // finance record is stored in, so a caller cannot pick the wrong field for a type.
 
   // ── Reporting period (cumulative ledger, period-scoped LENS) ──
   // FLOW metrics (revenue collected, credits issued, expenses) are counted within the range on
@@ -172,8 +171,8 @@ export function FinanceReportsPage() {
   // value and are converted at today's rate — counted separately, and disclosed below, because a
   // total mixing frozen and live figures is not wrong but must not pretend to be uniform.
   //
-  // sumInBase also refuses to add an unconvertible amount at face value. sumInDisplay adds it raw,
-  // which is how 1,000 PLN could land in a USD total as "1,000".
+  // sumInBase also refuses to add an unconvertible amount at face value. The previous helper added
+  // it raw, which is how 1,000 PLN could land in a USD total as "1,000".
   const inBase = useCallback(
     (rows: Record<string, unknown>[]) => sumInBase(rows, {
       base: display,
@@ -224,8 +223,8 @@ export function FinanceReportsPage() {
   const monthlyData = months.map(m => {
     const billedInMonth = invoices.filter(i => isBilled(i.status) && i.created_at.slice(0, 7) === m.key);
     const collectedInMonth = invoices.filter(i => isCollected(i.status) && moneyEventDate(i).slice(0, 7) === m.key);
-    const billed = sumInDisplay(billedInMonth.map(inv$)).value;
-    const collected = sumInDisplay(collectedInMonth.map(inv$)).value;
+    const billed = inBase(billedInMonth as unknown as Record<string, unknown>[]).value;
+    const collected = inBase(collectedInMonth as unknown as Record<string, unknown>[]).value;
     return { name: m.label, Billed: Math.round(billed * 100) / 100, Collected: Math.round(collected * 100) / 100 };
   });
 
@@ -235,7 +234,7 @@ export function FinanceReportsPage() {
   const clientMap: Record<string, { billed: number; paid: number; outstanding: number; count: number }> = {};
   for (const inv of invoices) {
     const entry = (clientMap[inv.client_name] ??= { billed: 0, paid: 0, outstanding: 0, count: 0 });
-    const amount = sumInDisplay([inv$(inv)]).value;
+    const amount = inBase([inv as unknown as Record<string, unknown>]).value;
     if (isBilled(inv.status)) entry.billed += amount;
     if (isCollected(inv.status)) entry.paid += amount;
     if (isOutstanding(inv.status)) entry.outstanding += amount;
@@ -250,20 +249,20 @@ export function FinanceReportsPage() {
   const statusBreakdown = STATUS_ORDER.map(s => ({
     status: s,
     count: invoices.filter(i => i.status === s).length,
-    total: sumInDisplay(invoices.filter(i => i.status === s).map(inv$)).value,
+    total: inBase(invoices.filter(i => i.status === s) as unknown as Record<string, unknown>[]).value,
   })).filter(s => s.count > 0);
 
   // Credit note impact by reason
   const reasonMap: Record<string, number> = {};
   for (const cn of creditNotes.filter(cn => cn.status === "executed")) {
-    reasonMap[cn.credit_reason] = (reasonMap[cn.credit_reason] ?? 0) + sumInDisplay([cn$(cn)]).value;
+    reasonMap[cn.credit_reason] = (reasonMap[cn.credit_reason] ?? 0) + inBase([cn as unknown as Record<string, unknown>]).value;
   }
 
   // Finance Agent digest — proactive signals computed from REAL data (no AI/credits needed):
   // overdue invoices, quotes gone cold (sent > 14 days ago, still open), and the month-over-month
   // cash direction from the collected series.
   const overdueInvoices = invoices.filter(i => i.status === "overdue");
-  const overdueTotal = sumInDisplay(overdueInvoices.map(inv$)).value;
+  const overdueTotal = inBase(overdueInvoices as unknown as Record<string, unknown>[]).value;
   const COLD_DAYS = 14;
   const coldQuotes = quotes.filter(q => q.status === "sent" && (Date.now() - Date.parse(q.created_at)) > COLD_DAYS * 86_400_000);
   // Cash trend on the SAME paid-date basis as the KPI cards (revenue actually collected this

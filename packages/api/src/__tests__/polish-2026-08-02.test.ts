@@ -60,3 +60,20 @@ describe("the reporting line follows the ledger, not the viewer", () => {
     expect(cell).toMatch(/const \{ base, display, rates \} = useCurrency\(\)/);
   });
 });
+
+describe("one page, one method of valuing money", () => {
+  const rep = () => read("apps/app/src/routes/dashboard/finance/reports.tsx");
+
+  it("EVERY figure on reports goes through the frozen sum", () => {
+    // The KPI tiles were converted first, leaving the chart, top clients, status breakdown, credit
+    // reasons and overdue total still re-converting live — the same page reporting two ways.
+    expect(rep()).not.toMatch(/sumInDisplay/);
+  });
+
+  it("the per-type money adapters are gone — readMoney knows every shape", () => {
+    const s = rep();
+    expect(s).not.toMatch(/const inv\$ = /);
+    expect(s).not.toMatch(/const cn\$ = /);
+    expect(s).not.toMatch(/const exp\$ = /);
+  });
+});
