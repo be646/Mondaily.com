@@ -349,12 +349,13 @@ describe("decorative palettes were NOT migrated as status (semantic honesty)", (
   // These key colour by IDENTITY (avatar/tag cycle, message accent, expense category) — not by state —
   // so they must keep their own hex and never be rewritten to a status-* utility.
   it("record-detail avatar/category palette + ask-mondaily ACCENTS + expense-category colours stay hex, no status utils", () => {
-    for (const f of [
-      "apps/app/src/components/records/record-detail.tsx",
-      "apps/app/src/routes/dashboard/finance/expenses.tsx",
-    ]) {
-      expect(read(f)).not.toMatch(/-status-(ok|warn|error|neutral)\b/);
-    }
+    expect(read("apps/app/src/components/records/record-detail.tsx")).not.toMatch(/-status-(ok|warn|error|neutral)\b/);
+    // 2026-08-02: expenses now has a real error line and a destructive delete action, which are
+    // exactly what status tokens are for. The decorative ban is scoped to CATEGORY_CONFIG — the
+    // identity palette — the same carve-out already made for ask-mondaily's ACCENTS below.
+    const expSrc = read("apps/app/src/routes/dashboard/finance/expenses.tsx");
+    const categoryPalette = expSrc.slice(expSrc.indexOf("const CATEGORY_CONFIG"), expSrc.indexOf("const STATUS_CONFIG"));
+    expect(categoryPalette).not.toMatch(/-status-(ok|warn|error|neutral)\b/);
     // ask-mondaily now legitimately uses --status-warn for the DEGRADED badge — a real state,
     // which is exactly what status tokens are for. The decorative ban is scoped to the ACCENTS
     // palette, which must stay identity-keyed hex.
@@ -1334,7 +1335,8 @@ describe("finance/expenses fully adopts the shared type scale (Pass 3S)", () => 
   it("behavior intact — amount_cents field, STATUS_CONFIG, DataTable + NO row navigation", () => {
     expect(EXP).toMatch(/fmt\(e\.amount_cents, e\.currency\)/);
     expect(EXP).toMatch(/STATUS_CONFIG/);
-    expect(EXP).toMatch(/columns=\{EXPENSE_COLUMNS\}/);
+    expect(EXP).toMatch(/columns=\{expenseColumns\}/);   // EXPENSE_COLUMNS + row actions
+    expect(EXP).toMatch(/\.\.\.EXPENSE_COLUMNS,/);
     expect(EXP).not.toMatch(/onRowClick/);   // expenses rows never navigated — preserve that
   });
   it("keeps its own loading/error/empty copy (page-owned states)", () => {
@@ -1365,7 +1367,8 @@ describe("finance/expenses uses the shared DataTable", () => {
   it("imports + renders <DataTable>, rows non-navigating (no onRowClick added)", () => {
     expect(EX).toMatch(/import \{ DataTable, type DataTableColumn \} from "\.\.\/\.\.\/\.\.\/components\/ui\/data-table"/);
     expect(EX).toMatch(/<DataTable<Expense>/);
-    expect(EX).toMatch(/columns=\{EXPENSE_COLUMNS\}/);
+    expect(EX).toMatch(/columns=\{expenseColumns\}/);   // EXPENSE_COLUMNS + row actions
+    expect(EX).toMatch(/\.\.\.EXPENSE_COLUMNS,/);
     expect(EX).not.toMatch(/onRowClick=/);   // expenses rows never navigated — none added
   });
   it("no longer hand-rolls its own <table>/<thead>/<tbody>", () => {

@@ -137,3 +137,32 @@ describe("built-but-unreachable endpoints", () => {
     expect(quotesUI()).toMatch(/\{convertErr && \(/);
   });
 });
+
+describe("expenses can be corrected, not just created", () => {
+  const ui = () => read("apps/app/src/routes/dashboard/finance/expenses.tsx");
+
+  it("edit and delete reach the endpoints that had no callers", () => {
+    expect(ui()).toMatch(/apiClient\.patch\(`\/expenses\/\$\{id\}`, patch\)/);
+    expect(ui()).toMatch(/apiClient\.delete\(`\/expenses\/\$\{id\}`\)/);
+  });
+
+  it("only an undecided expense is editable — approving is someone else's decision", () => {
+    expect(ui()).toMatch(/const editable = \(e: Expense\) => e\.status === "draft" \|\| e\.status === "rejected"/);
+  });
+
+  it("deleting asks first and says it cannot be undone", () => {
+    expect(ui()).toMatch(/window\.confirm\(`Delete the \$\{fmt\(e\.amount_cents, e\.currency\)\} expense/);
+    expect(ui()).toMatch(/cannot be undone/);
+  });
+
+  it("the amount is parsed with the shared parser, and junk is refused", () => {
+    // parseFloat would read "1.200,50" as 1.2 and silently store a wrong figure.
+    expect(ui()).toMatch(/const major = parseNumeric\(next\)/);
+    expect(ui()).toMatch(/if \(major == null \|\| major < 0\)/);
+  });
+
+  it("a failed edit or delete is shown, not swallowed", () => {
+    expect(ui()).toMatch(/onError: \(e\) => setRowErr/);
+    expect(ui()).toMatch(/\{rowErr && \(/);
+  });
+});

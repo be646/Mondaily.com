@@ -9,9 +9,10 @@ import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
+import { parseNumeric } from "@mondaily/shared/numbers";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
-  CheckCircle2, XCircle, Clock,
+  CheckCircle2, XCircle, Clock, Trash2,
 } from "lucide-react";
 
 interface Expense {
@@ -223,6 +224,64 @@ export function ExpensesPage() {
     },
   });
 
+  // Expenses could be CREATED but never edited or deleted: PATCH and DELETE existed on the API
+  // with no caller anywhere, so a mistyped amount or a duplicate entry was permanent and kept
+  // counting toward the approved/logged totals. Editing is limited to documents that have not been
+  // decided — changing the amount of an already-approved expense would rewrite a decision someone
+  // else made.
+  const [rowErr, setRowErr] = useState<string | null>(null);
+  const editable = (e: Expense) => e.status === "draft" || e.status === "rejected";
+
+  const patchExpense = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Expense> }) =>
+      apiClient.patch(`/expenses/${id}`, patch),
+    onSuccess: () => { setRowErr(null); qc.invalidateQueries({ queryKey: ["expenses"] }); },
+    onError: (e) => setRowErr(e instanceof Error ? e.message : "Could not update that expense."),
+  });
+  const deleteExpense = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/expenses/${id}`),
+    onSuccess: () => { setRowErr(null); qc.invalidateQueries({ queryKey: ["expenses"] }); },
+    onError: (e) => setRowErr(e instanceof Error ? e.message : "Could not delete that expense."),
+  });
+
+  const expenseColumns: DataTableColumn<Expense>[] = [
+    ...EXPENSE_COLUMNS,
+    {
+      key: "actions",
+      header: "",
+      cell: (e) => (
+        <div className="flex items-center justify-end gap-2">
+          {editable(e) ? (
+            <button
+              onClick={(ev) => {
+                ev.stopPropagation();
+                const next = window.prompt(`Amount for "${e.description}" (${e.currency})`, String(e.amount_cents / 100));
+                if (next == null) return;
+                const major = parseNumeric(next);
+                if (major == null || major < 0) { setRowErr("That amount isn’t a number."); return; }
+                patchExpense.mutate({ id: e.id, patch: { amount_cents: Math.round(major * 100) } });
+              }}
+              className="text-caption text-[var(--text-muted)] underline underline-offset-2 transition-colors hover:text-[var(--text-primary)]">
+              Edit
+            </button>
+          ) : (
+            <span className="text-caption" style={{ color: "var(--text-faint)" }} title={`A ${e.status} expense can no longer be edited.`}>—</span>
+          )}
+          <button
+            onClick={(ev) => {
+              ev.stopPropagation();
+              if (!window.confirm(`Delete the ${fmt(e.amount_cents, e.currency)} expense "${e.description}"?\n\nThis permanently removes it and cannot be undone.`)) return;
+              deleteExpense.mutate(e.id);
+            }}
+            className="text-caption text-[var(--text-muted)] transition-colors hover:text-[var(--status-error)]"
+            aria-label={`Delete ${e.description}`}>
+            <Trash2 size={11}/>
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   const currency = display;
   const e$ = (e: Expense) => ({ amount: e.amount_cents / 100, currency: e.currency });
   const [period, setPeriod] = usePeriod("mondaily_expenses_period", "all");
@@ -286,6 +345,9 @@ export function ExpensesPage() {
         )}
       </div>
 
+      {rowErr && (
+        <p className="px-6 pb-2 text-caption" style={{ color: "var(--status-error)" }} role="alert">{rowErr}</p>
+      )}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>
@@ -302,7 +364,7 @@ export function ExpensesPage() {
           // pill, money value and date are all still owned by this page (above), unchanged. Rows are
           // intentionally non-navigating (matches the prior behaviour); no row click was added.
           <DataTable<Expense>
-            columns={EXPENSE_COLUMNS}
+            columns={expenseColumns}
             rows={expenses}
             rowKey={(e) => e.id}
           />
