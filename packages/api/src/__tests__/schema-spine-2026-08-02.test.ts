@@ -77,6 +77,21 @@ describe("adopting is explicit, reversible in intent, and never silent", () => {
   });
 });
 
+describe("a workspace-wide schema write is never one unconfirmed click", () => {
+  it("adopting a field asks first, naming the field and the type", () => {
+    // Four fields landed in the deals schema unintentionally on 2026-08-02 from stray clicks
+    // during verification. Same class as the unguarded row delete fixed earlier that day.
+    const table = read("apps/app/src/components/records/record-table.tsx");
+    expect(table).toMatch(/Add "\$\{u\.key\}" to the \$\{objectType\} schema as \$\{u\.suggested_type\}\?/);
+    expect(table).toMatch(/if \(!window\.confirm\([\s\S]{0,400}\)\) return;\s*\n\s*setAdopting/);
+  });
+
+  it("says it is workspace-wide, since that is what makes it consequential", () => {
+    expect(read("apps/app/src/components/records/record-table.tsx"))
+      .toMatch(/This is a workspace-wide change/);
+  });
+});
+
 describe("the measurement that justified this order of work is recorded", () => {
   it("documents why the schema could not simply be made authoritative", () => {
     const src = records();

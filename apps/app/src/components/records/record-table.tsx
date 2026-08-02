@@ -3503,6 +3503,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                     disabled={adopting.has(u.key)}
                     title={`${u.filled} of ${schemaAudit.data!.records_sampled} records · e.g. ${u.samples.join(" · ") || "—"}`}
                     onClick={async () => {
+                      // Adding to the schema changes what EVERY member of the workspace sees, and
+                      // the sheet cannot undo it (removal lives in Settings). A single unconfirmed
+                      // click was enough to write — which is exactly how four fields landed in the
+                      // deals schema unintentionally on 2026-08-02. Same lesson as row delete.
+                      if (!window.confirm(
+                        `Add "${u.key}" to the ${objectType} schema as ${u.suggested_type}?\n\n`
+                        + `This is a workspace-wide change — every member will see this field typed as ${u.suggested_type}. `
+                        + `It can be removed again from Settings → Objects.`
+                      )) return;
                       setAdopting(prev => new Set(prev).add(u.key));
                       setAdoptMsg(null);
                       try {
