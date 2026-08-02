@@ -20,7 +20,8 @@
     "./baseline": "./src/baseline.ts",
     "./vocab": "./src/vocab.ts",
     "./finance": "./src/finance.ts",
-    "./money": "./src/money.ts"
+    "./money": "./src/money.ts",
+    "./period": "./src/period.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

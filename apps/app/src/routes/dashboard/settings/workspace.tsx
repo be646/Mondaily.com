@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle, Building2, Check, Download, Globe, ImagePlus, Shield, Trash2, Users, X, Zap, Plus, Copy, CheckCircle2,
+  CalendarClock,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
@@ -39,7 +40,7 @@ const currencies = ["USD", "GBP", "EUR", "CAD", "AUD", "PLN", "AED", "SGD", "JPY
 
 // Members & finance access were consolidated into the dedicated Members page (Settings → Members)
 // to remove the duplicate people/roles surface. Workspace settings = identity + modules + danger.
-type Section = "general" | "profile" | "modules" | "danger";
+type Section = "general" | "profile" | "modules" | "periods" | "danger";
 
 interface NavItem {
   key: Section;
@@ -52,6 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "general",  label: "General",     icon: Building2 },
   { key: "profile",  label: "Workspace profile", icon: Globe },
   { key: "modules",  label: "Modules",     icon: Zap },
+  { key: "periods",  label: "Reporting periods", icon: CalendarClock },
   { key: "danger",   label: "Danger Zone", icon: AlertCircle, danger: true },
 ];
 
@@ -398,6 +400,181 @@ function PreviewList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+
+// ─── Reporting periods ───────────────────────────────────────────────────────
+
+interface PeriodPreview {
+  period_type: string; period_key: string; period_start: string; period_end: string;
+  already_closed: boolean;
+  metrics: Record<string, number | string>;
+  inputs: Record<string, number | string>;
+}
+
+/**
+ * The period close, from the operator's side.
+ *
+ * Deliberately NOT a "simulate rollover" button that mutates and hopes. Closing a period is
+ * evidence-taking, so the default action is a PREVIEW: it computes exactly what would be filed and
+ * shows it, and writing is a separate, explicit decision. It is also worth saying plainly on the
+ * page that nothing is reset or deleted — the fear this panel has to answer is "will this wipe my
+ * numbers", and the honest answer is that a period "resets" because a date filter moved, not
+ * because anything was destroyed.
+ */
+function PeriodsSection() {
+  const [type, setType] = useState("MONTHLY");
+  const [preview, setPreview] = useState<PeriodPreview[] | null>(null);
+  const [written, setWritten] = useState<{ period_type: string; period_key: string; status: string }[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const current = useQuery<{ time_zone: string; week_start: number; periods: Record<string, { key: string; start: string; end: string; previous_key: string }> }>({
+    queryKey: ["periods-current"],
+    queryFn: () => apiClient.get("/periods/current"),
+  });
+
+  const snapshots = useQuery<{ snapshots: { period_type: string; period_key: string; closed_at: string; closed_by: string; metrics: Record<string, number> }[] }>({
+    queryKey: ["period-snapshots"],
+    queryFn: () => apiClient.get("/periods/snapshots?limit=12"),
+  });
+
+  const verify = useQuery<{ ok: boolean; checked: number; broken: { period_key: string; reason: string }[] }>({
+    queryKey: ["period-verify", type],
+    queryFn: () => apiClient.get(`/periods/verify?period_type=${type}`),
+  });
+
+  const dryRun = useMutation({
+    mutationFn: () => apiClient.post<{ preview: PeriodPreview[] }>("/periods/close", { period_type: type, dry_run: true }),
+    onSuccess: r => { setPreview(r.preview); setWritten(null); setError(null); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const qc = useQueryClient();
+  const commit = useMutation({
+    mutationFn: () => apiClient.post<{ results: { period_type: string; period_key: string; status: string }[] }>("/periods/close", { period_type: type, dry_run: false }),
+    onSuccess: r => {
+      setWritten(r.results); setPreview(null); setError(null);
+      qc.invalidateQueries({ queryKey: ["period-snapshots"] });
+      qc.invalidateQueries({ queryKey: ["period-verify"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const cur = current.data?.periods?.[type];
+
+  return (
+    <div className="max-w-2xl">
+      <h3 className="text-[14px] font-medium text-[var(--text-primary)]">Reporting periods</h3>
+      <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>
+        Closing a period files an immutable snapshot of what it held. It never deletes or resets
+        anything — a new period reads as zero because the date filter moved, not because history went
+        anywhere.
+      </p>
+
+      {current.data && (
+        <div className="mt-4 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-3 text-[12px]">
+          <div style={{ color: "var(--text-muted)" }}>
+            Boundaries are computed in <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{current.data.time_zone}</span>,
+            weeks start {current.data.week_start === 1 ? "Monday" : "Sunday"}.
+          </div>
+          {cur && (
+            <div className="mt-1.5 font-mono text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              current {cur.key} · previous {cur.previous_key}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-end gap-2">
+        <div className="min-w-[180px]">
+          <label className="mb-1 block text-[11px]" style={{ color: "var(--text-muted)" }}>Period type</label>
+          <FieldSelect
+            value={type}
+            onChange={v => { setType(v); setPreview(null); setWritten(null); }}
+            options={["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"].map(v => ({ value: v, label: v }))}
+          />
+        </div>
+        <button
+          onClick={() => dryRun.mutate()}
+          disabled={dryRun.isPending || commit.isPending}
+          className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-[12px] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] disabled:opacity-40"
+        >
+          {dryRun.isPending ? "Computing…" : "Preview close"}
+        </button>
+      </div>
+
+      {error && (
+        <p className="mt-3 text-[12px]" style={{ color: "var(--status-warn)" }}>{error}</p>
+      )}
+
+      {preview && (
+        <div className="mt-4 rounded-sm border p-4" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+          <h4 className="text-[12px] font-medium text-[var(--text-primary)]">Preview · nothing has been written</h4>
+          {preview.map(p => (
+            <div key={p.period_key} className="mt-3">
+              <div className="font-mono text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                {p.period_type} {p.period_key}
+                {p.already_closed && <span style={{ color: "var(--text-muted)" }}> · already on file</span>}
+              </div>
+              <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono text-[11px] tabular-nums sm:grid-cols-3">
+                {Object.entries(p.metrics).map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-2">
+                    <span style={{ color: "var(--text-muted)" }}>{k}</span>
+                    <span style={{ color: "var(--text-primary)" }}>{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+              {Number(p.inputs.unconverted ?? 0) > 0 && (
+                <p className="mt-1 text-[11px]" style={{ color: "var(--status-warn)" }}>
+                  {String(p.inputs.unconverted)} row(s) valued at today's rate — they predate the money model,
+                  so this figure mixes frozen and live values.
+                </p>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() => commit.mutate()}
+            disabled={commit.isPending}
+            className="mt-4 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-40"
+            style={{ background: "var(--section-accent)" }}
+          >
+            {commit.isPending ? "Filing…" : "File this snapshot"}
+          </button>
+        </div>
+      )}
+
+      {written && (
+        <div className="mt-4 rounded-sm border px-4 py-3 text-[12px]" style={{ borderColor: "#2f9e6b", color: "var(--text-secondary)" }}>
+          {written.filter(w => w.status === "written").length} snapshot(s) filed
+          {written.some(w => w.status === "already_closed") && ", the rest were already on file"}.
+        </div>
+      )}
+
+      {verify.data && verify.data.checked > 0 && (
+        <p className="mt-4 text-[11px]" style={{ color: verify.data.ok ? "var(--text-muted)" : "var(--status-warn)" }}>
+          {verify.data.ok
+            ? `Hash chain intact across ${verify.data.checked} ${type.toLowerCase()} snapshot(s).`
+            : `Chain broken: ${verify.data.broken.map(b => `${b.period_key} — ${b.reason}`).join("; ")}`}
+        </p>
+      )}
+
+      {snapshots.data && snapshots.data.snapshots.length > 0 && (
+        <div className="mt-5">
+          <h4 className="mb-1.5 text-[12px] font-medium text-[var(--text-primary)]">Closed periods</h4>
+          <ul className="divide-y divide-[var(--border-faint)] rounded-sm border border-[var(--border-soft)]">
+            {snapshots.data.snapshots.map(s => (
+              <li key={`${s.period_type}-${s.period_key}`} className="flex items-center justify-between gap-3 px-3 py-1.5 font-mono text-[11px]">
+                <span style={{ color: "var(--text-secondary)" }}>{s.period_type} {s.period_key}</span>
+                <span className="tabular-nums" style={{ color: "var(--text-muted)" }}>
+                  net {s.metrics?.net_margin ?? "—"} · {s.closed_by}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WorkspaceSettings() {
   const qc = useQueryClient();
   const logoRef = useRef<HTMLInputElement>(null);
@@ -506,6 +683,7 @@ export function WorkspaceSettings() {
         {section === "modules" && (
           <ModulesSection form={form} setForm={setForm} save={save} saved={saved} />
         )}
+        {section === "periods" && <PeriodsSection />}
         {section === "danger" && <DangerZoneSection form={form} />}
       </div>
     </div>

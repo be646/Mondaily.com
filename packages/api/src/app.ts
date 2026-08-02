@@ -38,6 +38,7 @@ import { callsRouter } from "./routes/calls";
 import { adminReadinessRouter } from "./routes/admin-readiness";
 import { reportsRouter } from "./routes/reports";
 import { recordsRouter } from "./routes/records";
+import { periodsRouter } from "./routes/periods";
 import { moneyRouter } from "./routes/money";
 import { dashboardsRouter } from "./routes/dashboards";
 import { sequencesRouter } from "./routes/sequences";
@@ -91,6 +92,7 @@ app.route("/api/v1/import", importRouter);
 app.route("/api/v1/generate", generateRouter);
 app.route("/api/v1/nodes", nodesRouter);
 app.route("/api/v1/records", recordsRouter);
+app.route("/api/v1/periods", periodsRouter);
 app.route("/api/v1/money", moneyRouter);
 app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/briefing", briefingRouter);
@@ -199,6 +201,47 @@ app.get("/api/cron/daily", async (c) => {
   // appliance is configured). Non-fatal.
   const embeddings = await (await import("./lib/embed-index")).reconcileAllEmbeddings().catch((e) => ({ error: String(e) }));
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical, embeddings, brain, purge });
+});
+
+/**
+ * Period close — the autonomous rollover.
+ *
+ * Runs hourly ON PURPOSE, not "at 00:00 on the 1st". A period boundary is a wall-clock fact in the
+ * WORKSPACE's timezone, and Vercel Cron fires in UTC: a single monthly UTC trigger closes a Warsaw
+ * month two hours early and an Auckland month twelve hours late. Running hourly and asking the
+ * calendar which periods have ended lets every workspace close on its own midnight.
+ *
+ * It is safe to run this often because the work is idempotent by construction: one snapshot per
+ * (workspace, period_type, period_key), enforced by a unique key. An hour where nothing ended
+ * writes nothing.
+ */
+app.get("/api/cron/period-close", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  // FAIL CLOSED, like every other cron here: unset secret disables the endpoint rather than
+  // opening it.
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+
+  const { closeDuePeriods } = await import("./lib/period-close");
+  const { supabase } = await import("@mondaily/db/client");
+  const { data: workspaces, error } = await supabase.from("workspaces").select("id, settings");
+  if (error) return c.json({ error: error.message }, 500);
+
+  const results: Record<string, unknown> = {};
+  for (const ws of workspaces ?? []) {
+    // One workspace failing must not stop the rest closing their own periods.
+    try {
+      const r = await closeDuePeriods(String(ws.id), (ws as { settings?: unknown }).settings);
+      const written = r.filter(x => x.status === "written");
+      if (written.length) results[String(ws.id)] = written.map(x => `${x.period_type}:${x.period_key}`);
+      const failed = r.filter(x => x.status === "failed");
+      if (failed.length) results[`${ws.id}:failed`] = failed.map(x => `${x.period_key} — ${x.detail}`);
+    } catch (e) {
+      results[`${ws.id}:error`] = String(e);
+    }
+  }
+  return c.json({ ran: true, at: new Date().toISOString(), workspaces: (workspaces ?? []).length, closed: results });
 });
 
 /**
