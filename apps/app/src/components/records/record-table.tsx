@@ -27,6 +27,28 @@ import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
 import { PipelineHealthBadge } from "./pipeline-health-badge";
 import { parseNumeric } from "@mondaily/shared/numbers";
+import { useRowWindow } from "./row-window";
+import { nextFocus, scrollTopToReveal, selectionRange, shouldHandleKey, type CellFocus } from "./sheet-keys";
+
+/**
+ * Row windowing thresholds and heights.
+ *
+ * The heights are the rendered heights of the two row kinds (data rows are `py-1.5` around 12px
+ * text; group headers are `py-2` with a border above and below). They only need to be right enough
+ * for the spacers to hold the scrollbar steady — the rendered rows size themselves, so a small
+ * error moves the scroll thumb slightly and never clips or overlaps content.
+ *
+ * VIRTUALIZE_ABOVE is set well past a screenful: under it, every row is on screen or one flick
+ * away, so windowing would add machinery and risk for no gain.
+ */
+const DATA_ROW_H = 29;
+const GROUP_ROW_H = 35;
+const VIRTUALIZE_ABOVE = 120;
+
+/** One entry in the rendered list: a collapsible group header, or a record row. */
+type RowPlanItem =
+  | { kind: "group"; groupVal: string; groupRows: NodeRecord[]; isCollapsed: boolean }
+  | { kind: "row"; record: NodeRecord; rowIdx: number };
 import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor, vocabRankPairs } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
 
@@ -3234,7 +3256,172 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     </div>
   );
 
-  function renderRow(record: NodeRecord, rowIdx: number) {
+
+  // The scroll container the window is measured against.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * The row PLAN — descriptors, not React nodes.
+   *
+   * Windowing has to know the whole list, and how tall each entry is, BEFORE deciding what to
+   * render; building 900 rows in order to throw 880 of them away is exactly the cost being
+   * removed. So the grouping decision lives here and the JSX below only renders the slice.
+   */
+  const rowPlan = useMemo<RowPlanItem[]>(() => {
+    const plan: RowPlanItem[] = [];
+    if (!groupByCol) {
+      visibleRows.forEach((record, rowIdx) => plan.push({ kind: "row", record, rowIdx }));
+      return plan;
+    }
+    // Date columns bucket by MONTH — grouping by exact day/timestamp produced a wall of one-row
+    // groups that helped nobody.
+    const isDateGroup = inferColKind(records, groupByCol, customCols.find(cc => cc.key === groupByCol)?.type) === "date";
+    const groupKeyOfRow = (r: NodeRecord): string => {
+      const raw = String(cellValue(r, groupByCol) ?? "—");
+      if (!isDateGroup || raw === "—" || !/^\d{4}-\d{2}/.test(raw)) return raw;
+      return raw.slice(0, 7);   // YYYY-MM
+    };
+    const groups = new Map<string, NodeRecord[]>();
+    for (const r of visibleRows) {
+      const key = groupKeyOfRow(r);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    // Ordered categoricals (stage/status/priority) group in PIPELINE order — a board grouped by
+    // stage must read Lead → Closed Won every time, regardless of which stage happens to hold the
+    // most rows. Largest-first is only right for unordered categories (source, region, owner);
+    // dates read newest bucket first.
+    const groupSlot = vocabSlotOf(groupByCol);
+    const orderedGroups = [...groups.entries()].sort((a, b) => {
+      if (groupSlot) {
+        const ak = vocabSortKey(groupSlot, a[0]), bk = vocabSortKey(groupSlot, b[0]);
+        if (ak !== bk) return ak - bk;
+        return a[0].localeCompare(b[0]);
+      }
+      if (isDateGroup) return b[0].localeCompare(a[0]);   // newest month first
+      const sa = groupSubtotals.get(a[0])?.value; const sb = groupSubtotals.get(b[0])?.value;
+      if (sa != null && sb != null && sa !== sb) return sb - sa;
+      return b[1].length - a[1].length;
+    });
+    for (const [groupVal, groupRows] of orderedGroups) {
+      const isCollapsed = collapsedGroups.has(groupVal);
+      plan.push({ kind: "group", groupVal, groupRows, isCollapsed });
+      if (!isCollapsed) groupRows.forEach((record, rowIdx) => plan.push({ kind: "row", record, rowIdx }));
+    }
+    return plan;
+  }, [visibleRows, groupByCol, records, customCols, collapsedGroups, groupSubtotals]);
+
+  // Heights drive the spacers, so they must describe the plan entry-by-entry: a group header and a
+  // data row are different heights, and one averaged constant drifts further the longer the list.
+  const planHeights = useMemo(
+    () => rowPlan.map(i => i.kind === "group" ? GROUP_ROW_H : DATA_ROW_H),
+    [rowPlan],
+  );
+  const rowWindow = useRowWindow({
+    heights: planHeights,
+    enabled: rowPlan.length > VIRTUALIZE_ABOVE,
+    containerRef: scrollRef,
+  });
+
+  // ── Keyboard model ──────────────────────────────────────────────────────────
+  // Focus is a CELL, addressed by (data-row ordinal, column index). Group headers are skipped:
+  // they are not cells, and arrowing into one would strand the focus somewhere nothing can be
+  // typed. The two maps below translate between the plan (which contains headers) and the grid.
+  const [focus, setFocus] = useState<CellFocus | null>(null);
+  const [selectAnchor, setSelectAnchor] = useState<number | null>(null);
+  const planIdxOfDataRow = useMemo(() => {
+    const out: number[] = [];
+    rowPlan.forEach((it, i) => { if (it.kind === "row") out.push(i); });
+    return out;
+  }, [rowPlan]);
+  const dataOrdinalOfPlanIdx = useMemo(() => {
+    const m = new Map<number, number>();
+    planIdxOfDataRow.forEach((planIdx, ordinal) => m.set(planIdx, ordinal));
+    return m;
+  }, [planIdxOfDataRow]);
+
+  // A sheet whose rows changed under a stale focus would paint a ring on the wrong record.
+  useEffect(() => {
+    setFocus(f => (f && f.row < planIdxOfDataRow.length && f.col < orderedColumns.length) ? f : null);
+    setSelectAnchor(a => (a != null && a < planIdxOfDataRow.length) ? a : null);
+  }, [planIdxOfDataRow.length, orderedColumns.length]);
+
+  const onGridKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    // While an editor, the search box or a dialog has focus, the arrows belong to THAT control.
+    if (!shouldHandleKey(e.target)) return;
+    const dims = { rows: planIdxOfDataRow.length, cols: orderedColumns.length };
+    if (dims.rows === 0 || dims.cols === 0) return;
+    const cur = focus ?? { row: 0, col: 0 };
+
+    if (e.key === "Escape") { setFocus(null); setSelectAnchor(null); return; }
+
+    // Enter / F2 open the cell the same way a mouse does — by dispatching the gesture the editors
+    // already listen for, rather than a second, parallel way to enter edit mode that would drift
+    // from the click path.
+    if ((e.key === "Enter" || e.key === "F2") && focus) {
+      const td = scrollRef.current?.querySelector<HTMLElement>(`[data-cell="${focus.row}-${focus.col}"]`);
+      const target = td?.querySelector<HTMLElement>("button, [role='button'], input, a") ?? td;
+      if (target) {
+        e.preventDefault();
+        target.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+        target.click?.();
+      }
+      return;
+    }
+
+    // Space toggles the row; Shift+Space extends from the anchor, so a run can be selected without
+    // ever touching the mouse.
+    if (e.key === " " && focus) {
+      e.preventDefault();
+      const rec = rowPlan[planIdxOfDataRow[focus.row]!];
+      if (!rec || rec.kind !== "row") return;
+      if (e.shiftKey && selectAnchor != null) {
+        const { from, to } = selectionRange(selectAnchor, focus.row);
+        setSelected(prev => {
+          const n = new Set(prev);
+          for (let i = from; i <= to; i++) {
+            const it = rowPlan[planIdxOfDataRow[i]!];
+            if (it?.kind === "row") n.add(it.record.id);
+          }
+          return n;
+        });
+      } else {
+        toggleSelectRow(rec.record.id);
+        setSelectAnchor(focus.row);
+      }
+      return;
+    }
+
+    const next = nextFocus(cur, { key: e.key, meta: e.metaKey || e.ctrlKey, shift: e.shiftKey }, dims);
+    if (!next) return;
+    e.preventDefault();
+    setFocus(next);
+    if (e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      const from = selectAnchor ?? cur.row;
+      if (selectAnchor == null) setSelectAnchor(cur.row);
+      const range = selectionRange(from, next.row);
+      setSelected(() => {
+        const n = new Set<string>();
+        for (let i = range.from; i <= range.to; i++) {
+          const it = rowPlan[planIdxOfDataRow[i]!];
+          if (it?.kind === "row") n.add(it.record.id);
+        }
+        return n;
+      });
+    } else if (!e.shiftKey) {
+      setSelectAnchor(next.row);
+    }
+
+    // With windowing the target row may not be rendered yet, so moving focus has to move the
+    // container — the DOM node cannot scroll itself into view if it does not exist.
+    const el = scrollRef.current;
+    if (el) {
+      const top = scrollTopToReveal(planHeights, planIdxOfDataRow[next.row] ?? 0, el.scrollTop, el.clientHeight);
+      if (top != null) el.scrollTop = top;
+    }
+  }, [focus, selectAnchor, planIdxOfDataRow, orderedColumns.length, rowPlan, planHeights]);
+
+  function renderRow(record: NodeRecord, rowIdx: number, dataIdx = -1) {
     return (
       <tr
         key={record.id}
@@ -3256,7 +3443,17 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            style={{ width: effectiveWidth(col), minWidth: effectiveWidth(col), maxWidth: effectiveWidth(col) }}
+            data-cell={dataIdx >= 0 ? `${dataIdx}-${colIdx}` : undefined}
+            onMouseDown={() => { if (dataIdx >= 0) { setFocus({ row: dataIdx, col: colIdx }); setSelectAnchor(dataIdx); } }}
+            style={{
+              width: effectiveWidth(col), minWidth: effectiveWidth(col), maxWidth: effectiveWidth(col),
+              // An inset ring rather than an outline: the cell is inside a scroll container with
+              // sticky columns, and an outline is painted outside the box, so it would be clipped
+              // by the neighbour that is stacked above it.
+              ...(focus && focus.row === dataIdx && focus.col === colIdx
+                ? { boxShadow: "inset 0 0 0 2px var(--section-accent)" }
+                : null),
+            }}
             className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap ${isNumericCol(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
@@ -3933,7 +4130,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         />
       )}
 
-      <div className="record-scroll flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+      <div
+        ref={scrollRef}
+        tabIndex={0}
+        onKeyDown={onGridKeyDown}
+        role="grid"
+        aria-rowcount={planIdxOfDataRow.length}
+        className="record-scroll flex-1 min-h-0 overflow-x-auto overflow-y-auto focus:outline-none"
+      >
         <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
           <thead className="sticky top-0 z-20">
             <tr>
@@ -4068,75 +4272,59 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                 </td>
               </tr>
             ) : (() => {
-              // Build row list — optionally grouped
-              const rowsToRender: React.ReactNode[] = [];
-              if (groupByCol) {
-                // Date columns bucket by MONTH — grouping by exact day/timestamp produced a wall
-                // of one-row groups that helped nobody.
-                const isDateGroup = inferColKind(records, groupByCol, customCols.find(cc => cc.key === groupByCol)?.type) === "date";
-                const groupKeyOfRow = (r: NodeRecord): string => {
-                  const raw = String(cellValue(r, groupByCol) ?? "—");
-                  if (!isDateGroup || raw === "—" || !/^\d{4}-\d{2}/.test(raw)) return raw;
-                  return raw.slice(0, 7);   // YYYY-MM
-                };
-                const groups = new Map<string, NodeRecord[]>();
-                for (const r of visibleRows) {
-                  const key = groupKeyOfRow(r);
-                  if (!groups.has(key)) groups.set(key, []);
-                  groups.get(key)!.push(r);
-                }
-                // Ordered categoricals (stage/status/priority) group in PIPELINE order — a board
-                // grouped by stage must read Lead → Closed Won every time, regardless of which
-                // stage happens to hold the most rows. Largest-first is only right for unordered
-                // categories (source, region, owner); dates read newest bucket first.
-                const groupSlot = vocabSlotOf(groupByCol);
-                const orderedGroups = [...groups.entries()].sort((a, b) => {
-                  if (groupSlot) {
-                    const ak = vocabSortKey(groupSlot, a[0]), bk = vocabSortKey(groupSlot, b[0]);
-                    if (ak !== bk) return ak - bk;
-                    return a[0].localeCompare(b[0]);
-                  }
-                  if (isDateGroup) return b[0].localeCompare(a[0]);   // newest month first
-                  const sa = groupSubtotals.get(a[0])?.value; const sb = groupSubtotals.get(b[0])?.value;
-                  if (sa != null && sb != null && sa !== sb) return sb - sa;
-                  return b[1].length - a[1].length;
-                });
-                for (const [groupVal, groupRows] of orderedGroups) {
-                  const ss = stageStyle(groupVal);
-                  const isCollapsed = collapsedGroups.has(groupVal);
-                  rowsToRender.push(
-                    <tr key={`grp-${groupVal}`} onClick={() => setCollapsedGroups(prev => { const n = new Set(prev); n.has(groupVal) ? n.delete(groupVal) : n.add(groupVal); return n; })} className="cursor-pointer select-none">
-                      <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
-                        <div className="flex items-center gap-2">
-                          <ChevronDown size={11} className={`shrink-0 text-[var(--text-muted)] transition-transform ${isCollapsed ? "-rotate-90" : ""}`}/>
-                          <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
-                          <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
-                          <span className="text-[10px] text-stone-400 dark:text-[var(--text-secondary)] ml-1">{groupRows.length}</span>
-                          {/* Excel-style per-group subtotal for the primary calc'd column — server value
-                              when available, else an honest client per-group calc over the shown rows. */}
-                          {groupCalcCol && groupCalcOp && (() => {
-                            const srv = groupSubtotals.get(groupVal);
-                            const str = srv
-                              ? fmtGroupVal(groupCalcKind, groupCalcOp, srv.value, groupAggCurrency, srv.unconverted)
-                              : calcResultTyped(groupCalcOp, groupCalcCol, groupRows, groupCalcKind, { display: wsDisplay, rates: fxRates, base: wsBase });
-                            return (
-                              <span title={srv ? "Group subtotal (full table)" : "Group subtotal (this view)"}
-                                className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
-                                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
-                                <span className="first-letter:uppercase" style={{ color: "var(--text-faint)" }}>{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                  if (!isCollapsed) groupRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
-                }
-              } else {
-                visibleRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
-              }
-              return rowsToRender;
+              const renderGroup = (item: Extract<RowPlanItem, { kind: "group" }>) => {
+                const { groupVal, groupRows, isCollapsed } = item;
+                const ss = stageStyle(groupVal);
+                return (
+                      <tr key={`grp-${groupVal}`} onClick={() => setCollapsedGroups(prev => { const n = new Set(prev); n.has(groupVal) ? n.delete(groupVal) : n.add(groupVal); return n; })} className="cursor-pointer select-none">
+                        <td colSpan={columns.length + 3 + (hasRecordIdCol ? 1 : 0)} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
+                          <div className="flex items-center gap-2">
+                            <ChevronDown size={11} className={`shrink-0 text-[var(--text-muted)] transition-transform ${isCollapsed ? "-rotate-90" : ""}`}/>
+                            <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
+                            <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
+                            <span className="text-[10px] text-stone-400 dark:text-[var(--text-secondary)] ml-1">{groupRows.length}</span>
+                            {/* Excel-style per-group subtotal for the primary calc'd column — server value
+                                when available, else an honest client per-group calc over the shown rows. */}
+                            {groupCalcCol && groupCalcOp && (() => {
+                              const srv = groupSubtotals.get(groupVal);
+                              const str = srv
+                                ? fmtGroupVal(groupCalcKind, groupCalcOp, srv.value, groupAggCurrency, srv.unconverted)
+                                : calcResultTyped(groupCalcOp, groupCalcCol, groupRows, groupCalcKind, { display: wsDisplay, rates: fxRates, base: wsBase });
+                              return (
+                                <span title={srv ? "Group subtotal (full table)" : "Group subtotal (this view)"}
+                                  className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
+                                  style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                                  <span className="first-letter:uppercase" style={{ color: "var(--text-faint)" }}>{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </td>
+                      </tr>
+    );
+              };
+              // The plan INDEX is passed in rather than searched for: indexOf inside the row loop
+              // would be a linear scan per row, i.e. the exact quadratic cost this work removes.
+              const renderItem = (item: RowPlanItem, planIdx: number) =>
+                item.kind === "group" ? renderGroup(item) : renderRow(item.record, item.rowIdx, dataOrdinalOfPlanIdx.get(planIdx) ?? -1);
+
+              // Below the threshold the sheet renders exactly as it always did. Windowing a short
+              // table wins nothing and only adds a way for it to be wrong.
+              if (rowPlan.length <= VIRTUALIZE_ABOVE) return rowPlan.map((it, i) => renderItem(it, i));
+
+              const spacerCols = columns.length + 3 + (hasRecordIdCol ? 1 : 0);
+              const spacer = (key: string, h: number) => h <= 0 ? null : (
+                // A real <tr>, so the table's own layout keeps the scroll height honest — the
+                // scrollbar must describe the whole list, not the rendered slice.
+                <tr key={key} aria-hidden="true" style={{ height: h }}>
+                  <td colSpan={spacerCols} style={{ height: h, padding: 0, border: 0 }} />
+                </tr>
+              );
+              return [
+                spacer("vpad-top", rowWindow.padTop),
+                ...rowPlan.slice(rowWindow.start, rowWindow.end).map((it, i) => renderItem(it, rowWindow.start + i)),
+                spacer("vpad-bottom", rowWindow.padBottom),
+              ];
             })()}
           </tbody>
           <tfoot className="sticky bottom-0 z-40">
