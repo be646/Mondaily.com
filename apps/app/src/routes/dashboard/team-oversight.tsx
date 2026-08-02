@@ -11,14 +11,17 @@ import { compareWindows } from "@mondaily/shared/baseline";
 import { KPIGrid, KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, periodRange, previousRange, periodLabel, type Period } from "../../lib/period";
+import { useResolvedPeriod } from "../../lib/period-bounds";
 
 // CALENDAR-TRUE windows (2026-07-30): the backend measures "days back from now", so we derive the
 // day count from the CALENDAR period start (1st of the month, Sunday, Jan 1) — "Month" genuinely
 // restarts from zero on the 1st, exactly like Finance. The backend's previous-equal-window compare
 // then reads as "same point last period". History is untouched — this only scopes the window.
-function calendarDays(p: Period): number {
-  const start = periodRange(p).start.getTime();
-  return Math.max(1, Math.ceil((Date.now() - start) / 86_400_000));
+// Takes the RESOLVED window rather than recomputing one: a day count derived from the browser's
+// calendar while the window came from the workspace's would shape the comparison against a
+// different span than the one being displayed.
+function calendarDays(start: Date): number {
+  return Math.max(1, Math.ceil((Date.now() - start.getTime()) / 86_400_000));
 }
 
 /**
@@ -359,10 +362,12 @@ interface OutcomesResp {
   members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
 }
 function useOutcomes(period: Period) {
-  const r = periodRange(period); const pr = previousRange(period);
+  // Both windows from the WORKSPACE. Resolving the current window on the server and the comparison
+  // window in the browser would make every delta wrong by the timezone offset.
+  const { range: r, previous: pr } = useResolvedPeriod(period);
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
   if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
-  return useQuery<OutcomesResp>({ queryKey: ["outcomes", period], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
+  return useQuery<OutcomesResp>({ queryKey: ["outcomes", period, r.start.toISOString(), r.end.toISOString()], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
 }
 const fmtMoney0 = (v: number, cur: string) => `${cur} ${Math.round(v).toLocaleString()}`;
 function SalesStrip({ period }: { period: Period }) {
@@ -727,13 +732,13 @@ export function TeamOversightPage() {
   const selectedId = params.get("member");
   // Shared reporting-period lens (same control as Finance) — every metric + trend recomputes.
   const [period, setPeriod] = usePeriod("mondaily_oversight_period");
-  const days = period === "all" ? 365 : calendarDays(period);
-
+  const { range: oversightRange } = useResolvedPeriod(period);
+  const days = period === "all" ? 365 : calendarDays(oversightRange.start);
   const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
-    queryKey: ["oversight-matrix", days, period],
+    queryKey: ["oversight-matrix", days, period, oversightRange.start.toISOString()],
     // Calendar-true: send the EXACT window start (midnight today / Sunday / the 1st…) so "Today"
     // really means since midnight, not a rolling 24h. `days` still shapes the comparison window.
-    queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}&since=${encodeURIComponent(periodRange(period).start.toISOString())}`),
+    queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}&since=${encodeURIComponent(oversightRange.start.toISOString())}`),
     refetchInterval: 30_000,
     retry: false,
   });

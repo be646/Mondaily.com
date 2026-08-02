@@ -7,6 +7,7 @@ import { CommandPageHeader } from "../../components/ui/controls";
 import { KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../lib/period";
+import { useResolvedPeriod } from "../../lib/period-bounds";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import { isOutstanding } from "@mondaily/shared/finance";
 
@@ -50,8 +51,8 @@ function KpiCard({ icon: Icon, tone, label, value, sub, delta, goodUp, onClick }
 export function InsightsPage() {
   const navigate = useNavigate();
   const [period, setPeriod] = usePeriod("mondaily_insights_period", "month");
-  const range = periodRange(period);
-  const prev = previousRange(period);
+  // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
+  const { range, previous: prev } = useResolvedPeriod(period);
   const scope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
   const { display, sumInDisplay } = useCurrency();
 

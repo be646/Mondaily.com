@@ -11,6 +11,7 @@ import { sumInBase, currencyBreakdown, unrealisedFx } from "@mondaily/shared/mon
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
+import { useResolvedPeriod } from "../../../lib/period-bounds";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -156,8 +157,10 @@ export function FinanceReportsPage() {
   // their real event date; BALANCE metrics (outstanding) are read as-of and ignore the range.
   const [period, setPeriod] = usePeriod("mondaily_finance_period");
   const [customRange, setCustomRange] = useState<CustomRange>({});
-  const range = periodRange(period, new Date(), customRange);
-  const prev = previousRange(period);
+  // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
+  const { range, previous: prev } = useResolvedPeriod(period, customRange);
+  // A fixed month window for the cash comparison below, independent of the selector.
+  const monthWindow = useResolvedPeriod("month");
   const periodScope = period === "all" ? "all time"
     : period === "custom" ? "selected range"
     : period === "today" ? "today"
@@ -285,7 +288,15 @@ export function FinanceReportsPage() {
   const coldQuotes = quotes.filter(q => q.status === "sent" && (Date.now() - Date.parse(q.created_at)) > COLD_DAYS * 86_400_000);
   // Cash trend on the SAME paid-date basis as the KPI cards (revenue actually collected this
   // calendar month vs last), so the digest never contradicts the Revenue delta above it.
-  const cashCmp = compareWindows(Math.round(revenueIn(periodRange("month"))), Math.round((() => { const p = previousRange("month"); return p ? revenueIn(p) : 0; })()), { minBase: 100 });
+  // The cash line always compares THIS month with LAST month regardless of the selector, so it
+  // resolves its own month window — from the workspace, like everything else on this page. Leaving
+  // it on the browser's calendar would put one figure on this page in a different month from the
+  // rest whenever the reader and the workspace disagree about midnight.
+  const cashCmp = compareWindows(
+    Math.round(revenueIn(monthWindow.range)),
+    Math.round(monthWindow.previous ? revenueIn(monthWindow.previous) : 0),
+    { minBase: 100 },
+  );
   const digestSignals = [
     overdueInvoices.length > 0 ? { tone: "#d1524a", text: `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"} overdue`, sub: fmt(overdueTotal, currency), to: "/finance/invoices" } : null,
     coldQuotes.length > 0 ? { tone: "#c6892e", text: `${coldQuotes.length} quote${coldQuotes.length === 1 ? "" : "s"} gone cold`, sub: `sent > ${COLD_DAYS}d ago`, to: "/finance/quotes" } : null,

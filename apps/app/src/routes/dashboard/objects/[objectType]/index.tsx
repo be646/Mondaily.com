@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PeriodSelector } from "../../../../components/ui/period-selector";
 import { CommandPageHeader, ActionMenu } from "../../../../components/ui/controls";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
+import { useResolvedPeriod } from "../../../../lib/period-bounds";
 import { vocabSlotOf, vocabValues } from "@mondaily/shared/vocab";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
@@ -937,8 +938,8 @@ export function ObjectIndexPage() {
   const effectiveTableColumns = tableColumns.length ? tableColumns
     : [...new Set((recordsQuery.data ?? []).flatMap(r => Object.keys(r.data)))].slice(0, 30);
   const recCreatedAt = (r: { created_at?: string; data?: Record<string, unknown> }) => String(r.created_at ?? (r.data?.created_at as string | undefined) ?? "");
-  const pRange = periodRange(period);
-  const pPrev = previousRange(period);
+  // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
+  const { range: pRange, previous: pPrev } = useResolvedPeriod(period);
   const newThisPeriod = period === "all" ? [] : allRecords.filter((r) => inRange(recCreatedAt(r as never), pRange));
   const newPrevCount = pPrev ? allRecords.filter((r) => inRange(recCreatedAt(r as never), pPrev)).length : 0;
   const newDelta = pPrev ? deltaPct(newThisPeriod.length, newPrevCount) : null;

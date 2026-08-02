@@ -51,12 +51,34 @@ router.get("/current", async (c) => {
  */
 router.get("/bounds", zValidator("query", z.object({ timeframe: TIMEFRAME })), async (c) => {
   const cfg = await configFor(c.get("workspaceId"));
-  const b = getPeriodBounds(c.req.valid("query").timeframe, new Date(), cfg);
+  const timeframe = c.req.valid("query").timeframe;
+  const now = new Date();
+  const b = getPeriodBounds(timeframe, now, cfg);
+
+  // The comparison window comes from the SAME authority as the current one. Resolving "this month"
+  // on the server and "last month" in the browser would compare a workspace-timezone window
+  // against a browser-timezone one, and every delta would be quietly wrong by the offset.
+  const PREV_TYPE: Partial<Record<Timeframe, PeriodType>> = {
+    WEEK: "WEEKLY", MONTH: "MONTHLY", QUARTER: "QUARTERLY", YEAR: "YEARLY",
+  };
+  let previous: { start: string; end: string } | null = null;
+  const type = PREV_TYPE[timeframe];
+  if (type) {
+    const p = previousPeriod(now, type, cfg);
+    previous = { start: p.start.toISOString(), end: p.end.toISOString() };
+  } else if (timeframe === "TODAY") {
+    const today = getPeriodBounds("TODAY", now, cfg)!;
+    const y = getPeriodBounds("TODAY", new Date(today.start.getTime() - 1000), cfg)!;
+    previous = { start: y.start.toISOString(), end: y.end.toISOString() };
+  }
+
   return c.json({
-    timeframe: c.req.valid("query").timeframe,
+    timeframe,
     time_zone: cfg.timeZone,
+    week_start: cfg.weekStart,
     // null means NO FILTER, which is different from a filter that happens to match everything.
     bounds: b ? { start: b.start.toISOString(), end: b.end.toISOString() } : null,
+    previous,
   });
 });
 

@@ -376,7 +376,11 @@ describe("deferred items closed — calendar-true Today + structured-path shadow
     expect(a).toContain('c.req.query("since")');
     expect(a).toContain("Math.max(sinceParam, Date.now() - 365 * 86_400_000)");
     const t = read("../../../../apps/app/src/routes/dashboard/team-oversight.tsx");
-    expect(t).toContain("since=${encodeURIComponent(periodRange(period).start.toISOString())}");
+    // Still an EXACT calendar start — the property this guards. Since 2026-08-02 that calendar is
+    // the WORKSPACE's (timezone + week start) rather than the browser's, so the window matches the
+    // one the period close files.
+    expect(t).toContain("since=${encodeURIComponent(oversightRange.start.toISOString())}");
+    expect(t).toContain("useResolvedPeriod(period)");
   });
   it("tool-use calls mirror with the SAME tools body; shadow compares tool arguments", () => {
     const gw = read("../lib/ai-gateway.ts");

@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from "../../../components/ui/data-tab
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
+import { useResolvedPeriod } from "../../../lib/period-bounds";
 import { isOutstanding } from "@mondaily/shared/finance";
 import { MoneyCell } from "../../../components/finance/money-cell";
 
@@ -140,7 +141,7 @@ export function InvoicesPage() {
   // Period lens (default All for a list page). Outstanding is a point-in-time BALANCE (as-of, never
   // scoped); Collected is a FLOW counted within the window on paid date.
   const [period, setPeriod] = usePeriod("mondaily_invoices_period", "all");
-  const range = periodRange(period);
+  const { range } = useResolvedPeriod(period);
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   // Outstanding must net off what has already been received; an invoice with 9,000 of 10,000
   // paid was contributing the full 10,000.

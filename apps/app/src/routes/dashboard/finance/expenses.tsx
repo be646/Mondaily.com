@@ -7,6 +7,7 @@ import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
+import { useResolvedPeriod } from "../../../lib/period-bounds";
 import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import { parseNumeric } from "@mondaily/shared/numbers";
@@ -303,7 +304,7 @@ export function ExpensesPage() {
   const [period, setPeriod] = usePeriod("mondaily_expenses_period", "all");
   // Period lens (default All for a list page). Submitted is a pending BALANCE (as-of); Approved and
   // the period total are FLOWs counted within the window on the expense date.
-  const range = periodRange(period);
+  const { range } = useResolvedPeriod(period);
   const inPeriod = (e: Expense) => period === "all" || inRange(e.date ?? "", range);
   const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
   const submittedSum = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$));
