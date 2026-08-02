@@ -42,3 +42,22 @@ export function overdueCutoffISO(now: Date = new Date()): string {
 export function localStartOfTodayISO(now: Date = new Date()): string {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 }
+
+/**
+ * Whether a task counts as overdue — the SAME three conditions the SQL filter applies.
+ *
+ * A task carries its state twice: `completed` and `status`. The server excludes both a completed
+ * task AND one whose status is "done"; the UI checked only `completed`, so a row with
+ * status "done" and completed false — which exists in real data, written before the two were kept
+ * in sync — was counted as overdue by the chip while being correctly absent from the list.
+ *
+ * One predicate, so the count and the list cannot disagree again.
+ */
+export function isTaskOverdue(
+  task: { completed?: boolean | null; status?: string | null; due_date?: string | null },
+  now: Date = new Date(),
+): boolean {
+  if (task.completed) return false;
+  if (String(task.status ?? "") === "done") return false;
+  return isOverdue(task.due_date, now);
+}

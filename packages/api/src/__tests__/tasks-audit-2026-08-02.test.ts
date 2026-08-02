@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { isOverdue, overdueCutoffISO, localStartOfTodayISO } from "@mondaily/shared/dates";
+import { isOverdue, overdueCutoffISO, localStartOfTodayISO, isTaskOverdue } from "@mondaily/shared/dates";
 
 /**
  * Tasks/Decisions audit. The finding: "overdue" had two definitions — the chip counted against the
@@ -71,5 +71,33 @@ describe("task reviews are ownership-checked before any write", () => {
   it("the review update is scoped to that task, not just the review id", () => {
     expect(read("packages/api/src/routes/task-reviews.ts"))
       .toMatch(/\.eq\("id", c\.req\.param\("reviewId"\)\)\s*\n?\s*\.eq\("task_id", c\.req\.param\("id"\)\)/);
+  });
+});
+
+describe("the chip and the list apply the same three conditions", () => {
+  it("a status:done task with completed:false is NOT overdue", () => {
+    // This row exists in real data — written before completed/status were kept in sync. The SQL
+    // filter excluded it; the UI counted only `completed`, so the chip reported a finished task
+    // as overdue while the list it opened was empty.
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+    expect(isTaskOverdue({ completed: false, status: "done", due_date: yesterday })).toBe(false);
+    expect(isTaskOverdue({ completed: true, status: "todo", due_date: yesterday })).toBe(false);
+    expect(isTaskOverdue({ completed: false, status: "todo", due_date: yesterday })).toBe(true);
+  });
+
+  it("no due date is never overdue", () => {
+    expect(isTaskOverdue({ completed: false, status: "todo", due_date: null })).toBe(false);
+    expect(isTaskOverdue({ completed: false, status: "todo" })).toBe(false);
+  });
+
+  it("mirrors the SQL predicate exactly", () => {
+    const sql = read("packages/api/src/routes/tasks.ts");
+    expect(sql).toMatch(/\.eq\("completed", false\)\.neq\("status", "done"\)/);
+  });
+
+  it("every overdue check in the UI uses it — none left checking only `completed`", () => {
+    const ui = read("apps/app/src/routes/dashboard/tasks.tsx");
+    expect(ui).not.toMatch(/!task\.completed && isPastDue/);
+    expect(ui).not.toMatch(/!t\.completed && isPastDue/);
   });
 });

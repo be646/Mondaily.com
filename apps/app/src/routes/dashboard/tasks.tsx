@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-s
 import { SegmentedControl } from "../../components/ui/segmented";
 import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { useLanguage } from "../../hooks/useLanguage";
-import { isOverdue as isPastDue, localStartOfTodayISO } from "@mondaily/shared/dates";
+import { localStartOfTodayISO, isTaskOverdue } from "@mondaily/shared/dates";
 
 
 /** <input type="datetime-local"> reads/writes LOCAL wall-clock time, but due_date is stored as
@@ -201,7 +201,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)`, zIndex: 50 } : undefined;
-  const isOverdue = !task.completed && isPastDue(task.due_date);
+  const isOverdue = isTaskOverdue(task);
   const assigneeName = getMemberName(task);
 
   return (
@@ -561,7 +561,9 @@ export function TasksPage() {
   // tick is actually visible, instead of vanishing the instant it's marked done.
   const tasks      = allTasks.filter(t => (!t.completed && t.status !== "done") || keepVisible.has(t.id));
   const doneTasks  = allTasks.filter(t => (t.completed || t.status === "done") && !keepVisible.has(t.id));
-  const overdueTasks = tasks.filter(t => !t.completed && isPastDue(t.due_date));
+  // Same predicate as the SQL filter — see isTaskOverdue. Checking only `completed` counted a
+  // status:"done" task as overdue in the chip while the list correctly omitted it.
+  const overdueTasks = tasks.filter(t => isTaskOverdue(t));
 
   const getMemberName = (task: Task) => {
     const m = members.find(m => m.user_id === task.assignee_id);
@@ -601,7 +603,7 @@ export function TasksPage() {
         return assigneeName ? <span className="flex items-center gap-1"><User size={11} />{assigneeName}</span> : <span className="text-[var(--text-faint)]">—</span>;
       } },
     { key: "due", header: "Due Date", cellClassName: "whitespace-nowrap text-label tabular-nums", cell: (task) => {
-        const isOverdue = !task.completed && isPastDue(task.due_date);
+        const isOverdue = isTaskOverdue(task);
         return task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>;
       } },
     { key: "created", header: "Created", hideBelow: "md", cellClassName: "whitespace-nowrap text-label text-[var(--text-muted)] tabular-nums", cell: (task) => task.created_at ? fmtDate(task.created_at) : "—" },
@@ -741,7 +743,7 @@ export function TasksPage() {
           <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
             {tasks.map(task => {
               const expanded = expandedId === task.id;
-              const isOverdue = !task.completed && isPastDue(task.due_date);
+              const isOverdue = isTaskOverdue(task);
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
