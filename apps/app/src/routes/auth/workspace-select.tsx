@@ -31,7 +31,7 @@ export function WorkspaceSelectPage() {
       <div className="w-full max-w-md">
         <Building2 className="mx-auto mb-4 text-[#d1524a]" />
         <h1 className="text-center text-xl font-semibold">Choose a workspace</h1>
-        <p className="mb-7 mt-1 text-center text-sm text-stone-500">
+        <p className="mb-7 mt-1 text-center text-sm text-[var(--text-muted)]">
           {myWorkspacesQuery.isLoading ? "Loading your workspaces…" : `${myWorkspaces.length} workspace${myWorkspaces.length === 1 ? "" : "s"} with your data`}
         </p>
 
@@ -45,18 +45,18 @@ export function WorkspaceSelectPage() {
               <div className="grid h-9 w-9 place-items-center rounded-md bg-[#d1524a]/10 text-sm font-semibold text-[#d1524a]">{ws.name.charAt(0)}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{ws.name}</p>
-                <p className="flex items-center gap-3 text-[11px] text-stone-500">
+                <p className="flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
                   <span className="flex items-center gap-1"><CheckSquare size={10}/>{ws.counts.tasks} tasks</span>
                   <span className="flex items-center gap-1"><ListChecks size={10}/>{ws.counts.lists} lists</span>
                   <span className="flex items-center gap-1"><Database size={10}/>{ws.counts.nodes} records</span>
                 </p>
               </div>
-              <ArrowRight size={15} className="text-stone-600" />
+              <ArrowRight size={15} className="text-[var(--text-faint)]" />
             </button>
           ))}
         </div>
 
-        <button onClick={() => navigate("/onboarding")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-stone-400 hover:text-[var(--text-primary)]">
+        <button onClick={() => navigate("/onboarding")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
           <Plus size={15} /> Create new workspace
         </button>
       </div>

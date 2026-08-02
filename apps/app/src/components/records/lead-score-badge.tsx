@@ -12,7 +12,7 @@ function scoreColor(score: number) {
   // variant, which sits on the page like every other card in the identity column.
   if (score >= 70) return { text: "text-status-ok", bg: "bg-status-ok/10 border-status-ok/20", edge: "border-status-ok/20", bar: "bg-status-ok" };
   if (score >= 40) return { text: "text-status-warn", bg: "bg-status-warn/10 border-status-warn/20", edge: "border-status-warn/20", bar: "bg-status-warn" };
-  return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", edge: "border-[var(--border-soft)]", bar: "bg-stone-600" };
+  return { text: "text-[var(--text-muted)]", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", edge: "border-[var(--border-soft)]", bar: "bg-stone-600" };
 }
 
 function scoreLabel(score: number) {

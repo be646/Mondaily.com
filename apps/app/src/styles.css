@@ -222,10 +222,10 @@ html[data-theme="rose"] {
    rounded-md 191, rounded-lg 149, rounded-xl 28, rounded-2xl 19, rounded-3xl 1.
    The app is overwhelmingly one radius already; sm is the product's voice.
 
-   The xl/2xl/3xl outliers are NOT normalised, deliberately. All 45 sit in the
-   onboarding flow (36) and the video-call surfaces (8) — two contexts with
-   their own visual language, where a larger radius is a design decision rather
-   than drift. Flattening them would be a redesign disguised as a cleanup.
+   The 45 xl/2xl/3xl outliers (onboarding 36, video-call surfaces 8, settings 1)
+   were folded into lg on 2026-08-02, so the product speaks in four radii and
+   nothing sits outside the scale. rounded-full is untouched: pills, avatars and
+   status dots are circles by intent, not by drift.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   --radius-sm: 0.125rem;   /* the default: sheets, cards, inputs, buttons */

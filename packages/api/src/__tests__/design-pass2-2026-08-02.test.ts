@@ -84,10 +84,20 @@ describe("there is one definition of the corner radius", () => {
     expect(src).toMatch(/--radius-pill:/);
   });
 
-  it("records WHY the large radii were left alone", () => {
-    // They are all in onboarding and the call surfaces — two contexts with their own visual
-    // language. Flattening them would be a redesign disguised as a cleanup.
-    expect(css()).toMatch(/onboarding flow \(36\) and the video-call surfaces \(8\)/);
+  it("nothing sits outside the scale any more", () => {
+    // The 45 outliers were folded into lg; rounded-full survives because pills, avatars and
+    // status dots are circles by intent, not by drift.
+    expect(allTsx()).not.toMatch(/\brounded-(xl|2xl|3xl)\b/);
+    expect(allTsx()).toMatch(/rounded-full/);
+  });
+
+  it("text colours read from tokens, so they respond to the theme", () => {
+    // Measured live: every text-stone-* shade computed to the SAME rgb in light and dark, i.e.
+    // that text ignored the theme entirely. The map was built from nearest measured luminance.
+    const src = allTsx();
+    expect(src).not.toMatch(/text-(stone|zinc)-(50|100|200|300|400|500|600|700)\b/);
+    // 800/900/950 deliberately survive: dark text on light chips, which a token would invert.
+    expect(src).toMatch(/text-stone-950|text-zinc-900/);
   });
 });
 

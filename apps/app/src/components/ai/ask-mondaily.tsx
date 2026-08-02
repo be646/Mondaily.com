@@ -26,7 +26,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 
 // ── Accent palette (same as home) ─────────────────────────────────────────────
 const ACCENTS = [
-  { border: "border-l-[#717784]/50", dot: "bg-stone-400", userBorder: "border-stone-500/30", userText: "text-stone-200" },
+  { border: "border-l-[#717784]/50", dot: "bg-stone-400", userBorder: "border-stone-500/30", userText: "text-[var(--text-primary)]" },
   { border: "border-l-[#717784]/50",   dot: "bg-[#717784]",   userBorder: "border-[#717784]/30",   userText: "text-[#717784]"   },
   { border: "border-l-[#2f9e6b]/50",dot: "bg-[#2f9e6b]",userBorder: "border-[#2f9e6b]/30",userText: "text-[#2f9e6b]"},
   { border: "border-l-[#d1524a]/50",   dot: "bg-[#d1524a]",   userBorder: "border-[#d1524a]/30",   userText: "text-[#d1524a]"   },
@@ -306,7 +306,7 @@ export function AskMondaily() {
         {!isChatting && (
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-lg text-center">
-              <div className="mx-auto mb-5 flex items-center justify-center text-stone-500 dark:text-[var(--text-secondary)]">
+              <div className="mx-auto mb-5 flex items-center justify-center text-[var(--text-muted)] dark:text-[var(--text-secondary)]">
                 <LogoSymbol size={52} />
               </div>
               <p className="text-sm font-medium text-[var(--text-primary)] mb-1">{lang.t("ask.heading")}</p>
@@ -341,7 +341,7 @@ export function AskMondaily() {
             return (
               <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                 {m.role === "assistant" && (
-                  <div className="mt-0.5 shrink-0 text-stone-400">
+                  <div className="mt-0.5 shrink-0 text-[var(--text-secondary)]">
                     <LogoMark size={16}/>
                   </div>
                 )}
@@ -401,19 +401,19 @@ export function AskMondaily() {
                     {!isStreaming && i > 0 && (
                       <div className="flex items-center gap-0.5 mt-2 pl-4">
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#2f9e6b]" : "text-stone-700 hover:text-[#2f9e6b]"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#2f9e6b]" : "text-[var(--text-faint)] hover:text-[#2f9e6b]"}`}
                           title="Good response"><ThumbsUp size={12}/></button>
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-stone-400" : "text-stone-300 hover:text-stone-400 dark:text-stone-700 dark:hover:text-stone-400"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-[var(--text-secondary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-secondary)] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]"}`}
                           title="Bad response"><ThumbsDown size={12}/></button>
                         {feedbackGiven[i] && <span className="text-[11px] text-[var(--text-faint)] ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                         <button onClick={() => copyMessage(m.content, i)}
-                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-[#2f9e6b]" : "text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400"}`}
+                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-[#2f9e6b]" : "text-[var(--text-secondary)] hover:text-[var(--text-muted)] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]"}`}
                           title="Copy">
                           {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                         </button>
                         {i === messages.length - 1 && !loading && (
-                          <button onClick={regenerate} className="rounded-md p-1.5 text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
+                          <button onClick={regenerate} className="rounded-md p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-muted)] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)] transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
                         )}
                       </div>
                     )}
@@ -488,10 +488,10 @@ export function AskMondaily() {
                   <button key={label} onClick={() => sendSuggestion(prompt)}
                     className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-left hover:bg-[var(--surface-hover)] transition-colors group">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-stone-50 group-hover:bg-stone-100 dark:bg-stone-500/10 dark:group-hover:bg-stone-500/20 transition-colors">
-                      <Icon size={13} className="text-stone-600 dark:text-stone-400"/>
+                      <Icon size={13} className="text-[var(--text-faint)] dark:text-[var(--text-secondary)]"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-[#111827] group-hover:text-stone-700 dark:text-stone-200 dark:group-hover:text-[var(--text-primary)] transition-colors">{label}</span>
+                      <span className="block text-sm text-[#111827] group-hover:text-[var(--text-faint)] dark:text-[var(--text-primary)] dark:group-hover:text-[var(--text-primary)] transition-colors">{label}</span>
                       <span className="block text-[11px] text-[var(--text-faint)]">{description}</span>
                     </span>
                   </button>
@@ -506,7 +506,7 @@ export function AskMondaily() {
           {/* Input */}
           <div className="ask-input flex items-end gap-2 px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${promptPickerOpen ? "bg-stone-100 text-[var(--text-faint)] dark:bg-stone-500/20 dark:text-[var(--text-secondary)]" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
             </button>
             <AttachButton attach={attach}/>
@@ -521,21 +521,21 @@ export function AskMondaily() {
               onChange={e => { setInput(e.target.value); if (e.target.value.endsWith("@")) attach.setOpen(true); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 resize-none self-center bg-transparent py-0.5 text-sm leading-6 outline-none placeholder:text-stone-400"
+              className="flex-1 resize-none self-center bg-transparent py-0.5 text-sm leading-6 outline-none placeholder:text-[var(--text-secondary)]"
               style={{ color: "var(--text-primary)", maxHeight: 140 }}/>
             {isChatting && (
               <button onClick={clear}
-                className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-stone-600 dark:hover:text-stone-400 transition-colors mr-1">
+                className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)] transition-colors mr-1">
                 Clear
               </button>
             )}
             <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
               title={loading ? "Stop generating" : "Send"}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ${(input.trim() || loading) ? "border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] shadow-black/10 dark:shadow-black/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ${(input.trim() || loading) ? "border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] shadow-black/10 dark:shadow-black/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-[var(--text-faint)]"}`}>
               {loading ? <Square size={12} strokeWidth={3} fill="currentColor"/> : <Send size={14}/>}
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[11px] text-stone-700">Enter to send · Shift+Enter for new line</p>
+          <p className="mt-1.5 text-center text-[11px] text-[var(--text-faint)]">Enter to send · Shift+Enter for new line</p>
         </div>
       </div>
     </div>

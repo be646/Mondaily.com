@@ -50,14 +50,14 @@ interface Task {
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
   "Blocked":     "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/30",
-  "Waiting":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
+  "Waiting":     "text-[var(--text-secondary)] bg-stone-400/10 border-stone-400/30",
   "Bug":         "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/30",
-  "Feature":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
+  "Feature":     "text-[var(--text-secondary)] bg-stone-400/10 border-stone-400/30",
   "Research":    "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
-  low:    "text-stone-400 bg-stone-400/10 border-stone-400/20",
+  low:    "text-[var(--text-secondary)] bg-stone-400/10 border-stone-400/20",
   medium: "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
   high:   "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/20",
   urgent: "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/20",
@@ -216,7 +216,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
           </button>
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onDetail(task)}
-            className={`flex-1 text-left text-xs font-medium leading-snug hover:text-[var(--text-secondary)] transition-colors ${task.completed ? "line-through text-[var(--text-faint)]" : "text-[#111827] dark:text-stone-200"}`}>
+            className={`flex-1 text-left text-xs font-medium leading-snug hover:text-[var(--text-secondary)] transition-colors ${task.completed ? "line-through text-[var(--text-faint)]" : "text-[#111827] dark:text-[var(--text-primary)]"}`}>
             {task.title}
           </button>
         </div>
@@ -226,9 +226,9 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
             {task.priority && task.priority !== "low" && (
               <span className={`rounded-full border px-1.5 py-px text-caption font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
             )}
-            {isOverdue && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption text-stone-400">Overdue</span>}
+            {isOverdue && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption text-[var(--text-secondary)]">Overdue</span>}
             {flagged && (
-              <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+              <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-[var(--text-muted)] dark:text-[var(--text-secondary)]" title="Operations Agent queued a recommendation for this task">
                 <LogoMark size={9}/>AI flagged
               </span>
             )}
@@ -239,7 +239,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
               className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={10}/></button>
             {(task.assignee_id === currentUserId || !task.assignee_id) && (
               <button onPointerDown={e => e.stopPropagation()} onClick={() => onDelete(task.id)}
-                className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={10}/></button>
+                className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-400/10 transition-colors"><Trash2 size={10}/></button>
             )}
           </div>
         </div>
@@ -247,7 +247,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
         {(assigneeName || task.due_date) && (
           <div className="mt-2 flex items-center gap-2 text-caption text-[var(--text-secondary)]">
             {assigneeName && <span className="flex items-center gap-0.5"><User size={9}/>{assigneeName.split(" ")[0]}</span>}
-            {task.due_date && <span className={`flex items-center gap-0.5 ${isOverdue ? "text-stone-400" : ""}`}><Clock size={9}/>{fmtDate(task.due_date)}</span>}
+            {task.due_date && <span className={`flex items-center gap-0.5 ${isOverdue ? "text-[var(--text-secondary)]" : ""}`}><Clock size={9}/>{fmtDate(task.due_date)}</span>}
           </div>
         )}
       </div>
@@ -321,7 +321,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
     onClose();
   };
 
-  const PCOL: Record<string, string> = { low: "text-stone-400", medium: "text-[#717784]", high: "text-[#c6892e]", urgent: "text-stone-400" };
+  const PCOL: Record<string, string> = { low: "text-[var(--text-secondary)]", medium: "text-[#717784]", high: "text-[#c6892e]", urgent: "text-[var(--text-secondary)]" };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
@@ -342,7 +342,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
             <div className="flex gap-1">
               {[3,5,10].map(n => (
                 <button key={n} onClick={() => setCount(n)}
-                  className={`w-9 rounded-sm border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>{n}</button>
+                  className={`w-9 rounded-sm border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-[var(--text-faint)] dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-[var(--text-secondary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>{n}</button>
               ))}
             </div>
             <span className="text-xs text-[var(--text-muted)]">tasks</span>
@@ -587,7 +587,7 @@ export function TasksPage() {
       ) },
     { key: "task", header: "Task", cellClassName: "max-w-[240px]", cell: (task) => (
         <>
-          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
+          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-[var(--text-primary)]"}`}>{task.title}</button>
           {task.notes && <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{task.notes}</p>}
         </>
       ) },
@@ -604,7 +604,7 @@ export function TasksPage() {
       } },
     { key: "due", header: "Due Date", cellClassName: "whitespace-nowrap text-label tabular-nums", cell: (task) => {
         const isOverdue = isTaskOverdue(task);
-        return task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>;
+        return task.due_date ? <span className={isOverdue ? "text-[var(--text-faint)] dark:text-[var(--text-secondary)]" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>;
       } },
     { key: "created", header: "Created", hideBelow: "md", cellClassName: "whitespace-nowrap text-label text-[var(--text-muted)] tabular-nums", cell: (task) => task.created_at ? fmtDate(task.created_at) : "—" },
     { key: "labels", header: "Labels", hideBelow: "md", cell: (task) => (
@@ -618,7 +618,7 @@ export function TasksPage() {
         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12} /></button>
           {(task.assignee_id === currentUserId || !task.assignee_id) && (
-            <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-600 hover:bg-stone-50 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12} /></button>
+            <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-faint)] hover:bg-stone-50 dark:hover:text-[var(--text-secondary)] dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12} /></button>
           )}
         </div>
       ) },
@@ -645,7 +645,7 @@ export function TasksPage() {
             {!isViewer && (
               <>
                 <button onClick={() => setShowAISuggest(true)}
-                  className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+                  className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-[var(--text-secondary)] dark:hover:bg-stone-500/[.13] transition-colors">
                   <AIMark size={12}/> Suggest
                 </button>
                 <button onClick={() => setShowCreate(true)}
@@ -679,7 +679,7 @@ export function TasksPage() {
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
           <button onClick={() => { setSortOpen(o => !o); setLabelOpen(false); setPriorityOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-[var(--text-secondary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
             <ArrowUpDown size={11}/>
             {sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Sort"}
             <ChevronDown size={10} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
@@ -757,7 +757,7 @@ export function TasksPage() {
 
                     {/* Title */}
                     <button onClick={() => setDetailTask(task)}
-                      className={`flex-1 min-w-0 text-left text-sm font-medium truncate transition-colors ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] hover:text-[var(--text-secondary)] dark:text-stone-100 dark:hover:text-[var(--text-primary)]"}`}>
+                      className={`flex-1 min-w-0 text-left text-sm font-medium truncate transition-colors ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] hover:text-[var(--text-secondary)] dark:text-[var(--text-primary)] dark:hover:text-[var(--text-primary)]"}`}>
                       {task.title}
                     </button>
 
@@ -770,12 +770,12 @@ export function TasksPage() {
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
                       {flaggedTaskIds.has(task.id) && (
-                        <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+                        <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-[var(--text-muted)] dark:text-[var(--text-secondary)]" title="Operations Agent queued a recommendation for this task">
                           <LogoMark size={9}/>AI flagged
                         </span>
                       )}
                       {task.due_date && (
-                        <span className={`flex items-center gap-0.5 text-label ${isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}`}>
+                        <span className={`flex items-center gap-0.5 text-label ${isOverdue ? "text-[var(--text-faint)] dark:text-[var(--text-secondary)]" : "text-[var(--text-muted)]"}`}>
                           <Clock size={10}/>{fmtDate(task.due_date)}
                         </span>
                       )}
@@ -796,7 +796,7 @@ export function TasksPage() {
                         className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                       {(task.assignee_id === currentUserId || !task.assignee_id) && (
                         <button onClick={() => setConfirmDeleteId(task.id)} title="Delete"
-                          className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
+                          className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
                       )}
                     </div>
                   </div>
@@ -806,7 +806,7 @@ export function TasksPage() {
                     <div className="border-t border-[var(--border-soft)] px-4 py-4 space-y-3">
                       <div className="flex flex-wrap gap-4 text-xs">
                         <div><p className="text-[var(--text-secondary)] mb-0.5">Created</p><p className="text-[var(--text-faint)]">{task.created_at ? fmtDateTime(task.created_at) : "—"}</p></div>
-                        <div><p className="text-[var(--text-secondary)] mb-0.5">Due</p><p className={task.due_date ? (isOverdue ? "text-stone-400" : "text-[var(--text-faint)]") : "text-[var(--text-secondary)]"}>{task.due_date ? fmtDateTime(task.due_date) : "No due date"}</p></div>
+                        <div><p className="text-[var(--text-secondary)] mb-0.5">Due</p><p className={task.due_date ? (isOverdue ? "text-[var(--text-secondary)]" : "text-[var(--text-faint)]") : "text-[var(--text-secondary)]"}>{task.due_date ? fmtDateTime(task.due_date) : "No due date"}</p></div>
                         <div><p className="text-[var(--text-secondary)] mb-0.5">Assignee</p><p className="text-[var(--text-faint)]">{assigneeName || "Unassigned"}</p></div>
                         {task.record_name && <div><p className="text-[var(--text-secondary)] mb-0.5">Record</p><p className="text-[var(--text-faint)]">{task.record_name}</p></div>}
                       </div>
@@ -909,7 +909,7 @@ export function TasksPage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
-              <Trash2 size={16} className="text-stone-600 dark:text-stone-400"/>
+              <Trash2 size={16} className="text-[var(--text-faint)] dark:text-[var(--text-secondary)]"/>
             </div>
             <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">Delete task?</h2>
             <p className="text-sm text-[var(--text-muted)] mb-5">This cannot be undone.</p>

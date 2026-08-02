@@ -204,12 +204,12 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
 }
 
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
-  draft:     "text-stone-400 bg-stone-400/10",
+  draft:     "text-[var(--text-secondary)] bg-stone-400/10",
   sent:      "text-[#717784] bg-[#717784]/10",
-  viewed:    "text-stone-400 bg-stone-400/10",
+  viewed:    "text-[var(--text-secondary)] bg-stone-400/10",
   paid:      "text-[#2f9e6b] bg-[#2f9e6b]/10",
-  overdue:   "text-stone-400 bg-stone-400/10",
-  cancelled: "text-stone-600 bg-stone-600/10",
+  overdue:   "text-[var(--text-secondary)] bg-stone-400/10",
+  cancelled: "text-[var(--text-faint)] bg-stone-600/10",
 };
 
 function formatCurrency(amount: number, currency: string) {

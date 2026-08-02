@@ -42,7 +42,7 @@ interface ProspectingRunResult {
 const CONFIDENCE_STYLE: Record<ProspectCandidate["confidence_label"], string> = {
   high: "text-[#2f9e6b] border-[#2f9e6b]/30 bg-[#2f9e6b]/10",
   medium: "text-[#c6892e] border-[#c6892e]/30 bg-[#c6892e]/10",
-  low: "text-stone-400 border-[var(--border-soft)] bg-[var(--surface-hover)]",
+  low: "text-[var(--text-secondary)] border-[var(--border-soft)] bg-[var(--surface-hover)]",
 };
 
 export function ProspectingModal({
@@ -119,10 +119,10 @@ export function ProspectingModal({
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-5 py-5 max-h-[85vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Globe size={14} className="text-stone-400" />
+            <Globe size={14} className="text-[var(--text-secondary)]" />
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Find from web</h2>
           </div>
-          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -130,7 +130,7 @@ export function ProspectingModal({
         {!result ? (
           <div className="space-y-3.5">
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-stone-400">What are you looking for?</label>
+              <label className="mb-1 block text-[11px] font-medium text-[var(--text-secondary)]">What are you looking for?</label>
               <textarea
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -142,7 +142,7 @@ export function ProspectingModal({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-stone-400">Object type</label>
+                <label className="mb-1 block text-[11px] font-medium text-[var(--text-secondary)]">Object type</label>
                 <input
                   value={objectType}
                   onChange={e => setObjectType(e.target.value)}
@@ -151,7 +151,7 @@ export function ProspectingModal({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-stone-400">How many</label>
+                <label className="mb-1 block text-[11px] font-medium text-[var(--text-secondary)]">How many</label>
                 <input
                   type="number" min={1} max={50}
                   value={count}
@@ -161,9 +161,9 @@ export function ProspectingModal({
               </div>
             </div>
             {destinationListId && (
-              <p className="text-[11px] text-stone-500">Matches will be added to this list once created.</p>
+              <p className="text-[11px] text-[var(--text-muted)]">Matches will be added to this list once created.</p>
             )}
-            <label className="flex items-center gap-2 text-[12px] text-stone-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
               <input type="checkbox" checked={requireApproval} onChange={e => setRequireApproval(e.target.checked)} className="accent-stone-500" />
               Require review before creating records
             </label>
@@ -184,12 +184,12 @@ export function ProspectingModal({
             <div className="flex flex-wrap gap-1.5 text-[11px]">
               {result.created > 0 && <span className="rounded-full border border-[#2f9e6b]/30 bg-[#2f9e6b]/10 px-2 py-0.5 text-[#2f9e6b]">{result.created} created</span>}
               {result.queued_for_review > 0 && <span className="rounded-full border border-[#c6892e]/30 bg-[#c6892e]/10 px-2 py-0.5 text-[#c6892e]">{result.queued_for_review} awaiting approval</span>}
-              {result.existing > 0 && <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
-              {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
+              {result.existing > 0 && <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-[var(--text-secondary)]">{result.existing} already in graph</span>}
+              {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-[var(--text-secondary)]">{result.added_to_list} added to list</span>}
             </div>
 
             {result.candidates.length === 0 ? (
-              <p className="py-6 text-center text-[12px] text-stone-500">No real candidates found for that query — try being more specific.</p>
+              <p className="py-6 text-center text-[12px] text-[var(--text-muted)]">No real candidates found for that query — try being more specific.</p>
             ) : (
               <ul className="space-y-2">
                 {result.candidates.map((c, i) => (
@@ -203,20 +203,20 @@ export function ProspectingModal({
                           className="mt-0.5 accent-stone-500"
                         />
                       ) : (
-                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-[#2f9e6b]" : "text-stone-500"}`} />
+                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-[#2f9e6b]" : "text-[var(--text-muted)]"}`} />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-[12.5px] font-medium text-[var(--text-primary)]">{c.name}</p>
                           <span className={`shrink-0 rounded-full border px-1.5 py-0 text-[9.5px] font-medium ${CONFIDENCE_STYLE[c.confidence_label]}`}>{c.confidence_label}</span>
                         </div>
-                        {c.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-stone-400">{c.description}</p>}
-                        <p className="mt-0.5 text-[10.5px] text-stone-500">{c.reason}</p>
-                        <a href={c.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-stone-400 hover:text-stone-300 transition-colors">
+                        {c.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--text-secondary)]">{c.description}</p>}
+                        <p className="mt-0.5 text-[10.5px] text-[var(--text-muted)]">{c.reason}</p>
+                        <a href={c.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
                           <ExternalLink size={9} /> {c.source_title || c.source_url}
                         </a>
                       </div>
-                      <span className="shrink-0 text-[10px] text-stone-500">
+                      <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
                         {c.status === "existing" ? "Already in graph" : c.status === "created" ? "Created" : "Pending"}
                       </span>
                     </div>
@@ -238,12 +238,12 @@ export function ProspectingModal({
               )}
               <button
                 onClick={() => { setResult(null); }}
-                className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors"
+                className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
               >
                 New search
               </button>
               {queuedCandidates.length === 0 && (
-                <button onClick={onClose} className="ml-auto rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors">
+                <button onClick={onClose} className="ml-auto rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors">
                   Done
                 </button>
               )}

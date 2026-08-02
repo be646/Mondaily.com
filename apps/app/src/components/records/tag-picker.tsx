@@ -72,11 +72,11 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center">
-              <Tag size={12} className="text-stone-400"/>
+              <Tag size={12} className="text-[var(--text-secondary)]"/>
             </div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">Tags</span>
             {nodeTags.data && nodeTags.data.length > 0 && (
-              <span className="rounded-full bg-stone-500/20 px-2 py-0.5 text-[10px] font-semibold text-stone-300">{nodeTags.data.length}</span>
+              <span className="rounded-full bg-stone-500/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">{nodeTags.data.length}</span>
             )}
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"><X size={14}/></button>
@@ -109,7 +109,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
         <div className="p-1 max-h-44 overflow-y-auto">
           {allTags.isLoading && <p className="text-xs text-[var(--text-secondary)] text-center py-4">Loading…</p>}
           {allTags.isError && (
-            <p className="text-xs text-stone-400/70 text-center py-3 px-2">{(allTags.error as Error).message}</p>
+            <p className="text-xs text-[var(--text-muted)] text-center py-3 px-2">{(allTags.error as Error).message}</p>
           )}
           {filtered.map(tag => {
             const active = nodeTagIds.has(tag.id);
@@ -119,7 +119,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
                 <span className="flex-1 text-left text-xs text-[var(--text-secondary)]">{tag.name}</span>
                 {active
-                  ? <Check size={11} className="text-stone-400 shrink-0"/>
+                  ? <Check size={11} className="text-[var(--text-secondary)] shrink-0"/>
                   : <Plus size={11} className="text-[var(--text-secondary)] shrink-0"/>
                 }
               </button>
@@ -153,7 +153,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
         {error && (
           <div className="px-3 pb-3">
-            <p className="text-[11px] text-stone-400 bg-stone-400/10 rounded-lg px-2 py-1.5">{error}</p>
+            <p className="text-[11px] text-[var(--text-secondary)] bg-stone-400/10 rounded-lg px-2 py-1.5">{error}</p>
           </div>
         )}
       </div>

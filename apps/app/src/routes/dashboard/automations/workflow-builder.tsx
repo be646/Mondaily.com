@@ -61,7 +61,7 @@ const ACTIONS = [
 ];
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {
-  trigger:   { border: "border-stone-500/30",    bg: "bg-stone-500/[.06]",    text: "text-stone-400",    icon: "border-stone-500/30 bg-stone-600/[.08] text-stone-400" },
+  trigger:   { border: "border-stone-500/30",    bg: "bg-stone-500/[.06]",    text: "text-[var(--text-secondary)]",    icon: "border-stone-500/30 bg-stone-600/[.08] text-[var(--text-secondary)]" },
   condition: { border: "border-[#c6892e]/25", bg: "bg-[#c6892e]/10", text: "text-[#c6892e]", icon: "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" },
   action:    { border: "border-[#717784]/25",   bg: "bg-[#717784]/10",   text: "text-[#717784]",   icon: "border-[#717784]/25 bg-[#717784]/10 text-[#717784]" },
 };
@@ -524,7 +524,7 @@ export function WorkflowBuilderPage() {
         )}
 
         <button onClick={() => setAiOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-stone-600/30 transition-colors">
           <AIMark size={12}/> Generate
         </button>
 
@@ -562,14 +562,14 @@ export function WorkflowBuilderPage() {
               const TIcon = TRIGGERS.find(t => t.type === tn.type)?.icon ?? Zap;
               return (
                 <div key={tn.id} className="flex flex-col items-center">
-                  {i > 0 && <div className="my-1 text-[9px] font-semibold uppercase tracking-widest text-stone-500/70">or</div>}
+                  {i > 0 && <div className="my-1 text-[9px] font-semibold uppercase tracking-widest text-[var(--text-faint)]">or</div>}
                   <div className="mb-2 w-72 rounded-sm border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
                     <div className="flex items-center gap-3 px-4 py-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-stone-400">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-[var(--text-secondary)]">
                         <TIcon size={13}/>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-400/60">Trigger</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Trigger</p>
                         <p className="text-xs font-medium text-[var(--text-primary)]">When this happens…</p>
                       </div>
                       {arr.length > 1 && (

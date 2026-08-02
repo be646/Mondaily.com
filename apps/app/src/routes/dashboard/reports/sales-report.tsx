@@ -216,7 +216,7 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   if (delta == null) return null;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : "bg-stone-500/10 text-[var(--text-secondary)] border-stone-500/20"}`}>
       {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
       {up ? "+" : ""}{delta}%
     </span>
@@ -264,7 +264,7 @@ function KpiCard({ label, value, sub, tone, trend, delta, goal, goalValue, onSet
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] print:text-[var(--text-muted)]">
             {trend === "up"      && <TrendingUp  size={11} className="text-[#2f9e6b]"/>}
-            {trend === "down"    && <TrendingDown size={11} className="text-stone-400"/>}
+            {trend === "down"    && <TrendingDown size={11} className="text-[var(--text-secondary)]"/>}
             {trend === "neutral" && <Minus size={11}/>}
             {sub}
           </div>
@@ -347,7 +347,7 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
         {/* Modal header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border-soft)] shrink-0">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/15 ring-1 ring-stone-500/20">
-            <LogoMark size={13} className="text-stone-400"/>
+            <LogoMark size={13} className="text-[var(--text-secondary)]"/>
           </div>
           <span className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{title}</span>
           {onPrint && (
@@ -376,7 +376,7 @@ interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"
 const CONFIDENCE_STYLE: Record<string, string> = {
   high:   "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]",
   medium: "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]",
-  low:    "border-stone-500/30 bg-stone-600/10 text-stone-400",
+  low:    "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]",
 };
 
 function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData, sym = "$" }: {
@@ -498,7 +498,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             <p className="mt-2 text-[12px] italic text-[var(--text-faint)] leading-relaxed">{result.headline}</p>
             {result.actions && result.actions[0] && (
               <div className="mt-3 flex items-start gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2">
-                <span className={`mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${result.actions[0].impact === "high" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : result.actions[0].impact === "medium" ? "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" : "border-stone-500/30 bg-stone-600/10 text-stone-400"}`}>{result.actions[0].impact}</span>
+                <span className={`mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${result.actions[0].impact === "high" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : result.actions[0].impact === "medium" ? "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" : "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]"}`}>{result.actions[0].impact}</span>
                 <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug"><span className="font-medium text-[var(--text-primary)]">{result.actions[0].action}.</span> {result.actions[0].why}</p>
               </div>
             )}
@@ -550,7 +550,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                       a.impact === "high"   ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" :
                       a.impact === "medium" ? "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" :
-                                              "border-stone-500/30 bg-stone-600/10 text-stone-400"
+                                              "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[var(--text-primary)] font-medium">{a.action}</p>
@@ -586,8 +586,8 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   const CATEGORY_META = {
     performance: { label: "Performance", dot: "bg-[#2f9e6b]", border: "border-[#2f9e6b]/25", bg: "bg-[#2f9e6b]/[.06]", text: "text-[#2f9e6b]" },
     opportunity: { label: "Opportunity", dot: "bg-[#717784]",    border: "border-[#717784]/25",    bg: "bg-[#717784]/[.06]",    text: "text-[#717784]"    },
-    risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-stone-400"     },
-    summary:     { label: "Summary",     dot: "bg-stone-400",  border: "border-stone-500/25",  bg: "bg-stone-500/[.06]",  text: "text-stone-400"  },
+    risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-[var(--text-secondary)]"     },
+    summary:     { label: "Summary",     dot: "bg-stone-400",  border: "border-stone-500/25",  bg: "bg-stone-500/[.06]",  text: "text-[var(--text-secondary)]"  },
   } as const;
   type Cat = keyof typeof CATEGORY_META;
   const fallbackMeta = CATEGORY_META.summary;
@@ -717,7 +717,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                       <span className={`text-body ${m.text}`}>{m.label}</span>
                     </div>
                     {ins.trend === "up"   && <TrendingUp  size={12} className="text-[#2f9e6b] shrink-0"/>}
-                    {ins.trend === "down" && <TrendingDown size={12} className="text-stone-400 shrink-0"/>}
+                    {ins.trend === "down" && <TrendingDown size={12} className="text-[var(--text-secondary)] shrink-0"/>}
                   </div>
                   <div>
                     <p className="text-[11px] text-[var(--text-muted)] mb-0.5">{ins.title}</p>
@@ -807,7 +807,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
       >
-        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-stone-500/20 text-stone-400 border border-stone-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
+        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-stone-500/20 text-[var(--text-secondary)] border border-stone-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
 
       {open && (
@@ -852,7 +852,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-sm border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                  className={`rounded-sm border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -1799,7 +1799,7 @@ export function SalesReportPage() {
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
                       const color   = ROW_ACCENT;
-                      const rankColors = ["text-[#c6892e]","text-stone-400","text-[#8a8071]"];
+                      const rankColors = ["text-[#c6892e]","text-[var(--text-secondary)]","text-[#8a8071]"];
                       const drillable = !!r;
                       return (
                         <div
@@ -1836,7 +1836,7 @@ export function SalesReportPage() {
                             {/* Stage badge — only when we have the record on the current page (off-page
                                 server-ranked rows carry no stage, so we don't fabricate one). */}
                             {hasStage && stage && (
-                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : lost ? "bg-stone-500/10 text-[var(--text-secondary)] border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
                                 {stage}
                               </span>
                             )}

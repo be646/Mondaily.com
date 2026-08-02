@@ -21,15 +21,15 @@ const ACTIONS: Action[] = [
   { label: "New Task",    description: "Create a task without leaving this page", icon: CheckSquare, type: "create_task",    shortcut: "T", color: "text-[#2f9e6b]", iconBg: "bg-[#2f9e6b]/10" },
   { label: "New Note",    description: "Add a note instantly",                    icon: FileText,    type: "create_note",    shortcut: "N", color: "text-[#c6892e]",   iconBg: "bg-[#c6892e]/10"   },
   { label: "New Contact", description: "Add a person to the workspace graph",      icon: Users,       type: "create_contact", shortcut: "C", color: "text-[#717784]",    iconBg: "bg-[#717784]/10"    },
-  { label: "New Company", description: "Add a company to the workspace graph",    icon: Building2,   type: "create_company",                color: "text-stone-400",  iconBg: "bg-stone-500/10"  },
+  { label: "New Company", description: "Add a company to the workspace graph",    icon: Building2,   type: "create_company",                color: "text-[var(--text-secondary)]",  iconBg: "bg-stone-500/10"  },
   { label: "New Deal",    description: "Create a new deal",                        icon: TrendingUp,  type: "create_deal",    shortcut: "D", color: "text-[#d1524a]",    iconBg: "bg-[#d1524a]/10"    },
 ];
 
 // Shared input style matching CommandPalette
-const inputCls = "h-9 w-full rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:placeholder-stone-600 dark:focus:border-stone-600";
-const selectCls = "h-9 flex-1 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-300 dark:focus:border-stone-600";
+const inputCls = "h-9 w-full rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-600";
+const selectCls = "h-9 flex-1 rounded-md border border-stone-200 bg-white px-2 text-xs text-[var(--text-faint)] outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-secondary)] dark:focus:border-stone-600";
 const btnPrimary = "flex-1 h-9 rounded-md border border-stone-950 bg-stone-950 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-stone-800 disabled:opacity-40 dark:border-stone-50 dark:bg-stone-50 dark:text-stone-950 dark:hover:bg-stone-200";
-const btnSecondary = "flex-1 h-9 rounded-md border border-stone-200 text-xs text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-950 dark:border-stone-800 dark:text-stone-400 dark:hover:border-stone-700 dark:hover:text-stone-50";
+const btnSecondary = "flex-1 h-9 rounded-md border border-stone-200 text-xs text-[var(--text-faint)] transition-colors hover:border-stone-300 hover:text-stone-950 dark:border-stone-800 dark:text-[var(--text-secondary)] dark:hover:border-stone-700 dark:hover:text-[var(--text-primary)]";
 
 function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
@@ -43,10 +43,10 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
   return (
     <>
       <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
-        <button onClick={onBack} className="shrink-0 text-stone-400 transition-colors hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50">
+        <button onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">New Task</span>
+        <span className="text-sm font-semibold text-stone-950 dark:text-[var(--text-primary)]">New Task</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
@@ -102,10 +102,10 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
   return (
     <>
       <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
-        <button onClick={onBack} className="shrink-0 text-stone-400 transition-colors hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50">
+        <button onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">{titleLabel}</span>
+        <span className="text-sm font-semibold text-stone-950 dark:text-[var(--text-primary)]">{titleLabel}</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={name} onChange={e => setName(e.target.value)}
@@ -114,7 +114,7 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
         {type === "note" ? (
           <textarea value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} rows={3}
-            className="w-full resize-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:placeholder-stone-600 dark:focus:border-stone-600"/>
+            className="w-full resize-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-600"/>
         ) : (
           <input value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} className={inputCls}/>
@@ -161,8 +161,8 @@ export function QuickActions() {
           <>
             {/* Header */}
             <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
-              <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">Quick Create</span>
-              <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-600">ESC</kbd>
+              <span className="text-sm font-semibold text-stone-950 dark:text-[var(--text-primary)]">Quick Create</span>
+              <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] dark:border-stone-800 dark:bg-stone-900 dark:text-[var(--text-faint)]">ESC</kbd>
             </div>
 
             {/* Action list */}
@@ -177,11 +177,11 @@ export function QuickActions() {
                     <action.icon size={14} className={action.color}/>
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm text-stone-700 transition-colors group-hover:text-stone-950 dark:text-stone-300 dark:group-hover:text-stone-50">{action.label}</div>
-                    <div className="text-[11px] text-stone-400 dark:text-stone-600">{action.description}</div>
+                    <div className="text-sm text-[var(--text-faint)] transition-colors group-hover:text-stone-950 dark:text-[var(--text-secondary)] dark:group-hover:text-[var(--text-primary)]">{action.label}</div>
+                    <div className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-faint)]">{action.description}</div>
                   </div>
                   {action.shortcut && (
-                    <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-600">{action.shortcut}</kbd>
+                    <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)] dark:border-stone-800 dark:bg-stone-900 dark:text-[var(--text-faint)]">{action.shortcut}</kbd>
                   )}
                 </button>
               ))}
@@ -189,8 +189,8 @@ export function QuickActions() {
 
             {/* Footer */}
             <div className="flex items-center gap-3 border-t border-stone-200 px-4 py-2 dark:border-stone-800">
-              <span className="text-[10px] text-stone-400 dark:text-stone-600">↵ select</span>
-              <span className="ml-auto text-[10px] text-stone-400 dark:text-stone-600">⌘K to search</span>
+              <span className="text-[10px] text-[var(--text-secondary)] dark:text-[var(--text-faint)]">↵ select</span>
+              <span className="ml-auto text-[10px] text-[var(--text-secondary)] dark:text-[var(--text-faint)]">⌘K to search</span>
             </div>
           </>
         ) : (

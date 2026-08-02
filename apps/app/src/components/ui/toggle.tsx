@@ -11,8 +11,8 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
     <label className="flex cursor-pointer items-center justify-between gap-4 py-0.5">
       {(label || description) && (
         <div className="min-w-0">
-          {label && <div className="text-sm text-stone-200">{label}</div>}
-          {description && <div className="mt-0.5 text-xs text-stone-500">{description}</div>}
+          {label && <div className="text-sm text-[var(--text-primary)]">{label}</div>}
+          {description && <div className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</div>}
         </div>
       )}
       <button
@@ -33,8 +33,8 @@ export function ToggleRow({ label, description, checked, onChange, disabled }: T
   return (
     <div className="settings-row">
       <div className="min-w-0">
-        <div className="text-sm text-stone-200">{label}</div>
-        {description && <div className="mt-0.5 text-xs text-stone-500">{description}</div>}
+        <div className="text-sm text-[var(--text-primary)]">{label}</div>
+        {description && <div className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</div>}
       </div>
       <button
         type="button"

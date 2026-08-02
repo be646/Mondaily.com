@@ -50,8 +50,8 @@ export function ShadowActivatePage() {
     return (
       <AuthShell kicker="Sovereign account upgrade" title="Link required"
         subtitle="Open the activation link we emailed you. From the sign-in page, entering your email re-sends it."
-        footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
-        <div className="flex items-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
+        footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--text-secondary)]"><ArrowLeft size={12} /> Back to sign in</button>}>
+        <div className="flex items-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3 text-[12.5px] text-[var(--text-secondary)]">
           <AlertTriangle size={16} className="text-[#c6892e]" /> Missing activation token.
         </div>
       </AuthShell>
@@ -63,7 +63,7 @@ export function ShadowActivatePage() {
       <AuthShell kicker="Sovereign account" title="Account activated" subtitle="Your sovereign key is set — your history and permissions are fully intact.">
         <div className="flex items-center gap-2.5 rounded-sm border px-3.5 py-3" style={{ borderColor: `${SAGE}44`, background: `${SAGE}10` }}>
           <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: `${SAGE}22` }}><Check size={15} style={{ color: SAGE }} /></span>
-          <span className="text-[12.5px] text-zinc-200">Signing you in…</span>
+          <span className="text-[12.5px] text-[var(--text-primary)]">Signing you in…</span>
         </div>
       </AuthShell>
     );
@@ -72,7 +72,7 @@ export function ShadowActivatePage() {
   return (
     <AuthShell kicker="Sovereign account upgrade" title="Set your password"
       subtitle="Set a password to activate your sovereign key — your existing account, history, and access carry over unchanged."
-      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
+      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--text-secondary)]"><ArrowLeft size={12} /> Back to sign in</button>}>
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="New password" type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} error={pwError ?? undefined} hint="8+ chars, with a letter and a number." />
         <CapsuleInput label="Confirm password" type="password" autoComplete="new-password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} disabled={loading} error={matchError ?? undefined} />

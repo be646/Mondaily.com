@@ -34,12 +34,12 @@ interface Invoice {
 }
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon: React.ElementType }> = {
-  draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: FileText },
+  draft:     { label: "Draft",     color: "text-[var(--text-secondary)] bg-stone-400/10",     icon: FileText },
   sent:      { label: "Sent",      color: "text-[#717784] bg-[#717784]/10",     icon: Send },
-  viewed:    { label: "Viewed",    color: "text-stone-400 bg-stone-400/10", icon: Clock },
+  viewed:    { label: "Viewed",    color: "text-[var(--text-secondary)] bg-stone-400/10", icon: Clock },
   paid:      { label: "Paid",      color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle },
   overdue:   { label: "Overdue",   color: "text-[#c6892e] bg-[#c6892e]/10",       icon: AlertTriangle },
-  cancelled: { label: "Cancelled", color: "text-stone-600 bg-stone-600/10",     icon: XCircle },
+  cancelled: { label: "Cancelled", color: "text-[var(--text-faint)] bg-stone-600/10",     icon: XCircle },
 };
 
 function formatCurrency(amount: number, currency: string) {

@@ -31,47 +31,47 @@ function getPageMeta(pathname: string): PageMeta {
     const seg = pathname.split("/objects/")[1]?.split("/")[0] ?? "";
     const label = seg.replace(/[-_]/g, " ");
     const icon: Record<string, LucideIcon> = { people: Users, companies: Building2, deals: TrendingUp };
-    return { label, Icon: icon[seg] ?? List, color: "text-stone-500 dark:text-stone-400" };
+    return { label, Icon: icon[seg] ?? List, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" };
   }
   // Ordered: more specific prefixes must precede shorter ones (startsWith matching).
   const map: [string, PageMeta][] = [
-    ["/home",          { label: "Home",          Icon: Home,        color: "text-stone-500 dark:text-stone-400" }],
-    ["/briefing",      { label: "Daily Brief",    Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
-    ["/goals",         { label: "Goals",          Icon: TrendingUp,  color: "text-stone-500 dark:text-stone-400" }],
-    ["/insights",      { label: "Insights",       Icon: BarChart2,   color: "text-stone-500 dark:text-stone-400" }],
-    ["/calendar",      { label: "Calendar",       Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
-    ["/messages",      { label: "Inbox",          Icon: MessageCircle, color: "text-stone-500 dark:text-stone-400" }],
-    ["/canvas",        { label: "Canvas",         Icon: List,        color: "text-stone-500 dark:text-stone-400" }],
-    ["/pipeline",      { label: "Pipeline",       Icon: TrendingUp,  color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance/invoices",     { label: "Invoices",     Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance/quotes",       { label: "Quotes",       Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance/credit-notes", { label: "Credit notes", Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance/expenses",     { label: "Expenses",     Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance/reports",      { label: "Finance reports", Icon: BarChart2, color: "text-stone-500 dark:text-stone-400" }],
-    ["/finance",       { label: "Finance",        Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
-    ["/approvals",     { label: "Approvals",      Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
-    ["/console",       { label: "Owner Console",  Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
-    ["/status",        { label: "Readiness",      Icon: Activity,    color: "text-stone-500 dark:text-stone-400" }],
-    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
-    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
-    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-stone-500 dark:text-stone-400" }],
-    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-stone-500 dark:text-stone-400" }],
-    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-stone-500 dark:text-stone-400" }],
-    ["/decisions",     { label: "Decisions",      Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
-    ["/discovery",     { label: "Discovery",      Icon: Radar,       color: "text-stone-500 dark:text-stone-400" }],
-    ["/activity",      { label: "Agent Activity", Icon: Zap,         color: "text-stone-500 dark:text-stone-400" }],
-    ["/team/oversight",{ label: "Team Oversight", Icon: Users,       color: "text-stone-500 dark:text-stone-400" }],
-    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-stone-500 dark:text-stone-400" }],
-    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-stone-500 dark:text-stone-400" }],
-    ["/lists",         { label: "Lists",          Icon: List,        color: "text-stone-500 dark:text-stone-400" }],
-    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-stone-500 dark:text-stone-400" }],
-    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-stone-500 dark:text-stone-400" }],
-    ["/search",        { label: "Search",         Icon: Search,      color: "text-stone-500 dark:text-stone-400" }],
+    ["/home",          { label: "Home",          Icon: Home,        color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/briefing",      { label: "Daily Brief",    Icon: FileText,    color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/goals",         { label: "Goals",          Icon: TrendingUp,  color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/insights",      { label: "Insights",       Icon: BarChart2,   color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/calendar",      { label: "Calendar",       Icon: CheckSquare, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/messages",      { label: "Inbox",          Icon: MessageCircle, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/canvas",        { label: "Canvas",         Icon: List,        color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/pipeline",      { label: "Pipeline",       Icon: TrendingUp,  color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance/invoices",     { label: "Invoices",     Icon: FileText, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance/quotes",       { label: "Quotes",       Icon: FileText, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance/credit-notes", { label: "Credit notes", Icon: FileText, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance/expenses",     { label: "Expenses",     Icon: FileText, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance/reports",      { label: "Finance reports", Icon: BarChart2, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/finance",       { label: "Finance",        Icon: FileText,    color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/approvals",     { label: "Approvals",      Icon: ShieldCheck, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/console",       { label: "Owner Console",  Icon: ShieldCheck, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/status",        { label: "Readiness",      Icon: Activity,    color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/decisions",     { label: "Decisions",      Icon: ShieldCheck, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/discovery",     { label: "Discovery",      Icon: Radar,       color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/activity",      { label: "Agent Activity", Icon: Zap,         color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/team/oversight",{ label: "Team Oversight", Icon: Users,       color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/lists",         { label: "Lists",          Icon: List,        color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
+    ["/search",        { label: "Search",         Icon: Search,      color: "text-[var(--text-muted)] dark:text-[var(--text-secondary)]" }],
   ];
   for (const [prefix, meta] of map) {
     if (pathname.startsWith(prefix)) return meta;
   }
-  return { label: "Mondaily", Icon: Home, color: "text-stone-400" };
+  return { label: "Mondaily", Icon: Home, color: "text-[var(--text-secondary)]" };
 }
 
 function MobileNav() {
@@ -200,7 +200,7 @@ export function DashboardLayout() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="flex h-7 w-7 items-center justify-center text-stone-400 md:hidden shrink-0"
+              className="flex h-7 w-7 items-center justify-center text-[var(--text-secondary)] md:hidden shrink-0"
             >
               <Menu size={16}/>
             </button>

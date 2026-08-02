@@ -46,7 +46,7 @@ type ViewMode = "list" | "board" | "timeline";
 // Matte semantic tones (flat-line system) — no bright utility colors.
 const OBJECT_COLORS: Record<string, string> = {
   contacts:  "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
-  companies: "text-stone-400 bg-stone-500/10 border-stone-500/20",
+  companies: "text-[var(--text-secondary)] bg-stone-500/10 border-stone-500/20",
   deals:     "text-[#2f9e6b] bg-[#2f9e6b]/10 border-[#2f9e6b]/20",
 };
 
@@ -179,7 +179,7 @@ function NoteCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {isAI ? (
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stone-500/30 bg-stone-600/10 text-stone-400">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]">
               <Bot size={12} />
             </div>
           ) : (
@@ -190,7 +190,7 @@ function NoteCard({
           <div className="min-w-0">
             <p className="truncate text-xs font-medium text-[var(--text-primary)] leading-tight">
               {note.author_name}
-              {isAI && <span className="ml-1.5 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[9px] font-semibold text-stone-400">AI</span>}
+              {isAI && <span className="ml-1.5 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[9px] font-semibold text-[var(--text-secondary)]">AI</span>}
             </p>
             <p className="text-[10px] text-[var(--text-secondary)]">{relTime(note.updated_at)}</p>
           </div>
@@ -233,7 +233,7 @@ function NoteCard({
           )}
           {isOwner && onDelete && (
             <button onClick={onDelete} title="Delete"
-              className="grid h-6 w-6 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-stone-500/10 hover:text-stone-400 transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-stone-500/10 hover:text-[var(--text-secondary)] transition-colors">
               <Trash2 size={11} />
             </button>
           )}
@@ -408,7 +408,7 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
                   </div>
                 ))}
                 <div className="absolute top-0 z-[6] w-px bg-stone-500/40" style={{ left: todayX, height: LANE_H }}>
-                  {laneIdx === 0 && <span className="absolute top-1 left-1 whitespace-nowrap rounded bg-stone-500/20 px-1 py-px text-[9px] font-semibold text-stone-400">Today</span>}
+                  {laneIdx === 0 && <span className="absolute top-1 left-1 whitespace-nowrap rounded bg-stone-500/20 px-1 py-px text-[9px] font-semibold text-[var(--text-secondary)]">Today</span>}
                 </div>
                 {laneNotes.map(note => (
                   <div key={note.id} className="absolute" style={{ left: dayOffset(note.created_at), top: LANE_HEADER, width: CARD_W }}>

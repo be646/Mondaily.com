@@ -18,18 +18,18 @@ interface ActivityItem {
 
 function actorIcon(type: string) {
   switch (type) {
-    case "ai_agent": return <LogoMark size={10} className="text-stone-400" />;
+    case "ai_agent": return <LogoMark size={10} className="text-[var(--text-secondary)]" />;
     case "integration": return <Zap size={10} className="text-[#c6892e]" />;
-    case "system": return <Settings size={10} className="text-stone-500" />;
+    case "system": return <Settings size={10} className="text-[var(--text-muted)]" />;
     default: return <User size={10} className="text-[#717784]" />;
   }
 }
 
 function actionColor(action: string) {
   if (action === "created") return "text-[#2f9e6b]";
-  if (action === "deleted") return "text-stone-400";
-  if (action === "enriched") return "text-stone-400";
-  return "text-stone-400";
+  if (action === "deleted") return "text-[var(--text-secondary)]";
+  if (action === "enriched") return "text-[var(--text-secondary)]";
+  return "text-[var(--text-secondary)]";
 }
 
 function fmtTime(iso: string) {
@@ -61,7 +61,7 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)] flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Activity size={14} className="text-stone-400" />
+            <Activity size={14} className="text-[var(--text-secondary)]" />
             <span className="text-sm font-semibold text-[var(--text-primary)]">Activity</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)]"><X size={15} /></button>

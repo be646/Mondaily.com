@@ -57,7 +57,7 @@ function Layout() {
                 />
               ))}
             </div>
-            <span className="font-mono text-[10px] text-zinc-400">
+            <span className="font-mono text-[10px] text-[var(--text-secondary)]">
               {STEP_LABELS[current]} · {current + 1} / {STEPS.length}
             </span>
           </div>

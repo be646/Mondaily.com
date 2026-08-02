@@ -787,7 +787,7 @@ describe("tasks/task-detail-panel eyebrow labels use text-caption (Pass 7B)", ()
   it("the five section eyebrow labels are text-caption with weight/uppercase/tracking/colour kept", () => {
     expect(P).toMatch(/className="text-caption uppercase" style=\{\{ color: "var\(--text-faint\)" \}\}>\{linkedNode\.object_type\}/); // 365 (9→10)
     expect(P).toMatch(/className="mb-1 text-caption font-semibold uppercase tracking-widest" style=\{\{ color: "var\(--text-faint\)" \}\}>Notes/); // 396
-    expect(P).toMatch(/flex items-center gap-1\.5 text-caption font-semibold uppercase tracking-widest text-stone-600/); // 413
+    expect(P).toMatch(/flex items-center gap-1\.5 text-caption font-semibold uppercase tracking-widest text-\[var\(--text-faint\)\]/); // 413 — token since the 2026-08-02 colour migration, matching its four siblings
     expect(P).toMatch(/text-caption font-semibold uppercase tracking-widest mb-2" style=\{\{ color: "var\(--text-faint\)" \}\}>Assigned/); // 659
     expect(P).toMatch(/text-caption font-semibold uppercase tracking-widest mb-2" style=\{\{ color: "var\(--text-faint\)" \}\}>Add collaborator/); // 679
   });
@@ -999,7 +999,7 @@ describe("dashboard/tasks display pills use text-caption font-medium (Pass 6B)",
     expect((T.match(/text-caption font-medium \$\{LABEL_COLORS\[l\]\}/g) ?? []).length).toBeGreaterThanOrEqual(2); // 580 & 789
     expect(T).toMatch(/text-caption font-medium capitalize \$\{PCOL\[t\.priority\]/);                    // 355
     expect(T).toMatch(/text-caption font-medium border-\[var\(--border-soft\)\] text-\[var\(--text-muted\)/); // 742
-    expect((T.match(/bg-stone-600\/10 px-1\.5 py-px text-caption font-medium text-stone-500/g) ?? []).length).toBeGreaterThanOrEqual(2); // 213 & 746
+    expect((T.match(/bg-stone-600\/10 px-1\.5 py-px text-caption font-medium text-\[var\(--text-muted\)\]/g) ?? []).length).toBeGreaterThanOrEqual(2); // 213 & 746 — token since 2026-08-02; the tint keeps its alpha, which is theme-agnostic
   });
   it("no display pill still uses text-[10px] font-medium", () => {
     expect(T).not.toMatch(/text-\[10px\] font-medium/);

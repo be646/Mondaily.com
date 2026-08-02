@@ -210,7 +210,7 @@ export function GettingStarted() {
                       {checked && <Check size={7} className="text-[var(--text-primary)] dark:text-black" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
-                      <span className={`text-[12px] leading-tight ${checked ? "line-through text-stone-400 dark:text-[var(--text-secondary)]" : "text-stone-600 dark:text-[var(--text-secondary)]"}`}>{item.label}</span>
+                      <span className={`text-[12px] leading-tight ${checked ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-faint)] dark:text-[var(--text-secondary)]"}`}>{item.label}</span>
                     </Link>
                   </div>
                   {/* Tooltip — pops left (FAB is on the right edge) */}
@@ -218,8 +218,8 @@ export function GettingStarted() {
                     <div className="absolute right-full top-0 z-[210] mr-2.5 w-56 pointer-events-none">
                       <div className="rounded-sm border border-stone-200 bg-white px-3 py-3 dark:border-stone-800 dark:bg-black">
                         <div className="text-[12px] font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1.5">{item.label}</div>
-                        <div className="text-[11px] text-stone-500 dark:text-[var(--text-secondary)] leading-relaxed">{item.hint}</div>
-                        <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-stone-50">→ Go there</div>
+                        <div className="text-[11px] text-[var(--text-muted)] dark:text-[var(--text-secondary)] leading-relaxed">{item.hint}</div>
+                        <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-[var(--text-primary)]">→ Go there</div>
                       </div>
                     </div>
                   )}
@@ -229,7 +229,7 @@ export function GettingStarted() {
           </div>
           <div className="flex items-center justify-between border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
             <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>Auto-detected · updates live</span>
-            <button onClick={dismiss} className="text-[10px] font-semibold text-stone-500 hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50 transition-colors">Dismiss</button>
+            <button onClick={dismiss} className="text-[10px] font-semibold text-[var(--text-muted)] hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)] transition-colors">Dismiss</button>
           </div>
         </div>
       )}
@@ -343,7 +343,7 @@ function SectionLabel({ label }: { label: string }) {
   if (!label) return null;
   return (
     <div className="mb-1.5 mt-4 px-2.5">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-700">{localized}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-[var(--text-faint)]">{localized}</span>
     </div>
   );
 }
@@ -495,12 +495,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 ${collapsed ? "w-[56px] min-w-[56px]" : "w-64 min-w-[16rem]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-primary)] ${collapsed ? "w-[56px] min-w-[56px]" : "w-64 min-w-[16rem]"}`}
       >
         {/* Collapse toggle */}
         <button
           onClick={() => { if (onMobileClose) onMobileClose(); else setCollapsed(c => !c); }}
-          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 shadow-sm transition-colors hover:text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-500 dark:hover:text-stone-50"
+          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-stone-200 bg-white text-[var(--text-muted)] shadow-sm transition-colors hover:text-stone-950 dark:border-stone-800 dark:bg-stone-950 dark:text-[var(--text-muted)] dark:hover:text-[var(--text-primary)]"
         >
           {onMobileClose ? <X size={10}/> : collapsed ? <ChevronRight size={10}/> : <ChevronLeft size={10}/>}
         </button>
@@ -519,11 +519,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <>
                 <div className="flex-1 text-left min-w-0">
                   {workspaceName
-                    ? <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
+                    ? <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-[var(--text-primary)] leading-tight">{workspaceName}</div>
                     : <div className="h-3.5 w-24 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />}
-                  <div className="text-[11px] text-stone-400 dark:text-stone-600">{tierLabel} workspace</div>
+                  <div className="text-[11px] text-[var(--text-secondary)] dark:text-[var(--text-faint)]">{tierLabel} workspace</div>
                 </div>
-                <ChevronsUpDown size={12} className="text-stone-400 dark:text-stone-700 shrink-0"/>
+                <ChevronsUpDown size={12} className="text-[var(--text-secondary)] dark:text-[var(--text-faint)] shrink-0"/>
               </>
             )}
           </button>
@@ -535,23 +535,23 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <div className="flex items-center gap-2.5 border-b border-stone-100 dark:border-[var(--border-soft)] px-3 py-2.5">
                   {workspaceLogo
                     ? <img src={workspaceLogo} alt={workspaceName} className="h-5 w-5 rounded-md object-cover shrink-0"/>
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-stone-100 dark:bg-stone-900 text-[10px] font-semibold text-stone-950 dark:text-stone-50">{workspaceInitial}</div>
+                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-stone-100 dark:bg-stone-900 text-[10px] font-semibold text-stone-950 dark:text-[var(--text-primary)]">{workspaceInitial}</div>
                   }
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-[var(--text-primary)]">{workspaceName}</div>
-                    <div className="text-[10px] text-stone-500 dark:text-stone-600">{tierLabel}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] dark:text-[var(--text-faint)]">{tierLabel}</div>
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full bg-[#2f9e6b] shrink-0"/>
                 </div>
                 {/* Switch between the workspaces this user belongs to */}
                 {myWorkspaces.filter(w => w.workspace_id !== activeWorkspaceId).length > 0 && (
                   <div className="border-b border-stone-100 py-1 dark:border-[var(--border-soft)]">
-                    <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-stone-400 dark:text-stone-600">Switch workspace</div>
+                    <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-[var(--text-secondary)] dark:text-[var(--text-faint)]">Switch workspace</div>
                     {myWorkspaces.filter(w => w.workspace_id !== activeWorkspaceId).map(w => (
                       <button key={w.workspace_id} onClick={() => switchWorkspace(w.workspace_id)} className="dropdown-item">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-stone-100 text-[9px] font-semibold text-stone-950 dark:bg-stone-900 dark:text-stone-50">{(w.name || "?")[0]?.toUpperCase()}</span>
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-stone-100 text-[9px] font-semibold text-stone-950 dark:bg-stone-900 dark:text-[var(--text-primary)]">{(w.name || "?")[0]?.toUpperCase()}</span>
                         <span className="flex-1 truncate text-left">{w.name || "Untitled workspace"}</span>
-                        <span className="text-[9px] uppercase text-stone-400 dark:text-stone-600">{w.role}</span>
+                        <span className="text-[9px] uppercase text-[var(--text-secondary)] dark:text-[var(--text-faint)]">{w.role}</span>
                       </button>
                     ))}
                   </div>
@@ -632,7 +632,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           {collapsed ? (
             <div className="p-2.5 border-t border-stone-200 dark:border-stone-800">
               <Link to="/settings/account" title="Settings"
-                className="flex items-center justify-center rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50 transition-colors">
+                className="flex items-center justify-center rounded-lg p-2 text-[var(--text-muted)] hover:bg-stone-100 hover:text-stone-950 dark:text-[var(--text-muted)] dark:hover:bg-stone-900 dark:hover:text-[var(--text-primary)] transition-colors">
                 <Settings size={14}/>
               </Link>
             </div>
@@ -692,11 +692,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Create workspace</span>
-              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)] transition-colors">
+              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-[var(--text-secondary)] hover:bg-stone-100 hover:text-stone-900 dark:text-[var(--text-muted)] dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)] transition-colors">
                 <X size={13}/>
               </button>
             </div>
-            <p className="mb-4 text-[11px] text-stone-500 dark:text-stone-600">Each workspace has its own contacts, deals, and settings.</p>
+            <p className="mb-4 text-[11px] text-[var(--text-muted)] dark:text-[var(--text-faint)]">Each workspace has its own contacts, deals, and settings.</p>
             <input
               value={newWsName}
               onChange={e => setNewWsName(e.target.value)}
@@ -707,7 +707,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {wsError && <p className="mb-3 text-[11px] text-[#d1524a]">{wsError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
-                className="flex-1 rounded-sm border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:bg-[var(--surface-hover)] transition-colors">
+                className="flex-1 rounded-sm border border-stone-200 px-4 py-2 text-xs text-[var(--text-muted)] hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-colors">
                 Cancel
               </button>
               <button

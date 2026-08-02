@@ -31,17 +31,17 @@ interface Expense {
 
 const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; label: string }> = {
   travel:               { color: "text-[#717784]",    icon: Car,           label: "Travel"               },
-  software:             { color: "text-stone-400",  icon: Monitor,       label: "Software"             },
+  software:             { color: "text-[var(--text-secondary)]",  icon: Monitor,       label: "Software"             },
   hardware:             { color: "text-[var(--section-accent)]",    icon: Monitor,       label: "Hardware"             },
   meals:                { color: "text-[#c6892e]",   icon: Coffee,        label: "Meals"                },
   marketing:            { color: "text-[#717784]",    icon: Zap,           label: "Marketing"            },
   professional_services:{ color: "text-[#2f9e6b]", icon: Briefcase,     label: "Professional Services"},
-  office:               { color: "text-stone-400",   icon: Building2,     label: "Office"              },
-  other:                { color: "text-stone-500",    icon: MoreHorizontal,label: "Other"                },
+  office:               { color: "text-[var(--text-secondary)]",   icon: Building2,     label: "Office"              },
+  other:                { color: "text-[var(--text-muted)]",    icon: MoreHorizontal,label: "Other"                },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: Receipt      },
+  draft:     { label: "Draft",     color: "text-[var(--text-secondary)] bg-stone-400/10",     icon: Receipt      },
   submitted: { label: "Submitted", color: "text-[#717784] bg-[#717784]/10",     icon: Clock        },
   approved:  { label: "Approved",  color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
   rejected:  { label: "Rejected",  color: "text-[#d1524a] bg-[#d1524a]/10",       icon: XCircle      },

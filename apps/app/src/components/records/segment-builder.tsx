@@ -124,7 +124,7 @@ export function SegmentBuilder({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <Filter size={13} className="text-stone-400" />
+              <Filter size={13} className="text-[var(--text-secondary)]" />
             </div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">Segment Builder</span>
             <span className="text-xs text-[var(--text-secondary)]">{cleanName}</span>
@@ -201,7 +201,7 @@ export function SegmentBuilder({
                       <button
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length === 1}
-                        className="text-[var(--text-secondary)] hover:text-stone-400 transition-colors disabled:pointer-events-none"
+                        className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors disabled:pointer-events-none"
                       >
                         <X size={13} />
                       </button>
@@ -212,7 +212,7 @@ export function SegmentBuilder({
 
               <button
                 onClick={addRule}
-                className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-stone-400 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"
               >
                 <Plus size={12} /> Add rule
               </button>
@@ -220,7 +220,7 @@ export function SegmentBuilder({
               {/* Preview */}
               <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
                 <span className="text-xs text-[var(--text-secondary)]">Matching records</span>
-                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-stone-400" : "text-[var(--text-secondary)]"}`}>
+                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-[var(--text-secondary)]" : "text-[var(--text-secondary)]"}`}>
                   {matched.length} / {records.length}
                 </span>
               </div>

@@ -211,7 +211,7 @@ export function ListPage() {
   const listColumns: DataTableColumn<NodeRecord>[] = useMemo(() => [
     { key: "__id", header: "ID", sortable: true, cellClassName: "whitespace-nowrap", cell: (record) => (
         <Link to={`/objects/${record.object_type}/${record.id}`} title={record.id}
-          className="font-mono text-[11px] text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-300">
+          className="font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]">
           {record.id.slice(0, 8)}
         </Link>
       ) },
@@ -219,14 +219,14 @@ export function ListPage() {
       key: c,
       header: c.replaceAll("_", " "),
       sortable: true,
-      cellClassName: "max-w-[240px] truncate text-stone-700 dark:text-stone-300",
+      cellClassName: "max-w-[240px] truncate text-[var(--text-faint)] dark:text-[var(--text-secondary)]",
       cell: (record) => {
         const prov = recordProvenance(record);
         if (c === "lead_score") return record.lead_score != null ? <LeadScoreBadge score={record.lead_score} size="sm" /> : null;
         if (i === 0) return (
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <Link to={`/objects/${record.object_type}/${record.id}`}
-              className="truncate font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300">
+              className="truncate font-medium text-stone-950 transition-colors hover:text-[var(--text-faint)] dark:text-[var(--text-primary)] dark:hover:text-[var(--text-secondary)]">
               {display(record.data[c])}
             </Link>
             {prov && prov.kind === "web" && (
@@ -240,7 +240,7 @@ export function ListPage() {
         return display(record.data[c]);
       },
     })),
-    { key: "__updated", header: "Updated", sortable: true, cellClassName: "text-[11px] tabular-nums text-stone-400 dark:text-stone-600", cell: (record) => fmtDate(record.updated_at) },
+    { key: "__updated", header: "Updated", sortable: true, cellClassName: "text-[11px] tabular-nums text-[var(--text-secondary)] dark:text-[var(--text-faint)]", cell: (record) => fmtDate(record.updated_at) },
     { key: "__remove", header: "", cellClassName: "w-8 px-2", cell: (record) => (
         <button onClick={() => removeEntry.mutate(record.id)} title="Remove from list"
           className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-stone-100 dark:hover:bg-stone-900"
@@ -353,7 +353,7 @@ export function ListPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   if (list.isLoading) return <div className="p-8"><PageSkeleton rows={7} /></div>;
-  if (!list.data) return <div className="grid h-full place-items-center text-sm text-stone-500">List not found.</div>;
+  if (!list.data) return <div className="grid h-full place-items-center text-sm text-[var(--text-muted)]">List not found.</div>;
 
   const isEmpty = entries.isSuccess && records.length === 0;
 
@@ -368,7 +368,7 @@ export function ListPage() {
               value={list.data.name}
               onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
               onBlur={e => update.mutate({ name: e.target.value })}
-              className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold uppercase tracking-[0.12em] text-stone-500 outline-none placeholder-stone-400 dark:placeholder-stone-600"
+              className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] outline-none placeholder-stone-400 dark:placeholder-stone-600"
             />
             <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
               {list.data.object_type}
@@ -695,7 +695,7 @@ export function ListPage() {
           </div>
           <Link
             to={`/objects/${list.data.object_type}`}
-            className="mt-3 block text-[11px] transition-colors hover:text-stone-400"
+            className="mt-3 block text-[11px] transition-colors hover:text-[var(--text-secondary)]"
             style={{ color: "var(--text-muted)" }}
           >
             Go to {list.data.object_type} sheet →
@@ -708,7 +708,7 @@ export function ListPage() {
         <ModalShell onClose={() => setAiOpen(false)}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <LogoMark size={14} className="text-stone-400" />
+              <LogoMark size={14} className="text-[var(--text-secondary)]" />
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Add with AI</h2>
             </div>
             <button
@@ -728,7 +728,7 @@ export function ListPage() {
             onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAiMatch(); }}
             rows={3}
             placeholder={`e.g. "Companies in the US with ARR above $1M"`}
-            className="surface-input w-full resize-none rounded-sm p-3 text-[12px] outline-none transition-colors placeholder:text-stone-400 dark:placeholder:text-stone-600"
+            className="surface-input w-full resize-none rounded-sm p-3 text-[12px] outline-none transition-colors placeholder:text-[var(--text-secondary)] dark:placeholder:text-[var(--text-faint)]"
             style={{ color: "var(--text-primary)" }}
           />
           {aiMatched === null ? (
@@ -775,7 +775,7 @@ export function ListPage() {
               <div className="mt-4 flex items-center justify-between gap-2">
                 <button
                   onClick={() => { setAiMatched(null); setAiPrompt(""); }}
-                  className="text-[11px] transition-colors hover:text-stone-400"
+                  className="text-[11px] transition-colors hover:text-[var(--text-secondary)]"
                   style={{ color: "var(--text-muted)" }}
                 >
                   Try again

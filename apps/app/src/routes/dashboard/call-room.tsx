@@ -366,7 +366,7 @@ function WaitingGuestsPanel({ eventId }: { eventId: string }) {
   const waiting = q.data?.waiting ?? [];
   if (waiting.length === 0) return null;
   return (
-    <div className="absolute right-3 top-16 z-30 w-72 overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(20,20,24,0.96)" }}>
+    <div className="absolute right-3 top-16 z-30 w-72 overflow-hidden rounded-lg border shadow-2xl" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(20,20,24,0.96)" }}>
       <div className="border-b px-3 py-2.5 text-[12px] font-semibold text-white" style={{ borderColor: "rgba(255,255,255,0.08)" }}>Waiting to join ({waiting.length})</div>
       <div className="max-h-64 divide-y overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         {waiting.map(g => (
@@ -772,7 +772,7 @@ function CallRoom({ event }: { event: CalEvent }) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
       <button onClick={() => navigate("/calendar")} className="mb-4 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}><ArrowLeft size={13} /> {t("cal.title")}</button>
-      <div className="rounded-2xl border p-6" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>{event.title}</h1>
@@ -868,7 +868,7 @@ function InvitePanel({ members, loading, existing, selected, onToggle, onInvite,
   const invitable = members.filter(m => !existing.has(m.id));
   const shown = invitable.filter(m => !q.trim() || `${m.name ?? ""} ${m.email}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
-    <div className="absolute right-3 top-14 z-30 w-72 overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="absolute right-3 top-14 z-30 w-72 overflow-hidden rounded-lg border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-center justify-between border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
         <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Invite to this call</span>
         <button onClick={onClose} className="btn-icon h-6 w-6"><X size={13} /></button>
@@ -927,7 +927,7 @@ function ChatPanel({ messages, onSend, onClose, youLabel }: { messages: { id: st
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
   return (
-    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
+    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
       <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-white"><MessageSquare size={13} /> Chat</span>
         <button onClick={onClose} className="text-white/50 hover:text-white"><X size={14} /></button>

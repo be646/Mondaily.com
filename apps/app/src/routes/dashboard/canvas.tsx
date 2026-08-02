@@ -379,7 +379,7 @@ export default function Canvas() {
                 setEdges(es => es.filter(e => !e.selected));
               }}
               disabled={selectedCount === 0}
-              className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
+              className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-[var(--text-secondary)] transition-all duration-100 disabled:pointer-events-none"
             >
               <Trash2 size={13} />
               {selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}

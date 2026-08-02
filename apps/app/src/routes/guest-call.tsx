@@ -301,7 +301,7 @@ export function GuestCallPage() {
           <LogoMark className="h-6 w-6" />
           <span className="text-[13px] font-semibold tracking-tight text-white/80">Mondaily</span>
         </div>
-        <div className="rounded-2xl border p-6" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
+        <div className="rounded-lg border p-6" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
           {metaLoading ? (
             <div className="flex items-center justify-center gap-2 py-6 text-[13px] text-white/60"><Loader2 size={14} className="animate-spin" /> Loading meeting…</div>
           ) : (

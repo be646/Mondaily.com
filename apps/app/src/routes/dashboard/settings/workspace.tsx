@@ -372,7 +372,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
       </div>
 
       {/* Live preview — generated from the CURRENT edits (before save), so admins see the effect. */}
-      <div className="mt-6 rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+      <div className="mt-6 rounded-md border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
         <p className="text-[12px] font-medium text-[var(--text-primary)]">Preview</p>
         <p className="mb-3 text-[11px] text-[var(--text-muted)]">These update Discovery examples and Ask AI context. Saving applies them across the app.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -109,7 +109,7 @@ export function OnboardingPage() {
             {stepLabels.map((label, i) => (
               <span
                 key={label}
-                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-zinc-900" : i + 1 < step ? "text-zinc-400" : "text-zinc-300"}`}
+                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-zinc-900" : i + 1 < step ? "text-[var(--text-secondary)]" : "text-[var(--text-secondary)]"}`}
               >
                 {label}
               </span>
@@ -130,7 +130,7 @@ export function OnboardingPage() {
                 <Input value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder="Acme Corp" />
               </div>
               <div className="mb-4">
-                <Label>Logo URL <span className="text-zinc-400">(optional)</span></Label>
+                <Label>Logo URL <span className="text-[var(--text-secondary)]">(optional)</span></Label>
                 <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://..." />
               </div>
               <div>
@@ -183,7 +183,7 @@ export function OnboardingPage() {
                   {sentInvites.map(inv => (
                     <div key={inv.email} className="flex items-center justify-between rounded-md border border-black/[.05] bg-zinc-50 px-4 py-2.5">
                       <span className="font-mono text-[12px] text-[var(--text-muted)]">{inv.email}</span>
-                      <span className="font-mono text-[11px] capitalize text-zinc-400">{inv.role}</span>
+                      <span className="font-mono text-[11px] capitalize text-[var(--text-secondary)]">{inv.role}</span>
                     </div>
                   ))}
                 </div>
@@ -242,7 +242,7 @@ export function OnboardingPage() {
           {step > 1 ? (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="font-mono text-[12px] text-zinc-400 hover:text-[var(--text-muted)] transition-colors"
+              className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-muted)] transition-colors"
             >
               ← Back
             </button>
@@ -252,7 +252,7 @@ export function OnboardingPage() {
             {step === 2 && (
               <button
                 onClick={() => setStep(3)}
-                className="font-mono text-[12px] text-zinc-400 hover:text-[var(--text-muted)] transition-colors"
+                className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-muted)] transition-colors"
               >
                 Skip
               </button>

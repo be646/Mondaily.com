@@ -14,12 +14,12 @@ interface Member { id: string; name: string; email: string; avatar_url?: string 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
-  lead:        { dot: "bg-stone-400",    text: "text-stone-400" },
-  new:         { dot: "bg-stone-400",    text: "text-stone-400" },
+  lead:        { dot: "bg-stone-400",    text: "text-[var(--text-secondary)]" },
+  new:         { dot: "bg-stone-400",    text: "text-[var(--text-secondary)]" },
   open:        { dot: "bg-[#717784]",    text: "text-[#717784]" },
   qualified:   { dot: "bg-[#717784]",    text: "text-[#717784]" },
-  "in progress": { dot: "bg-stone-400", text: "text-stone-400" },
-  active:      { dot: "bg-stone-400",  text: "text-stone-400" },
+  "in progress": { dot: "bg-stone-400", text: "text-[var(--text-secondary)]" },
+  active:      { dot: "bg-stone-400",  text: "text-[var(--text-secondary)]" },
   proposal:    { dot: "bg-[#c6892e]",   text: "text-[#c6892e]" },
   review:      { dot: "bg-[#c6892e]",   text: "text-[#c6892e]" },
   negotiation: { dot: "bg-[#c6892e]",  text: "text-[#c6892e]" },
@@ -27,12 +27,12 @@ const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
   won:         { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
   done:        { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
   completed:   { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
-  "closed lost": { dot: "bg-stone-400",  text: "text-stone-400" },
-  lost:        { dot: "bg-stone-400",     text: "text-stone-400" },
-  rejected:    { dot: "bg-stone-400",     text: "text-stone-400" },
+  "closed lost": { dot: "bg-stone-400",  text: "text-[var(--text-secondary)]" },
+  lost:        { dot: "bg-stone-400",     text: "text-[var(--text-secondary)]" },
+  rejected:    { dot: "bg-stone-400",     text: "text-[var(--text-secondary)]" },
 };
 export function stageStyle(s: string) {   // exported: the new-record drawer colors its stage pills with THE same palette
-  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-400" };
+  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-[var(--text-secondary)]" };
 }
 
 function fmtVal(v: unknown): number | null {
@@ -121,11 +121,11 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
       <button
         ref={btnRef}
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-400 border-t border-[var(--border-soft)] transition-colors"
+        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-t border-[var(--border-soft)] transition-colors"
       >
-        <span className="text-stone-600">{CALC_LABELS[type]}</span>
+        <span className="text-[var(--text-faint)]">{CALC_LABELS[type]}</span>
         <div className="flex items-center gap-1">
-          <span className="font-medium text-stone-400">{result()}</span>
+          <span className="font-medium text-[var(--text-secondary)]">{result()}</span>
           <ChevronDown size={10} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
         </div>
       </button>
@@ -135,7 +135,7 @@ function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecor
             <button key={t} onClick={() => { setType(t); setOpen(false); }}
               className={`dropdown-item justify-between ${t === type ? "dropdown-item-active" : ""}`}>
               <span>{CALC_LABELS[t]}</span>
-              {t === type && <Check size={10} className="text-stone-400"/>}
+              {t === type && <Check size={10} className="text-[var(--text-secondary)]"/>}
             </button>
           ))}
         </PortalDropdown>
@@ -209,7 +209,7 @@ function CardField({ value, onSave, placeholder = "—", numeric = false, classN
 
   return (
     <span onClick={() => { setDraft(value); setEditing(true); }}
-      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-stone-700 hover:text-stone-500"} ${className}`}>
+      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-[var(--text-faint)] hover:text-[var(--text-muted)]"} ${className}`}>
       {value || placeholder}
     </span>
   );
@@ -239,9 +239,9 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
     <div className="group rounded-md border border-stone-800/60 bg-stone-900/40 hover:border-stone-700/60 hover:bg-stone-900/70 transition-all p-3 cursor-default">
       {/* Name */}
       <div className="flex items-center gap-1.5 mb-2 min-w-0">
-        <CardField value={name} onSave={v => onPatch({ name: v })} placeholder="Untitled" className="flex-1 font-medium text-stone-100"/>
+        <CardField value={name} onSave={v => onPatch({ name: v })} placeholder="Untitled" className="flex-1 font-medium text-[var(--text-primary)]"/>
         {record.lead_score != null && <LeadScoreBadge score={record.lead_score} size="sm"/>}
-        <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-stone-600 hover:text-stone-400">
+        <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-faint)] hover:text-[var(--text-secondary)]">
           <ChevronRight size={12}/>
         </Link>
       </div>
@@ -249,7 +249,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
       {/* Value (if detected) */}
       {valueCol && (
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-[10px] text-stone-600 shrink-0">{labelOf(valueCol)}</span>
+          <span className="text-[10px] text-[var(--text-faint)] shrink-0">{labelOf(valueCol)}</span>
           <CardField
             value={rawVal != null ? String(rawVal) : ""}
             onSave={v => onPatch({ [valueCol]: v === "" ? null : v })}
@@ -264,13 +264,13 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
       {ownerKey && (
         <div className="flex items-center gap-1.5 mb-2.5">
           {ownerMember ? (
-            <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-400 shrink-0">
+            <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-[var(--text-secondary)] shrink-0">
               {memberInitials(ownerMember.name)}
             </div>
           ) : (
             <span className="h-1.5 w-1.5 rounded-full bg-stone-700 shrink-0"/>
           )}
-          <CardField value={owner} onSave={v => onPatch({ [ownerKey]: v })} placeholder="Owner…" className="flex-1 text-stone-500"/>
+          <CardField value={owner} onSave={v => onPatch({ [ownerKey]: v })} placeholder="Owner…" className="flex-1 text-[var(--text-muted)]"/>
         </div>
       )}
 
@@ -335,20 +335,20 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
         <div className="max-h-[360px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (
             <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)] last:border-0">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 truncate">{labelOf(k)}</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-faint)] truncate">{labelOf(k)}</span>
               <input value={values[k] ?? ""} onChange={e => setValues(p => ({ ...p, [k]: e.target.value }))}
                 placeholder="—"
                 className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"/>
             </div>
           ))}
-          {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
+          {error && <p className="pt-2 text-xs text-[var(--text-secondary)]">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
-          <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">Cancel</button>
+          <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
             className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
-            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-stone-400">⌘↵</kbd>
+            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[var(--text-secondary)]">⌘↵</kbd>
           </button>
         </div>
       </div>
@@ -477,8 +477,8 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
       <div className="flex h-full items-center justify-center">
       {pendingLoss && <LossReasonModal pending={pendingLoss} onClose={() => setPendingLoss(null)} />}
         <div className="text-center space-y-2">
-          <p className="text-sm text-stone-400">Board view requires a stage or status column</p>
-          <p className="text-xs text-stone-600">Add a column named "stage", "status", or "phase" to use board view</p>
+          <p className="text-sm text-[var(--text-secondary)]">Board view requires a stage or status column</p>
+          <p className="text-xs text-[var(--text-faint)]">Add a column named "stage", "status", or "phase" to use board view</p>
         </div>
       </div>
     );
@@ -505,10 +505,10 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`}/>
                 <span className={`text-[11px] font-semibold truncate ${text}`}>{stage}</span>
-                <span className="text-[10px] text-stone-600 font-medium shrink-0">{cards.length}</span>
+                <span className="text-[10px] text-[var(--text-faint)] font-medium shrink-0">{cards.length}</span>
               </div>
               <button onClick={() => setCreateForStage(stage)}
-                className="flex items-center justify-center h-5 w-5 rounded text-stone-600 hover:text-stone-400 hover:bg-stone-800/50 transition-all shrink-0"
+                className="flex items-center justify-center h-5 w-5 rounded text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-800/50 transition-all shrink-0"
                 title={`Add to ${stage}`}>
                 <Plus size={11}/>
               </button>
@@ -523,7 +523,7 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
               ) : cards.length === 0 ? (
                 <button onClick={() => setCreateForStage(stage)}
                   className="flex w-full h-12 items-center justify-center rounded-md border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-800/20 transition-all group/empty">
-                  <Plus size={11} className="text-stone-700 group-hover/empty:text-stone-500 transition-colors"/>
+                  <Plus size={11} className="text-[var(--text-faint)] group-hover/empty:text-[var(--text-muted)] transition-colors"/>
                 </button>
               ) : (
                 cards.map(rec => (
@@ -562,16 +562,16 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
               className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
-            <button onClick={commitNewStage} className="text-stone-500 hover:text-[#2f9e6b] transition-colors"><Check size={12}/></button>
-            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-400 transition-colors"><X size={12}/></button>
+            <button onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-[#2f9e6b] transition-colors"><Check size={12}/></button>
+            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"><X size={12}/></button>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[80px]">
-            <span className="text-[10px] text-stone-700">New stage</span>
+            <span className="text-[10px] text-[var(--text-faint)]">New stage</span>
           </div>
         </div>
       ) : (
         <button onClick={() => setAddingStage(true)}
-          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-sm border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-stone-600 hover:text-stone-400 self-start min-h-[80px]">
+          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-sm border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-[var(--text-faint)] hover:text-[var(--text-secondary)] self-start min-h-[80px]">
           <Plus size={13}/>
           <span className="text-[10px]">Add stage</span>
         </button>

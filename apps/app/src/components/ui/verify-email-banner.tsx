@@ -36,7 +36,7 @@ export function VerifyEmailBanner() {
         </button>
       )}
       <button onClick={() => { sessionStorage.setItem("verify_banner_dismissed", "1"); setDismissed(true); }}
-        className="shrink-0 text-stone-500 hover:text-[var(--text-primary)]" title="Dismiss">
+        className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Dismiss">
         <X size={13} />
       </button>
     </div>

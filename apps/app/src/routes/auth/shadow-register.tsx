@@ -59,7 +59,7 @@ export function ShadowRegisterPage() {
   return (
     <AuthShell kicker="Sovereign auth" title="Create your account"
       subtitle="Native Mondaily credentials — your own independent workspace, no third parties."
-      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300">Already have an account? Sign in <ArrowRight size={12} /></button>}>
+      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--text-secondary)]">Already have an account? Sign in <ArrowRight size={12} /></button>}>
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Name" autoComplete="name" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} disabled={loading} />
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />

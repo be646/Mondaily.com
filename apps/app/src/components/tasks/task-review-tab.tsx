@@ -24,7 +24,7 @@ function reviewWhen(r: { sent_at?: string; created_at?: string }): string {
 }
 
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/20 text-[#717784]","bg-[#2f9e6b]/20 text-[#2f9e6b]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#c6892e]/20 text-[#c6892e]"];
+  const colors = ["bg-stone-500/20 text-[var(--text-faint)] dark:text-[var(--text-secondary)]","bg-[#717784]/20 text-[#717784]","bg-[#2f9e6b]/20 text-[#2f9e6b]","bg-stone-500/20 text-[var(--text-faint)] dark:text-[var(--text-secondary)]","bg-[#c6892e]/20 text-[#c6892e]"];
   const color = colors[name.charCodeAt(0) % colors.length];
   return <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-semibold shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
 }
@@ -138,7 +138,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Send for Review</h3>
-          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-muted)" }}>Cancel</button>
+          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Cancel</button>
         </div>
 
         <div>
@@ -178,7 +178,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Review Action</h3>
-          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-muted)" }}>Back</button>
+          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Back</button>
         </div>
 
         <div className="surface-card rounded-sm p-4">
@@ -219,7 +219,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Reassign Review</h3>
-          <button onClick={() => setScreen("action")} className="text-xs transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-muted)" }}>Back</button>
+          <button onClick={() => setScreen("action")} className="text-xs transition-colors hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Back</button>
         </div>
 
         <div>

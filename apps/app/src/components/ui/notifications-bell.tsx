@@ -64,7 +64,7 @@ export function NotificationsBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative flex h-7 w-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
         title="Notifications"
       >
         <Bell size={15}/>
@@ -87,14 +87,14 @@ export function NotificationsBell() {
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-[var(--text-primary)]">Notifications</span>
                 {unread > 0 && (
-                  <span className="rounded-full bg-stone-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-stone-400">{unread}</span>
+                  <span className="rounded-full bg-stone-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">{unread}</span>
                 )}
               </div>
               <div className="flex items-center gap-3">
                 {unread > 0 && (
                   <button
                     onClick={() => markAllRead.mutate()}
-                    className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
+                    className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   >
                     Mark all read
                   </button>
@@ -105,7 +105,7 @@ export function NotificationsBell() {
                   <button
                     onClick={() => clearRead.mutate()}
                     title={`Remove ${readCount} read notification${readCount === 1 ? "" : "s"}`}
-                    className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
+                    className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   >
                     {clearRead.isPending ? "Clearing…" : "Clear read"}
                   </button>
@@ -117,8 +117,8 @@ export function NotificationsBell() {
             <div className="max-h-96 overflow-auto">
               {notifications.length === 0 ? (
                 <div className="px-4 py-10 text-center">
-                  <Bell size={20} className="mx-auto mb-2 text-stone-700"/>
-                  <p className="text-[12px] text-stone-600">No notifications yet</p>
+                  <Bell size={20} className="mx-auto mb-2 text-[var(--text-faint)]"/>
+                  <p className="text-[12px] text-[var(--text-faint)]">No notifications yet</p>
                 </div>
               ) : (
                 CATEGORY_META.map(cat => {
@@ -146,9 +146,9 @@ export function NotificationsBell() {
                           >
                             <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-[color:var(--section-accent)]" : "bg-transparent"}`}/>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-[var(--text-primary)]" : "text-stone-400"}`}>{n.title}</p>
-                              {n.body && <p className="text-[11px] text-stone-600 mt-0.5 line-clamp-2">{n.body}</p>}
-                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-stone-700">
+                              <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>{n.title}</p>
+                              {n.body && <p className="text-[11px] text-[var(--text-faint)] mt-0.5 line-clamp-2">{n.body}</p>}
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text-faint)]">
                                 {actor && <span className="text-[var(--text-faint)]">by {actor}</span>}
                                 <span>{fmtTime(n.created_at)}</span>
                                 <span className="inline-flex items-center gap-0.5 text-[var(--section-accent)]">{actionLabel(n)} <ArrowUpRight size={9}/></span>
@@ -175,7 +175,7 @@ export function NotificationsBell() {
             <div className="border-t border-[var(--border-soft)] px-4 py-2.5">
               <button
                 onClick={() => { setOpen(false); navigate("/notifications"); }}
-                className="w-full text-center text-[11px] text-stone-600 hover:text-[var(--text-primary)] transition-colors"
+                className="w-full text-center text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
               >
                 View all notifications →
               </button>

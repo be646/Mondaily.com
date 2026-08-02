@@ -88,7 +88,7 @@ export function CaptionsPanel({ available, captions, onClose, onTranslate, prefe
   };
 
   return (
-    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
+    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
       <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-white"><Captions size={13} /> Live captions</span>
         {onClose && <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">✕</button>}
@@ -237,7 +237,7 @@ export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted,
   }, [p, source, trackSid, trackMuted]);
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-xl" style={{ background: "#17171b", outline: speaking ? "2px solid var(--section-accent)" : "1px solid rgba(255,255,255,0.06)", outlineOffset: -1 }}>
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg" style={{ background: "#17171b", outline: speaking ? "2px solid var(--section-accent)" : "1px solid rgba(255,255,255,0.06)", outlineOffset: -1 }}>
       <video ref={ref} autoPlay playsInline muted={isLocal} className="h-full w-full object-cover" style={{ display: hasVideo ? "block" : "none" }} />
       {!hasVideo && (
         <div className="flex h-full w-full items-center justify-center">
@@ -267,7 +267,7 @@ export function ScreenTile({ p, source }: { p: Participant; source: TrackNS.Sour
     return () => { try { if (track && ref.current) track.detach(ref.current); } catch { /* ignore */ } };
   }, [p, source, screenSid]);
   return (
-    <div className="relative overflow-hidden rounded-xl bg-black" style={{ aspectRatio: "16 / 9" }}>
+    <div className="relative overflow-hidden rounded-lg bg-black" style={{ aspectRatio: "16 / 9" }}>
       <video ref={ref} autoPlay playsInline className="h-full w-full object-contain" />
       <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/50 px-2 py-1 text-[11px] font-medium text-white"><MonitorUp size={11} /> {p.name || p.identity}</div>
     </div>

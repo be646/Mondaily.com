@@ -65,10 +65,10 @@ export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  "from-stone-500/20 to-stone-500/10 text-stone-400 border-stone-500/20",
+  "from-stone-500/20 to-stone-500/10 text-[var(--text-secondary)] border-stone-500/20",
   "from-[#717784]/20 to-[#717784]/10 text-[#717784] border-[#717784]/25",
   "from-[#2f9e6b]/20 to-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25",
-  "from-stone-500/30 to-stone-600/10 text-stone-300 border-stone-500/20",
+  "from-stone-500/30 to-stone-600/10 text-[var(--text-secondary)] border-stone-500/20",
   "from-[#c6892e]/20 to-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
 ];
 const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
@@ -176,18 +176,18 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
             placeholder="Paste image URL…"
             className="w-full rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-stone-500/30 mb-1"
           />
-          {error && <p className="text-[10px] text-stone-400 mb-1">{error}</p>}
+          {error && <p className="text-[10px] text-[var(--text-secondary)] mb-1">{error}</p>}
 
           <div className="flex gap-2 mt-2">
             <button
               onClick={() => applyUrl(urlDraft)}
-              className="flex-1 rounded-md bg-stone-500/20 border border-stone-500/30 text-stone-300 text-xs py-1.5 hover:bg-stone-500/30 transition-colors"
+              className="flex-1 rounded-md bg-stone-500/20 border border-stone-500/30 text-[var(--text-secondary)] text-xs py-1.5 hover:bg-stone-500/30 transition-colors"
             >
               <ExternalLink size={10} className="inline mr-1"/>Apply URL
             </button>
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-400 text-xs py-1.5 hover:bg-[var(--surface-hover)] transition-colors"
+              className="flex-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] text-xs py-1.5 hover:bg-[var(--surface-hover)] transition-colors"
             >
               Upload file
             </button>
@@ -196,7 +196,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
           {logoUrl && (
             <button
               onClick={() => { onSave(""); setOpen(false); }}
-              className="mt-2 w-full text-center text-[10px] text-stone-600 hover:text-stone-400 transition-colors"
+              className="mt-2 w-full text-center text-[10px] text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"
             >
               Remove logo
             </button>
@@ -275,11 +275,11 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
           );
         })}
         {overflow > 0 && (
-          <span className="rounded-full bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-0.5 text-[10px] text-stone-500">+{overflow}</span>
+          <span className="rounded-full bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">+{overflow}</span>
         )}
         <button
           onClick={() => setOpen(o => !o)}
-          className="h-5 w-5 rounded-full border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] flex items-center justify-center text-stone-600 hover:text-stone-400 transition-colors"
+          className="h-5 w-5 rounded-full border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] flex items-center justify-center text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"
         >
           <Plus size={9}/>
         </button>
@@ -288,7 +288,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
       {open && (
         <div className="dropdown-panel absolute left-0 top-full mt-2 w-64 z-50 p-2">
           <div className="flex items-center gap-1.5 border border-[var(--border-soft)] rounded-md px-2 py-1.5 mb-2 bg-[var(--surface-hover)]">
-            <Search size={11} className="text-stone-600 shrink-0"/>
+            <Search size={11} className="text-[var(--text-faint)] shrink-0"/>
             <input
               ref={inputRef}
               value={query}
@@ -316,7 +316,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
                 </button>
               );
             })}
-            {filtered.length === 0 && <p className="px-2 py-2 text-xs text-stone-600">No matches</p>}
+            {filtered.length === 0 && <p className="px-2 py-2 text-xs text-[var(--text-faint)]">No matches</p>}
           </div>
           {/* Create custom category */}
           <div className="border-t border-[var(--border-soft)] mt-1 pt-2">
@@ -333,7 +333,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
               <button
                 onClick={addCustom}
                 disabled={!customName.trim() || selected.has(customName.trim())}
-                className="rounded-md bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-1.5 text-[10px] text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-30"
+                className="rounded-md bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-1.5 text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-30"
               >
                 Add
               </button>
@@ -372,7 +372,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
         ) : (
           <button
             onClick={() => { setEditing(true); setDraft(fmt(value)); }}
-            className="min-w-0 text-left text-xs text-stone-300 hover:text-[var(--text-primary)] transition-colors truncate group-hover:underline group-hover:decoration-dotted group-hover:decoration-stone-600 underline-offset-2"
+            className="min-w-0 text-left text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors truncate group-hover:underline group-hover:decoration-dotted group-hover:decoration-stone-600 underline-offset-2"
           >
             {fmt(value)}
           </button>
@@ -386,8 +386,8 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
 // ─── Highlight card (fully editable) ─────────────────────────────────────────
 type Accent = "slate"|"red"|"blue"|"emerald"|"amber"|"purple";
 const ACCENT_MAP: Record<Accent, string> = {
-  slate: "text-stone-400", red: "text-stone-400", blue: "text-[#717784]",
-  emerald: "text-[#2f9e6b]", amber: "text-[#c6892e]", purple: "text-stone-400",
+  slate: "text-[var(--text-secondary)]", red: "text-[var(--text-secondary)]", blue: "text-[#717784]",
+  emerald: "text-[#2f9e6b]", amber: "text-[#c6892e]", purple: "text-[var(--text-secondary)]",
 };
 
 function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, numeric }: {
@@ -424,7 +424,7 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
       ) : (
         <button
           onClick={() => onSave && setEditing(true)}
-          className={`text-left text-sm font-semibold text-[var(--text-primary)] truncate w-full ${onSave ? "hover:text-stone-300 transition-colors" : "cursor-default"}`}
+          className={`text-left text-sm font-semibold text-[var(--text-primary)] truncate w-full ${onSave ? "hover:text-[var(--text-secondary)] transition-colors" : "cursor-default"}`}
           title={onSave ? "Click to edit" : undefined}
         >
           {fmt(value) === "\u2014"
@@ -445,12 +445,12 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
     <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 col-span-2">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
-          <Tag size={12} className="text-stone-400"/>
+          <Tag size={12} className="text-[var(--text-secondary)]"/>
           <span className="text-body text-[var(--text-secondary)]">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-stone-600 border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
-          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-stone-300 border-stone-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-stone-300 hover:border-stone-500/20"}`}>Lost</button>
+          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
+          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-[var(--text-secondary)] border-stone-500/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[var(--text-secondary)] hover:border-stone-500/20"}`}>Lost</button>
         </div>
       </div>
       <div className="flex items-start">
@@ -468,13 +468,13 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
                 </button>
                 {i < PIPE_STAGES.length - 1 && <div className={`h-px flex-1 ${isPast ? "bg-[var(--surface-hover)]" : "bg-[var(--surface-hover)]"}`}/>}
               </div>
-              <span className={`mt-2 text-[9px] font-medium uppercase tracking-wide text-center leading-tight max-w-[50px] ${isActive ? "text-[var(--text-primary)]" : isPast ? "text-stone-600" : "text-stone-700"}`}>{s}</span>
+              <span className={`mt-2 text-[9px] font-medium uppercase tracking-wide text-center leading-tight max-w-[50px] ${isActive ? "text-[var(--text-primary)]" : isPast ? "text-[var(--text-faint)]" : "text-[var(--text-faint)]"}`}>{s}</span>
             </div>
           );
         })}
       </div>
       {(isWon || isLost) && (
-        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border border-[#2f9e6b]/25" : "bg-stone-500/10 text-stone-400 border border-stone-500/20"}`}>
+        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border border-[#2f9e6b]/25" : "bg-stone-500/10 text-[var(--text-secondary)] border border-stone-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
         </div>
       )}
@@ -511,21 +511,21 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
         >
           {current ? (
             <>
-              <div className="h-6 w-6 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[10px] font-bold text-stone-300 shrink-0">
+              <div className="h-6 w-6 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)] shrink-0">
                 {initials(current.name)}
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs text-stone-300 truncate leading-none">{current.name}</p>
-                {current.role && <p className="text-[10px] text-stone-600 mt-0.5 capitalize">{current.role}</p>}
+                <p className="text-xs text-[var(--text-secondary)] truncate leading-none">{current.name}</p>
+                {current.role && <p className="text-[10px] text-[var(--text-faint)] mt-0.5 capitalize">{current.role}</p>}
               </div>
             </>
           ) : (
             <>
-              <UserCheck size={14} className="text-stone-600 shrink-0"/>
-              <span className="text-xs text-stone-600 flex-1 text-left">Unassigned</span>
+              <UserCheck size={14} className="text-[var(--text-faint)] shrink-0"/>
+              <span className="text-xs text-[var(--text-faint)] flex-1 text-left">Unassigned</span>
             </>
           )}
-          <ChevronDown size={11} className={`text-stone-600 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+          <ChevronDown size={11} className={`text-[var(--text-faint)] transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
         </button>
 
         {open && (
@@ -534,9 +534,9 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
               onClick={() => { onAssign(null); setOpen(false); }}
               className={`dropdown-item w-full ${!assignedTo ? "dropdown-item-active" : ""}`}
             >
-              <UserCheck size={12} className="text-stone-600"/>
+              <UserCheck size={12} className="text-[var(--text-faint)]"/>
               Unassigned
-              {!assignedTo && <Check size={10} className="ml-auto text-stone-400"/>}
+              {!assignedTo && <Check size={10} className="ml-auto text-[var(--text-secondary)]"/>}
             </button>
             {members.map(m => (
               <button
@@ -544,17 +544,17 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
                 onClick={() => { onAssign(m.id); setOpen(false); }}
                 className={`dropdown-item w-full ${assignedTo === m.id ? "dropdown-item-active" : ""}`}
               >
-                <div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-stone-300 shrink-0">
+                <div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-[var(--text-secondary)] shrink-0">
                   {initials(m.name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="truncate block text-xs">{m.name}</span>
-                  {m.role && <span className="text-[10px] text-stone-600 capitalize">{m.role}</span>}
+                  {m.role && <span className="text-[10px] text-[var(--text-faint)] capitalize">{m.role}</span>}
                 </div>
-                {assignedTo === m.id && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
+                {assignedTo === m.id && <Check size={10} className="ml-auto text-[var(--text-secondary)] shrink-0"/>}
               </button>
             ))}
-            {members.length === 0 && <p className="px-3 py-2 text-xs text-stone-600">No members yet</p>}
+            {members.length === 0 && <p className="px-3 py-2 text-xs text-[var(--text-faint)]">No members yet</p>}
           </div>
         )}
       </div>
@@ -583,24 +583,24 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
         {currentName
-          ? <><div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-stone-300 shrink-0">{initials(currentName)}</div><span className="text-stone-300 truncate">{currentName}</span></>
-          : <><UserCheck size={12} className="text-stone-600 shrink-0"/><span className="text-stone-600">Unassigned</span></>
+          ? <><div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-[var(--text-secondary)] shrink-0">{initials(currentName)}</div><span className="text-[var(--text-secondary)] truncate">{currentName}</span></>
+          : <><UserCheck size={12} className="text-[var(--text-faint)] shrink-0"/><span className="text-[var(--text-faint)]">Unassigned</span></>
         }
-        <ChevronDown size={10} className="ml-auto text-stone-600 shrink-0"/>
+        <ChevronDown size={10} className="ml-auto text-[var(--text-faint)] shrink-0"/>
       </button>
       {open && (
         <div className="dropdown-panel absolute left-[132px] right-0 top-full z-50 mt-1 max-h-44 overflow-y-auto">
           <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full">
-            <UserCheck size={12} className="text-stone-600"/>Unassigned
+            <UserCheck size={12} className="text-[var(--text-faint)]"/>Unassigned
           </button>
           {members.map(m => (
             <button key={m.id} onClick={() => { onSelect(m.name); setOpen(false); }} className="dropdown-item w-full">
-              <div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-stone-300 shrink-0">{initials(m.name)}</div>
+              <div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-[var(--text-secondary)] shrink-0">{initials(m.name)}</div>
               <span className="truncate">{m.name}</span>
-              {currentName === m.name && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
+              {currentName === m.name && <Check size={10} className="ml-auto text-[var(--text-secondary)] shrink-0"/>}
             </button>
           ))}
-          {members.length === 0 && <p className="px-3 py-2 text-xs text-stone-600">No members</p>}
+          {members.length === 0 && <p className="px-3 py-2 text-xs text-[var(--text-faint)]">No members</p>}
         </div>
       )}
     </div>
@@ -638,8 +638,8 @@ function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; crea
               {i < events.length - 1 && <div className="w-px flex-1 bg-[var(--surface-hover)] mt-1"/>}
             </div>
             <div className="pb-5 min-w-0">
-              <p className="text-sm text-stone-300">{ev.ai_summary || label}</p>
-              <p className="mt-0.5 text-xs text-stone-600">{relativeTime(ev.created_at)}</p>
+              <p className="text-sm text-[var(--text-secondary)]">{ev.ai_summary || label}</p>
+              <p className="mt-0.5 text-xs text-[var(--text-faint)]">{relativeTime(ev.created_at)}</p>
             </div>
           </div>
         );
@@ -787,7 +787,7 @@ function InlineNotesPanel({ recordId, vertical, onViewAll }: { recordId: string;
         <button
           onClick={() => createNote.mutate()}
           disabled={createNote.isPending}
-          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-stone-500 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <Plus size={10}/> New note
         </button>
@@ -798,7 +798,7 @@ function InlineNotesPanel({ recordId, vertical, onViewAll }: { recordId: string;
       ) : notes.length === 0 && !createNote.isPending ? (
         <button
           onClick={() => createNote.mutate()}
-          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
+          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)] transition-colors"
         >
           <FileText size={13}/>
           Click to add a note…
@@ -814,13 +814,13 @@ function InlineNotesPanel({ recordId, vertical, onViewAll }: { recordId: string;
           {notes.slice(0, 3).map(note => (
             <div key={note.id} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 hover:border-[var(--border-soft)] cursor-pointer transition-colors">
               <p className="text-xs font-medium text-[var(--text-primary)]">{String(note.data.title || "Untitled note")}</p>
-              <p className="text-[10px] text-stone-600 mt-0.5">
+              <p className="text-[10px] text-[var(--text-faint)] mt-0.5">
                 {String(note.data.content || "This note has no content")} • {relativeTime(String(note.data.created_at || note.updated_at))}
               </p>
             </div>
           ))}
           {notes.length > 3 && (
-            <p className="text-[10px] text-stone-600 text-center py-1">+{notes.length - 3} more notes</p>
+            <p className="text-[10px] text-[var(--text-faint)] text-center py-1">+{notes.length - 3} more notes</p>
           )}
         </div>
       )}
@@ -864,7 +864,7 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-body text-[var(--text-secondary)]">
-          Tasks {todo.length > 0 && <span className="ml-1 rounded-full bg-stone-500/20 text-stone-300 px-1.5 py-0.5 text-[9px] font-bold">{todo.length}</span>}
+          Tasks {todo.length > 0 && <span className="ml-1 rounded-full bg-stone-500/20 text-[var(--text-secondary)] px-1.5 py-0.5 text-[9px] font-bold">{todo.length}</span>}
         </p>
         <div className="flex items-center gap-2">
         {onViewAll && (
@@ -872,7 +872,7 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
         )}
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-stone-500 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <Plus size={10}/> Add task
         </button>
@@ -881,7 +881,7 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
 
       {adding && (
         <div className="flex items-center gap-2 rounded-sm border border-stone-500/20 bg-[var(--surface-hover)] px-2.5 py-2 mb-1.5">
-          <Square size={13} className="text-stone-600 shrink-0"/>
+          <Square size={13} className="text-[var(--text-faint)] shrink-0"/>
           <input
             ref={inputRef} value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
@@ -892,7 +892,7 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
             placeholder="Task title… Enter to save"
             className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none"
           />
-          <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-stone-600 hover:text-stone-400"><X size={11}/></button>
+          <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)]"><X size={11}/></button>
         </div>
       )}
 
@@ -901,7 +901,7 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
       ) : tasks.length === 0 && !adding ? (
         <button
           onClick={() => setAdding(true)}
-          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
+          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)] transition-colors"
         >
           <CheckSquare size={13}/>
           Click to add a task…
@@ -915,13 +915,13 @@ function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string;
                 <button onClick={() => toggleTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone
                     ? <CheckSquare size={13} className="text-[#2f9e6b]"/>
-                    : <Square size={13} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
+                    : <Square size={13} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"/>}
                 </button>
-                <span className={`flex-1 text-xs ${isDone ? "line-through text-stone-600" : "text-stone-300"}`}>{String(task.data.title || "Untitled")}</span>
+                <span className={`flex-1 text-xs ${isDone ? "line-through text-[var(--text-faint)]" : "text-[var(--text-secondary)]"}`}>{String(task.data.title || "Untitled")}</span>
               </div>
             );
           })}
-          {tasks.length > 5 && <p className="text-[10px] text-stone-600 text-center py-1">+{tasks.length - 5} more</p>}
+          {tasks.length > 5 && <p className="text-[10px] text-[var(--text-faint)] text-center py-1">+{tasks.length - 5} more</p>}
         </div>
       )}
     </div>
@@ -974,17 +974,17 @@ function NoteCard({ note, onUpdate, onDelete }: {
             onBlur={saveContent}
             placeholder="Write something…"
             rows={2}
-            className="w-full resize-none bg-transparent text-xs text-stone-400 placeholder-stone-700 outline-none leading-relaxed overflow-hidden"
+            className="w-full resize-none bg-transparent text-xs text-[var(--text-secondary)] placeholder-stone-700 outline-none leading-relaxed overflow-hidden"
           />
         </div>
         <button
           onClick={() => onDelete(note.id)}
-          className={`shrink-0 rounded-md p-1.5 text-stone-700 hover:text-stone-400 hover:bg-stone-400/10 transition-all ${hovered ? "opacity-100" : "opacity-0"}`}
+          className={`shrink-0 rounded-md p-1.5 text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-400/10 transition-all ${hovered ? "opacity-100" : "opacity-0"}`}
         >
           <Trash2 size={12}/>
         </button>
       </div>
-      <p className="mt-2 text-[10px] text-stone-700">{relativeTime(String(note.data.created_at || note.updated_at))}</p>
+      <p className="mt-2 text-[10px] text-[var(--text-faint)]">{relativeTime(String(note.data.created_at || note.updated_at))}</p>
     </div>
   );
 }
@@ -1022,15 +1022,15 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-body text-[var(--text-secondary)]">Notes</p>
-        <button onClick={() => createNote.mutate()} disabled={createNote.isPending} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
+        <button onClick={() => createNote.mutate()} disabled={createNote.isPending} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
           <Plus size={12}/> New note
         </button>
       </div>
       {createNote.isPending && <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-[var(--surface-hover)] mb-2"/><div className="h-2 w-48 rounded bg-[var(--surface-hover)]"/></div>}
       {notes.length === 0 && !isLoading && !createNote.isPending ? (
         <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-          <FileText size={18} className="mb-2 text-stone-700"/>
-          <p className="text-xs text-stone-600">No notes yet. Click "New note" to get started.</p>
+          <FileText size={18} className="mb-2 text-[var(--text-faint)]"/>
+          <p className="text-xs text-[var(--text-faint)]">No notes yet. Click "New note" to get started.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -1101,23 +1101,23 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-body text-[var(--text-secondary)]">Tasks</p>
-        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
+        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Add task
         </button>
       </div>
       {adding && (
         <div className="flex items-center gap-2.5 rounded-sm border border-stone-500/20 bg-[var(--surface-hover)] px-3 py-2.5">
-          <Square size={14} className="text-stone-600 shrink-0"/>
+          <Square size={14} className="text-[var(--text-faint)] shrink-0"/>
           <input ref={inputRef} value={newTitle} onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && newTitle.trim()) createTask.mutate(newTitle.trim()); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
             placeholder="Task title… (Enter to save)" className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
-          <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-stone-600 hover:text-stone-400"><X size={12}/></button>
+          <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)]"><X size={12}/></button>
         </div>
       )}
       {tasks.length === 0 && !adding ? (
         <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-          <CheckSquare size={18} className="mb-2 text-stone-700"/>
-          <p className="text-xs text-stone-600">No tasks yet. Click "Add task" to get started.</p>
+          <CheckSquare size={18} className="mb-2 text-[var(--text-faint)]"/>
+          <p className="text-xs text-[var(--text-faint)]">No tasks yet. Click "Add task" to get started.</p>
         </div>
       ) : (
         <div className="space-y-0.5">
@@ -1127,7 +1127,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
             return (
               <div key={task.id} className="group flex items-center gap-3 rounded-sm px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
-                  {isDone ? <CheckSquare size={15} className="text-[#2f9e6b]"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
+                  {isDone ? <CheckSquare size={15} className="text-[#2f9e6b]"/> : <Square size={15} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"/>}
                 </button>
                 {isEditing ? (
                   <input
@@ -1141,17 +1141,17 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
                 ) : (
                   <span
                     onClick={() => !isDone && startEdit(task)}
-                    className={`flex-1 text-sm cursor-text ${isDone ? "line-through text-stone-600" : "text-stone-300 hover:text-[var(--text-primary)]"}`}
+                    className={`flex-1 text-sm cursor-text ${isDone ? "line-through text-[var(--text-faint)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
                   >
                     {String(task.data.title || "Untitled task")}
                   </span>
                 )}
                 {task.data.assignee != null && !isEditing && (
-                  <span className="text-[10px] text-stone-600 shrink-0 rounded bg-[var(--surface-hover)] px-1.5 py-0.5">{String(task.data.assignee)}</span>
+                  <span className="text-[10px] text-[var(--text-faint)] shrink-0 rounded bg-[var(--surface-hover)] px-1.5 py-0.5">{String(task.data.assignee)}</span>
                 )}
                 <button
                   onClick={() => deleteTask.mutate(task.id)}
-                  className="shrink-0 rounded p-1 text-stone-700 hover:text-stone-400 hover:bg-stone-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                  className="shrink-0 rounded p-1 text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-400/10 opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <Trash2 size={11}/>
                 </button>
@@ -1178,7 +1178,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
   return (
     <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-1.5 mb-2">
-        <AlignLeft size={11} className="text-stone-600"/>
+        <AlignLeft size={11} className="text-[var(--text-faint)]"/>
         <p className="text-body text-[var(--text-secondary)]">Description</p>
       </div>
       <textarea
@@ -1187,7 +1187,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
         onChange={e => { setDraft(e.target.value); autoGrow(); }}
         onBlur={() => { if (draft !== value) onSave(draft); }}
         placeholder="Add a description…"
-        className="w-full resize-none bg-transparent text-sm text-stone-300 placeholder-stone-700 outline-none leading-relaxed overflow-hidden"
+        className="w-full resize-none bg-transparent text-sm text-[var(--text-secondary)] placeholder-stone-700 outline-none leading-relaxed overflow-hidden"
         rows={3}
       />
     </div>
@@ -1198,7 +1198,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
 const CONTACT_LOG_TYPES = [
   { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-[#2f9e6b]", bg: "bg-[#2f9e6b]/10" },
   { value: "email",   label: "Email",   icon: Mail,          color: "text-[#717784]",    bg: "bg-[#717784]/10" },
-  { value: "meeting", label: "Meeting", icon: Video,         color: "text-stone-400",  bg: "bg-stone-400/10" },
+  { value: "meeting", label: "Meeting", icon: Video,         color: "text-[var(--text-secondary)]",  bg: "bg-stone-400/10" },
   { value: "message", label: "Message", icon: MessageSquare, color: "text-[#c6892e]",   bg: "bg-[#c6892e]/10" },
 ] as const;
 
@@ -1246,7 +1246,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-body text-[var(--text-secondary)]">Contact Log</p>
-        <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
+        <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Log contact
         </button>
       </div>
@@ -1260,7 +1260,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
               const active = logType === t.value;
               return (
                 <button key={t.value} onClick={() => setLogType(t.value)}
-                  className={`flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"}`}>
+                  className={`flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"}`}>
                   <Icon size={12}/> {t.label}
                 </button>
               );
@@ -1269,27 +1269,27 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           {/* Date + outcome row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[10px] text-stone-600 mb-1">Date & time</p>
+              <p className="text-[10px] text-[var(--text-faint)] mb-1">Date & time</p>
               <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
                 className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]"/>
             </div>
             <div>
-              <p className="text-[10px] text-stone-600 mb-1">Outcome</p>
+              <p className="text-[10px] text-[var(--text-faint)] mb-1">Outcome</p>
               <FieldSelect value={outcome} onChange={v => setOutcome(v)} ariaLabel="Outcome" className="w-full"
                 options={CONTACT_OUTCOMES.map(o => ({ value: o, label: o }))} />
             </div>
           </div>
           {/* Notes */}
           <div>
-            <p className="text-[10px] text-stone-600 mb-1">Notes</p>
+            <p className="text-[10px] text-[var(--text-faint)] mb-1">Notes</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
               placeholder="What was discussed?"
               className="w-full resize-none bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed"/>
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setAdding(false)} className="rounded-sm px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
+            <button onClick={() => setAdding(false)} className="rounded-sm px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">Cancel</button>
             <button onClick={() => createLog.mutate()} disabled={createLog.isPending}
-              className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50">
+              className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-stone-500/30 transition-colors disabled:opacity-50">
               {createLog.isPending ? "Saving…" : "Save log"}
             </button>
           </div>
@@ -1299,9 +1299,9 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
       {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>}
       {!isLoading && logs.length === 0 && !adding && (
         <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-          <PhoneCall size={18} className="mb-2 text-stone-700"/>
-          <p className="text-xs text-stone-600">No contact logs yet.</p>
-          <p className="mt-1 text-xs text-stone-700">Click "Log contact" to record a call, email, or meeting.</p>
+          <PhoneCall size={18} className="mb-2 text-[var(--text-faint)]"/>
+          <p className="text-xs text-[var(--text-faint)]">No contact logs yet.</p>
+          <p className="mt-1 text-xs text-[var(--text-faint)]">Click "Log contact" to record a call, email, or meeting.</p>
         </div>
       )}
       <div className="space-y-2">
@@ -1317,16 +1317,16 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className={`text-xs font-medium ${typeDef.color}`}>{typeDef.label}</span>
-                  <span className="text-[10px] text-stone-600">·</span>
-                  <span className="text-[10px] text-stone-500">{String(log.data.outcome || "")}</span>
-                  <span className="text-[10px] text-stone-700 ml-auto">{loggedAt}</span>
+                  <span className="text-[10px] text-[var(--text-faint)]">·</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">{String(log.data.outcome || "")}</span>
+                  <span className="text-[10px] text-[var(--text-faint)] ml-auto">{loggedAt}</span>
                 </div>
                 {!!log.data.notes && (
-                  <p className="text-xs text-stone-400 leading-relaxed">{String(log.data.notes)}</p>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{String(log.data.notes)}</p>
                 )}
               </div>
               <button onClick={() => deleteLog.mutate(log.id)}
-                className="shrink-0 rounded p-1 text-stone-700 hover:text-stone-400 hover:bg-stone-400/10 opacity-0 group-hover:opacity-100 transition-all">
+                className="shrink-0 rounded p-1 text-[var(--text-faint)] hover:text-[var(--text-secondary)] hover:bg-stone-400/10 opacity-0 group-hover:opacity-100 transition-all">
                 <Trash2 size={11}/>
               </button>
             </div>
@@ -1344,28 +1344,28 @@ interface QuoteRecord { id: string; client_name?: string; total?: number; curren
 interface ExpenseRecord { id: string; description?: string; amount_cents: number; currency: string; status: string; category?: string }
 
 const INVOICE_STATUS_COLORS: Record<string, string> = {
-  draft:     "text-stone-400 bg-stone-400/10",
+  draft:     "text-[var(--text-secondary)] bg-stone-400/10",
   sent:      "text-[#717784] bg-[#717784]/10",
-  viewed:    "text-stone-400 bg-stone-400/10",
+  viewed:    "text-[var(--text-secondary)] bg-stone-400/10",
   paid:      "text-[#2f9e6b] bg-[#2f9e6b]/10",
   overdue:   "text-[#c6892e] bg-[#c6892e]/10",
-  cancelled: "text-stone-600 bg-stone-600/10",
+  cancelled: "text-[var(--text-faint)] bg-stone-600/10",
 };
 // Mirrors the backend credit-note state machine (verified/rejected, not manager_approved).
 const CN_STATUS_COLORS: Record<string, string> = {
-  draft:          "text-stone-400 bg-stone-400/10",
+  draft:          "text-[var(--text-secondary)] bg-stone-400/10",
   pending_review: "text-[#c6892e] bg-[#c6892e]/10",
   verified:       "text-[#717784] bg-[#717784]/10",
   rejected:       "text-[#d1524a] bg-[#d1524a]/10",
   executed:       "text-[#2f9e6b] bg-[#2f9e6b]/10",
-  void:           "text-stone-600 bg-stone-600/10",
+  void:           "text-[var(--text-faint)] bg-stone-600/10",
 };
 const QUOTE_STATUS_COLORS: Record<string, string> = {
-  draft:    "text-stone-400 bg-stone-400/10",
+  draft:    "text-[var(--text-secondary)] bg-stone-400/10",
   sent:     "text-[#717784] bg-[#717784]/10",
   accepted: "text-[#2f9e6b] bg-[#2f9e6b]/10",
   declined: "text-[#d1524a] bg-[#d1524a]/10",
-  expired:  "text-stone-600 bg-stone-600/10",
+  expired:  "text-[var(--text-faint)] bg-stone-600/10",
 };
 
 // Shared money formatter (viewer locale). This hardcoded en-GB + a GBP default, so any finance
@@ -1460,10 +1460,10 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { label: billedUnconverted > 0 ? `Total Billed · ${billedUnconverted} unconverted` : "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
-          { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
-          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#2f9e6b]" },
-          { label: "Open Quotes", value: fmtCcy(openQuotes, defaultCurrency), accent: "text-stone-400" },
-          { label: "Expenses", value: fmtCcy(totalExpenses, defaultCurrency), accent: "text-stone-400" },
+          { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-[var(--text-secondary)]" },
+          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-[var(--text-secondary)]" : "text-[#2f9e6b]" },
+          { label: "Open Quotes", value: fmtCcy(openQuotes, defaultCurrency), accent: "text-[var(--text-secondary)]" },
+          { label: "Expenses", value: fmtCcy(totalExpenses, defaultCurrency), accent: "text-[var(--text-secondary)]" },
         ].map(card => (
           <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-body text-[var(--text-secondary)] mb-1.5">{card.label}</p>
@@ -1478,7 +1478,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <p className="text-body text-[var(--text-secondary)]">Invoices</p>
           <button
             onClick={() => setShowNewInvoice(o => !o)}
-            className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Plus size={12}/> New Invoice
           </button>
@@ -1489,7 +1489,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
             <p className="text-xs font-medium text-[var(--text-primary)]">New Invoice for {recordName}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-[10px] text-stone-600 mb-1 block">Amount</label>
+                <label className="text-[10px] text-[var(--text-faint)] mb-1 block">Amount</label>
                 <input
                   type="number"
                   value={newInvAmount}
@@ -1499,7 +1499,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
                 />
               </div>
               <div>
-                <label className="text-[10px] text-stone-600 mb-1 block">Currency</label>
+                <label className="text-[10px] text-[var(--text-faint)] mb-1 block">Currency</label>
                 <FieldSelect value={newInvCurrency} onChange={v => setNewInvCurrency(v)} ariaLabel="Currency" className="w-full text-[12px]"
                   options={[
                     { value: "GBP", label: "GBP" },
@@ -1509,7 +1509,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
                   ]} />
               </div>
               <div>
-                <label className="text-[10px] text-stone-600 mb-1 block">Due date</label>
+                <label className="text-[10px] text-[var(--text-faint)] mb-1 block">Due date</label>
                 <input
                   type="date"
                   value={newInvDueDate}
@@ -1519,11 +1519,11 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowNewInvoice(false)} className="rounded-sm px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
+              <button onClick={() => setShowNewInvoice(false)} className="rounded-sm px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">Cancel</button>
               <button
                 onClick={() => createInvoice.mutate()}
                 disabled={createInvoice.isPending || !newInvAmount}
-                className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50"
+                className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-stone-500/30 transition-colors disabled:opacity-50"
               >
                 {createInvoice.isPending ? "Creating…" : "Create Invoice"}
               </button>
@@ -1535,18 +1535,18 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : invoices.length === 0 ? (
           <div className="flex min-h-24 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-            <Receipt size={16} className="mb-1.5 text-stone-700"/>
-            <p className="text-xs text-stone-600">No invoices yet for this record.</p>
+            <Receipt size={16} className="mb-1.5 text-[var(--text-faint)]"/>
+            <p className="text-xs text-[var(--text-faint)]">No invoices yet for this record.</p>
           </div>
         ) : (
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border-soft)]">
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Number</th>
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Amount</th>
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Status</th>
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Due Date</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-faint)]">Number</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-faint)]">Amount</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-faint)]">Status</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-faint)]">Due Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -1557,11 +1557,11 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
                     </td>
                     <td className="px-4 py-2.5 text-[12px] text-[var(--text-primary)]">{fmtCcy(inv.total, inv.currency)}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${INVOICE_STATUS_COLORS[inv.status] ?? "text-stone-400 bg-stone-400/10"}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${INVOICE_STATUS_COLORS[inv.status] ?? "text-[var(--text-secondary)] bg-stone-400/10"}`}>
                         {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-[12px] text-stone-500">
+                    <td className="px-4 py-2.5 text-[12px] text-[var(--text-muted)]">
                       {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}
                     </td>
                   </tr>
@@ -1579,18 +1579,18 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : creditNotes.length === 0 ? (
           <div className="flex min-h-20 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-            <CreditCard size={16} className="mb-1.5 text-stone-700"/>
-            <p className="text-xs text-stone-600">No credit notes for this record.</p>
+            <CreditCard size={16} className="mb-1.5 text-[var(--text-faint)]"/>
+            <p className="text-xs text-[var(--text-faint)]">No credit notes for this record.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {creditNotes.map(cn => (
               <Link key={cn.id} to={`/finance/credit-notes/${cn.id}`}
                 className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 hover:border-[var(--border-soft)] transition-colors">
-                <CreditCard size={13} className="text-stone-400 shrink-0"/>
+                <CreditCard size={13} className="text-[var(--text-secondary)] shrink-0"/>
                 <span className="flex-1 text-[12px] text-[var(--text-primary)]">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
-                <span className="text-[11px] text-stone-500 capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CN_STATUS_COLORS[cn.status] ?? "text-stone-400 bg-stone-400/10"}`}>
+                <span className="text-[11px] text-[var(--text-muted)] capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CN_STATUS_COLORS[cn.status] ?? "text-[var(--text-secondary)] bg-stone-400/10"}`}>
                   {cn.status.replace(/_/g, " ")}
                 </span>
               </Link>
@@ -1606,9 +1606,9 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">
             {quotes.map(q => (
               <div key={q.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
-                <Receipt size={13} className="text-stone-400 shrink-0"/>
+                <Receipt size={13} className="text-[var(--text-secondary)] shrink-0"/>
                 <span className="flex-1 text-[12px] text-[var(--text-primary)]">{fmtCcy(q.total ?? 0, q.currency)}</span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${QUOTE_STATUS_COLORS[q.status] ?? "text-stone-400 bg-stone-400/10"}`}>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${QUOTE_STATUS_COLORS[q.status] ?? "text-[var(--text-secondary)] bg-stone-400/10"}`}>
                   {q.status.charAt(0).toUpperCase() + q.status.slice(1)}
                 </span>
               </div>
@@ -1624,10 +1624,10 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">
             {expenses.map(e => (
               <div key={e.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
-                <Receipt size={13} className="text-stone-400 shrink-0"/>
+                <Receipt size={13} className="text-[var(--text-secondary)] shrink-0"/>
                 <span className="flex-1 text-[12px] text-[var(--text-primary)]">{e.description || "Expense"}</span>
-                <span className="text-[12px] text-stone-400">{fmtCcy(e.amount_cents / 100, e.currency)}</span>
-                <span className="text-[10px] text-stone-500 capitalize">{(e.category ?? "").replace(/_/g, " ")}</span>
+                <span className="text-[12px] text-[var(--text-secondary)]">{fmtCcy(e.amount_cents / 100, e.currency)}</span>
+                <span className="text-[10px] text-[var(--text-muted)] capitalize">{(e.category ?? "").replace(/_/g, " ")}</span>
               </div>
             ))}
           </div>
@@ -1690,23 +1690,23 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
       <div className="flex items-center justify-between">
         <p className="text-body text-[var(--text-secondary)]">{tabLabel}</p>
         <div ref={searchRef} className="relative">
-          <button onClick={() => setSearchOpen(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
+          <button onClick={() => setSearchOpen(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
             <Link2 size={12}/> Link record
           </button>
           {searchOpen && (
             <div className="dropdown-panel absolute right-0 top-full mt-1 w-72 z-50 p-2">
               <div className="flex items-center gap-2 border border-[var(--border-soft)] rounded-md px-2 py-1.5 mb-2 bg-[var(--surface-hover)]">
-                <Search size={12} className="text-stone-600 shrink-0"/>
+                <Search size={12} className="text-[var(--text-faint)] shrink-0"/>
                 <input ref={searchInput} value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Search records…" className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
               </div>
-              {allLoading ? <p className="text-xs text-stone-600 px-2 py-2">Loading…</p> : searchResults.length === 0 ? (
-                <p className="text-xs text-stone-600 px-2 py-2">{searchText ? "No matches" : "No records to link"}</p>
+              {allLoading ? <p className="text-xs text-[var(--text-faint)] px-2 py-2">Loading…</p> : searchResults.length === 0 ? (
+                <p className="text-xs text-[var(--text-faint)] px-2 py-2">{searchText ? "No matches" : "No records to link"}</p>
               ) : searchResults.map(r => (
                 <button key={r.id} onClick={() => linkRecord.mutate(r.id)} disabled={linkRecord.isPending}
                   className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors group">
                   <div className={`h-6 w-6 rounded-sm border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(rname(r))}`}>{initials(rname(r))}</div>
-                  <div className="min-w-0 text-left"><p className="text-xs text-stone-300 truncate">{rname(r)}</p><p className="text-[10px] text-stone-600 capitalize">{r.object_type}</p></div>
-                  <Link2 size={11} className="text-stone-700 group-hover:text-stone-400 ml-auto shrink-0 transition-colors"/>
+                  <div className="min-w-0 text-left"><p className="text-xs text-[var(--text-secondary)] truncate">{rname(r)}</p><p className="text-[10px] text-[var(--text-faint)] capitalize">{r.object_type}</p></div>
+                  <Link2 size={11} className="text-[var(--text-faint)] group-hover:text-[var(--text-secondary)] ml-auto shrink-0 transition-colors"/>
                 </button>
               ))}
             </div>
@@ -1716,9 +1716,9 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
       {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
        : visibleRelated.length === 0 ? (
         <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-          <Link2 size={18} className="mb-2 text-stone-700"/>
-          <p className="text-xs text-stone-600">No linked records yet.</p>
-          <p className="mt-1 text-xs text-stone-700">Click "Link record" to associate companies, people, or deals.</p>
+          <Link2 size={18} className="mb-2 text-[var(--text-faint)]"/>
+          <p className="text-xs text-[var(--text-faint)]">No linked records yet.</p>
+          <p className="mt-1 text-xs text-[var(--text-faint)]">Click "Link record" to associate companies, people, or deals.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
@@ -1728,8 +1728,8 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
                 className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-[var(--surface-hover)] group">
                 <div className={`h-8 w-8 rounded-sm border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
-                <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
-                <ChevronLeft size={13} className="text-stone-700 group-hover:text-stone-400 rotate-180 transition-colors shrink-0"/>
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-[var(--text-faint)] capitalize">{r.object_type}</p></div>
+                <ChevronLeft size={13} className="text-[var(--text-faint)] group-hover:text-[var(--text-secondary)] rotate-180 transition-colors shrink-0"/>
               </Link>
             );
           })}
@@ -1970,13 +1970,13 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo} wrapClass="shrink-0"/>
               <div className="flex-1 min-w-0">
                 <h1 className="truncate text-[20px] font-semibold leading-tight text-[var(--text-primary)]">{name}</h1>
-                <p className="text-[11px] text-stone-500 truncate mt-0.5">
+                <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                   {fmt((data.domain ?? data.website ?? "") as string) !== "—"
                     ? fmt((data.domain ?? data.website ?? "") as string)
                     : record.object_type}
                 </p>
                 {lastContactLabel && (
-                  <p className="text-[10px] text-stone-600 mt-1 flex items-center gap-1">
+                  <p className="text-[10px] text-[var(--text-faint)] mt-1 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#2f9e6b] inline-block"/>
                     {lastContactLabel}
                   </p>
@@ -2040,23 +2040,23 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               <a
                 href={email ? `mailto:${email}` : undefined}
                 onClick={e => { if (!email) e.preventDefault(); }}
-                className={`flex items-center justify-center gap-1.5 rounded-sm border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-300 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-700 cursor-not-allowed"}`}
+                className={`flex items-center justify-center gap-1.5 rounded-sm border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-faint)] cursor-not-allowed"}`}
               >
                 <Mail size={12}/> Email
               </a>
               <div ref={listRef} className="relative">
                 <button
                   onClick={() => setListOpen(o => !o)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   <List size={12}/> Lists
                   <ChevronDown size={10} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
                 </button>
                 {listOpen && (
                   <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50">
-                    {listsQuery.isLoading && <p className="px-3 py-3 text-xs text-stone-600 text-center">Loading…</p>}
+                    {listsQuery.isLoading && <p className="px-3 py-3 text-xs text-[var(--text-faint)] text-center">Loading…</p>}
                     {!listsQuery.isLoading && (listsQuery.data ?? []).length === 0 && (
-                      <p className="px-3 py-3 text-xs text-stone-600 text-center">No lists yet</p>
+                      <p className="px-3 py-3 text-xs text-[var(--text-faint)] text-center">No lists yet</p>
                     )}
                     <div className="max-h-48 overflow-y-auto">
                       {(listsQuery.data ?? []).map(list => {

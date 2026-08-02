@@ -223,11 +223,11 @@ export function DedupPanel({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <LogoMark size={14} className="text-stone-400" />
+              <LogoMark size={14} className="text-[var(--text-secondary)]" />
             </div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">AI Data Cleaner</span>
             {step === "review" && groups.length > 0 && (
-              <span className="text-xs text-stone-400 bg-stone-400/10 border border-stone-400/20 rounded-full px-2 py-0.5">
+              <span className="text-xs text-[var(--text-secondary)] bg-stone-400/10 border border-stone-400/20 rounded-full px-2 py-0.5">
                 {groups.length} duplicate{groups.length > 1 ? "s" : ""} found
               </span>
             )}
@@ -243,7 +243,7 @@ export function DedupPanel({
           {step === "scan" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
               <div className="h-14 w-14 rounded-sm bg-stone-500/10 border border-stone-500/15 flex items-center justify-center">
-                <LogoMark size={24} className="text-stone-400" />
+                <LogoMark size={24} className="text-[var(--text-secondary)]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Scan {records.length} records for duplicates</p>
@@ -346,7 +346,7 @@ export function DedupPanel({
                 {[
                   { icon: <Mail size={12} />, label: "Contacts with email", color: "text-[#717784]" },
                   { icon: <Phone size={12} />, label: "Contacts with phone", color: "text-[#2f9e6b]" },
-                  { icon: <LogoMark size={12} />, label: "Contacts with both", color: "text-stone-400" },
+                  { icon: <LogoMark size={12} />, label: "Contacts with both", color: "text-[var(--text-secondary)]" },
                 ].map((item, i) => (
                   <div key={i} className={`flex items-center gap-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 ${item.color}`}>
                     {item.icon}

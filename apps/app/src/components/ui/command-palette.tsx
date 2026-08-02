@@ -14,7 +14,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 };
 const TYPE_COLOR: Record<string, string> = {
   companies: "text-[#717784]", people: "text-[#2f9e6b]", deals: "text-[#c6892e]",
-  task: "text-stone-400", note: "text-stone-400",
+  task: "text-[var(--text-secondary)]", note: "text-[var(--text-secondary)]",
   invoice: "text-[#2f9e6b]", quote: "text-[#717784]", expense: "text-[#c6892e]", credit_note: "text-[#717784]",
 };
 
@@ -146,7 +146,7 @@ export function CommandPalette() {
       >
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-soft)]">
-          <Search size={15} className="text-stone-500 shrink-0"/>
+          <Search size={15} className="text-[var(--text-muted)] shrink-0"/>
           <input
             ref={inputRef}
             value={input}
@@ -155,7 +155,7 @@ export function CommandPalette() {
             placeholder="Search records, pages, or ask AI…"
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none"
           />
-          <kbd className="hidden sm:inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-1.5 py-0.5 text-[10px] text-stone-600">ESC</kbd>
+          <kbd className="hidden sm:inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-faint)]">ESC</kbd>
         </div>
 
         {/* Results */}
@@ -168,7 +168,7 @@ export function CommandPalette() {
                 <button key="ai" onClick={() => go(item)} onMouseEnter={() => setIdx(i)} className={rowCls}>
                   <span style={{ color: "var(--section-accent)" }} className="shrink-0"><AIMark size={13}/></span>
                   <span className="flex-1 text-left text-sm text-[var(--text-primary)] truncate">Ask Mondaily AI: <span className="text-[var(--text-muted)]">"{item.label}"</span></span>
-                  <span className="text-[10px] text-stone-600 shrink-0">↵</span>
+                  <span className="text-[10px] text-[var(--text-faint)] shrink-0">↵</span>
                 </button>
               );
             }
@@ -178,16 +178,16 @@ export function CommandPalette() {
                 <button key={"a" + item.to} onClick={() => go(item)} onMouseEnter={() => setIdx(i)} className={rowCls}>
                   <Icon size={14} className="text-[var(--text-muted)] shrink-0"/>
                   <span className="flex-1 text-left text-sm text-[var(--text-primary)] truncate">{item.label}</span>
-                  <span className="text-[10px] text-stone-600 capitalize shrink-0">action</span>
+                  <span className="text-[10px] text-[var(--text-faint)] capitalize shrink-0">action</span>
                 </button>
               );
             }
             if (item.kind === "nav") {
               return (
                 <button key={"n" + item.to} onClick={() => go(item)} onMouseEnter={() => setIdx(i)} className={rowCls}>
-                  <ArrowRight size={14} className="text-stone-500 shrink-0"/>
+                  <ArrowRight size={14} className="text-[var(--text-muted)] shrink-0"/>
                   <span className="flex-1 text-left text-sm text-[var(--text-primary)] truncate">{item.label}</span>
-                  <span className="text-[10px] text-stone-600 shrink-0">page</span>
+                  <span className="text-[10px] text-[var(--text-faint)] shrink-0">page</span>
                 </button>
               );
             }
@@ -195,12 +195,12 @@ export function CommandPalette() {
             const d = item.data as Record<string, unknown>;
             const name = String(d.name ?? d.title ?? item.id);
             const Icon = TYPE_ICON[item.object_type] ?? FileText;
-            const color = TYPE_COLOR[item.object_type] ?? "text-stone-500";
+            const color = TYPE_COLOR[item.object_type] ?? "text-[var(--text-muted)]";
             return (
               <button key={item.id + i} onClick={() => go(item)} onMouseEnter={() => setIdx(i)} className={rowCls}>
                 <Icon size={14} className={`${color} shrink-0`}/>
                 <span className="flex-1 text-left text-sm text-[var(--text-primary)] truncate">{name}</span>
-                <span className="text-[10px] text-stone-600 capitalize shrink-0">{item.object_type}</span>
+                <span className="text-[10px] text-[var(--text-faint)] capitalize shrink-0">{item.object_type}</span>
               </button>
             );
           })}
@@ -208,9 +208,9 @@ export function CommandPalette() {
 
         {/* Footer hint */}
         <div className="flex items-center gap-3 border-t border-[var(--border-soft)] px-4 py-2">
-          <span className="text-[10px] text-stone-700">↑↓ navigate</span>
-          <span className="text-[10px] text-stone-700">↵ open</span>
-          <span className="text-[10px] text-stone-700 ml-auto">⌘K to close</span>
+          <span className="text-[10px] text-[var(--text-faint)]">↑↓ navigate</span>
+          <span className="text-[10px] text-[var(--text-faint)]">↵ open</span>
+          <span className="text-[10px] text-[var(--text-faint)] ml-auto">⌘K to close</span>
         </div>
       </div>
     </div>

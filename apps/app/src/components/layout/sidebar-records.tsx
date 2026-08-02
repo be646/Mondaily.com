@@ -50,7 +50,7 @@ export function SidebarObjects() {
     <section className="mt-3">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-[var(--text-primary)]"
         style={{ color: "var(--text-faint)" }}
       >
         <span className="flex-1 text-left">Records{activeObject ? ` · ${label(activeObject)}` : ""}</span>
@@ -67,19 +67,19 @@ export function SidebarObjects() {
                 to={`/objects/${obj.slug}`}
                 className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                   active
-                    ? "font-medium text-stone-950 dark:text-stone-50"
-                    : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"
+                    ? "font-medium text-stone-950 dark:text-[var(--text-primary)]"
+                    : "text-[var(--text-muted)] hover:bg-stone-100 hover:text-stone-950 dark:text-[var(--text-muted)] dark:hover:bg-stone-900 dark:hover:text-[var(--text-primary)]"
                 }`}
               >
                 {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50" />}
-                <span className={active ? "text-stone-950 dark:text-stone-50" : "text-stone-400 dark:text-stone-600"}>
+                <span className={active ? "text-stone-950 dark:text-[var(--text-primary)]" : "text-[var(--text-secondary)] dark:text-[var(--text-faint)]"}>
                   {objectIcon(obj.slug)}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{label(obj)}</span>
                 {/* Count renders whenever the API sent one — including zero, per the tabs contract:
                     a hidden zero reflows as data arrives and hides the most useful fact. */}
                 {typeof obj.record_count === "number" && (
-                  <span className={`shrink-0 text-[10.5px] tabular-nums ${active ? "text-stone-500" : "text-stone-400 dark:text-stone-600"}`}>
+                  <span className={`shrink-0 text-[10.5px] tabular-nums ${active ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)] dark:text-[var(--text-faint)]"}`}>
                     {obj.record_count.toLocaleString()}
                   </span>
                 )}
@@ -88,14 +88,14 @@ export function SidebarObjects() {
           })}
           {hiddenCount > 0 && (
             <button onClick={() => setShowAll(true)}
-              className="mb-px flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700 dark:text-stone-600 dark:hover:bg-stone-900 dark:hover:text-stone-300">
+              className="mb-px flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-stone-100 hover:text-[var(--text-faint)] dark:hover:bg-stone-900 dark:hover:text-[var(--text-secondary)]">
               <span className="w-[14px]" />
               Show all ({hiddenCount} more)
             </button>
           )}
           {showAll && objects.length > VISIBLE && (
             <button onClick={() => setShowAll(false)}
-              className="mb-px flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700 dark:text-stone-600 dark:hover:bg-stone-900 dark:hover:text-stone-300">
+              className="mb-px flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-stone-100 hover:text-[var(--text-faint)] dark:hover:bg-stone-900 dark:hover:text-[var(--text-secondary)]">
               <span className="w-[14px]" />
               Show less
             </button>

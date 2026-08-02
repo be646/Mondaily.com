@@ -31,11 +31,11 @@ interface Quote {
 }
 
 const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType }> = {
-  draft:    { label: "Draft",    color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
+  draft:    { label: "Draft",    color: "text-[var(--text-secondary)] bg-stone-400/10",     icon: ReceiptText   },
   sent:     { label: "Sent",     color: "text-status-neutral bg-status-neutral/10",     icon: Send          },
   accepted: { label: "Accepted", color: "text-status-ok bg-status-ok/10", icon: CheckCircle2 },
   declined: { label: "Declined", color: "text-status-error bg-status-error/10",       icon: XCircle       },
-  expired:  { label: "Expired",  color: "text-stone-600 bg-stone-600/10",     icon: Clock         },
+  expired:  { label: "Expired",  color: "text-[var(--text-faint)] bg-stone-600/10",     icon: Clock         },
 };
 
 const FILTERS = [

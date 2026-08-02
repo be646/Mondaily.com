@@ -844,7 +844,7 @@ export function HomePage() {
                   <button key={label} onClick={() => firePrompt(serverPrompt(promptKey, prompt))}
                     className="group flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[var(--surface-hover)] transition-colors group-hover:bg-[var(--surface-selected)]">
-                      <Icon size={13} className="text-[var(--text-secondary)] dark:text-stone-400"/>
+                      <Icon size={13} className="text-[var(--text-secondary)]"/>
                     </span>
                     <span>
                       <span className="block text-sm transition-colors" style={{ color: "var(--text-primary)" }}>{label}</span>
@@ -978,15 +978,15 @@ export function HomePage() {
           <div className="mx-auto mt-3 flex max-w-3xl flex-wrap items-center justify-center gap-2">
             <span className="text-label" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
+              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
             ))}
             <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
           <div className="mx-auto mt-2 flex max-w-3xl justify-center">
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
           </div>
         )}
 
@@ -1089,13 +1089,13 @@ export function HomePage() {
         <section className="flow-panel-clean flex flex-col overflow-hidden">
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare size={13} className="text-[var(--text-secondary)] dark:text-stone-400"/>
+              <CheckSquare size={13} className="text-[var(--text-secondary)]"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{loc.t("nav.tasks")}</span>
               {/* Previously claimed AI ordering that never happened — the list is sorted by due
                   date in the widget below, and the label now says exactly that. */}
               <span className="flow-micro-badge">Soonest due</span>
             </div>
-            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-stone-900 dark:hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }}>
               View all <ArrowUpRight size={11}/>
             </Link>
           </div>
@@ -1174,7 +1174,7 @@ export function HomePage() {
                     {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
                   <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
-                    className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-900 disabled:opacity-30 dark:text-stone-400 dark:hover:text-stone-100">
+                    className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-900 disabled:opacity-30 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-primary)]">
                     <Send size={11}/>
                   </button>
                 </>
@@ -1209,7 +1209,7 @@ export function HomePage() {
             <section className="flow-panel-clean flex flex-col overflow-hidden">
               <div className="flow-panel-heading flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Calendar size={13} className="text-[var(--text-secondary)] dark:text-stone-400"/>
+                  <Calendar size={13} className="text-[var(--text-secondary)]"/>
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
                   {calConnected && cal?.provider && (
                     <span className="flow-micro-badge" title={cal.email}>

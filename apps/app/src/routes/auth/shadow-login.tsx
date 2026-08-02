@@ -75,7 +75,7 @@ export function ShadowLoginPage() {
         subtitle="Mondaily upgraded to our own secure sign-in. We've emailed an activation link to set your password — it expires in 30 minutes.">
         <div className="flex items-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3">
           <MailCheck size={16} style={{ color: SAGE }} />
-          <span className="truncate text-[12.5px] text-zinc-200">{email}</span>
+          <span className="truncate text-[12.5px] text-[var(--text-primary)]">{email}</span>
         </div>
       </AuthShell>
     );
@@ -92,7 +92,7 @@ export function ShadowLoginPage() {
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Verifying…</> : "Sign in"}
         </GlowButton>
-        <button type="button" onClick={() => navigate("/auth/forgot")} className="w-full text-center text-[11px] text-[var(--text-muted)] transition-colors hover:text-zinc-300">Forgot password?</button>
+        <button type="button" onClick={() => navigate("/auth/forgot")} className="w-full text-center text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">Forgot password?</button>
       </form>
     </AuthShell>
   );

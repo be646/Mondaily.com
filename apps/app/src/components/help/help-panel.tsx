@@ -71,7 +71,7 @@ export function HelpTopButton() {
   const { open } = useHelp();
   return (
     <button onClick={() => open()} title="Help & Support" aria-label="Open Help"
-      className="flex h-7 w-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
       <HelpCircle size={15} />
     </button>
   );

@@ -178,7 +178,7 @@ export function StripePaymentModal({
             <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Upgrade to {planLabel}</div>
             <div className="text-[12px]" style={{ color: "var(--text-muted)" }}>{priceLabel}</div>
           </div>
-          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={16} /></button>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16} /></button>
         </div>
 
         <div className="space-y-4 p-5">

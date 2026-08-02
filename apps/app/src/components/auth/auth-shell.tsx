@@ -8,7 +8,7 @@ export function AuthShell({ kicker, title, subtitle, children, footer }: {
   kicker: string; title: string; subtitle?: string; children: ReactNode; footer?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-mono text-zinc-300">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-mono text-[var(--text-secondary)]">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}
         className="w-full max-w-[400px] overflow-hidden rounded-sm border border-[var(--border-soft)] bg-zinc-900/40">
         <div className="border-b border-[var(--border-soft)] px-6 py-3.5">
@@ -18,7 +18,7 @@ export function AuthShell({ kicker, title, subtitle, children, footer }: {
           </div>
         </div>
         <div className="px-6 py-6">
-          <h1 className="text-[18px] font-semibold tracking-tight text-zinc-100">{title}</h1>
+          <h1 className="text-[18px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
           {subtitle && <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-muted)]">{subtitle}</p>}
           <div className="mt-5">{children}</div>
         </div>
@@ -35,7 +35,7 @@ export function CapsuleInput({ label, hint, error, ...props }: { label: string; 
       <span className="mb-1.5 block text-[10.5px] uppercase tracking-wider text-[var(--text-muted)]">{label}</span>
       <input
         {...props}
-        className={`w-full rounded-sm border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:opacity-60 ${error ? "border-[#d1524a]" : "border-[var(--border-soft)] focus:border-[#8fcf7f]"}`}
+        className={`w-full rounded-sm border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:opacity-60 ${error ? "border-[#d1524a]" : "border-[var(--border-soft)] focus:border-[#8fcf7f]"}`}
       />
       {error ? <span className="mt-1 block text-[10.5px] text-[#d1524a]">{error}</span>
         : hint ? <span className="mt-1 block text-[10.5px] text-[var(--text-muted)]">{hint}</span> : null}

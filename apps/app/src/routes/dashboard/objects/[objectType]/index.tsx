@@ -39,10 +39,10 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
   return (
     <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-500 ${
       done
-        ? "border-stone-600/50 bg-stone-800/40 text-stone-300"
-        : "border-stone-700/40 bg-stone-900/30 text-stone-500"
+        ? "border-stone-600/50 bg-stone-800/40 text-[var(--text-secondary)]"
+        : "border-stone-700/40 bg-stone-900/30 text-[var(--text-muted)]"
     }`}>
-      <LogoMark size={12} className={done ? "text-stone-300" : "animate-pulse text-stone-600"}/>
+      <LogoMark size={12} className={done ? "text-[var(--text-secondary)]" : "animate-pulse text-[var(--text-faint)]"}/>
       {done
         ? `AI enriched "${name}" — fields auto-populated`
         : `Enriching "${name}" in background…`}
@@ -369,7 +369,7 @@ function CreateRecordModal({
                   <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)] last:border-0">
                     <span className={`text-[11.5px] font-medium select-none truncate flex items-center gap-1 first-letter:uppercase ${isRequired ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"}`}>
                       {label(k)}
-                      {isRequired && <span className="text-stone-400 text-[10px]">*</span>}
+                      {isRequired && <span className="text-[var(--text-secondary)] text-[10px]">*</span>}
                     </span>
                     {kind === "owner" ? (
                       <select value={values[k] ?? ""} onChange={e => set(e.target.value)} className={inputCls}>
@@ -454,10 +454,10 @@ function CreateRecordModal({
                   <CategoryPills categories={selectedCats} onUpdate={setCats}/>
                 </div>
               </div>
-              {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
+              {error && <p className="pt-2 text-xs text-[var(--text-secondary)]">{error}</p>}
             </div>
             <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3.5">
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-stone-500 select-none">
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--text-muted)] select-none">
                 <Toggle checked={createMore} onChange={setCreateMore}/>
                 Create more
               </label>
@@ -480,8 +480,8 @@ function CreateRecordModal({
             {/* Left: prompt panel — scrolls inside the drawer; the footer button stays reachable. */}
             <div className="flex min-w-0 flex-1 flex-col overflow-auto">
               <div className="px-5 py-4 space-y-3">
-                <p className="text-[11px] text-stone-500 leading-relaxed">
-                  Describe what you're looking for. The agent searches the live web and extracts only real, source-backed <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> — never invented data.
+                <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                  Describe what you're looking for. The agent searches the live web and extracts only real, source-backed <strong className="text-[var(--text-secondary)]">{objectType.replace(/[-_]/g, " ")}</strong> — never invented data.
                 </p>
                 <textarea
                   ref={promptRef}
@@ -495,26 +495,26 @@ function CreateRecordModal({
                 {/* Example chips */}
                 <div className="flex flex-wrap gap-1.5">
                   {examples.map(ex => (
-                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[10px] text-stone-500 hover:border-[var(--border-soft)] hover:text-stone-300 transition-colors text-left">
+                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[10px] text-[var(--text-muted)] hover:border-[var(--border-soft)] hover:text-[var(--text-secondary)] transition-colors text-left">
                       {ex}
                     </button>
                   ))}
                 </div>
                 {/* Count selector */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-stone-500">Generate</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Generate</span>
                   <div className="flex items-center gap-1">
                     {[5,10,20,50].map(n => (
                       <button
                         key={n}
                         onClick={() => setAiCount(n)}
-                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-500 hover:text-stone-300"}`}
+                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
                       >{n}</button>
                     ))}
                   </div>
-                  <span className="text-[11px] text-stone-500">records</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">records</span>
                 </div>
-                {aiError && <p className="text-xs text-stone-400">{aiError}</p>}
+                {aiError && <p className="text-xs text-[var(--text-secondary)]">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3.5">
                 <button onClick={onClose} className="btn-secondary px-3 py-1.5 text-xs">
@@ -534,8 +534,8 @@ function CreateRecordModal({
             {aiRecords.length > 0 && (
               <div className="hidden sm:flex flex-col border-l border-[var(--border-soft)] w-[240px] shrink-0 overflow-auto">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
-                  <span className="text-[11px] font-semibold text-stone-300">{aiRecords.length} real records found</span>
-                  <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{aiRecords.length} real records found</span>
+                  <button onClick={toggleAll} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
                     {aiSelected.size === aiRecords.length ? "Deselect all" : "Select all"}
                   </button>
                 </div>
@@ -550,9 +550,9 @@ function CreateRecordModal({
                         {aiSelected.has(i) && <Check size={10} className="text-[var(--text-primary)] m-auto mt-[1px]"/>}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-stone-200 truncate">{rec.name || "—"}</p>
+                        <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{rec.name || "—"}</p>
                         {fieldKeys.slice(1, 3).map(k => rec[k] && (
-                          <p key={k} className="text-[10px] text-stone-600 truncate">{rec[k]}</p>
+                          <p key={k} className="text-[10px] text-[var(--text-faint)] truncate">{rec[k]}</p>
                         ))}
                       </div>
                     </div>
@@ -564,7 +564,7 @@ function CreateRecordModal({
                       <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
                         <div className="h-full bg-stone-500 transition-all duration-300" style={{ width: `${aiSaveProgress}%` }}/>
                       </div>
-                      <p className="text-center text-[10px] text-stone-500">Saving… {aiSaveProgress}%</p>
+                      <p className="text-center text-[10px] text-[var(--text-muted)]">Saving… {aiSaveProgress}%</p>
                     </div>
                   ) : (
                     <button
@@ -696,11 +696,11 @@ function AIFillModal({
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <LogoMark size={13} className="text-stone-400"/>
+              <LogoMark size={13} className="text-[var(--text-secondary)]"/>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[var(--text-primary)] capitalize">Fill "{cleanName}" with AI</p>
-              <p className="text-[10px] text-stone-600">
+              <p className="text-[10px] text-[var(--text-faint)]">
                 {fieldKeys.length} column{fieldKeys.length !== 1 ? "s" : ""}: {fieldKeys.slice(0, 4).map(label).join(", ")}{fieldKeys.length > 4 ? ` +${fieldKeys.length - 4} more` : ""}
               </p>
             </div>
@@ -715,7 +715,7 @@ function AIFillModal({
           <div className="flex flex-col flex-1 min-w-0">
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-[11px] font-medium text-stone-500 mb-1.5 uppercase tracking-wide">Describe what you want</label>
+                <label className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5 uppercase tracking-wide">Describe what you want</label>
                 <textarea
                   ref={promptRef}
                   value={prompt}
@@ -724,23 +724,23 @@ function AIFillModal({
                   rows={3}
                   className="w-full resize-none rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"
                 />
-                <p className="mt-1 text-[10px] text-stone-700">e.g. "SaaS companies that raised a seed round this year" — the agent searches the live web and only returns real, source-backed results.</p>
+                <p className="mt-1 text-[10px] text-[var(--text-faint)]">e.g. "SaaS companies that raised a seed round this year" — the agent searches the live web and only returns real, source-backed results.</p>
               </div>
 
               {/* Count */}
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-stone-500 shrink-0">Number of records</span>
+                <span className="text-[11px] text-[var(--text-muted)] shrink-0">Number of records</span>
                 <div className="flex items-center gap-1">
                   {[10, 20, 30, 50].map(n => (
                     <button key={n} onClick={() => setCount(n)}
-                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-500 hover:text-stone-300"}`}>
+                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-stone-500/30 bg-stone-600/10 text-[var(--text-secondary)]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}>
                       {n}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {error && <p className="text-xs text-stone-400">{error}</p>}
+              {error && <p className="text-xs text-[var(--text-secondary)]">{error}</p>}
             </div>
 
             <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-6 py-4">
@@ -760,8 +760,8 @@ function AIFillModal({
           {records.length > 0 && (
             <div className="flex flex-col w-[260px] shrink-0 border-l border-[var(--border-soft)]">
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-soft)]">
-                <span className="text-[11px] font-semibold text-stone-300">{records.length} records ready</span>
-                <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{records.length} records ready</span>
+                <button onClick={toggleAll} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
                   {selected.size === records.length ? "Deselect all" : "Select all"}
                 </button>
               </div>
@@ -773,9 +773,9 @@ function AIFillModal({
                       {selected.has(i) && <Check size={9} className="text-[var(--text-primary)]"/>}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-medium text-stone-200 truncate">{rec.name || "—"}</p>
+                      <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{rec.name || "—"}</p>
                       {fieldKeys.slice(1, 3).map(k => rec[k] && (
-                        <p key={k} className="text-[10px] text-stone-600 truncate">{label(k)}: {rec[k]}</p>
+                        <p key={k} className="text-[10px] text-[var(--text-faint)] truncate">{label(k)}: {rec[k]}</p>
                       ))}
                     </div>
                   </div>
@@ -787,7 +787,7 @@ function AIFillModal({
                     <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
                       <div className="h-full bg-stone-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
                     </div>
-                    <p className="text-center text-[10px] text-stone-500">Importing {progress}%</p>
+                    <p className="text-center text-[10px] text-[var(--text-muted)]">Importing {progress}%</p>
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
@@ -845,19 +845,19 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20 shrink-0">
-              <Trash2 size={15} className="text-stone-400"/>
+              <Trash2 size={15} className="text-[var(--text-secondary)]"/>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[var(--text-primary)] capitalize">Delete "{cleanName}"?</p>
-              <p className="text-[11px] text-stone-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">This will permanently delete the sheet and all its records.</p>
             </div>
           </div>
           <div className="rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 mb-4">
-            <p className="text-[11px] text-stone-300 leading-relaxed">
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
               ⚠️ This action cannot be undone. All records in <strong className="capitalize">{cleanName}</strong> will be permanently deleted along with the object definition.
             </p>
           </div>
-          {error && <p className="mb-3 text-xs text-stone-400">{error}</p>}
+          {error && <p className="mb-3 text-xs text-[var(--text-secondary)]">{error}</p>}
           <div className="flex items-center gap-2 justify-end">
             <button onClick={onClose} className="btn-secondary px-4 py-2 text-xs">
               Cancel

@@ -110,7 +110,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-5 w-5 items-center justify-center rounded-md bg-stone-500/15">
-            <LogoMark size={10} className="text-stone-400"/>
+            <LogoMark size={10} className="text-[var(--text-secondary)]"/>
           </div>
           <span className="text-[13px] font-semibold text-[var(--text-primary)]">Ask Mondaily</span>
         </div>
@@ -118,7 +118,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className="rounded-md p-1.5 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+              className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <MoreHorizontal size={13}/>
             </button>
@@ -146,7 +146,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1.5 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X size={13}/>
           </button>
@@ -156,7 +156,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       {/* Context strip — what this drawer is scoped to right now */}
       {pageContext?.scope_label && (
         <div className="shrink-0 border-b border-[var(--border-soft)] px-3 py-1.5">
-          <span className="text-[10px] text-stone-500">Scoped to: <span className="text-stone-300">{pageContext.scope_label}</span></span>
+          <span className="text-[10px] text-[var(--text-muted)]">Scoped to: <span className="text-[var(--text-secondary)]">{pageContext.scope_label}</span></span>
         </div>
       )}
 
@@ -168,7 +168,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           return (
             <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role === "assistant" && (
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--text-secondary)] mt-0.5">
                   <LogoMark size={16}/>
                 </div>
               )}
@@ -218,18 +218,18 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   <div className="flex items-center gap-1 ml-1">
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#2f9e6b]" : "text-stone-700 hover:text-[#2f9e6b]"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#2f9e6b]" : "text-[var(--text-faint)] hover:text-[#2f9e6b]"}`}
                     >
                       <ThumbsUp size={10}/>
                     </button>
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-stone-400" : "text-stone-700 hover:text-stone-400"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-[var(--text-secondary)]" : "text-[var(--text-faint)] hover:text-[var(--text-secondary)]"}`}
                     >
                       <ThumbsDown size={10}/>
                     </button>
                     {feedbackGiven[i] && (
-                      <span className="text-[10px] text-stone-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
+                      <span className="text-[10px] text-[var(--text-faint)]">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
                     )}
                   </div>
                 )}
@@ -256,14 +256,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         })}
         {loading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--text-secondary)] mt-0.5">
               <LogoMark size={16} thinking/>
             </div>
             <div className="rounded-sm bg-[var(--surface-hover)] border border-[var(--border-soft)] px-3 py-2 flex items-center gap-2">
               {streamStatus ? (
-                <span className="text-[10.5px] text-stone-400">{streamStatus}</span>
+                <span className="text-[10.5px] text-[var(--text-secondary)]">{streamStatus}</span>
               ) : tokenCount > 0 ? (
-                <span className="text-[10.5px] text-stone-500">{tokenCount} tokens</span>
+                <span className="text-[10.5px] text-[var(--text-muted)]">{tokenCount} tokens</span>
               ) : (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-stone-600 animate-bounce [animation-delay:0ms]"/>
@@ -287,7 +287,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <AttachButton attach={attach}/>
           {voice.supported && (
             <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
-              className={`shrink-0 transition-colors ${voice.listening ? "animate-pulse text-[var(--accent)]" : "text-stone-600 hover:text-stone-400"}`}>
+              className={`shrink-0 transition-colors ${voice.listening ? "animate-pulse text-[var(--accent)]" : "text-[var(--text-faint)] hover:text-[var(--text-secondary)]"}`}>
               <Mic size={12}/>
             </button>
           )}
@@ -305,7 +305,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             onClick={loading ? stop : send}
             disabled={!loading && !input.trim()}
             title={loading ? "Stop generating" : "Send"}
-            className="text-stone-600 hover:text-stone-400 disabled:opacity-30 transition-colors"
+            className="text-[var(--text-faint)] hover:text-[var(--text-secondary)] disabled:opacity-30 transition-colors"
           >
             {loading ? <Square size={11} strokeWidth={3} fill="currentColor"/> : <Send size={12}/>}
           </button>
@@ -330,7 +330,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
       <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Share2 size={14} className="text-stone-400"/>
+            <Share2 size={14} className="text-[var(--text-secondary)]"/>
             <span className="text-[13px] font-semibold text-[var(--text-primary)]">Share this view</span>
           </div>
           <button
@@ -340,12 +340,12 @@ function ShareModal({ onClose }: { onClose: () => void }) {
             <X size={13}/>
           </button>
         </div>
-        <p className="mb-3 text-[11px] text-stone-600 leading-relaxed">
+        <p className="mb-3 text-[11px] text-[var(--text-faint)] leading-relaxed">
           Anyone with this link can view this page if they have access to this workspace.
         </p>
         <div className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-          <span className="flex-1 truncate text-[11px] text-stone-500">{url}</span>
-          <button onClick={copy} className="shrink-0 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
+          <span className="flex-1 truncate text-[11px] text-[var(--text-muted)]">{url}</span>
+          <button onClick={copy} className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             {copied ? <Check size={13} className="text-[#2f9e6b]"/> : <Copy size={13}/>}
           </button>
         </div>
@@ -428,7 +428,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
             title={`Theme: ${THEMES[themeIdx]?.label ?? "Console"} · next: ${nextTheme.label}`}
             aria-label={`Switch theme (next: ${nextTheme.label})`}
           >
@@ -442,11 +442,11 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             onClick={() => setAskOpen(o => !o)}
             className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium transition-all duration-200 ${
               askOpen
-                ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-[var(--text-primary)]"
-                : "border-[var(--border-soft)] bg-transparent text-[var(--text-muted)] hover:border-stone-200 hover:bg-stone-50 dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
+                ? "border-stone-200 bg-stone-50 text-[var(--text-faint)] dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-[var(--text-primary)]"
+                : "border-[var(--border-soft)] bg-transparent text-[var(--text-muted)] hover:border-stone-200 hover:bg-stone-50 dark:text-[var(--text-secondary)] dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
             }`}
           >
-            <LogoMark size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>
+            <LogoMark size={12} className={askOpen ? "text-[var(--text-faint)] dark:text-[var(--text-secondary)]" : "text-[var(--text-muted)] dark:text-[var(--text-secondary)]"}/>
             Ask AI
           </button>
 
@@ -454,7 +454,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <div className="relative ml-0.5">
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-stone-100 dark:bg-stone-500/20 text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-500/25 transition-all"
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-stone-100 dark:bg-stone-500/20 text-[11px] font-semibold text-[var(--text-faint)] dark:text-[var(--text-secondary)] hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-500/25 transition-all"
             >
               {avatarUrl
                 ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
@@ -467,14 +467,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                 <div className="dropdown-panel absolute right-0 top-full mt-2 w-56 z-50">
                   {/* User info header */}
                   <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-3 py-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-500/20 text-[11px] font-semibold text-stone-400">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-500/20 text-[11px] font-semibold text-[var(--text-secondary)]">
                       {avatarUrl
                         ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
                         : initials}
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-[12px] font-medium text-[var(--text-primary)]">{fullName}</div>
-                      <div className="truncate text-[10px] text-stone-600">{me.email}</div>
+                      <div className="truncate text-[10px] text-[var(--text-faint)]">{me.email}</div>
                     </div>
                   </div>
                   <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item">
@@ -486,7 +486,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                   <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
                   <button
                     onClick={async () => { setUserMenuOpen(false); await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); }}
-                    className="dropdown-item text-stone-400 hover:text-stone-300"
+                    className="dropdown-item text-[var(--text-secondary)] hover:text-[var(--text-secondary)]"
                   >
                     <LogOut size={12}/> Sign out
                   </button>

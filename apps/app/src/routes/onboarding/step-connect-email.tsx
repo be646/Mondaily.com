@@ -27,7 +27,7 @@ export function StepConnectEmail() {
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Connect your email</h1>
       <p className="mb-3 font-mono text-[12px] text-[var(--text-muted)]">Mondaily builds your relationship graph from email and calendar activity.</p>
 
-      <div className="mb-6 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3 font-mono text-[12px] text-indigo-700">
+      <div className="mb-6 rounded-lg border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3 font-mono text-[12px] text-indigo-700">
         AI import is always reviewable before any records are changed.
       </div>
 
@@ -36,9 +36,9 @@ export function StepConnectEmail() {
           <button
             key={provider}
             onClick={() => connect(provider)}
-            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${connected.includes(provider) ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.08] hover:bg-zinc-50"}`}
+            className={`flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors ${connected.includes(provider) ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.08] hover:bg-zinc-50"}`}
           >
-            <Mail size={15} className={connected.includes(provider) ? "text-indigo-500" : "text-zinc-400"} />
+            <Mail size={15} className={connected.includes(provider) ? "text-indigo-500" : "text-[var(--text-secondary)]"} />
             <div className="flex-1">
               <p className="font-mono text-[12px] font-medium text-zinc-800">Connect {provider === "gmail" ? "Gmail" : "Outlook"}</p>
               <p className="font-mono text-[11px] text-[var(--text-muted)]">Email and calendar</p>
@@ -51,11 +51,11 @@ export function StepConnectEmail() {
       <div className="flex gap-3">
         <button
           onClick={() => navigate("/onboarding/invite")}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
         >
           Continue <ArrowRight size={13} />
         </button>
-        <button onClick={() => navigate("/onboarding/invite")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-[var(--text-muted)] hover:bg-zinc-50 transition-colors">
+        <button onClick={() => navigate("/onboarding/invite")} className="rounded-lg border border-black/[.08] px-4 font-mono text-[12px] text-[var(--text-muted)] hover:bg-zinc-50 transition-colors">
           Skip
         </button>
       </div>

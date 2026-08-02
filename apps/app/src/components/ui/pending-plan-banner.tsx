@@ -41,7 +41,7 @@ export function PendingPlanBanner() {
         {isCustom ? "Contact sales" : "Complete checkout"}
       </Link>
       <button onClick={() => { sessionStorage.setItem("pending_plan_banner_dismissed", "1"); setDismissed(true); }}
-        className="shrink-0 text-stone-500 hover:text-[var(--text-primary)]" title="Dismiss for now">
+        className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Dismiss for now">
         <X size={13} />
       </button>
     </div>

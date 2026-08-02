@@ -25,7 +25,7 @@ export function AIInsightBadge({ summary }: { summary?: string | null }) {
   }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]" style={{ color: "var(--text-secondary)", background: "var(--surface-hover)" }}>
-      <LogoMark size={10} className="text-stone-500 dark:text-stone-400 shrink-0"/>
+      <LogoMark size={10} className="text-[var(--text-muted)] dark:text-[var(--text-secondary)] shrink-0"/>
       <span className="truncate max-w-[260px]">{summary}</span>
     </span>
   );
@@ -149,7 +149,7 @@ export function AIAgentOwnerChip({ objectType }: { objectType: string }) {
   }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px]" style={{ color: "var(--text-secondary)", background: "var(--surface-hover)" }}>
-      <ShieldCheck size={10} className="text-stone-500 dark:text-stone-400"/>
+      <ShieldCheck size={10} className="text-[var(--text-muted)] dark:text-[var(--text-secondary)]"/>
       Watched by {owner}
     </span>
   );

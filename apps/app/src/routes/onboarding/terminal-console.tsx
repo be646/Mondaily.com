@@ -308,7 +308,7 @@ export function TerminalOnboardingPage() {
   const q = SURVEY[step];
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#09090b] font-mono text-[13px] text-zinc-300">
+    <div className="fixed inset-0 flex flex-col bg-[#09090b] font-mono text-[13px] text-[var(--text-secondary)]">
       {/* terminal chrome bar */}
       <div className="flex items-center gap-2 border-b border-[#27272a] px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-[#3f3f46]" />
@@ -316,7 +316,7 @@ export function TerminalOnboardingPage() {
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--accent)" }} />
         <span className="ml-2 text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">mondaily — workspace architect</span>
         {canExit && (
-          <button onClick={exitSetup} className="ml-auto rounded-sm border border-[#27272a] px-2.5 py-1 text-[11px] text-zinc-400 transition-colors hover:text-zinc-200">
+          <button onClick={exitSetup} className="ml-auto rounded-sm border border-[#27272a] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
             ✕ Cancel &amp; go back
           </button>
         )}
@@ -331,7 +331,7 @@ export function TerminalOnboardingPage() {
         {/* Survey — clickable choices, so the user decides fast without typing. */}
         {phase === "survey" && q && (
           <div className="mt-5 max-w-2xl">
-            <div className="text-[13px] text-zinc-100">
+            <div className="text-[13px] text-[var(--text-primary)]">
               <span style={{ color: "var(--accent)" }}>?</span> {q.prompt}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -357,7 +357,7 @@ export function TerminalOnboardingPage() {
                   value={freeText}
                   onChange={e => setFreeText(e.target.value)}
                   placeholder="Anything specific about your operation? (optional — helps the AI tailor your setup)"
-                  className="mt-4 w-full rounded-sm border bg-[#0e0e10] px-3 py-2 text-[12px] text-zinc-100 outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
+                  className="mt-4 w-full rounded-sm border bg-[#0e0e10] px-3 py-2 text-[12px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
                   style={{ borderColor: "#27272a" }}
                 />
                 <button
@@ -382,14 +382,14 @@ export function TerminalOnboardingPage() {
 
             {inviteLinks.length === 0 ? (
               <>
-                <p className="mt-2 text-[13px] text-zinc-300">Add teammates by email — each gets a secure invite link (and an email once your domain is verified). You can always do this later in Settings → Members.</p>
+                <p className="mt-2 text-[13px] text-[var(--text-secondary)]">Add teammates by email — each gets a secure invite link (and an email once your domain is verified). You can always do this later in Settings → Members.</p>
                 <textarea
                   autoFocus
                   value={inviteText}
                   onChange={e => setInviteText(e.target.value)}
                   placeholder="alex@company.com, sam@company.com"
                   rows={3}
-                  className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
+                  className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]"
                 />
                 <div className="mt-4 flex items-center gap-3">
                   <button onClick={finishOnboarding} disabled={sending}
@@ -397,22 +397,22 @@ export function TerminalOnboardingPage() {
                     {sending ? "Creating…" : inviteText.includes("@") ? "Create invite links ›" : "Enter workspace ›"}
                   </button>
                   {inviteText.includes("@") && (
-                    <button onClick={enterWorkspace} disabled={sending} className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-zinc-300 disabled:opacity-60">Skip for now</button>
+                    <button onClick={enterWorkspace} disabled={sending} className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] disabled:opacity-60">Skip for now</button>
                   )}
                 </div>
               </>
             ) : (
               <>
-                <p className="mt-2 text-[13px] text-zinc-300">Invites created. Share each link with your teammate — it works right now, no email needed:</p>
+                <p className="mt-2 text-[13px] text-[var(--text-secondary)]">Invites created. Share each link with your teammate — it works right now, no email needed:</p>
                 <div className="mt-3 space-y-2">
                   {inviteLinks.map((iv) => (
                     <div key={iv.email} className="flex items-center gap-2 rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2">
-                      <span className="w-40 shrink-0 truncate text-[12px] text-zinc-400">{iv.email}</span>
+                      <span className="w-40 shrink-0 truncate text-[12px] text-[var(--text-secondary)]">{iv.email}</span>
                       {iv.link ? (
                         <>
                           <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-muted)]">{iv.link}</span>
                           <button onClick={() => { navigator.clipboard.writeText(iv.link!); setCopied(iv.email); setTimeout(() => setCopied(null), 1500); }}
-                            className="shrink-0 rounded-sm border border-[#34343a] px-2 py-0.5 text-[11px] text-zinc-300 hover:border-[color:var(--accent)]">
+                            className="shrink-0 rounded-sm border border-[#34343a] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[color:var(--accent)]">
                             {copied === iv.email ? "Copied ✓" : "Copy link"}
                           </button>
                         </>
@@ -477,9 +477,9 @@ function PlanCards({ recommended, onSelect }: { recommended: PlanId; onSelect: (
                 : { borderColor: "#27272a" }}
             >
               <div className="text-[11px] uppercase tracking-widest" style={isRec ? { color: "var(--accent)" } : { color: "#52525b" }}>Tier · {p.name}</div>
-              <div className="mt-1 text-base text-zinc-100">{p.name}</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">{p.price}<span className="text-sm text-[var(--text-muted)]"> / month</span></div>
-              <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-zinc-400">{p.sub}</span>
+              <div className="mt-1 text-base text-[var(--text-primary)]">{p.name}</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">{p.price}<span className="text-sm text-[var(--text-muted)]"> / month</span></div>
+              <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-[var(--text-secondary)]">{p.sub}</span>
               <span className="mt-2 text-[11px] text-[var(--text-muted)]">{p.blurb}</span>
               <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
                 {isRec ? `› RECOMMENDED — CHOOSE ${p.name.toUpperCase()}` : `› CHOOSE ${p.name.toUpperCase()}`}
@@ -489,9 +489,9 @@ function PlanCards({ recommended, onSelect }: { recommended: PlanId; onSelect: (
         })}
       </div>
       {/* Sovereign — large teams / custom, routed to Command credits + a talk-to-us note. */}
-      <div className="mt-3 flex items-center justify-between rounded-sm border border-[#27272a] bg-[#101012] px-4 py-2.5 text-[12px] text-zinc-400">
-        <span><span className="text-zinc-200">Sovereign</span> — 10+ operators, dedicated infra & custom limits.</span>
-        <a href="mailto:sales@mondaily.com?subject=Sovereign%20plan" className="shrink-0 rounded-sm border border-[#34343a] px-2.5 py-1 text-[11px] text-zinc-300 hover:border-[color:var(--accent)]">Talk to us</a>
+      <div className="mt-3 flex items-center justify-between rounded-sm border border-[#27272a] bg-[#101012] px-4 py-2.5 text-[12px] text-[var(--text-secondary)]">
+        <span><span className="text-[var(--text-primary)]">Sovereign</span> — 10+ operators, dedicated infra & custom limits.</span>
+        <a href="mailto:sales@mondaily.com?subject=Sovereign%20plan" className="shrink-0 rounded-sm border border-[#34343a] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] hover:border-[color:var(--accent)]">Talk to us</a>
       </div>
     </div>
   );

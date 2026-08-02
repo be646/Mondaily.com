@@ -28,11 +28,11 @@ interface LinkedNode { id: string; object_type: string; data: Record<string, unk
 
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/25",
-  "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
-  "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
+  "Blocked":     "text-[var(--text-faint)] dark:text-[var(--text-secondary)] bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
+  "Waiting":     "text-[var(--text-faint)] dark:text-[var(--text-secondary)] bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-[#d1524a] dark:text-[#d1524a] bg-[#d1524a]/10 dark:bg-[#d1524a]/10 border-[#d1524a]/25 dark:border-[#d1524a]/30",
-  "Feature":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
-  "Research":    "text-[var(--accent)] dark:text-[var(--accent)] bg-[var(--accent)] dark:bg-[var(--accent)]/10 border-[var(--accent)] dark:border-[var(--accent)]/30",
+  "Feature":     "text-[var(--text-faint)] dark:text-[var(--text-secondary)] bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
+  "Research":    "text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/30",
 };
 const LABELS = Object.keys(LABEL_COLORS);
 const QUICK_EMOJIS = ["👍","❤️","😂","🎉","🔥","👀","😮","😢","🙏","✅","💯","🚀","⚡","🎯","💪","😎","🤔","👏","🥳","😅"];
@@ -48,7 +48,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/15 text-[#717784]","bg-[#2f9e6b]/15 text-[#2f9e6b]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#c6892e]/15 text-[#c6892e]","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
+  const colors = ["bg-stone-500/20 text-[var(--text-faint)] dark:text-[var(--text-secondary)]","bg-[#717784]/15 text-[#717784]","bg-[#2f9e6b]/15 text-[#2f9e6b]","bg-stone-500/20 text-[var(--text-faint)] dark:text-[var(--text-secondary)]","bg-[#c6892e]/15 text-[#c6892e]","bg-[var(--accent)]/20 text-[var(--accent)]"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -78,7 +78,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
   const renderContent = (text: string | undefined) =>
     (text ?? "").split(/(@\w[\w\s]*)/g).map((part, i) =>
-      part.startsWith("@") ? <span key={i} className="font-medium text-stone-600 dark:text-stone-400">{part}</span> : <span key={i}>{part}</span>
+      part.startsWith("@") ? <span key={i} className="font-medium text-[var(--text-faint)] dark:text-[var(--text-secondary)]">{part}</span> : <span key={i}>{part}</span>
     );
 
   return (
@@ -117,7 +117,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
               const iMine = users.some(u => u.user_id === userId);
               return (
                 <button key={emoji} onClick={() => toggleReaction.mutate(emoji)} title={users.map(u => u.user_name).join(", ")}
-                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-stone-500/10 border-stone-500/30 text-stone-600 dark:text-stone-400" : ""}`}
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-stone-500/10 border-stone-500/30 text-[var(--text-faint)] dark:text-[var(--text-secondary)]" : ""}`}
                   style={!iMine ? { background: "var(--surface-hover)", borderColor: "var(--border-soft)", color: "var(--text-muted)" } : undefined}>
                   <span>{emoji}</span><span>{users.length}</span>
                 </button>
@@ -382,7 +382,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <a href={`/objects/${linkedNode.object_type}/${linkedNode.id}`}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors surface-hover"
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                    <Link2 size={10} className="text-stone-500 dark:text-stone-400"/>
+                    <Link2 size={10} className="text-[var(--text-muted)] dark:text-[var(--text-secondary)]"/>
                     {String(linkedNode.data?.name ?? linkedNode.data?.title ?? "Linked object")}
                     <span className="text-caption uppercase" style={{ color: "var(--text-faint)" }}>{linkedNode.object_type}</span>
                     <ExternalLink size={9} style={{ color: "var(--text-faint)" }}/>
@@ -432,7 +432,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               {/* AI summary — real LLM call against this task's actual content */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "rgba(124,58,237,0.20)", background: "rgba(124,58,237,0.04)" }}>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
+                  <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-widest text-[var(--text-faint)] dark:text-[var(--text-secondary)]">
                     <LogoMark size={10}/> AI summary
                   </span>
                   <AIButton size="sm" variant="subtle" onClick={runAiSummary} loading={aiSummaryLoading}>
@@ -465,7 +465,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalStatus(val); updateTask.mutate({ status: val }); setStatusOpen(false); }}
                           className={`dropdown-item ${localStatus === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localStatus === val && <Check size={11} className="ml-auto text-stone-600 dark:text-stone-400"/>}
+                          {localStatus === val && <Check size={11} className="ml-auto text-[var(--text-faint)] dark:text-[var(--text-secondary)]"/>}
                         </button>
                       ))}
                     </div>
@@ -487,7 +487,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalPriority(val); updateTask.mutate({ priority: val }); setPriorityOpen(false); }}
                           className={`dropdown-item ${localPriority === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localPriority === val && <Check size={11} className="ml-auto text-stone-600 dark:text-stone-400"/>}
+                          {localPriority === val && <Check size={11} className="ml-auto text-[var(--text-faint)] dark:text-[var(--text-secondary)]"/>}
                         </button>
                       ))}
                     </div>
@@ -652,7 +652,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-caption mt-0.5" style={{ color: "var(--text-faint)" }}>{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                     <button onClick={() => deleteCheckItem.mutate(item.id)}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 transition-all hover:text-stone-600 dark:hover:text-stone-400"
+                      className="opacity-0 group-hover:opacity-100 shrink-0 transition-all hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]"
                       style={{ color: "var(--text-faint)" }}>
                       <Trash2 size={12}/>
                     </button>
@@ -689,7 +689,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         </div>
                         {isOwner && (
                           <button onClick={() => removeAssignee.mutate(a.user_id)}
-                            className="transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-faint)" }}><X size={13}/></button>
+                            className="transition-colors hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]" style={{ color: "var(--text-faint)" }}><X size={13}/></button>
                         )}
                       </div>
                     ))}
@@ -756,7 +756,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-label mt-0.5" style={{ color: "var(--text-faint)" }}>{uploaderName(a.uploaded_by)}{a.size > 0 ? ` · ${(a.size/1024).toFixed(1)} KB` : ""}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
-                      className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-stone-600 dark:hover:text-stone-400"
+                      className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)]"
                       style={{ color: "var(--text-faint)" }}>
                       <Trash2 size={12}/>
                     </button>

@@ -55,7 +55,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
     <PanelShell tag="// account.create" title="Watch your account take shape.">
 
       {/* Profile card */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center gap-3">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-sans text-lg font-semibold transition-all duration-300"
@@ -69,7 +69,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${hasEmail ? "bg-emerald-500" : "bg-zinc-300"}`} />
-              <span className="font-mono text-[10px] text-zinc-400">{hasEmail ? "identity registered" : "waiting for email"}</span>
+              <span className="font-mono text-[10px] text-[var(--text-secondary)]">{hasEmail ? "identity registered" : "waiting for email"}</span>
             </div>
           </div>
         </div>
@@ -85,7 +85,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200 bg-white"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -93,12 +93,12 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
 
       {/* Mini dashboard preview */}
       <FadeIn show={hasEmail} delay={100}>
-        <div className="rounded-2xl border border-black/[.07] bg-white overflow-hidden">
+        <div className="rounded-lg border border-black/[.07] bg-white overflow-hidden">
           <div className="flex items-center gap-1.5 border-b border-black/[.05] bg-zinc-50 px-4 py-2.5">
             <div className="h-2 w-2 rounded-full bg-zinc-200" />
             <div className="h-2 w-2 rounded-full bg-zinc-200" />
             <div className="h-2 w-2 rounded-full bg-zinc-200" />
-            <span className="ml-2 font-mono text-[10px] text-zinc-400">app.mondaily.com</span>
+            <span className="ml-2 font-mono text-[10px] text-[var(--text-secondary)]">app.mondaily.com</span>
           </div>
           <div className="flex h-24 items-center justify-center">
             {isDone ? (
@@ -107,7 +107,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
                 <span className="font-mono text-[12px]">Workspace launching…</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-zinc-300">
+              <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                 <LayoutDashboard size={14} />
                 <span className="font-mono text-[11px]">Workspace slot reserved</span>
               </div>
@@ -118,8 +118,8 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
 
       {/* Features */}
       <FadeIn show={hasEmail} delay={200}>
-        <div className="rounded-2xl border border-black/[.07] bg-white p-5">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-zinc-400">What you unlock</p>
+        <div className="rounded-lg border border-black/[.07] bg-white p-5">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">What you unlock</p>
           <div className="space-y-2">
             {["Workspace graph · contacts, companies, deals", "Finance · invoices & expenses", "AI enrichment · auto-updated records", "Automations · no-code workflows"].map((f, i) => (
               <FadeIn key={f} show={hasEmail} delay={300 + i * 80}>
@@ -147,7 +147,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
     <PanelShell tag="// profile.building" title="Watch your profile come alive.">
 
       {/* Live profile card */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-6">
+      <div className="rounded-lg border border-black/[.07] bg-white p-6">
         <div className="flex items-center gap-4 mb-5">
           <div
             className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-sans text-2xl font-bold transition-all duration-500"
@@ -181,8 +181,8 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
             { label: "Status", value: "Active", show: hasTitle },
           ].map(({ label, value, show }) => (
             <div key={label} className="rounded-lg border border-black/[.05] p-2.5 text-center">
-              <p className="font-mono text-[10px] text-zinc-400 mb-0.5">{label}</p>
-              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-indigo-600" : "text-zinc-200"}`}>{value}</p>
+              <p className="font-mono text-[10px] text-[var(--text-secondary)] mb-0.5">{label}</p>
+              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-indigo-600" : "text-[var(--text-primary)]"}`}>{value}</p>
             </div>
           ))}
         </div>
@@ -190,12 +190,12 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
 
       {/* Role badge */}
       <FadeIn show={hasName} delay={100}>
-        <div className="rounded-2xl border border-black/[.07] bg-white p-4">
-          <div className="flex items-center gap-2.5 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3">
+        <div className="rounded-lg border border-black/[.07] bg-white p-4">
+          <div className="flex items-center gap-2.5 rounded-lg border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3">
             <Zap size={13} className="text-indigo-500 shrink-0" />
             <div>
               <p className="font-mono text-[12px] font-semibold text-indigo-700">Workspace Admin</p>
-              <p className="font-mono text-[10px] text-zinc-400">Full access · can invite teammates</p>
+              <p className="font-mono text-[10px] text-[var(--text-secondary)]">Full access · can invite teammates</p>
             </div>
           </div>
         </div>
@@ -203,7 +203,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
 
       {/* Checklist */}
       <FadeIn show={hasName}>
-        <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+        <div className="rounded-lg border border-black/[.07] bg-white p-5">
           <div className="space-y-2.5">
             {[
               { label: "Display name set", done: hasName },
@@ -214,7 +214,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
                 <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                   {done && <Check size={9} className="text-white" strokeWidth={3} />}
                 </div>
-                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
+                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>{label}</span>
               </div>
             ))}
           </div>
@@ -249,7 +249,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
     <PanelShell tag="// workspace.create" title="Your workspace is assembling.">
 
       {/* Browser frame with live sidebar */}
-      <div className="rounded-2xl border border-black/[.07] bg-white overflow-hidden">
+      <div className="rounded-lg border border-black/[.07] bg-white overflow-hidden">
         {/* Browser chrome */}
         <div className="flex items-center gap-2 border-b border-black/[.05] bg-zinc-50 px-4 py-2.5">
           <div className="flex gap-1.5">
@@ -259,7 +259,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
           </div>
           <div className="mx-auto flex items-center gap-1.5 rounded border border-black/[.06] bg-white px-3 py-1">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="font-mono text-[10px] text-zinc-400">app.mondaily.com</span>
+            <span className="font-mono text-[10px] text-[var(--text-secondary)]">app.mondaily.com</span>
           </div>
         </div>
 
@@ -278,7 +278,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
               {NAV_ITEMS.map(({ icon: Icon, label }, i) => (
                 <FadeIn key={label} show={hasName} delay={i * 80}>
                   <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 cursor-default">
-                    <Icon size={11} className="text-zinc-400 shrink-0" />
+                    <Icon size={11} className="text-[var(--text-secondary)] shrink-0" />
                     <span className="font-mono text-[10px] text-[var(--text-muted)]">{label}</span>
                   </div>
                 </FadeIn>
@@ -289,7 +289,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
           {/* Main content */}
           <div className="flex-1 p-4 overflow-hidden">
             <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">Pipeline</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Pipeline</span>
               <FadeIn show={hasName}>
                 <span className="font-mono text-[10px] text-indigo-500">
                   <Counter target={recordCount} /> records
@@ -311,7 +311,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
       </div>
 
       {/* Status checklist */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="space-y-2.5">
           {[
             { label: `Workspace name${hasName ? ` "${name}"` : ""}`, done: hasName },
@@ -323,7 +323,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -345,14 +345,14 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
     <PanelShell tag="// email.graph" title="Building your relationship graph.">
 
       {/* Provider cards */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5 space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 mb-4">Connect your inbox</p>
+      <div className="rounded-lg border border-black/[.07] bg-white p-5 space-y-3">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-4">Connect your inbox</p>
         {PROVIDERS.map(({ id, label, color }) => {
           const isConnected = connected.includes(id);
           return (
             <div
               key={id}
-              className="flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-400"
+              className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-all duration-400"
               style={{
                 borderColor: isConnected ? `${color}30` : "rgba(0,0,0,0.06)",
                 background: isConnected ? `${color}08` : "white",
@@ -373,8 +373,8 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
 
       {/* Graph preview */}
       <FadeIn show={anyConnected} delay={100}>
-        <div className="rounded-2xl border border-black/[.07] bg-white p-5">
-          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-zinc-400">Relationship graph building</p>
+        <div className="rounded-lg border border-black/[.07] bg-white p-5">
+          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Relationship graph building</p>
           <div className="flex items-center justify-center py-4">
             <svg width="200" height="100" viewBox="0 0 200 100">
               {/* Animated connections */}
@@ -426,15 +426,15 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
     <PanelShell tag="// team.building" title="Watch your team take shape.">
 
       {/* Team cards */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">Team</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Team</p>
           <span className="font-mono text-[10px] text-indigo-500">{valid.length + 1} member{valid.length !== 0 ? "s" : ""}</span>
         </div>
 
         <div className="space-y-2.5">
           {/* You */}
-          <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-3 py-2.5">
+          <div className="flex items-center gap-3 rounded-lg border border-indigo-500/20 bg-indigo-500/[.04] px-3 py-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white text-xs">Y</div>
             <div>
               <p className="font-mono text-[12px] font-medium text-zinc-800">You</p>
@@ -445,13 +445,13 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           {/* Invited members */}
           {valid.map((email, i) => (
             <FadeIn key={email} show delay={i * 80}>
-              <div className="flex items-center gap-3 rounded-xl border border-black/[.06] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-black/[.06] bg-white px-3 py-2.5">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold text-[var(--text-muted)] text-xs">
                   {email.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="font-mono text-[12px] font-medium text-[var(--text-muted)] truncate">{email.split("@")[0]}</p>
-                  <p className="font-mono text-[10px] text-zinc-400 truncate">{email}</p>
+                  <p className="font-mono text-[10px] text-[var(--text-secondary)] truncate">{email}</p>
                 </div>
                 <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[9px] text-amber-600">
                   {sent ? "Sent" : "Pending"}
@@ -462,11 +462,11 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
 
           {/* Empty slot */}
           {valid.length === 0 && (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-black/[.06] px-3 py-2.5">
+            <div className="flex items-center gap-3 rounded-lg border-2 border-dashed border-black/[.06] px-3 py-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-zinc-200">
-                <Users size={11} className="text-zinc-300" />
+                <Users size={11} className="text-[var(--text-secondary)]" />
               </div>
-              <span className="font-mono text-[11px] text-zinc-300">Type an email to add a teammate</span>
+              <span className="font-mono text-[11px] text-[var(--text-secondary)]">Type an email to add a teammate</span>
             </div>
           )}
         </div>
@@ -475,7 +475,7 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
       {/* Sent confirmation */}
       {sent && (
         <FadeIn show delay={0}>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
                 <Check size={10} className="text-white" strokeWidth={3} />
@@ -519,22 +519,22 @@ export function ImportPanel({ file }: { file: string }) {
     <PanelShell tag="// data.import" title="Your data is being reviewed.">
 
       {/* File status */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-indigo-500" : "bg-zinc-100"}`}>
-            <FileSpreadsheet size={16} className={file ? "text-white" : "text-zinc-300"} />
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${file ? "bg-indigo-500" : "bg-zinc-100"}`}>
+            <FileSpreadsheet size={16} className={file ? "text-white" : "text-[var(--text-secondary)]"} />
           </div>
           <div className="min-w-0">
-            <p className={`font-mono text-[12px] font-medium truncate transition-colors duration-300 ${file ? "text-zinc-800" : "text-zinc-300"}`}>
+            <p className={`font-mono text-[12px] font-medium truncate transition-colors duration-300 ${file ? "text-zinc-800" : "text-[var(--text-secondary)]"}`}>
               {file || "No file selected"}
             </p>
-            <p className="font-mono text-[10px] text-zinc-400">{file ? "Ready for review" : "Drop a CSV or Excel file"}</p>
+            <p className="font-mono text-[10px] text-[var(--text-secondary)]">{file ? "Ready for review" : "Drop a CSV or Excel file"}</p>
           </div>
         </div>
 
         {/* Data table */}
-        <div className="rounded-xl border border-black/[.05] overflow-hidden">
-          <div className="grid grid-cols-3 border-b border-black/[.05] bg-zinc-50 px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-400">
+        <div className="rounded-lg border border-black/[.05] overflow-hidden">
+          <div className="grid grid-cols-3 border-b border-black/[.05] bg-zinc-50 px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">
             <span>Name</span><span>Type</span><span>ARR</span>
           </div>
           {ALL_ROWS.map((row, i) => (
@@ -547,7 +547,7 @@ export function ImportPanel({ file }: { file: string }) {
               }}
             >
               <span className="truncate text-[var(--text-muted)]">{row.name}</span>
-              <span className="text-zinc-400">{row.type}</span>
+              <span className="text-[var(--text-secondary)]">{row.type}</span>
               <span className="text-[var(--text-muted)]">{row.arr}</span>
             </div>
           ))}
@@ -555,7 +555,7 @@ export function ImportPanel({ file }: { file: string }) {
       </div>
 
       {/* Status */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="space-y-2.5">
           {[
             { label: "File uploaded", done: !!file },
@@ -567,7 +567,7 @@ export function ImportPanel({ file }: { file: string }) {
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -620,13 +620,13 @@ export function PlanPanel({ selected }: { selected: string }) {
     <PanelShell tag="// plan.select" title="Features unlocking now.">
 
       {/* Plan header */}
-      <div className="rounded-2xl border border-black/[.07] bg-white p-5">
+      <div className="rounded-lg border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="font-sans text-lg font-semibold capitalize text-zinc-900">{selected}</p>
-            <p className="font-mono text-[12px] text-zinc-400">{plan.price}</p>
+            <p className="font-mono text-[12px] text-[var(--text-secondary)]">{plan.price}</p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10">
             <Zap size={16} className="text-indigo-500" />
           </div>
         </div>
@@ -645,9 +645,9 @@ export function PlanPanel({ selected }: { selected: string }) {
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all duration-400"
                 style={{ background: i < unlockedCount ? "#6366f1" : "#f4f4f5" }}
               >
-                <Check size={10} className={i < unlockedCount ? "text-white" : "text-zinc-300"} strokeWidth={3} />
+                <Check size={10} className={i < unlockedCount ? "text-white" : "text-[var(--text-secondary)]"} strokeWidth={3} />
               </div>
-              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-[var(--text-muted)]" : "text-zinc-300"}`}>
+              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}`}>
                 {feature}
               </span>
               {i === unlockedCount - 1 && (
@@ -660,7 +660,7 @@ export function PlanPanel({ selected }: { selected: string }) {
 
       {/* Ready state */}
       <FadeIn show={unlockedCount >= plan.features.length} delay={100}>
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-center">
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-5 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500">
             <Check size={16} className="text-white" strokeWidth={2.5} />
           </div>

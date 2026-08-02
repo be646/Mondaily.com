@@ -66,8 +66,8 @@ function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
             <span className={
               entry.action === "verified" ? "text-status-neutral" :
               entry.action === "executed" ? "text-status-ok" :
-              entry.action === "rejected" ? "text-stone-400" :
-              "text-stone-500"
+              entry.action === "rejected" ? "text-[var(--text-secondary)]" :
+              "text-[var(--text-muted)]"
             }>{entry.action}</span>
             {" · "}{relativeTime(entry.at)}
             {entry.note && <span className="block pl-3.5 text-[var(--text-secondary)] italic">"{entry.note}"</span>}
@@ -119,7 +119,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
             </span>
           )}
           {cn.status === "rejected" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-stone-400/10 border border-stone-400/20 px-2.5 py-0.5 text-[10px] font-medium text-stone-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-stone-400/10 border border-stone-400/20 px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
               <XCircle size={9}/> Rejected
             </span>
           )}
@@ -140,7 +140,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       <ApprovalTrail approvals={cn.approvals} />
 
       {error && (
-        <div className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.05] px-3 py-2 text-[11px] text-stone-400 mb-3">
+        <div className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.05] px-3 py-2 text-[11px] text-[var(--text-secondary)] mb-3">
           <AlertTriangle size={10} className="shrink-0"/>{error}
         </div>
       )}

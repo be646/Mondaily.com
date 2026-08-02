@@ -47,13 +47,13 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         {mode.label}
       </span>
       <input
-        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-600"
+        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
       />
       <button
-        className="grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition-colors hover:bg-stone-500/10 disabled:opacity-40"
+        className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-stone-500/10 disabled:opacity-40"
         type="submit"
         disabled={loading || !value.trim()}
       >

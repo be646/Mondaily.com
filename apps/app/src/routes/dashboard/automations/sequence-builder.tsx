@@ -76,7 +76,7 @@ const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const STATUS_STYLES: Record<string, string> = {
   active:       "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25",
   paused:       "bg-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
-  unsubscribed: "bg-stone-500/10 text-stone-400 border-stone-500/20",
+  unsubscribed: "bg-stone-500/10 text-[var(--text-secondary)] border-stone-500/20",
 };
 
 // ── Step card ─────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ function StepCard({
           onClick={() => setOpen(o => !o)}
         >
           <GripVertical size={14} className="shrink-0 text-[var(--text-faint)]"/>
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-[#717784]/25 bg-[#717784]/10 text-[#717784]"}`}>
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/30 bg-stone-600/[.08] text-[var(--text-secondary)]" : "border-[#717784]/25 bg-[#717784]/10 text-[#717784]"}`}>
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
           <div className="flex-1 min-w-0">
@@ -368,7 +368,7 @@ export function SequenceBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : "border-stone-600/30 bg-stone-700/50 text-[var(--text-secondary)]"}`}>
           {seq.status}
         </span>
 

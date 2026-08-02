@@ -31,7 +31,7 @@ export function ShadowForgotPage() {
         subtitle="If an account exists for that address, we've sent a password-reset link. It expires in 30 minutes.">
         <div className="flex items-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-3.5 py-3">
           <MailCheck size={16} style={{ color: SAGE }} />
-          <span className="truncate text-[12.5px] text-zinc-200">{email}</span>
+          <span className="truncate text-[12.5px] text-[var(--text-primary)]">{email}</span>
         </div>
       </AuthShell>
     );
@@ -39,7 +39,7 @@ export function ShadowForgotPage() {
 
   return (
     <AuthShell kicker="Sovereign auth" title="Reset your password" subtitle="Enter your email and we'll send a secure reset link."
-      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
+      footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--text-secondary)]"><ArrowLeft size={12} /> Back to sign in</button>}>
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
         <PowShieldLine status={shield.status} />

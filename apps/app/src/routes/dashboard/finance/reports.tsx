@@ -80,12 +80,12 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   draft: "Draft", sent: "Sent", viewed: "Viewed", paid: "Paid", overdue: "Overdue", cancelled: "Cancelled",
 };
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
-  draft: "text-stone-500 dark:text-stone-500",
-  sent: "text-stone-700 dark:text-stone-300",
-  viewed: "text-stone-700 dark:text-stone-300",
+  draft: "text-[var(--text-muted)]",
+  sent: "text-[var(--text-faint)] dark:text-[var(--text-secondary)]",
+  viewed: "text-[var(--text-faint)] dark:text-[var(--text-secondary)]",
   paid: "text-[#2f9e6b]",
   overdue: "text-[#c6892e]",
-  cancelled: "text-stone-400 dark:text-stone-600",
+  cancelled: "text-[var(--text-secondary)] dark:text-[var(--text-faint)]",
 };
 
 const REASON_LABELS: Record<string, string> = {

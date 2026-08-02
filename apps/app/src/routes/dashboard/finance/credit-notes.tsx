@@ -34,12 +34,12 @@ interface CreditNote {
 }
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; icon: React.ElementType }> = {
-  draft:          { label: "Draft",          color: "text-stone-400 bg-stone-400/10",   icon: ReceiptText   },
+  draft:          { label: "Draft",          color: "text-[var(--text-secondary)] bg-stone-400/10",   icon: ReceiptText   },
   pending_review: { label: "Pending Review", color: "text-status-warn bg-status-warn/10",   icon: Clock         },
   verified:       { label: "Verified",       color: "text-status-neutral bg-status-neutral/10",   icon: CheckCircle2  },
   rejected:       { label: "Rejected",       color: "text-status-error bg-status-error/10",   icon: XCircle       },
   executed:       { label: "Executed",       color: "text-status-ok bg-status-ok/10",   icon: CheckCircle2  },
-  void:           { label: "Void",           color: "text-stone-600 bg-stone-600/10",   icon: XCircle       },
+  void:           { label: "Void",           color: "text-[var(--text-faint)] bg-stone-600/10",   icon: XCircle       },
 };
 
 const REASON_LABELS: Record<CreditReason, string> = {

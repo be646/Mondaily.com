@@ -27,17 +27,17 @@ const STAGE_DOT: Record<string, string> = {
   "Closed Lost": "bg-stone-400",
 };
 const STAGE_TEXT: Record<string, string> = {
-  "Lead":        "text-stone-300",
+  "Lead":        "text-[var(--text-secondary)]",
   "Qualified":   "text-[#717784]",
-  "In Progress": "text-stone-300",
+  "In Progress": "text-[var(--text-secondary)]",
   "Proposal":    "text-[#c6892e]",
   "Negotiation": "text-[#a68762]",
   "Closed Won":  "text-[#2f9e6b]",
-  "Closed Lost": "text-stone-300",
+  "Closed Lost": "text-[var(--text-secondary)]",
 };
 
 function dotColor(stage: string) { return STAGE_DOT[stage] ?? "bg-stone-500"; }
-function textColor(stage: string) { return STAGE_TEXT[stage] ?? "text-stone-300"; }
+function textColor(stage: string) { return STAGE_TEXT[stage] ?? "text-[var(--text-secondary)]"; }
 
 function fmtVal(v: unknown): number | null {
   if (v == null || v === "") return null;
