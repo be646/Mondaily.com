@@ -34,6 +34,40 @@ describe("sort rebuild — one model, ordered in SQL", () => {
   });
 });
 
+describe("sort bar — same chrome as the filter bar, duplicates unrepresentable", () => {
+  it("is its own bar built from hairline chips + a dashed picker, not a form select", () => {
+    expect(table()).toMatch(/function SortBar/);
+    // the 36px FieldSelect form control is gone from the sheet toolbar entirely
+    expect(table()).not.toMatch(/FieldSelect value=\{rule\.col\}/);
+    expect(table()).not.toMatch(/import \{ FieldSelect \}/);
+    expect(table()).toMatch(/border border-dashed border-\[var\(--border-soft\)\][^"]*text-\[11px\]/);
+  });
+
+  it("adding a sort opens a field picker — it never auto-picks 'the next unused column'", () => {
+    expect(table()).not.toMatch(/const unused = \[\.\.\.allColumnsWithCustom/);
+    expect(table()).toMatch(/const fieldPicker = \(self\?: string\)/);
+  });
+
+  it("the picker only offers fields that are not already sorted", () => {
+    expect(table()).toMatch(/fields\.filter\(c => \(c === self \|\| !used\.has\(c\)\)/);
+  });
+
+  it("direction words follow the column kind instead of always claiming A→Z", () => {
+    expect(table()).toMatch(/numericOf\(rule\.col\) \? \(rule\.dir === "asc" \? "1→9" : "9→1"\)/);
+  });
+});
+
+describe("sort comparator — real numbers, empties last", () => {
+  it("uses the shared parser, never the parseFloat strip that corrupted European money", () => {
+    expect(table()).toMatch(/const an = typeof ar === "number" \? ar : parseNumeric\(av\)/);
+    expect(table()).not.toMatch(/parseFloat\(av\.replace/);
+  });
+
+  it("empty cells sink to the bottom in both directions", () => {
+    expect(table()).toMatch(/if \(aEmpty !== bEmpty\) return aEmpty \? 1 : -1/);
+  });
+});
+
 describe("cells — single line, auto-fit with caps, compact totals", () => {
   it("cells never wrap; width comes from content with a per-kind cap", () => {
     // 2026-08-01: ellipsis moved INSIDE text cells (EditableCell 'block truncate') — the td-level

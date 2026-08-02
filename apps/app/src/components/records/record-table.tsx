@@ -20,7 +20,6 @@ import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency
 import { countryFacts, fmtPopulation } from "../../lib/countries";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
-import { FieldSelect } from "../ui/controls";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { AIHealthScoreCompact } from "../ai/ai-intelligence";
@@ -1898,6 +1897,104 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
   );
 }
 
+// ─── Sort bar ─────────────────────────────────────────────────────────────────
+// Built to the SAME shape as FilterBar: hairline chips, a dashed "+ Sort" opening a
+// searchable field picker. The old bar auto-picked "the first unused column" when you
+// pressed Add sort — it silently sorted by whatever column happened to be next (that's
+// "adding more sort that doesn't work"), and its FieldSelect was a 36px form control
+// that looked nothing like the rest of the toolbar. A field can only ever appear once:
+// the picker offers unused fields only, so duplicate rules are unrepresentable here.
+function SortBar({ rules, onChange, fields, labelOf, numericOf, onClose }: {
+  rules: SortRule[];
+  onChange: (v: SortRule[] | ((p: SortRule[]) => SortRule[])) => void;
+  fields: string[];
+  labelOf: (c: string) => string;
+  numericOf: (c: string) => boolean;
+  onClose: () => void;
+}) {
+  const [pickerFor, setPickerFor] = useState<"new" | number | null>(null);
+  const [search, setSearch] = useState("");
+  const pickerRef = useRef<HTMLButtonElement>(null);
+
+  const used = new Set(rules.map(r => r.col));
+  const available = (self?: string) =>
+    fields.filter(c => (c === self || !used.has(c)) && (!search || labelOf(c).toLowerCase().includes(search.toLowerCase())));
+
+  const pick = (col: string) => {
+    if (pickerFor === "new") onChange(r => [...r, { col, dir: "asc" }]);
+    else if (typeof pickerFor === "number") onChange(r => r.map((x, i) => i === pickerFor ? { ...x, col } : x));
+    setPickerFor(null); setSearch("");
+  };
+  // Direction words follow the field's real kind — "A→Z" on a number column was a lie.
+  const dirLabel = (rule: SortRule) =>
+    rule.col === "__updated_at" ? (rule.dir === "asc" ? "Oldest" : "Newest")
+    : numericOf(rule.col) ? (rule.dir === "asc" ? "1→9" : "9→1")
+    : rule.dir === "asc" ? "A→Z" : "Z→A";
+
+  // NOT a component — a plain JSX helper. Declared as <FieldPicker/> it would be a new
+  // component type every render, remounting the panel on each keystroke and stealing focus
+  // from the search input.
+  const fieldPicker = (self?: string) => (
+    <PortalDropdown triggerRef={pickerRef} onClose={() => { setPickerFor(null); setSearch(""); }} align="left" className="w-56" minWidth={224}>
+      <div className="p-1">
+        {fields.length > 8 && (
+          <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Find a field…"
+            className="mb-1 w-full rounded-sm border border-[var(--border-soft)] bg-transparent px-2 py-1 text-[11.5px] text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"/>
+        )}
+        <div className="max-h-64 overflow-y-auto">
+          {available(self).map(col => (
+            <button key={col} onClick={() => pick(col)}
+              className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+              {labelOf(col)}
+            </button>
+          ))}
+          {available(self).length === 0 && (
+            <p className="px-2.5 py-1.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+              {search ? "No field matches" : "Every field is already sorted"}
+            </p>
+          )}
+        </div>
+      </div>
+    </PortalDropdown>
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
+      {rules.map((rule, i) => (
+        <span key={rule.col} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-[11px] text-[var(--text-primary)]">
+          {/* Rank is the whole point of stacking — say it out loud instead of relying on position. */}
+          <span className="text-[var(--text-faint)]">{i === 0 ? "Sort by" : "then by"}</span>
+          <button ref={pickerFor === i ? (pickerRef as React.RefObject<HTMLButtonElement>) : undefined}
+            onClick={() => { setPickerFor(p => p === i ? null : i); setSearch(""); }}
+            className="font-medium first-letter:uppercase transition-colors hover:text-[var(--text-primary)]">
+            {labelOf(rule.col)}
+          </button>
+          {pickerFor === i && fieldPicker(rule.col)}
+          <button onClick={() => onChange(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
+            title="Reverse this sort"
+            className="flex items-center gap-0.5 tabular-nums text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">
+            {rule.dir === "asc" ? <ChevronUp size={9}/> : <ChevronDown size={9}/>}{dirLabel(rule)}
+          </button>
+          <button onClick={() => onChange(r => r.filter((_, idx) => idx !== i))} aria-label="Remove sort"
+            className="text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"><X size={10}/></button>
+        </span>
+      ))}
+
+      <button ref={pickerFor === "new" ? (pickerRef as React.RefObject<HTMLButtonElement>) : undefined}
+        onClick={() => { setPickerFor(p => p === "new" ? null : "new"); setSearch(""); }}
+        className="flex items-center gap-1 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]">
+        <Plus size={10}/> Sort
+      </button>
+      {pickerFor === "new" && fieldPicker()}
+
+      {rules.length > 0 && (
+        <button onClick={() => onChange([])} className="text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">Clear all</button>
+      )}
+      <button onClick={onClose} className="ml-auto text-[var(--text-secondary)] shrink-0 hover:text-[var(--text-primary)]"><X size={13}/></button>
+    </div>
+  );
+}
+
 // ── FilterBar end ──
 
 // ─── Main table ───────────────────────────────────────────────────────────────
@@ -2299,9 +2396,17 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         const br = col === "__updated_at" ? b.updated_at : cellValue(b, col);
         const av = col === "__updated_at" ? a.updated_at : display(ar);
         const bv = col === "__updated_at" ? b.updated_at : display(br);
-        const an = typeof ar === "number" ? ar : parseFloat(av.replace(/[^0-9.-]/g, ""));
-        const bn = typeof br === "number" ? br : parseFloat(bv.replace(/[^0-9.-]/g, ""));
-        const cmp = !isNaN(an) && !isNaN(bn) ? an - bn : av.localeCompare(bv);
+        // Empty always sinks to the bottom, in BOTH directions — reversing a sort used to fill
+        // the whole first page with blank cells, which reads as "the sort did nothing".
+        const aEmpty = ar == null || av === "" || av === "—";
+        const bEmpty = br == null || bv === "" || bv === "—";
+        if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+        if (aEmpty && bEmpty) continue;
+        // parseNumeric, not parseFloat-strip: the strip read "1.200,50" as 1.2, so European-format
+        // money columns sorted in an order that had nothing to do with their real values.
+        const an = typeof ar === "number" ? ar : parseNumeric(av);
+        const bn = typeof br === "number" ? br : parseNumeric(bv);
+        const cmp = an != null && bn != null ? an - bn : av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
         if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
       }
       return 0;
@@ -3176,35 +3281,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
       {/* ── Sort inline bar ── */}
       {openPanel === "sort" && (
-        <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-transparent shrink-0">
-          <span className="text-body text-[var(--text-secondary)] shrink-0">Sort by</span>
-          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
-          {sortRules.length === 0 && (
-            <span className="text-[11px] text-[var(--text-secondary)]">No sorts — add one below</span>
-          )}
-          {sortRules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
-              <FieldSelect value={rule.col} onChange={v => setSortRules(r => r.filter((x, idx) => idx === i || x.col !== v).map((x, idx) => idx === i ? { ...x, col: v } : x))}
-                ariaLabel="Sort column" className="capitalize max-w-[120px]"
-                options={[...allColumnsWithCustom, "__updated_at"].filter(c => c === rule.col || !sortRules.some(x => x.col === c)).map(c => ({ value: c, label: colLabel(c) }))} />
-              <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
-                className={`flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap bg-transparent ${rule.dir === "asc" ? "border-[#717784]/40 text-[#717784]" : "border-[#c6892e]/40 text-[#c6892e]"}`}>
-                {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
-              </button>
-              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
-            </div>
-          ))}
-          <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) setSortRules(r => [...r, { col: unused, dir: "asc" }]); }}
-            className="flex items-center gap-1 text-[11px] text-stone-400 hover:text-stone-100 transition-colors shrink-0 whitespace-nowrap">
-            <Plus size={11}/> Add sort
-          </button>
-          {sortRules.length > 0 && (
-            <button onClick={() => setSortRules([])} className="text-[10px] text-stone-400/50 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
-              Clear
-            </button>
-          )}
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 pl-2"><X size={13}/></button>
-        </div>
+        <SortBar
+          rules={sortRules}
+          onChange={setSortRules}
+          fields={[...allColumnsWithCustom, "__updated_at"]}
+          labelOf={colLabel}
+          numericOf={isNumericCol}
+          onClose={() => setOpenPanel(null)}
+        />
       )}
 
       {/* ── Group inline bar ── */}
