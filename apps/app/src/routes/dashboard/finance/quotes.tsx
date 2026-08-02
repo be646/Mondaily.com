@@ -9,7 +9,7 @@ import { AIButton } from "../../../components/ui/ai-button";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
-  Plus, ReceiptText, Clock, CheckCircle2, XCircle, Send,
+  Plus, ReceiptText, Clock, CheckCircle2, XCircle, Send, FileOutput,
 } from "lucide-react";
 
 type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
@@ -23,6 +23,7 @@ interface Quote {
   total: number;
   currency: string;
   status: QuoteStatus;
+  converted_to_invoice_id?: string | null;
   expires_at?: string;
   notes?: string;
   created_at: string;
@@ -176,6 +177,7 @@ const dateGB = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day:
 
 // Column model for the shared DataTable. Cell rendering + money formatting + the status badge
 // stay HERE (the shared shell knows no finance logic); only the table markup moved.
+// The Convert column is appended in the page component, which owns the mutation.
 const QUOTE_COLUMNS: DataTableColumn<Quote>[] = [
   { key: "number",  header: "Number", cellClassName: "text-body font-mono text-[var(--text-faint)]",    cell: (q) => q.number },
   { key: "client",  header: "Client", cellClassName: "text-body font-medium text-[var(--text-primary)]", cell: (q) => q.client_name },
@@ -195,6 +197,7 @@ const QUOTE_COLUMNS: DataTableColumn<Quote>[] = [
 
 export function QuotesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -217,6 +220,56 @@ export function QuotesPage() {
     queryFn: () => apiClient.get<Quote[]>("/quotes?"),
     staleTime: 60_000,
   });
+
+  // Quote → invoice. The endpoint was fully built and hardened (idempotent: a quote converts
+  // exactly once and a repeat returns the existing invoice) but NOTHING called it — the central
+  // step of the quoting workflow had no button, so an accepted quote had to be retyped as an
+  // invoice by hand.
+  const [convertErr, setConvertErr] = useState<string | null>(null);
+  const convert = useMutation({
+    mutationFn: (id: string) => apiClient.post<{ id: string; number?: string; already_converted?: boolean }>(`/quotes/${id}/convert`, {}),
+    onSuccess: (inv) => {
+      setConvertErr(null);
+      qc.invalidateQueries({ queryKey: ["quotes"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      navigate(`/finance/invoices/${inv.id}`);
+    },
+    onError: (e) => setConvertErr(e instanceof Error ? e.message : "Could not convert this quote."),
+  });
+
+  const quoteColumns: DataTableColumn<Quote>[] = [
+    ...QUOTE_COLUMNS,
+    {
+      key: "convert",
+      header: "",
+      cell: (q) => {
+        if (q.converted_to_invoice_id) {
+          return (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/finance/invoices/${q.converted_to_invoice_id}`); }}
+              className="text-caption text-[var(--text-muted)] underline underline-offset-2 transition-colors hover:text-[var(--text-primary)]">
+              View invoice
+            </button>
+          );
+        }
+        // Only a live quote can become an invoice — a declined or expired one is not billable.
+        if (q.status === "declined") return null;
+        const busy = convert.isPending && convert.variables === q.id;
+        return (
+          <button
+            disabled={busy}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!window.confirm(`Convert ${q.number} into a draft invoice for ${q.client_name}?\n\nThe quote is marked accepted. It can only be converted once.`)) return;
+              convert.mutate(q.id);
+            }}
+            className="flex items-center gap-1 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-0.5 text-caption text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:opacity-50">
+            <FileOutput size={10}/>{busy ? "Converting…" : "To invoice"}
+          </button>
+        );
+      },
+    },
+  ];
 
   const { display, sumInDisplay } = useCurrency();
   const currency = display;
@@ -257,6 +310,9 @@ export function QuotesPage() {
         <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}
           counts={allQuotes.reduce<Record<string, number>>((acc, q) => { const k = String(q.status ?? "draft"); acc[k] = (acc[k] ?? 0) + 1; return acc; }, {})}
           search={search} onSearch={setSearch} placeholder="Search by client…" />
+        {convertErr && (
+          <p className="mt-2 text-caption" style={{ color: "var(--status-error)" }} role="alert">{convertErr}</p>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -264,7 +320,7 @@ export function QuotesPage() {
             formatting, the status badge, and the money value are unchanged. Rows are intentionally
             non-navigating (matches the prior behaviour); no row click was added. */}
         <DataTable<Quote>
-          columns={QUOTE_COLUMNS}
+          columns={quoteColumns}
           rows={quotes}
           rowKey={(q) => q.id}
           state={{

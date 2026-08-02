@@ -253,7 +253,10 @@ describe("finance/quotes fully adopts the shared type scale (Pass 3O)", () => {
     expect(Q).toMatch(/STATUS_CONFIG\[q\.status\]/);
     expect(Q).toMatch(/formatMoney\(totalPending, currency\)/);   // telemetry unchanged
     expect(Q).toMatch(/<DataTable<Quote>/);
-    expect(Q).toMatch(/columns=\{QUOTE_COLUMNS\}/);
+    // 2026-08-02: the column model is QUOTE_COLUMNS plus a Convert action owned by the page
+    // (the mutation lives there), so the table receives the composed list.
+    expect(Q).toMatch(/columns=\{quoteColumns\}/);
+    expect(Q).toMatch(/\.\.\.QUOTE_COLUMNS,/);
   });
 });
 
@@ -1062,7 +1065,8 @@ describe("finance/quotes pilots the shared DataTable", () => {
   it("imports and renders <DataTable>", () => {
     expect(Q).toMatch(/import \{ DataTable, type DataTableColumn \} from "\.\.\/\.\.\/\.\.\/components\/ui\/data-table"/);
     expect(Q).toMatch(/<DataTable<Quote>/);
-    expect(Q).toMatch(/columns=\{QUOTE_COLUMNS\}/);
+    expect(Q).toMatch(/columns=\{quoteColumns\}/);   // QUOTE_COLUMNS + the Convert action
+    expect(Q).toMatch(/\.\.\.QUOTE_COLUMNS,/);
   });
   it("no longer hand-rolls its own <table> / <thead> / <tbody>", () => {
     expect(Q).not.toMatch(/<table\b/);

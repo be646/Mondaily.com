@@ -110,3 +110,30 @@ describe("finance writes are scoped at the statement that mutates", () => {
     }
   });
 });
+
+describe("built-but-unreachable endpoints", () => {
+  const quotesUI = () => read("apps/app/src/routes/dashboard/finance/quotes.tsx");
+
+  it("quote → invoice is reachable — the endpoint existed with no caller at all", () => {
+    // The central step of the quoting workflow: fully built and hardened server-side (idempotent,
+    // rounding-safe) but nothing called it, so an accepted quote had to be retyped by hand.
+    expect(quotesUI()).toMatch(/apiClient\.post<\{[^}]*\}>\(`\/quotes\/\$\{id\}\/convert`/);
+  });
+
+  it("converting asks first — it mints a real financial document and marks the quote accepted", () => {
+    expect(quotesUI()).toMatch(/window\.confirm\(`Convert \$\{q\.number\} into a draft invoice/);
+  });
+
+  it("an already-converted quote links to its invoice instead of offering to convert again", () => {
+    expect(quotesUI()).toMatch(/if \(q\.converted_to_invoice_id\)/);
+  });
+
+  it("a declined quote cannot be billed", () => {
+    expect(quotesUI()).toMatch(/if \(q\.status === "declined"\) return null;/);
+  });
+
+  it("a failed conversion is shown, not swallowed", () => {
+    expect(quotesUI()).toMatch(/onError: \(e\) => setConvertErr/);
+    expect(quotesUI()).toMatch(/\{convertErr && \(/);
+  });
+});
