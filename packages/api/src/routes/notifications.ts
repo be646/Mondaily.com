@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { categorizeNotification, extractSource } from "../lib/notify";
+import { withReadState, markRead, markAllRead } from "../lib/notification-reads";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -25,7 +26,10 @@ router.get("/", async (c) => {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) return c.json({ error: error.message }, 500);
-  const rows = (data ?? []).map((n) => ({
+  // A broadcast row's stored is_read belongs to whoever happened to open the bell first; this
+  // replaces it with THIS reader's state before anything downstream sees it.
+  const scoped = await withReadState(data ?? [], userId);
+  const rows = scoped.map((n) => ({
     ...n,
     category: categorizeNotification(n),
     source: extractSource(n),
@@ -73,43 +77,17 @@ router.post("/", async (c) => {
 
 // PATCH /notifications/read-all — must be before /:id/read
 router.patch("/read-all", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const userId = c.get("userId");
-  const { error } = await supabase
-    .from("notifications")
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("workspace_id", workspaceId)
-    .or(`user_id.eq.${userId},user_id.is.null`)
-    .eq("is_read", false);
-  if (error) return c.json({ error: error.message }, 500);
+  const ok = await markAllRead(c.get("workspaceId"), c.get("userId"));
+  if (!ok) return c.json({ error: "Could not mark notifications read." }, 500);
   return c.json({ ok: true });
 });
 
 // PATCH /notifications/:id/read
 router.patch("/:id/read", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const userId = c.get("userId");
-  const { error } = await supabase
-    .from("notifications")
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("id", c.req.param("id"))
-    .eq("workspace_id", workspaceId)
-    .or(`user_id.eq.${userId},user_id.is.null`);
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json({ ok: true });
-});
-
-// DELETE /notifications/:id
-router.delete("/:id", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const userId = c.get("userId");
-  const { error } = await supabase
-    .from("notifications")
-    .delete()
-    .eq("id", c.req.param("id"))
-    .eq("workspace_id", workspaceId)
-    .or(`user_id.eq.${userId},user_id.is.null`);
-  if (error) return c.json({ error: error.message }, 500);
+  const ok = await markRead(c.get("workspaceId"), c.get("userId"), c.req.param("id"));
+  // Not found rather than a silent ok: the previous version reported success even when its filters
+  // matched no row, so a caller could never tell the difference.
+  if (!ok) return c.json({ error: "Not found" }, 404);
   return c.json({ ok: true });
 });
 

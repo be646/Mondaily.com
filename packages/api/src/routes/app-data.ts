@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { markRead, markAllRead } from "../lib/notification-reads";
 import { clearDeletedCache } from "../middleware/auth";
 import { sendTransactionalEmail } from "../lib/mail";
 import { makeTrackingToken } from "../lib/tracking";
@@ -235,19 +236,17 @@ router.get("/objects", async (c) => {
 // These two write routes ARE reachable (the canonical router uses PATCH, not POST), and had the
 // same defect: workspace-scoped only, so any member could mark another member's notification read.
 // They now carry the same per-user guard as the canonical router.
-function ownNotifications(c: { get: (k: "workspaceId" | "userId") => string }) {
-  return supabase.from("notifications")
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("workspace_id", c.get("workspaceId"))
-    .or(`user_id.eq.${c.get("userId")},user_id.is.null`);
-}
+// Both delegate to lib/notification-reads, so a broadcast is marked read for THIS user only. The
+// previous local helper wrote is_read on the shared row — the same bug the canonical router had,
+// which is exactly why the logic now lives in one place instead of two.
 router.post("/notifications/:id/read", async (c) => {
-  // Set BOTH is_read + read_at so the bell's unread count (which keys on is_read) stays in sync.
-  await ownNotifications(c).eq("id", c.req.param("id"));
+  const ok = await markRead(c.get("workspaceId"), c.get("userId"), c.req.param("id"));
+  if (!ok) return c.json({ error: "Not found" }, 404);
   return c.json({ ok: true });
 });
 router.post("/notifications/read-all", async (c) => {
-  await ownNotifications(c).eq("is_read", false);
+  const ok = await markAllRead(c.get("workspaceId"), c.get("userId"));
+  if (!ok) return c.json({ error: "Could not mark notifications read." }, 500);
   return c.json({ ok: true });
 });
 

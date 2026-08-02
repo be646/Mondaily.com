@@ -53,7 +53,12 @@ describe("Home audit 2026-07-31 — tenant isolation", () => {
 
   it("notification read-writes are scoped to the caller, not just the workspace", () => {
     const appData = read("packages/api/src/routes/app-data.ts");
-    expect(appData).toMatch(/\.or\(`user_id\.eq\.\$\{c\.get\("userId"\)\},user_id\.is\.null`\)/);
+    // The property, not the old filter string: these writes now go through lib/notification-reads,
+    // which resolves ownership from the row (and gives a broadcast per-user read state instead of
+    // writing the shared row). The caller's id must still reach it.
+    expect(appData).toMatch(/markRead\(c\.get\("workspaceId"\), c\.get\("userId"\), c\.req\.param\("id"\)\)/);
+    expect(appData).toMatch(/markAllRead\(c\.get\("workspaceId"\), c\.get\("userId"\)\)/);
+    expect(read("packages/api/src/lib/notification-reads.ts")).toMatch(/if \(row\.user_id !== userId\) return false;/);
     // the shadowed, user-unscoped GET duplicate is gone
     expect(appData).not.toMatch(/router\.get\("\/notifications", async \(c\) => c\.json\(await rows\("notifications"/);
   });
