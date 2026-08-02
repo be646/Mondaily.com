@@ -37,7 +37,16 @@ router.get("/", async (c) => {
 
 router.post("/", zValidator("json", z.object({ name: z.string().min(1), object_type: z.string().min(1) })), async (c) => {
   const body = c.req.valid("json");
-  const { data, error } = await supabase.from("lists").insert({ workspace_id: c.get("workspaceId"), owner_id: c.get("userId"), visibility: "workspace", access_level: "workspace", ...body }).select().single();
+  const { data, error } = await supabase.from("lists").insert({
+    ...body,
+    // Scope keys LAST. The schema above admits only name/object_type today, so the previous order
+    // was not exploitable — but a field added to that schema later would have silently overridden
+    // workspace_id or owner_id, creating a list in another workspace or owned by someone else.
+    workspace_id: c.get("workspaceId"),
+    owner_id: c.get("userId"),
+    visibility: "workspace",
+    access_level: "workspace",
+  }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json({ ...data, entry_count: 0 }, 201);
 });
 
