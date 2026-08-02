@@ -277,6 +277,14 @@ function CategoryCell({ value, onSave }: {
   );
 }
 
+interface FinanceRollupBucket { billed: number; collected: number; outstanding: number; count: number; last_paid_at: string | null }
+interface FinanceRollup {
+  base: string;
+  clients: Record<string, FinanceRollupBucket>;
+  records: Record<string, FinanceRollupBucket>;
+  basis: { frozen: number; live: number };
+}
+
 function isNumeric(col: string) {
   const lower = col.toLowerCase();
   // "country" contains "count" — it rendered with a # header icon and right-aligned as a number.
@@ -2336,7 +2344,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   const hasFinanceCol = customCols.some(c => c.type === "finance_billed" || c.type === "finance_outstanding");
   const financeRollup = useQuery({
     queryKey: ["invoices-rollup"],
-    queryFn: () => apiClient.get<{ base: string; clients: Record<string, { billed: number; collected: number; outstanding: number; count: number }> }>("/invoices/rollup"),
+    queryFn: () => apiClient.get<FinanceRollup>("/invoices/rollup"),
     enabled: hasFinanceCol,
     staleTime: 60_000,
   });
@@ -3052,13 +3060,21 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     // Finance columns — computed, read-only, from the one-shot rollup keyed by the record's name.
     if (customDef?.type === "finance_billed" || customDef?.type === "finance_outstanding") {
       const roll = financeRollup.data;
+      // Prefer the STRUCTURAL link. Matching on client name is what the column has always done,
+      // but two records that share a name share a total, and renaming one silently empties it —
+      // so an invoice that names its record explicitly wins, and the name is only a fallback.
+      const byId = roll?.records?.[record.id];
       const name = String(record.data.name ?? "").trim();
-      const entry = roll?.clients?.[name];
+      const entry = byId ?? (name ? roll?.clients?.[name] : undefined);
       const value = customDef.type === "finance_billed" ? entry?.billed : entry?.outstanding;
       const tone = customDef.type === "finance_billed" ? "#2f9e6b" : "#c6892e";
+      const matchedBy = byId ? "linked to this record" : entry ? `matched on the client name “${name}”` : "";
       return (
-        <div className="px-2 py-1.5 text-right text-[12px] tabular-nums" style={{ color: value ? tone : "var(--text-faint)" }}>
+        <div className="px-2 py-1.5 text-right text-[12px] tabular-nums" style={{ color: value ? tone : "var(--text-faint)" }}
+          title={entry ? `${entry.count} invoice${entry.count === 1 ? "" : "s"} ${matchedBy}${entry.last_paid_at ? ` · last paid ${entry.last_paid_at}` : ""}` : undefined}>
           {roll ? (value ? formatMoney(value, roll.base) : "—") : (hasFinanceCol && financeRollup.isLoading ? "…" : "—")}
+          {/* A name match is a guess about identity; say so rather than presenting it as a link. */}
+          {entry && !byId && <span className="ml-1" style={{ color: "var(--text-faint)" }} title={`Matched by name, not linked. ${matchedBy}.`}>~</span>}
         </div>
       );
     }

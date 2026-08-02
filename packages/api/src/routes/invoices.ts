@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter, moneyAt, settlementRateAt } from "../lib/currency-store";
-import { buildSettlement, hasMoney } from "@mondaily/shared/money";
+import { buildSettlement, hasMoney, readMoney } from "@mondaily/shared/money";
 import { isBilled, isCollected, isOutstanding } from "@mondaily/shared/finance";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -82,6 +82,20 @@ async function nextInvoiceNumber(workspaceId: string): Promise<string> {
 
 // Per-client finance rollup for the records sheet (one query powers a whole column, no N+1).
 // Totals are converted to the workspace BASE currency server-side via the sovereign ECB rates.
+/**
+ * Per-client / per-record invoice rollup — the UNI-DIRECTIONAL link from invoices to leads and
+ * sheet rows.
+ *
+ * Money is never copied onto a lead. The invoice is the sole writer; everything else READS this
+ * derived view. Copying a paid status and a total onto the linked record would create a second
+ * writable source of truth for the same money, which drifts the moment either side is edited and
+ * can loop if both sides sync — the same failure the six hand-written status sets caused.
+ *
+ * Keyed two ways because the data is two ways: `records` by linked_record_id (structural, exact)
+ * and `clients` by client name (all that exists for most invoices today — 13 of 16 here). The name
+ * key is a fallback, and `basis` reports how much of the total came from each so a caller can say
+ * which it is rather than implying both are equally reliable.
+ */
 router.get("/rollup", async (c) => {
   const workspaceId = c.get("workspaceId");
   const [{ data }, { base, toBase }] = await Promise.all([
@@ -91,20 +105,52 @@ router.get("/rollup", async (c) => {
   // Status meanings come from @mondaily/shared/finance — the SAME source the reports chart, the
   // invoice list, insights and the detail page read. They were written out by hand in six places
   // and had already drifted: the reports chart counted drafts as billed while this rollup didn't.
-  const byClient: Record<string, { billed: number; collected: number; outstanding: number; count: number }> = {};
+  type Bucket = { billed: number; collected: number; outstanding: number; count: number; last_paid_at: string | null };
+  const mk = (): Bucket => ({ billed: 0, collected: 0, outstanding: 0, count: 0, last_paid_at: null });
+  const byClient: Record<string, Bucket> = {};
+  const byRecord: Record<string, Bucket> = {};
+  let frozen = 0, live = 0;
+
   for (const row of data ?? []) {
     const d = (row.data ?? {}) as Record<string, unknown>;
-    const name = String(d.client_name ?? "").trim();
-    if (!name) continue;
-    const amt = toBase(Number(d.total ?? 0) || 0, String(d.currency ?? base));
     const st = String(d.status ?? "draft");
-    const b = (byClient[name] ??= { billed: 0, collected: 0, outstanding: 0, count: 0 });
-    b.count += 1;
-    if (isBilled(st)) b.billed += amt;
-    if (isCollected(st)) b.collected += amt;
-    if (isOutstanding(st)) b.outstanding += amt;
+    const m = readMoney(d);
+
+    // Value from the FROZEN base where the record has one, so this rollup stops moving with
+    // today's rate. It previously re-converted `total` on every request, which is why a client's
+    // lifetime value was a slightly different number each morning.
+    let amt: number;
+    if (m.modelled && m.base_amount != null && (m.base_currency ?? "").toUpperCase() === base.toUpperCase()) {
+      amt = m.base_amount; frozen += 1;
+    } else {
+      amt = toBase(m.amount, m.currency || base); live += 1;
+    }
+
+    const apply = (b: Bucket) => {
+      b.count += 1;
+      if (isBilled(st)) b.billed += amt;
+      if (isCollected(st)) {
+        b.collected += amt;
+        const paid = String(d.paid_at ?? "").slice(0, 10);
+        if (paid && (!b.last_paid_at || paid > b.last_paid_at)) b.last_paid_at = paid;
+      }
+      if (isOutstanding(st)) b.outstanding += amt;
+    };
+
+    const name = String(d.client_name ?? "").trim();
+    if (name) apply(byClient[name] ??= mk());
+    const linked = String(d.linked_record_id ?? "").trim();
+    if (linked) apply(byRecord[linked] ??= mk());
   }
-  return c.json({ base, clients: byClient });
+
+  return c.json({
+    base,
+    clients: byClient,
+    records: byRecord,
+    // How the figures were valued, so a consumer can disclose a mixed basis instead of implying
+    // every number is frozen.
+    basis: { frozen, live },
+  });
 });
 
 router.get("/", async (c) => {
