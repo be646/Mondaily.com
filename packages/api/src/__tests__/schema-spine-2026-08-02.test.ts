@@ -48,14 +48,14 @@ describe("the audit is read-only and honest about coverage", () => {
     // populations look like duplicate owner columns in conflict on 47 records.
     const src = records();
     expect(src).toMatch(/const nameSuggestsPeople =/);
-    expect(src).toMatch(/resolves \* 2 > distinct\.length/);
+    expect(src).toMatch(/resolves \* 2 > vals\.length/);
     // The roster is read from the workspace, not accepted from the caller.
     expect(src).toMatch(/\.from\("workspace_members"\)\s*\n?\s*\.select\("name, email"\)\.eq\("workspace_id", ws\)/);
   });
 
   it("publishes the evidence for that call instead of just the verdict", () => {
     const src = records();
-    expect(src).toMatch(/distinct_values: distinct\.length, resolve_to_members:/);
+    expect(src).toMatch(/values_resolving_to_members: flat\.filter\(v => members\.has\(v\)\)\.length/);
   });
 
   it("is scoped to the workspace on every query it makes", () => {

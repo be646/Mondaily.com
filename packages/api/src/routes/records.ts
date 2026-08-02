@@ -456,14 +456,16 @@ function inferAttrType(values: unknown[], key = "", members?: Set<string>): stri
   // So the name only nominates the type; the VALUES decide it. When a majority of distinct values
   // do not resolve to a member, this falls through to shape inference and comes out as text or a
   // select — which is what a list of outside names actually is.
+  // The test counts OCCURRENCES, not distinct spellings. A field where 97 of 98 values are the
+  // one member and one is a stray really is an owner field; weighting by distinct values would let
+  // that single stray outvote 97 correct ones. Weighting the other way is just as important:
+  // deal_owner's 46 names are 46 occurrences against 4, so it still fails.
   const nameSuggestsPeople = /^(owner|deal_owner|owner_id|account_owner)$/.test(k) || /^(assigned_to|assignee)$/.test(k);
   if (nameSuggestsPeople) {
-    const distinct = [...new Set(values.map(v => String(v).trim().toLowerCase()).filter(Boolean))];
+    const vals = values.map(v => String(v).trim().toLowerCase()).filter(Boolean);
     // No roster to check against → keep the historical behaviour rather than silently downgrading.
-    const resolves = members
-      ? distinct.filter(v => members.has(v)).length
-      : distinct.length;
-    if (distinct.length === 0 || resolves * 2 > distinct.length) {
+    const resolves = members ? vals.filter(v => members.has(v)).length : vals.length;
+    if (vals.length === 0 || resolves * 2 > vals.length) {
       return /^(assigned_to|assignee)$/.test(k) ? "assignee" : "owner";
     }
   }
@@ -523,8 +525,12 @@ router.get("/schema-audit/:objectType", async (c) => {
       // Why an owner-shaped name did or did not become an owner type — the evidence, not a verdict.
       ...(/^(owner|deal_owner|owner_id|account_owner|assigned_to|assignee)$/.test(k.toLowerCase())
         ? (() => {
-            const distinct = [...new Set(vals.map(v => String(v).trim().toLowerCase()).filter(Boolean))];
-            return { distinct_values: distinct.length, resolve_to_members: distinct.filter(v => members.has(v)).length };
+            const flat = vals.map(v => String(v).trim().toLowerCase()).filter(Boolean);
+            return {
+              distinct_values: new Set(flat).size,
+              values_resolving_to_members: flat.filter(v => members.has(v)).length,
+              values: flat.length,
+            };
           })()
         : {}),
     }))
