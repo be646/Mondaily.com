@@ -70,6 +70,30 @@ export function roundToCurrency(amount: number, currency: string): number {
 }
 
 /**
+ * Money as an integer count of the currency's smallest unit — 12.34 USD is 1234, 100 JPY is 100,
+ * 1.234 KWD is 1234.
+ *
+ * Money arithmetic belongs in integers. A float cannot hold 0.1 exactly, so every add carries a
+ * little error that compounds over a list: this codebase already stored `9814.1577 EUR` and summed
+ * a month's revenue to `95800.9977`. Neither is a payable amount. Integers cannot drift, so a total
+ * is exact no matter how many rows it crossed.
+ */
+export function toMinor(amount: number, currency: string): number {
+  if (!Number.isFinite(amount)) return 0;
+  const dp = currencyDecimals(currency);
+  // Via the decimal string, for the same reason roundToCurrency does: amount * 100 is already
+  // wrong for 1.005 before Math.round ever sees it.
+  return Math.round(Number(`${amount}e${dp}`));
+}
+
+/** Back to major units for display. */
+export function fromMinor(minor: number, currency: string): number {
+  if (!Number.isFinite(minor)) return 0;
+  const out = Number(`${Math.round(minor)}e-${currencyDecimals(currency)}`);
+  return Number.isFinite(out) ? out : 0;
+}
+
+/**
  * Build the money block for a record. `rate` is presentment → base and must be the rate quoted for
  * the transaction date, not today's.
  */
@@ -184,27 +208,33 @@ export function sumInBase(
   opts: { base: string; convertNow: (amount: number, from: string) => number | null },
 ): BaseSum {
   const base = (opts.base || "").toUpperCase();
-  let value = 0, modelled = 0, live = 0, unconvertible = 0;
+  // Accumulate in MINOR UNITS. Adding floats across a list compounds the representation error —
+  // this is where 95,800.9977 came from. Each row is rounded to a real payable amount once, then
+  // the integers add exactly, and the result is converted back a single time at the end.
+  let minor = 0;
+  let modelled = 0, live = 0, unconvertible = 0;
+  const add = (amount: number) => { minor += toMinor(amount, base); };
   for (const row of rows) {
     const m = readMoney(row);
     if (!m.amount) continue;
     if (m.modelled && m.base_amount != null) {
       const stored = (m.base_currency ?? "").toUpperCase();
-      if (stored === base) { value += m.base_amount; modelled += 1; continue; }
+      if (stored === base) { add(m.base_amount); modelled += 1; continue; }
       // Viewing in a currency other than the one the value was frozen in. Re-express the FROZEN
       // figure rather than re-deriving from the presentment amount: the historical valuation is
       // preserved and only the final display hop uses today's rate. Re-deriving would throw the
       // freeze away entirely — which is what this did at first, so a workspace based in USD viewed
       // in PLN reported "0 fixed" even though every record was modelled.
       const reexpressed = opts.convertNow(m.base_amount, stored);
-      if (reexpressed != null) { value += reexpressed; modelled += 1; continue; }
+      if (reexpressed != null) { add(reexpressed); modelled += 1; continue; }
     }
-    if ((m.currency || "").toUpperCase() === base) { value += m.amount; live += 1; continue; }
+    if ((m.currency || "").toUpperCase() === base) { add(m.amount); live += 1; continue; }
     const converted = opts.convertNow(m.amount, m.currency);
     if (converted == null) { unconvertible += 1; continue; }
-    value += converted; live += 1;
+    add(converted); live += 1;
   }
-  return { value: roundToCurrency(value, base), modelled, live, unconvertible };
+  // One conversion back to major units, from an exact integer.
+  return { value: fromMinor(minor, base), modelled, live, unconvertible };
 }
 
 export interface CurrencyShare {

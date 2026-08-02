@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter, moneyAt, settlementRateAt } from "../lib/currency-store";
-import { buildSettlement, hasMoney, readMoney } from "@mondaily/shared/money";
+import { buildSettlement, hasMoney, readMoney, toMinor, fromMinor } from "@mondaily/shared/money";
 import { isBilled, isCollected, isOutstanding } from "@mondaily/shared/finance";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -37,16 +37,26 @@ const invoiceBodySchema = z.object({
   next_due_date: z.string().optional(),
 });
 
-function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
-  // Round to 2dp, matching quotes.ts. Without this, accumulated float error was STORED on the
-  // invoice (3 x 33.33 @20% -> total 119.98800000000001), so: a quote converted to an invoice
-  // then silently changed total on the next PATCH, and payment auto-close compared a paid
-  // 0.30 against a stored 0.30000000000000004 and left the invoice permanently unpaid with a
-  // sub-cent "Remaining" that rendered as 0.00.
-  const round2 = (n: number) => Math.round(n * 100) / 100;
-  const subtotal = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0));
-  const tax_total = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0));
-  return { subtotal, tax_total, total: round2(subtotal + tax_total) };
+function calcTotals(lineItems: z.infer<typeof lineItemSchema>[], currency = "USD") {
+  // Computed in INTEGER MINOR UNITS, then converted back once.
+  //
+  // The previous version rounded each float sum to 2dp, which is not the same thing: rounding after
+  // adding floats still stores the accumulated error, and 3 x 33.33 @20% arrived as
+  // 119.98800000000001. It also assumed every currency has 2 decimals, silently mis-stating JPY
+  // (none) and KWD (three). Rounding PER LINE is what an invoice actually does — each line is a
+  // real charge — and integers then add exactly.
+  let subtotalMinor = 0;
+  let taxMinor = 0;
+  for (const i of lineItems) {
+    const line = toMinor(i.quantity * i.unit_price, currency);
+    subtotalMinor += line;
+    taxMinor += Math.round(line * (i.tax_rate / 100));
+  }
+  return {
+    subtotal: fromMinor(subtotalMinor, currency),
+    tax_total: fromMinor(taxMinor, currency),
+    total: fromMinor(subtotalMinor + taxMinor, currency),
+  };
 }
 
 // ─── State machine ────────────────────────────────────────────────────────────
@@ -202,7 +212,7 @@ router.get("/:id", async (c) => {
 router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
   const body = c.req.valid("json");
   const number = body.number || await nextInvoiceNumber(c.get("workspaceId"));
-  const { subtotal, tax_total, total } = calcTotals(body.line_items);
+  const { subtotal, tax_total, total } = calcTotals(body.line_items, body.currency);
 
   // Freeze the money at issue: what the client is charged, in their currency, and the rate that
   // related it to the workspace's reporting currency THAT DAY. Without this the base value is
@@ -303,7 +313,7 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
   }
 
   const lineItems = (body.line_items ?? current.line_items) as z.infer<typeof lineItemSchema>[];
-  const { subtotal, tax_total, total } = calcTotals(lineItems);
+  const { subtotal, tax_total, total } = calcTotals(lineItems, String(body.currency ?? current.currency ?? "USD"));
 
   const statusUpdates: Record<string, unknown> = {};
   if (body.status === "sent" && !current.sent_at) statusUpdates.sent_at = new Date().toISOString();
