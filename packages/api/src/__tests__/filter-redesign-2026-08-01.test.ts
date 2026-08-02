@@ -38,7 +38,10 @@ describe("filter redesign — server-side filtering", () => {
   it("the server refuses numeric gt/lt (jsonb text-compare would lie about numbers)", () => {
     // NodeFilter deliberately has no gt/lt; the client keeps numeric ranges local
     expect(ubc()).toMatch(/op: "is" \| "is_not" \| "contains" \| "empty" \| "not_empty" \| "before" \| "after"/);
-    expect(table()).toMatch(/c\.op !== "gt" && c\.op !== "lt"/);
+    // 2026-08-02: the local-only set is now named by a predicate rather than an inline filter, and
+    // owner is/is_not joined it (a displayed name vs a stored user id — only the client maps those).
+    // Owner empty/not_empty moved the OTHER way, into SQL. See sql-resolution-2026-08-02.
+    expect(table()).toMatch(/const isLocalOnly = \(c: Cond\) =>\s*\n\s*c\.op === "gt" \|\| c\.op === "lt"/);
   });
 
   it("the table sends debounced search + representable conditions to the server", () => {
@@ -46,7 +49,8 @@ describe("filter redesign — server-side filtering", () => {
     // 2026-08-01 sort rebuild: the primary sort rule joined the key — SQL orders the whole type.
     // 2026-08-01 audit: + primarySortNumeric (bug: numeric kind resolved after the fetch and the
     // cached text-ordered page never refetched).
-    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\), primarySort\?\.col \?\? "", primarySort\?\.dir \?\? "", primarySortNumeric\]/);
+    // 2026-08-02: ALL sort rules reach SQL, so the whole rule list joins the key — not just rule 0.
+    expect(table()).toMatch(/queryKey: \["records", objectType, debouncedSearch, JSON\.stringify\(serverConds\), JSON\.stringify\(sortRules\), primarySortNumeric\]/);
     expect(table()).toMatch(/params\.set\("filters", JSON\.stringify/);
   });
 });

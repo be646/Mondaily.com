@@ -2024,7 +2024,19 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // every record of the type — not just the loaded page. The client predicate below still runs for
   // instant feedback and for the numeric ops jsonb text-compare can't do honestly (gt/lt).
   const debouncedSearch = useDebounced(toolbarSearch.trim(), 300);
-  const serverConds = useMemo(() => conditions.filter(c => c.op !== "gt" && c.op !== "lt" && !/owner|assign/i.test(c.col)), [conditions]);
+  // Which conditions SQL can answer over the whole table. Everything else runs client-side over the
+  // loaded page — and when that happens the toolbar says so rather than presenting a page as the
+  // answer (see `partialAnswer` below).
+  //  • gt/lt need numeric comparison; jsonb text-compare orders "9" after "10", so they stay local
+  //    until list_records (20260802_list_records.sql) is applied.
+  //  • owner/assignee is/is_not compare a DISPLAYED name against a stored user id — only the client
+  //    holds that mapping. But "Unassigned"/"Assigned" (empty/not_empty) test the stored value
+  //    itself, so those DO belong in SQL — and "filter unassigned leads" was the actual request.
+  const isLocalOnly = (c: Cond) =>
+    c.op === "gt" || c.op === "lt" ||
+    (/owner|assign/i.test(c.col) && c.op !== "empty" && c.op !== "not_empty");
+  const serverConds = useMemo(() => conditions.filter(c => !isLocalOnly(c)), [conditions]);
+  const localConds = useMemo(() => conditions.filter(isLocalOnly), [conditions]);
 
   // ── ONE sort model (2026-08-01 rebuild): sortRules is the whole truth. The old header-click
   // "quick sort" was a second, parallel system — each silently cancelled the other. Header clicks
@@ -2034,13 +2046,14 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // sort via the jsonb value (data->col), where numbers compare numerically.
   const { sortRules, setSortRules } = view;
   const primarySort = sortRules[0] ?? null;
+  // isDerivedCol / sqlUnsortable are declared after customCols (below) — they depend on it.
   // Whether the primary sort column is numeric is LEARNED from the loaded rows (declared below),
   // so it lives in state and joins the query key — the first fetch may order as text, and the
   // corrected numeric ordering refetches the moment the column kind resolves.
   const [primarySortNumeric, setPrimarySortNumeric] = useState(false);
 
   const query = useQuery({
-    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds), primarySort?.col ?? "", primarySort?.dir ?? "", primarySortNumeric],
+    queryKey: ["records", objectType, debouncedSearch, JSON.stringify(serverConds), JSON.stringify(sortRules), primarySortNumeric],
     queryFn: () => {
       const params = new URLSearchParams({ object_type: objectType, limit: String(PAGE_LIMIT) });
       if (debouncedSearch) {
@@ -2049,10 +2062,16 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         params.set("q_cols", allColumnsWithCustom.filter(c => c !== LAST_ACTIVITY).join(","));
       }
       if (serverConds.length) params.set("filters", JSON.stringify(serverConds.map(c => ({ col: c.col, op: c.op, value: c.value }))));
+      // EVERY rule goes to SQL, in order (chained ORDER BY) — not just the first. Derived columns
+      // (formula/finance) have no stored value to order by, so they are skipped here and ranked
+      // client-side; the disclosure below covers the difference.
+      const sqlSorts = sortRules.filter(r => !isDerivedCol(r.col)).slice(0, 4)
+        .map(r => ({ col: r.col, dir: r.dir, numeric: r.col === primarySort?.col ? primarySortNumeric : false }));
+      if (sqlSorts.length) params.set("sorts", JSON.stringify(sqlSorts));
       if (primarySort) {
+        // kept for older API builds that only understand a single rule
         params.set("sort_col", primarySort.col);
         params.set("sort_dir", primarySort.dir);
-        // jsonb numeric ordering for number-kind columns — text ordering would put 9 after 10
         if (primarySortNumeric) params.set("sort_numeric", "true");
       }
       return apiClient.get<NodeRecord[]>(`/nodes?${params}`);
@@ -2191,6 +2210,21 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     localStorage.setItem(`mondaily_custom_cols_${objectType}`, JSON.stringify(next));
     apiClient.post(`/records/sheet-config/${encodeURIComponent(objectType)}`, { columns: next }).catch(() => {});
   }
+
+  // Derived columns are computed in the browser from other fields — there is no stored value for
+  // SQL to order or filter by, so they can only ever be ranked within what is loaded.
+  const isDerivedCol = useCallback((col: string) => {
+    const t = customCols.find(c => c.key === col)?.type;
+    return t === "formula" || t === "finance_billed" || t === "finance_outstanding";
+  }, [customCols]);
+  // Ordered categoricals (stage/status/priority) can only be ranked by MEANING through a CASE rank,
+  // which PostgREST cannot express — those rules are ranked client-side until list_records
+  // (20260802_list_records.sql) is applied. partialReasons discloses it whenever the loaded page
+  // is not the whole table.
+  const sqlUnsortable = useMemo(
+    () => sortRules.filter(r => vocabSlotOf(r.col) || isDerivedCol(r.col)),
+    [sortRules, isDerivedCol],
+  );
 
   // Record-ID column is handled separately (locked between checkbox and name)
   const hasRecordIdCol = customCols.some(c => c.type === "record_id");
@@ -2365,9 +2399,15 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     }
     if (conditions.length) {
       base = base.filter(r => conditions.every(c => {
+        const isOwnerCol = /owner|assign/i.test(c.col);
+        // Owner emptiness must be judged on the STORED value, exactly as SQL judges it. Judging it
+        // on the resolved display name made the two engines disagree: a record holding a user id
+        // that no longer maps to a member resolved to "" here (→ unassigned) while SQL saw a
+        // non-empty column (→ assigned), so the same filter gave two different answers.
+        const useStored = isOwnerCol && (c.op === "empty" || c.op === "not_empty");
         // last_activity is the record's updated_at — a real filterable dimension now.
         const raw = c.col === "last_activity" ? r.updated_at
-          : /owner|assign/i.test(c.col) ? (owners[r.id]?.[c.col] ?? resolveOwner(cellValue(r, c.col)))
+          : isOwnerCol && !useStored ? (owners[r.id]?.[c.col] ?? resolveOwner(cellValue(r, c.col)))
           : cellValue(r, c.col);
         const v = String(raw ?? "");
         const want = String(c.value ?? "");
@@ -2849,6 +2889,20 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   useEffect(() => { if (flaggedCount === 0 && showFlaggedOnly) setShowFlaggedOnly(false); }, [flaggedCount, showFlaggedOnly]);
   const allSelected = visibleRows.length > 0 && visibleRows.every(r => selected.has(r.id));
 
+  // ── Honest disclosure when the answer is only as complete as the page ────────────────────────
+  // Some work still happens in the browser: numeric >/< filters, owner is/is-not, rank ordering and
+  // derived columns. Below the page cap that is exactly right — the page IS every record. Above it,
+  // the result is computed from a subset, and silently presenting that as the answer is the same
+  // class of bug as showing a page cap as a total. So: say it, and say the real denominator.
+  const loadedIsEverything = totalOfType == null || records.length >= totalOfType;
+  const partialReasons = useMemo(() => {
+    if (loadedIsEverything) return [] as string[];
+    const out: string[] = [];
+    if (localConds.length) out.push(`${localConds.length === 1 ? "1 filter" : `${localConds.length} filters`} (${localConds.map(c => colLabel(c.col)).join(", ")})`);
+    if (sqlUnsortable.length) out.push(`sorting by ${sqlUnsortable.map(r => colLabel(r.col)).join(", ")}`);
+    return out;
+  }, [loadedIsEverything, localConds, sqlUnsortable]);
+
 
   function renderCell(col: string, record: NodeRecord) {
     const val = cellValue(record, col);
@@ -3202,8 +3256,17 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         {truncated && (
           <span
             className="mr-2 rounded-sm border border-[var(--status-warn)]/30 px-1.5 py-px text-[10px] text-[var(--status-warn)]"
-            title={`This view holds the first ${records.length} of ${totalOfType} records. Search and filters query ALL records; sorting and export apply to what is loaded.`}
+            title={`This view holds the first ${records.length} of ${totalOfType} records. Search, filters and sorting run over ALL ${totalOfType} records in the database.`}
           >first {records.length} of {totalOfType}</span>
+        )}
+        {/* Name the operations that could only see the loaded page. Presenting a subset as the
+            answer is the same class of bug as reporting a page cap as a total — so it is stated,
+            with the real denominator, instead of being left for the user to discover. */}
+        {partialReasons.length > 0 && (
+          <span
+            className="mr-2 rounded-sm border border-[var(--status-warn)]/30 px-1.5 py-px text-[10px] text-[var(--status-warn)]"
+            title={`${partialReasons.join(" and ")} could only be applied to the ${records.length} loaded records, not all ${totalOfType}. Every other filter and sort ran over the whole table.`}
+          >computed on {records.length} of {totalOfType}</span>
         )}
         {flaggedCount > 0 && (
           <button onClick={() => setShowFlaggedOnly(v => !v)}

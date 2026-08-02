@@ -24,13 +24,14 @@ describe("sort rebuild — one model, ordered in SQL", () => {
   });
 
   it("numeric columns order via the jsonb value, never text-compare", () => {
+    // 2026-08-02: applies per RULE now that the whole list reaches SQL, not just to sort_col.
     const ubc = read("packages/db/src/ubc.ts");
-    expect(ubc).toMatch(/options\.sort_numeric \? `data->\$\{options\.sort_col\}` : `data->>\$\{options\.sort_col\}`/);
+    expect(ubc).toMatch(/s\.numeric \? `data->\$\{s\.col\}` : `data->>\$\{s\.col\}`/);
     expect(table()).toMatch(/params\.set\("sort_numeric", "true"\)/);
   });
 
   it("sort column names are shape-validated like filter columns", () => {
-    expect(read("packages/db/src/ubc.ts")).toMatch(/options\.sort_col && SAFE_COL\.test\(options\.sort_col\)/);
+    expect(read("packages/db/src/ubc.ts")).toMatch(/sorts\.filter\(s => s\.col && SAFE_COL\.test\(s\.col\)\)/);
   });
 });
 

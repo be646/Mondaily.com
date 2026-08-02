@@ -14,8 +14,11 @@ describe("GET /nodes pagination is real", () => {
   });
   it("listNodes applies offset via range with a deterministic id tiebreak", () => {
     expect(ubc).toMatch(/\.range\(from, from \+ limit - 1\)/);
-    // updated_at alone skips/duplicates rows sharing a timestamp (bulk writes) — pages must be stable
-    expect(ubc).toMatch(/\.order\("updated_at", \{ ascending: false \}\)\.order\("id", \{ ascending: true \}\)/);
+    // updated_at alone skips/duplicates rows sharing a timestamp (bulk writes) — pages must be
+    // stable. 2026-08-02: the ordering is now built rule-by-rule, so the default and the id
+    // tiebreak are separate statements; the id key still terminates EVERY ordering.
+    expect(ubc).toMatch(/if \(!applied\.length\) query = query\.order\("updated_at", \{ ascending: false \}\)/);
+    expect(ubc).toMatch(/query = query\.order\("id", \{ ascending: true \}\)/);
   });
 });
 

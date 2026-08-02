@@ -46,7 +46,9 @@ export async function getNode(id: string, workspaceId: string): Promise<(Node & 
 export type NodeFilter = { col: string; op: "is" | "is_not" | "contains" | "empty" | "not_empty" | "before" | "after"; value?: string };
 const SAFE_COL = /^[a-zA-Z0-9_-]{1,64}$/;   // client-supplied names; "." and spaces are refused — data->>a.b parses as a DIFFERENT path and silently mis-targets
 
-export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; q_cols?: string[]; filters?: NodeFilter[]; sort_col?: string; sort_dir?: "asc" | "desc"; sort_numeric?: boolean; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+export interface NodeSort { col: string; dir?: "asc" | "desc"; numeric?: boolean }
+
+export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; parent_id?: string; q?: string; q_cols?: string[]; filters?: NodeFilter[]; sorts?: NodeSort[]; sort_col?: string; sort_dir?: "asc" | "desc"; sort_numeric?: boolean; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
   // Secondary sort on id: range-pagination over a non-unique key ALONE skips/duplicates rows that
   // share a value (bulk imports write many rows in the same instant), so pages were not
   // deterministic even when offset worked.
@@ -55,14 +57,23 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   // top-N by that column — sorting only the loaded page silently sorted the wrong subset on any
   // type past the page cap. `sort_numeric` uses the jsonb value (data->col), where numbers compare
   // numerically; text/date use data->>col (ISO dates compare correctly as text).
-  if (options.sort_col && SAFE_COL.test(options.sort_col)) {
-    const asc = options.sort_dir !== "desc";
-    const sortCol = (options.sort_col === "last_activity" || options.sort_col === "__updated_at") ? "updated_at"
-      : options.sort_numeric ? `data->${options.sort_col}` : `data->>${options.sort_col}`;
-    query = query.order(sortCol, { ascending: asc }).order("id", { ascending: true });
-  } else {
-    query = query.order("updated_at", { ascending: false }).order("id", { ascending: true });
+  // EVERY sort rule is applied, in order — chained .order() is a real multi-key ORDER BY. Only the
+  // first rule used to reach SQL; rules 2+ were applied in the browser over the loaded page, so on
+  // any type past the page cap the tie-breaks ranked the wrong subset. NULLS LAST in both
+  // directions: reversing a sort used to fill the first page with blank cells.
+  const sorts = options.sorts?.length
+    ? options.sorts
+    : options.sort_col
+      ? [{ col: options.sort_col, dir: options.sort_dir ?? "asc", numeric: options.sort_numeric }]
+      : [];
+  const applied = sorts.filter(s => s.col && SAFE_COL.test(s.col)).slice(0, 4);
+  for (const s of applied) {
+    const sortCol = (s.col === "last_activity" || s.col === "__updated_at") ? "updated_at"
+      : s.numeric ? `data->${s.col}` : `data->>${s.col}`;
+    query = query.order(sortCol, { ascending: s.dir !== "desc", nullsFirst: false });
   }
+  if (!applied.length) query = query.order("updated_at", { ascending: false });
+  query = query.order("id", { ascending: true });
   if (options.vertical) query = query.eq("vertical", options.vertical);
   if (options.object_type || options.objectType) query = query.eq("object_type", options.object_type || options.objectType);
   // Children of one record (notes/tasks/contact logs hang off data.parent_id). Filtering in SQL —

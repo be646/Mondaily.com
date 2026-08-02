@@ -134,6 +134,24 @@ router.get("/", requireAuth, zValidator("query", z.object({
           typeof f?.col === "string" && FILTER_OPS.includes(f?.op as typeof FILTER_OPS[number]));
       } catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "filters must be a JSON array" }); return z.NEVER; }
     }),
+  // ALL sort rules, in order — JSON: [{col, dir, numeric}]. Only the first rule used to reach SQL
+  // (sort_col/sort_dir below, kept for existing callers); the rest were applied in the browser over
+  // the loaded page, so past the page cap the tie-breaks ordered the wrong subset of records.
+  sorts: z.string().max(1000).optional()
+    .transform((raw, ctx): { col: string; dir?: "asc" | "desc"; numeric?: boolean }[] | undefined => {
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error("not an array");
+        return parsed.slice(0, 4)
+          .filter((s: Record<string, unknown>) => typeof s?.col === "string")
+          .map((s: Record<string, unknown>) => ({
+            col: String(s.col),
+            dir: s.dir === "desc" ? "desc" as const : "asc" as const,
+            numeric: s.numeric === true,
+          }));
+      } catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: "sorts must be a JSON array" }); return z.NEVER; }
+    }),
   sort_col: z.string().max(64).optional(),
   sort_dir: z.enum(["asc", "desc"]).optional(),
   sort_numeric: z.coerce.boolean().optional(),
