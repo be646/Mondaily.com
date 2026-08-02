@@ -8,7 +8,7 @@ import {
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
-  Sigma, Loader2, Sparkles, MoreHorizontal,
+  Sigma, Loader2, Sparkles, MoreHorizontal, Table2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -2190,7 +2190,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // ── NLP ──
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|"ask"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|"ask"|"schema"|null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
   // Add column lives in the table header now
@@ -2261,6 +2261,24 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
     }),
     [sortRules, isDerivedCol, records],
   );
+
+  // ── Schema coverage ──────────────────────────────────────────────────────────
+  // How much of what this sheet actually stores is described by its object definition. Measured
+  // 2026-08-02: the schema is far behind the data (people 5 attributes vs 31 live keys, and `name`
+  // missing entirely from deals/companies/people). Until the schema describes reality it cannot be
+  // the source of truth for columns — so the gap is shown and closed under review, not assumed away.
+  const schemaAudit = useQuery({
+    queryKey: ["schema-audit", objectType],
+    queryFn: () => apiClient.get<{
+      object_type: string; has_definition: boolean; records_sampled: number;
+      matched: number; attributes: number;
+      unmapped: { key: string; filled: number; coverage: number; suggested_type: string; samples: string[] }[];
+      dead: { id?: string; name: string; key: string; type: string }[];
+    }>(`/records/schema-audit/${encodeURIComponent(objectType)}`),
+    staleTime: 120_000,
+  });
+  const [adopting, setAdopting] = useState<Set<string>>(new Set());
+  const [adoptMsg, setAdoptMsg] = useState<string | null>(null);
 
   // Record-ID column is handled separately (locked between checkbox and name)
   const hasRecordIdCol = customCols.some(c => c.type === "record_id");
@@ -3368,6 +3386,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                     ["ask", LogoMark, "Ask", nlpActive ? "on" : null],
                     ["export", Download, "Export", null],
                     ["views", BookmarkCheck, "Saved views", savedViews.length ? String(savedViews.length) : null],
+                    ["schema", Table2, "Schema", schemaAudit.data?.unmapped.length ? String(schemaAudit.data.unmapped.length) : null],
                   ] as const).map(([panel, Icon, label, badge]) => (
                     <button key={panel} onClick={() => { setOpenPanel(p => p === panel ? null : panel); setMoreOpen(false); }}
                       className="flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
@@ -3448,6 +3467,77 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
           </button>
           {exportErr && <span className="text-[10px] text-[var(--status-error)]">{exportErr}</span>}
           <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Schema coverage inline bar ── */}
+      {openPanel === "schema" && (
+        <div className="px-6 py-2.5 border-b border-[var(--border-soft)] bg-transparent shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-body text-[var(--text-secondary)] shrink-0">Schema</span>
+            <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
+            {schemaAudit.isLoading ? (
+              <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Checking…</span>
+            ) : !schemaAudit.data?.has_definition ? (
+              <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>This sheet has no object definition yet.</span>
+            ) : (
+              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                {schemaAudit.data.matched} of {schemaAudit.data.attributes} defined fields hold data
+                <span style={{ color: "var(--text-faint)" }}> · sampled {schemaAudit.data.records_sampled} records</span>
+              </span>
+            )}
+            {adoptMsg && <span className="text-[10.5px]" style={{ color: "var(--status-ok, #2f9e6b)" }}>{adoptMsg}</span>}
+            <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0"><X size={13}/></button>
+          </div>
+
+          {schemaAudit.data?.unmapped.length ? (
+            <div className="mt-2">
+              <p className="mb-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                These fields hold real data but aren’t in the schema, so their type is guessed per browser
+                and teammates can see them differently. Adding one records what it IS.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {schemaAudit.data.unmapped.slice(0, 24).map(u => (
+                  <button
+                    key={u.key}
+                    disabled={adopting.has(u.key)}
+                    title={`${u.filled} of ${schemaAudit.data!.records_sampled} records · e.g. ${u.samples.join(" · ") || "—"}`}
+                    onClick={async () => {
+                      setAdopting(prev => new Set(prev).add(u.key));
+                      setAdoptMsg(null);
+                      try {
+                        await apiClient.post(`/records/schema-adopt/${encodeURIComponent(objectType)}`,
+                          { keys: [{ key: u.key, type: u.suggested_type }], dry_run: false });
+                        setAdoptMsg(`Added ${colLabel(u.key)} as ${u.suggested_type}.`);
+                        await Promise.all([
+                          schemaAudit.refetch(),
+                          qc.invalidateQueries({ queryKey: ["object-defs"] }),
+                        ]);
+                      } catch (e) {
+                        setAdoptMsg(e instanceof Error ? e.message : "Could not update the schema.");
+                      } finally {
+                        setAdopting(prev => { const n = new Set(prev); n.delete(u.key); return n; });
+                      }
+                    }}
+                    className="flex items-center gap-1.5 rounded-sm border border-dashed border-[var(--border-soft)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:opacity-50">
+                    <Plus size={9}/>
+                    <span className="first-letter:uppercase">{colLabel(u.key)}</span>
+                    <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{u.suggested_type} · {u.coverage}%</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : schemaAudit.data?.has_definition ? (
+            <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Every field with data is described by the schema.</p>
+          ) : null}
+
+          {schemaAudit.data?.dead.length ? (
+            <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+              {schemaAudit.data.dead.length} defined {schemaAudit.data.dead.length === 1 ? "field holds" : "fields hold"} no data on any record
+              ({schemaAudit.data.dead.slice(0, 6).map(d => d.name).join(", ")}{schemaAudit.data.dead.length > 6 ? "…" : ""}).
+              Removing them is a schema edit in Settings — nothing is dropped from here.
+            </p>
+          ) : null}
         </div>
       )}
 

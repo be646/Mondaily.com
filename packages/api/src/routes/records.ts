@@ -413,4 +413,125 @@ Use ONLY fields from the provided list. If the request cannot be expressed in th
   return c.json({ ok: true, formula, fields_used: formulaFields(formula), preview, warnings });
 });
 
+/**
+ * Schema reconciliation — the prerequisite for making object_definitions the column spine.
+ *
+ * MEASURED LIVE FIRST (2026-08-02), and the measurement changed the plan. The schema does not
+ * describe the data today, so inverting the column source straight away would have deleted columns
+ * from real sheets:
+ *   • `name` is absent from the schema of deals / companies / people, which instead define
+ *     "Deal Name" / "Company Name". Every record stores `name`. The primary column of 350+ records
+ *     would have gone blank.
+ *   • people: 5 schema attributes vs 31 live data keys. companies: 6 vs 24.
+ *   • doctor-training-records and tax-cost-entries have 13 of 14 attributes with NO data at all —
+ *     those sheets hold scraped web leads, not what their schema claims.
+ *
+ * So the schema is reconciled to reality FIRST, under human review, and only then can it be
+ * authoritative. Read-only audit here; the write path adopts an EXPLICIT list and never drops
+ * anything on its own (same shape as /schema-unify: owner-gated, nothing inferred silently).
+ */
+const SCHEMA_KEY = (n: string) => String(n).toLowerCase().trim().replace(/\s+/g, "_");
+
+/** Type inference from real values — mirrors the sheet's inferColKind so a sheet keeps its look. */
+function inferAttrType(values: unknown[]): string {
+  const vals = values.filter(v => v != null && String(v).trim() !== "").slice(0, 200);
+  if (!vals.length) return "text";
+  const all = (re: RegExp) => vals.every(v => re.test(String(v).trim()));
+  if (vals.every(v => typeof v === "boolean")) return "checkbox";
+  if (all(/^\S+@\S+\.\S+$/)) return "email";
+  if (all(/^https?:\/\//i)) return "url";
+  if (all(/^[+\d][\d\s()+-]{5,}$/)) return "phone";
+  if (all(/^\d{4}-\d{2}-\d{2}([T ]|$)/)) return "date";
+  if (vals.every(v => typeof v === "number" || /^-?[\d.,\s]+%?$/.test(String(v).trim()))) {
+    return all(/%\s*$/) ? "percentage" : "number";
+  }
+  // Few distinct short values across many records = an option set, not free text.
+  const distinct = new Set(vals.map(v => String(v).trim().toLowerCase()));
+  if (distinct.size <= 12 && vals.length >= 8 && [...distinct].every(d => d.length <= 32)) return "select";
+  return "text";
+}
+
+router.get("/schema-audit/:objectType", async (c) => {
+  const ws = c.get("workspaceId");
+  const objectType = c.req.param("objectType");
+  const { data: def } = await supabase.from("object_definitions")
+    .select("id, slug, attributes").eq("workspace_id", ws).eq("slug", objectType).maybeSingle();
+  const { data: recs } = await supabase.from("nodes")
+    .select("data").eq("workspace_id", ws).eq("object_type", objectType).limit(500);
+
+  const rows = (recs ?? []) as { data: Record<string, unknown> }[];
+  const attrs = (Array.isArray(def?.attributes) ? def!.attributes : []) as { id?: string; name: string; type?: string }[];
+  const schemaKeys = new Map(attrs.map(a => [SCHEMA_KEY(a.name), a]));
+
+  // Count only NON-EMPTY occurrences: a key present on every row but always blank is not evidence
+  // of a real field, and adopting it would add a permanently empty column.
+  const counts = new Map<string, unknown[]>();
+  for (const r of rows) {
+    for (const [k, v] of Object.entries(r.data ?? {})) {
+      if (v == null || String(v).trim() === "") continue;
+      (counts.get(k) ?? counts.set(k, []).get(k)!).push(v);
+    }
+  }
+  const unmapped = [...counts.entries()]
+    .filter(([k]) => !schemaKeys.has(k))
+    .map(([k, vals]) => ({
+      key: k, filled: vals.length,
+      coverage: rows.length ? Math.round((vals.length / rows.length) * 100) : 0,
+      suggested_type: inferAttrType(vals),
+      samples: [...new Set(vals.map(v => String(v).slice(0, 40)))].slice(0, 3),
+    }))
+    .sort((a, b) => b.filled - a.filled);
+  const dead = attrs
+    .filter(a => !counts.has(SCHEMA_KEY(a.name)))
+    .map(a => ({ id: a.id, name: a.name, key: SCHEMA_KEY(a.name), type: a.type ?? "text" }));
+
+  return c.json({
+    object_type: objectType,
+    has_definition: !!def,
+    records_sampled: rows.length,
+    matched: attrs.length - dead.length,
+    attributes: attrs.length,
+    unmapped,
+    dead,
+  });
+});
+
+router.post("/schema-adopt/:objectType", denyViewerWrites, zValidator("json", z.object({
+  keys: z.array(z.object({ key: z.string().max(120), type: z.string().max(40) })).max(60),
+  dry_run: z.boolean().default(true),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const objectType = c.req.param("objectType");
+  const { keys, dry_run } = c.req.valid("json");
+
+  const { data: def } = await supabase.from("object_definitions")
+    .select("id, attributes").eq("workspace_id", ws).eq("slug", objectType).maybeSingle();
+  if (!def) return c.json({ error: `No object definition for "${objectType}".` }, 404);
+
+  const attrs = (Array.isArray(def.attributes) ? def.attributes : []) as { id?: string; name: string; type?: string }[];
+  const have = new Set(attrs.map(a => SCHEMA_KEY(a.name)));
+  const valid = new Set(ATTR_TYPES_FOR_ADOPT);
+  // Adopt under the DATA KEY as the name, so SCHEMA_KEY(name) round-trips to the same key the
+  // records use. Naming it prettily ("Deal Name") is exactly how the schema stopped matching the
+  // data in the first place — display naming is a separate, later decision.
+  const added = keys
+    .filter(k => !have.has(SCHEMA_KEY(k.key)) && /^[a-zA-Z0-9_-]{1,64}$/.test(k.key))
+    .map(k => ({ id: crypto.randomUUID(), name: k.key, type: valid.has(k.type) ? k.type : "text" }));
+
+  if (dry_run) return c.json({ dry_run: true, would_add: added, skipped: keys.length - added.length });
+  if (!added.length) return c.json({ ok: true, added: [], note: "Nothing to add." });
+
+  const { error } = await supabase.from("object_definitions")
+    .update({ attributes: [...attrs, ...added] })
+    .eq("workspace_id", ws).eq("id", def.id);
+  if (error) return c.json({ error: "Could not update the schema." }, 500);
+  return c.json({ ok: true, added, attributes_total: attrs.length + added.length });
+});
+
+const ATTR_TYPES_FOR_ADOPT = ["text", "number", "date", "datetime", "select", "multi_select", "relation",
+  "currency", "percentage", "url", "email", "phone", "checkbox", "long_text", "status", "stage",
+  "assignee", "owner", "tag", "category", "country"];
+
 export const recordsRouter = router;
