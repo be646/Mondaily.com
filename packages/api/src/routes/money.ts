@@ -45,9 +45,14 @@ router.post("/backfill", denyViewerWrites, zValidator("json", z.object({
   if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
   const { dry_run, object_types, seed_history } = c.req.valid("json");
 
-  // Optional: pull ECB's 90-day history first, so dates before the table started keeping history
-  // can be valued honestly instead of skipped.
-  const seeded = seed_history && !dry_run ? await seedFxHistory() : null;
+  // Pull ECB's 90-day history first, so dates before the table started keeping history can be
+  // valued honestly instead of skipped.
+  //
+  // This runs during a DRY RUN too, deliberately: it writes reference rates, not the caller's
+  // financial records. Gating it on dry_run made the preview useless — the only way to see what a
+  // seeded backfill would do was to perform the record writes, which is exactly the thing a dry run
+  // exists to avoid. Rates are public reference data and the daily cron writes the same rows.
+  const seeded = seed_history ? await seedFxHistory() : null;
 
   const types = object_types ?? Object.keys(SHAPES);
   const { data: rows, error } = await supabase
@@ -101,7 +106,7 @@ router.post("/backfill", denyViewerWrites, zValidator("json", z.object({
         from: `${p.amount} ${p.currency}`, to: `${p.money.amount_base} ${base}`,
         rate: p.money.fx_rate, rate_as_of: p.money.fx_rate_as_of,
       })),
-      seed_history_available: seed_history ? "run with dry_run:false to seed" : undefined,
+      seeded_history: seeded,
     });
   }
 

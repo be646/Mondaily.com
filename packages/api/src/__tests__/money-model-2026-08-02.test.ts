@@ -250,3 +250,19 @@ describe("backfill values history honestly", () => {
     expect(money()).toMatch(/\.update\(\{ data: next \}\)\.eq\("workspace_id", ws\)\.eq\("id", p\.id\)/);
   });
 });
+
+describe("a dry run must be able to preview a SEEDED backfill", () => {
+  it("seeding runs during dry_run too — it writes reference rates, not user records", () => {
+    // Gating it on dry_run made the preview useless: the only way to see what a seeded backfill
+    // would do was to perform the record writes a dry run exists to avoid.
+    const src = read("packages/api/src/routes/money.ts");
+    expect(src).toMatch(/const seeded = seed_history \? await seedFxHistory\(\) : null;/);
+    expect(src).not.toMatch(/seed_history && !dry_run/);
+  });
+
+  it("the dry run reports what it seeded", () => {
+    const src = read("packages/api/src/routes/money.ts");
+    const dryBlock = src.slice(src.indexOf("if (dry_run) {"), src.indexOf("let updated = 0"));
+    expect(dryBlock).toMatch(/seeded_history: seeded/);
+  });
+});
