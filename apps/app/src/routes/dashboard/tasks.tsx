@@ -81,7 +81,9 @@ function fmtDateTime(iso: string) {
 
 // ── Shared modal shell ────────────────────────────────────────────────────────
 const INPUT = "key-input h-9 w-full px-3 text-sm";
-const SELECT = "key-input h-9 w-full px-3 text-sm";
+// Layout ONLY. FieldSelect draws its own 36px bordered field, so adding `key-input` here wrapped a
+// second box around it — the double frame behind Assignee / Priority / Status.
+const SELECT = "w-full";
 
 
 // ── Create Task modal ─────────────────────────────────────────────────────────

@@ -393,8 +393,14 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
     else if (e.key === "Tab") setOpen(false);
   }
 
+  // A caller's className positions this control; it does not get to draw it. `key-input` carries a
+  // border, a background and a height, so passing it wrapped a SECOND box around the field's own
+  // one — a double frame, which read as two stacked buttons. Stripped here rather than policed at
+  // call sites, because the next person to reach for the form-field class will reach for that one.
+  const layoutOnly = (className ?? "").split(/\s+/).filter(c => c && c !== "key-input").join(" ");
+
   return (
-    <div ref={rootRef} className={cx("relative w-full", className)} onKeyDown={onKeyDown}>
+    <div ref={rootRef} className={cx("relative w-full", layoutOnly)} onKeyDown={onKeyDown}>
       <button type="button" onClick={() => (open ? setOpen(false) : openMenu())} disabled={disabled}
         aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
         className={cx(

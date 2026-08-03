@@ -107,3 +107,23 @@ describe("hover on secondary chrome is neutral", () => {
   });
 });
 
+describe("a field is drawn once", () => {
+  const controls = readFileSync(
+    join(__dirname, "../../../../apps/app/src/components/ui/controls.tsx"), "utf8");
+
+  it("FieldSelect ignores form-field chrome passed as a className", () => {
+    // `key-input` carries a border, a background and a height. Passing it as FieldSelect's wrapper
+    // put a SECOND box around the field's own one — the double frame behind Assignee / Priority /
+    // Status. Stripped in the component, not policed at call sites, because the next person
+    // reaching for "the form field class" will reach for exactly that one.
+    expect(controls).toMatch(/c !== "key-input"/);
+    expect(controls).toMatch(/cx\("relative w-full", layoutOnly\)/);
+  });
+
+  it("no call site wraps a FieldSelect in key-input", () => {
+    const tasks = readFileSync(
+      join(__dirname, "../../../../apps/app/src/routes/dashboard/tasks.tsx"), "utf8");
+    expect(tasks).not.toMatch(/const SELECT = "key-input/);
+  });
+});
+
