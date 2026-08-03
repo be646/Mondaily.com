@@ -22,7 +22,8 @@
     "./finance": "./src/finance.ts",
     "./money": "./src/money.ts",
     "./period": "./src/period.ts",
-    "./deal-stage": "./src/deal-stage.ts"
+    "./deal-stage": "./src/deal-stage.ts",
+    "./deal-fields": "./src/deal-fields.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -27,6 +27,7 @@ import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList, OWNER_BY_OBJECT_TYPE } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
 import { GraphContextButton } from "../graph/graph-context-drawer";
+import { dealValueOf, dealValueKey, dealOwnerOf, dealOwnerKey } from "@mondaily/shared/deal-fields";
 import { PIPE_STAGES, dealStageOf, dealStageKey, isWonStage, isLostStage, stageIndex, STAGE_WON, STAGE_LOST } from "@mondaily/shared/deal-stage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -729,8 +730,12 @@ function DealHighlights({ data, onSave }: { data: Record<string, unknown>; onSav
         <DealProgressBar stage={dealStageOf(data)} conflict={conflictingStage(data)} onSave={v => onSave(dealStageKey(data), v)}/>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <HighlightCard icon={DollarSign} label="Deal value" value={data.deal_value ?? "—"} accent="emerald" onSave={v => onSave("deal_value", v)} numeric/>
-        <HighlightCard icon={Users}      label="Deal owner" value={data.deal_owner ?? "—"} accent="blue"    onSave={v => onSave("deal_owner", v)}/>
+        {/* Resolved, and the edit lands on the key this record actually uses. Reading `deal_value`
+            alone showed "Not set" for the five deals that store their figure under `amount` — while
+            the AI score panel and the forecast on this same screen showed $6,000 and every report
+            counted the money. */}
+        <HighlightCard icon={DollarSign} label="Deal value" value={dealValueOf(data) ?? "—"} accent="emerald" onSave={v => onSave(dealValueKey(data), v)} numeric/>
+        <HighlightCard icon={Users}      label="Deal owner" value={dealOwnerOf(data) || "—"} accent="blue"    onSave={v => onSave(dealOwnerKey(data), v)}/>
       </div>
     </div>
   );

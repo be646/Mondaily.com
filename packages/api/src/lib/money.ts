@@ -2,6 +2,8 @@ import { supabase } from "@mondaily/db/client";
 import { isOutstanding } from "@mondaily/shared/finance";
 import { periodStart, previousPeriod, type PeriodConfig } from "@mondaily/shared/period";
 import { dealStageOf } from "@mondaily/shared/deal-stage";
+import { dealValueOf, dealOwnerOf } from "@mondaily/shared/deal-fields";
+import { isOpenStage } from "@mondaily/shared/deal-stage";
 
 /**
  * THE money model — the single place "closed won", "pipeline created", "cash collected" and
@@ -85,14 +87,23 @@ export async function pagedNodes(ws: string, match: { eq?: string; ilike?: strin
 // ── Deals ────────────────────────────────────────────────────────────────────────────────────────
 export const dealStage = (d: Record<string, unknown> | null): string =>
   dealStageOf(d).trim();
-export const dealValue = (d: Record<string, unknown> | null): number =>
-  num((d ?? {}).deal_value ?? (d ?? {}).value ?? (d ?? {}).amount);
-export const dealOwner = (d: Record<string, unknown> | null): string =>
-  String((d ?? {}).deal_owner ?? (d ?? {}).assigned_to ?? (d ?? {}).owner ?? "").trim();
+// Both delegate. This module had its OWN orderings — value missing `arr`, and owner preferring
+// `assigned_to` over `owner` where aggregate.ts preferred the opposite — so the ledger and the
+// group-by could attribute the same deal to different people.
+export const dealValue = (d: Record<string, unknown> | null): number => dealValueOf(d) ?? 0;
+export const dealOwner = (d: Record<string, unknown> | null): string => dealOwnerOf(d);
 
 export const isWon = (stage: string) => /won/i.test(stage);
 export const isLost = (stage: string) => /lost/i.test(stage);
-export const isOpen = (stage: string) => !isWon(stage) && !isLost(stage) && !/closed/i.test(stage);
+/**
+ * Open means AT a pipeline stage — not merely "does not say closed".
+ *
+ * An unstaged deal ("") passed the old test and was summed into open pipeline, the same inflation
+ * the record surfaces had. Recomputing a closed period will now disagree with any snapshot that
+ * counted those deals; that disagreement is REPORTED as drift rather than hidden, which is exactly
+ * what the drift endpoint is for.
+ */
+export const isOpen = (stage: string) => isOpenStage(stage);
 
 /** When the deal closed: the stamped fact when present, updated_at as the labeled legacy fallback. */
 /**
