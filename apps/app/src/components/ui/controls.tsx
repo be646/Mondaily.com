@@ -326,9 +326,9 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
         <ChevronDown size={13} className="shrink-0" style={{ color: "var(--text-faint)", transform: open ? "rotate(180deg)" : undefined, transition: "transform .12s" }} />
       </button>
       {open && (
-        {/* min-w-full + max-content, never w-full: a compact trigger is sized to its own label, so
-            a menu locked to the trigger's width truncated its own options — "USD" rendered "US…".
-            The menu belongs to the CONTENT, the trigger to the toolbar. */}
+        // min-w-full + max-content, never w-full: a compact trigger is sized to its own label, so
+        // a menu locked to the trigger's width truncated its own options — "USD" rendered "US…".
+        // The menu belongs to the CONTENT, the trigger to the toolbar.
         <div role="listbox" className="ui-menu absolute left-0 top-full z-40 mt-1 max-h-64 min-w-full overflow-y-auto py-1"
           style={{ borderRadius: compact ? 4 : 6, width: "max-content", maxWidth: 260 }}>
           {options.map((o, i) => {
