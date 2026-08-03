@@ -14,7 +14,7 @@ import { dealStage as moneyDealStage, dealOwner as moneyDealOwner, dealValue as 
  *   • open pipeline is a BALANCE (as of now), not a windowed flow
  *   • deltas vs the previous window go through the shared baseline engine (honest new/raw/pct)
  */
-export interface OutcomeWindow { won: number; won_n: number; lost: number; lost_n: number; unconverted: number; cycles: number[] }
+export interface OutcomeWindow { won: number; won_n: number; lost: number; lost_n: number; unconverted: number; cycles: number[]; undated_wins: number; undated_lost: number }
 export interface OutcomesResult {
   base_currency: string;
   team: {
@@ -38,7 +38,7 @@ export interface OutcomesResult {
     unconverted: number; pipeline_unconverted: number;
     deltas: null | { value_won: BaselineComparison; deals_won: BaselineComparison; value_lost: BaselineComparison };
   };
-  members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; unconverted: number; pipeline_value: number; pipeline_deals: number }[];
+  members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; unconverted: number; pipeline_value: number; pipeline_deals: number; undated_wins: number; undated_lost: number }[];
 }
 
 export async function computeOutcomes(ws: string, start: number, end: number, prevStart?: number, prevEnd?: number): Promise<OutcomesResult> {
@@ -49,7 +49,7 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
     makeBaseConverter(ws),
   ]);
 
-  const emptyWin = (): OutcomeWindow => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [] });
+  const emptyWin = (): OutcomeWindow => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [], undated_wins: 0, undated_lost: 0 });
   // Wins with no close date are EXCLUDED from every window and reported, rather than dated by
   // their last edit. Lost deals with no lost date are still counted (see the note below) but the
   // approximation is disclosed instead of hidden.
@@ -91,8 +91,17 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       const isWonRow = moneyIsWon(stage);
       const lostAt = String(d.lost_at ?? "") || null;
       const when = isWonRow ? moneyWonDate(row as never) : (lostAt ?? String(row.updated_at ?? row.created_at ?? ""));
-      if (isWonRow && !when) { undatedWins += 1; continue; }
-      if (!isWonRow && !lostAt) undatedLost += 1;
+      if (isWonRow && !when) {
+        undatedWins += 1;
+        // Attributed to the OWNER too, so their leaderboard row can disclose its own gap rather
+        // than the team total being the only place the exclusion is visible.
+        if (owner) (byMember.get(owner) ?? (byMember.set(owner, emptyWin()), byMember.get(owner)!)).undated_wins += 1;
+        continue;
+      }
+      if (!isWonRow && !lostAt) {
+        undatedLost += 1;
+        if (owner) (byMember.get(owner) ?? (byMember.set(owner, emptyWin()), byMember.get(owner)!)).undated_lost += 1;
+      }
       const closedAt = when ? Date.parse(when) : NaN;
       const target = inWin(closedAt, start, end) ? "now" : hasPrev && inWin(closedAt, prevStart as number, prevEnd as number) ? "prev" : null;
       if (!target) continue;
@@ -160,6 +169,10 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       user_id, value_won: Math.round(w.won), deals_won: w.won_n, value_lost: Math.round(w.lost), deals_lost: w.lost_n,
       win_rate_pct: winRate(w), unconverted: w.unconverted,
       pipeline_value: Math.round(pipelineByMember.get(user_id)?.value ?? 0), pipeline_deals: pipelineByMember.get(user_id)?.n ?? 0,
-    })).sort((a, b) => b.value_won - a.value_won),
+      undated_wins: w.undated_wins, undated_lost: w.undated_lost,
+    }))
+      // Sort by value won, then by the size of the gap: a member whose wins are ALL undated shows
+      // 0.00 and would otherwise sink to the bottom of a leaderboard as though they sold nothing.
+      .sort((a, b) => b.value_won - a.value_won || b.undated_wins - a.undated_wins),
   };
 }

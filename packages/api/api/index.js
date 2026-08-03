@@ -61682,7 +61682,7 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
     supabase.from("nodes").select("id, object_type, data, created_by, created_at, updated_at").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(2e4),
     makeBaseConverter(ws)
   ]);
-  const emptyWin = () => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [] });
+  const emptyWin = () => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [], undated_wins: 0, undated_lost: 0 });
   let undatedWins2 = 0, undatedLost = 0;
   const inWin = (ms5, s0, e0) => ms5 >= s0 && ms5 <= e0;
   const teamNow = emptyWin();
@@ -61708,9 +61708,13 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
       const when = isWonRow ? wonDate(row) : lostAt ?? String(row.updated_at ?? row.created_at ?? "");
       if (isWonRow && !when) {
         undatedWins2 += 1;
+        if (owner) (byMember.get(owner) ?? (byMember.set(owner, emptyWin()), byMember.get(owner))).undated_wins += 1;
         continue;
       }
-      if (!isWonRow && !lostAt) undatedLost += 1;
+      if (!isWonRow && !lostAt) {
+        undatedLost += 1;
+        if (owner) (byMember.get(owner) ?? (byMember.set(owner, emptyWin()), byMember.get(owner))).undated_lost += 1;
+      }
       const closedAt = when ? Date.parse(when) : NaN;
       const target = inWin(closedAt, start, end) ? "now" : hasPrev && inWin(closedAt, prevStart, prevEnd) ? "prev" : null;
       if (!target) continue;
@@ -61804,8 +61808,10 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
       win_rate_pct: winRate(w2),
       unconverted: w2.unconverted,
       pipeline_value: Math.round(pipelineByMember.get(user_id)?.value ?? 0),
-      pipeline_deals: pipelineByMember.get(user_id)?.n ?? 0
-    })).sort((a2, b2) => b2.value_won - a2.value_won)
+      pipeline_deals: pipelineByMember.get(user_id)?.n ?? 0,
+      undated_wins: w2.undated_wins,
+      undated_lost: w2.undated_lost
+    })).sort((a2, b2) => b2.value_won - a2.value_won || b2.undated_wins - a2.undated_wins)
   };
 }
 var init_outcomes = __esm({

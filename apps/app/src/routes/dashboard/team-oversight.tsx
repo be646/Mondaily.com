@@ -360,7 +360,7 @@ interface OutcomesResp {
   team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; projected_amount: number; close_rate_pct: number | null; avg_open_deal_age_days: number | null; stages: { stage: string; deals: number; value: number }[]; lost_reasons: { reason: string; deals: number; value: number }[]; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
     undated_wins?: number; undated_lost?: number;
     deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
-  members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
+  members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number; undated_wins?: number; undated_lost?: number }[];
 }
 function useOutcomes(period: Period) {
   // Both windows from the WORKSPACE. Resolving the current window on the server and the comparison
@@ -459,16 +459,28 @@ function SalesStrip({ period }: { period: Period }) {
       {/* Leaderboard — top members by value won (only meaningful with 2+ sellers). */}
       {(q.data?.members.length ?? 0) > 1 && (
         <div className="mt-3">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Top by value won</p>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Top by value won · {win}</p>
           <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-            {q.data!.members.slice(0, 5).map((m, i) => (
+            {q.data!.members.slice(0, 5).map((m, i) => {
+              const gap = m.undated_wins ?? 0;
+              return (
               <div key={m.user_id} className="flex items-center gap-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)" }}>
                 <span className="w-4 tabular-nums" style={{ color: "var(--text-faint)" }}>{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate" style={{ color: "var(--text-primary)" }}><MemberName userId={m.user_id} /></span>
-                <span className="tabular-nums" style={{ color: "var(--status-ok)" }}>{fmtMoney0(m.value_won, cur)}</span>
+                {/* A member whose wins are all undated reads 0.00 here. Without saying so, the row
+                    looks like they sold nothing this period rather than like the close dates are
+                    missing — the difference between a performance signal and a data gap. */}
+                {gap > 0 && (
+                  <span className="shrink-0 rounded-full border px-1.5 py-px text-[9.5px]"
+                    title={`${gap} win${gap === 1 ? "" : "s"} excluded — no close date recorded, so they cannot be placed in ${win}`}
+                    style={{ borderColor: "var(--status-warn)", color: "var(--status-warn)" }}>
+                    {gap} undated
+                  </span>
+                )}
+                <span className="tabular-nums" style={{ color: m.value_won > 0 ? "var(--status-ok)" : "var(--text-muted)" }}>{fmtMoney0(m.value_won, cur)}</span>
                 <span className="w-20 text-right tabular-nums" style={{ color: "var(--text-muted)" }}>{m.win_rate_pct != null ? `${m.win_rate_pct}% win` : "—"}</span>
               </div>
-            ))}
+            );})}
           </div>
         </div>
       )}

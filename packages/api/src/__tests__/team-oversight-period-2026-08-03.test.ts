@@ -21,7 +21,8 @@ describe("no caller re-implements the updated_at fallback for WINS", () => {
   it("the outcomes engine dates a win from won_at alone", () => {
     const src = outcomes();
     expect(src).not.toMatch(/moneyWonDate\(row as never\) \|\| String\(row\.updated_at/);
-    expect(src).toMatch(/if \(isWonRow && !when\) \{ undatedWins \+= 1; continue; \}/);
+    // The property: an undated win is counted and skipped, never dated by an edit.
+    expect(src).toMatch(/if \(isWonRow && !when\) \{[\s\S]{0,400}undatedWins \+= 1;[\s\S]{0,400}continue;/);
   });
 
   it("the close worker does too — it had the same bug", () => {
@@ -44,7 +45,7 @@ describe("lost deals are not silently zeroed to be consistent", () => {
     // Zeroing them for symmetry would delete real reporting with no way to recover it.
     const src = outcomes();
     expect(src).toMatch(/const lostAt = String\(d\.lost_at \?\? ""\) \|\| null;/);
-    expect(src).toMatch(/if \(!isWonRow && !lostAt\) undatedLost \+= 1;/);
+    expect(src).toMatch(/if \(!isWonRow && !lostAt\) \{[\s\S]{0,300}undatedLost \+= 1;/);
   });
 
   it("stamps lost_at going forward, so the approximation heals", () => {
@@ -76,5 +77,34 @@ describe("the UI names its window and admits what it left out", () => {
   it("STOCK tiles keep their as-of labelling and are NOT windowed", () => {
     const src = ui();
     expect(src).toMatch(/label="Open pipeline"[\s\S]{0,200}as of today/);
+  });
+});
+
+describe("the member rows disclose their own gap, not just the team total", () => {
+  it("attributes an excluded win to its OWNER's bucket", () => {
+    // The skip happens before the owner bucket is normally resolved, so without this the exclusion
+    // is only ever visible on the team total and a member's row silently reads 0.00.
+    expect(outcomes()).toMatch(/if \(owner\) \(byMember\.get\(owner\) \?\? \(byMember\.set\(owner, emptyWin\(\)\), byMember\.get\(owner\)!\)\)\.undated_wins \+= 1;/);
+  });
+
+  it("carries the per-member counts out in the payload", () => {
+    expect(outcomes()).toMatch(/undated_wins: w\.undated_wins, undated_lost: w\.undated_lost/);
+  });
+
+  it("does not let an all-undated member sink to the bottom as though they sold nothing", () => {
+    // Sorting on value alone puts a member whose every win lacks a close date below a member with
+    // one small dated win — a data gap reading as a performance ranking.
+    expect(outcomes()).toMatch(/\.sort\(\(a, b\) => b\.value_won - a\.value_won \|\| b\.undated_wins - a\.undated_wins\)/);
+  });
+
+  it("the leaderboard row shows the gap and names the window", () => {
+    const src = ui();
+    expect(src).toMatch(/Top by value won · \{win\}/);
+    expect(src).toMatch(/\{gap\} undated/);
+    expect(src).toMatch(/no close date recorded, so they cannot be placed in \$\{win\}/);
+  });
+
+  it("a zero row is styled as absent data, not as a win", () => {
+    expect(ui()).toMatch(/m\.value_won > 0 \? "var\(--status-ok\)" : "var\(--text-muted\)"/);
   });
 });
