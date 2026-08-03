@@ -531,7 +531,9 @@ export function DashboardViewPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-      <header className="mb-6 flex flex-wrap items-center gap-3">
+      {/* A header strip, so it does NOT wrap: three action buttons dropping to their own row read
+          as a second toolbar. They stay right of the title, which is the app-wide standard. */}
+      <header className="mb-6 flex flex-nowrap items-center gap-3">
         <Link to="/reports" className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0">
           <ArrowLeft size={14}/> Reports
         </Link>
@@ -541,19 +543,21 @@ export function DashboardViewPage() {
           className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xl font-semibold text-[var(--text-primary)] outline-none hover:border-[var(--border-soft)] focus:border-[var(--border-soft)] placeholder-[var(--text-secondary)]"
           placeholder="Dashboard name"
         />
-        <button onClick={() => setAdding(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-[var(--border-soft)] px-3 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
-          <Plus size={14}/> Add widget
-        </button>
-        <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
-          className="flex h-9 items-center gap-2 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-60 transition-colors">
-          {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
-          {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
-        </button>
-        <button onClick={() => setConfirmDelete(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-stone-500/30 bg-stone-600/[.06] px-3 text-sm text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">
-          <Trash2 size={13}/> Delete
-        </button>
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap">
+          <button onClick={() => setAdding(true)}
+            className="flex h-9 items-center gap-2 rounded-md border border-[var(--border-soft)] px-3 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
+            <Plus size={14}/> Add widget
+          </button>
+          <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
+            className="flex h-9 items-center gap-2 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-60 transition-colors">
+            {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
+            {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
+          </button>
+          <button onClick={() => setConfirmDelete(true)}
+            className="flex h-9 items-center gap-2 rounded-md border border-stone-500/30 bg-stone-600/[.06] px-3 text-sm text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">
+            <Trash2 size={13}/> Delete
+          </button>
+        </div>
       </header>
 
       {/* Delete confirm */}

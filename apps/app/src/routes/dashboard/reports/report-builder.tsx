@@ -91,30 +91,38 @@ export function ReportBuilderPage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
+      {/* A toolbar strip, so it does NOT wrap: the controls stay on the title's row and stay right-
+          aligned, the same shape every other page header in the app uses. Wrapping here produced a
+          second, half-empty row of chrome above the report. */}
+      <header className="flex flex-nowrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
         <input
           value={report.name}
           onChange={e => setReport({ ...report, name: e.target.value })}
           className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none"
         />
-        <FieldSelect
-          value={report.type}
-          onChange={v => setReport({ ...report, type: v as ReportType })}
-          ariaLabel="Report type"
-          options={[
-            { value: "insight", label: "Insight" },
-            { value: "forecast", label: "Forecast" },
-            { value: "funnel", label: "Funnel" },
-            { value: "time_in_stage", label: "Time in stage" },
-            { value: "historical", label: "Historical values" },
-          ]}
-        />
-        <button
-          onClick={() => save.mutate(report)}
-          className="flex h-9 items-center gap-2 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
-        >
-          <Save size={14} /> {save.isPending ? "Saving…" : "Save report"}
-        </button>
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 whitespace-nowrap">
+          {/* compact: a header select is chrome, not a form field. The 36px boxed variant belongs in
+              modals and Settings, where it sits next to a label and is the thing being filled in. */}
+          <FieldSelect
+            compact
+            value={report.type}
+            onChange={v => setReport({ ...report, type: v as ReportType })}
+            ariaLabel="Report type"
+            options={[
+              { value: "insight", label: "Insight" },
+              { value: "forecast", label: "Forecast" },
+              { value: "funnel", label: "Funnel" },
+              { value: "time_in_stage", label: "Time in stage" },
+              { value: "historical", label: "Historical values" },
+            ]}
+          />
+          <button
+            onClick={() => save.mutate(report)}
+            className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
+          >
+            <Save size={14} /> {save.isPending ? "Saving…" : "Save report"}
+          </button>
+        </div>
       </header>
       <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 p-4 sm:p-6">

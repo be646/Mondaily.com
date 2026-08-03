@@ -4,7 +4,8 @@
 // all 4 themes and each section's accent flows through automatically. Use these
 // instead of hand-rolling <select>/<button> chrome per page.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ButtonHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
 import { Check, ChevronDown, MoreHorizontal, X, Filter } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -118,17 +119,96 @@ interface MenuSelectProps {
   disabled?: boolean;
   title?: string;
 }
+/**
+ * A dropdown panel rendered into `document.body` rather than next to its trigger.
+ *
+ * Every menu in this file used to be `position: absolute` inside the control. That works right up
+ * until ANY ancestor has `overflow: hidden` or `overflow-x: auto` — then the panel is clipped to
+ * that ancestor and the control looks broken rather than closed. That is exactly how the currency
+ * picker in Finance Reports died: it was correct, and an `overflow-x-auto` on the strip that held
+ * it cut the list off. Twenty-one files in this app put a select inside a scrolling or clipping
+ * container, and auditing ancestor chains by hand is the same "a rule at one call site is not a
+ * rule" mistake this session has already made four times.
+ *
+ * So the panel leaves the clipping context entirely. `position: fixed` against the trigger's
+ * viewport rect cannot be clipped by an ancestor, because it no longer has one.
+ */
+function MenuLayer({
+  anchorRef, menuRef, open, align = "left", matchWidth = false, maxWidth = 260, minWidth, role, children,
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  /** Handed back so the owner's outside-click check can see the portalled node too. */
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  open: boolean;
+  align?: "left" | "right";
+  /** Form fields want the panel exactly as wide as the field; toolbars want max-content. */
+  matchWidth?: boolean;
+  maxWidth?: number;
+  minWidth?: string | number;
+  role: "listbox" | "menu";
+  children: React.ReactNode;
+}) {
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  // Tracked, not snapshotted: a fixed panel does not travel with its trigger, so anything that
+  // moves the trigger (a scrolling sheet, a resize) has to move the panel or it detaches.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const measure = () => { const el = anchorRef.current; if (el) setRect(el.getBoundingClientRect()); };
+    measure();
+    // `true` = capture, so scrolling in ANY container is seen, not just the window.
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [open, anchorRef]);
+
+  if (!open || !rect || typeof document === "undefined") return null;
+
+  // Flip above the trigger when the space below cannot hold the panel — near the bottom of a long
+  // sheet, "below" is off-screen and a fixed panel does not scroll into view the way an absolute
+  // one did.
+  const below = window.innerHeight - rect.bottom;
+  const flip = below < 200 && rect.top > below;
+
+  const style: React.CSSProperties = {
+    position: "fixed",
+    zIndex: 60,
+    borderRadius: 4,
+    width: matchWidth ? rect.width : "max-content",
+    minWidth: minWidth ?? (matchWidth ? undefined : rect.width),
+    maxWidth,
+    maxHeight: Math.max(160, (flip ? rect.top : below) - 12),
+    overflowY: "auto",
+    ...(flip ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+    ...(align === "right" ? { right: window.innerWidth - rect.right } : { left: rect.left }),
+  };
+
+  return createPortal(
+    <div ref={menuRef} role={role} className="ui-menu py-1" style={style}>{children}</div>,
+    document.body,
+  );
+}
+
 export function MenuSelect({ label, value, options, onChange, allLabel = "All", includeAll = true, className, maxWidth = 180, width, disabled, title }: MenuSelectProps) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);   // highlighted row index
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const all: MenuSelectOption[] = includeAll ? [{ value: "", label: allLabel }, ...options] : [...options];
   const current = all.find(o => o.value === value) ?? all[0]!;
 
   // Close on outside click.
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      // The menu is PORTALLED, so it is not inside rootRef any more. Checking only the root would
+      // treat every click on an option as an outside click.
+      if (!rootRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
@@ -161,9 +241,8 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
         </span>
         <ChevronDown size={11} className="shrink-0" style={{ color: "var(--text-faint)", transform: open ? "rotate(180deg)" : undefined, transition: "transform .12s" }} />
       </button>
-      {open && (
-        <div role="listbox" className="ui-menu absolute left-0 top-full z-40 mt-1 max-h-64 min-w-full overflow-y-auto py-1" style={{ borderRadius: 4, width: "max-content", maxWidth: 260 }}>
-          {all.map((o, i) => {
+      <MenuLayer anchorRef={rootRef} menuRef={menuRef} open={open} role="listbox">
+        {all.map((o, i) => {
             const selected = o.value === value;
             return (
               <div key={o.value || "__all"} role="option" aria-selected={selected}
@@ -176,8 +255,7 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
               </div>
             );
           })}
-        </div>
-      )}
+      </MenuLayer>
     </div>
   );
 }
@@ -207,10 +285,16 @@ export function ActionMenu({ items, triggerLabel, ariaLabel = "More actions", al
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      // The menu is PORTALLED, so it is not inside rootRef any more. Checking only the root would
+      // treat every click on an option as an outside click.
+      if (!rootRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
@@ -238,20 +322,17 @@ export function ActionMenu({ items, triggerLabel, ariaLabel = "More actions", al
         <MoreHorizontal size={13} className="shrink-0" />
         {triggerLabel && <span>{triggerLabel}</span>}
       </button>
-      {open && (
-        <div role="menu" className="ui-menu absolute top-full z-40 mt-1 py-1"
-          style={{ borderRadius: 4, width: "max-content", maxWidth: 260, minWidth: "10rem", ...(align === "right" ? { right: 0 } : { left: 0 }) }}>
-          {items.map((it, i) => (
+      <MenuLayer anchorRef={rootRef} menuRef={menuRef} open={open} role="menu" align={align} minWidth="10rem">
+        {items.map((it, i) => (
             <button key={it.key} type="button" role="menuitem" disabled={it.disabled}
               onMouseEnter={() => setHi(i)} onClick={() => run(it)}
               className="ui-menu-item w-full text-left disabled:cursor-not-allowed disabled:opacity-40"
               data-active={i === hi} style={{ background: i === hi ? "var(--surface-hover)" : undefined }}>
               {it.icon && <it.icon size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} />}
               <span className="min-w-0 flex-1 truncate">{it.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+          </button>
+        ))}
+      </MenuLayer>
     </div>
   );
 }
@@ -282,11 +363,17 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const current = options.find(o => o.value === value);
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      // The menu is PORTALLED, so it is not inside rootRef any more. Checking only the root would
+      // treat every click on an option as an outside click.
+      if (!rootRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
@@ -325,13 +412,12 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
         </span>
         <ChevronDown size={13} className="shrink-0" style={{ color: "var(--text-faint)", transform: open ? "rotate(180deg)" : undefined, transition: "transform .12s" }} />
       </button>
-      {open && (
-        // min-w-full + max-content, never w-full: a compact trigger is sized to its own label, so
-        // a menu locked to the trigger's width truncated its own options — "USD" rendered "US…".
-        // The menu belongs to the CONTENT, the trigger to the toolbar.
-        <div role="listbox" className="ui-menu absolute left-0 top-full z-40 mt-1 max-h-64 min-w-full overflow-y-auto py-1"
-          style={{ borderRadius: compact ? 4 : 6, width: "max-content", maxWidth: 260 }}>
-          {options.map((o, i) => {
+      {/* max-content, never the trigger's width: a compact trigger is sized to its own label, so a
+          menu locked to it truncated its own options — "USD" rendered "US…". The menu belongs to
+          the CONTENT, the trigger to the toolbar. MenuLayer keeps the trigger width as the MINIMUM,
+          which is what a full-width form field wants. */}
+      <MenuLayer anchorRef={rootRef} menuRef={menuRef} open={open} role="listbox">
+        {options.map((o, i) => {
             const selected = o.value === value;
             return (
               <div key={o.value} role="option" aria-selected={selected}
@@ -344,8 +430,7 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
               </div>
             );
           })}
-        </div>
-      )}
+      </MenuLayer>
     </div>
   );
 }
