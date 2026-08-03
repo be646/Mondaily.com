@@ -127,3 +127,11 @@ describe("a win with no close date is never dated by its last edit", () => {
     expect(read("packages/api/src/routes/activities.ts")).toMatch(/const when = moneyWonDate\(r\);\s*\n\s*if \(!when\) continue;/);
   });
 });
+
+describe("the gap is visible to a person, not just in the payload", () => {
+  it("the Brief tile says how many wins have no close date", () => {
+    // A number that quietly omits 9 deals is worse than one that admits it.
+    expect(read("apps/app/src/routes/dashboard/briefing.tsx"))
+      .toMatch(/won without a close date/);
+  });
+});

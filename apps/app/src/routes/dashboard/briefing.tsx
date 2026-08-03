@@ -12,7 +12,7 @@ interface Brief {
   needs_you: { pending: number; high_risk: number; overdue_tasks: number; overdue_invoices: { count: number; total: number } };
   handled: { auto_approved_today: number };
   money?: {
-    closed_won: { value: number; count: number; delta: number | null };
+    closed_won: { value: number; count: number; delta: number | null; undated?: number; undated_value?: number };
     cash: { collected: number; invoiced: number; delta: number | null };
     pipeline_created: { value: number; count: number; delta: number | null };
     forecast: { value: number; open_count: number; open_value: number };
@@ -52,7 +52,13 @@ export function BriefingPage() {
   // The four numbers the page exists for — month-to-date, each vs the same point last month.
   const m = data.money;
   const lead: { label: string; value: string; delta: number | null | undefined; sub: string }[] = m ? [
-    { label: "Closed won", value: cur(m.closed_won.value), delta: m.closed_won.delta, sub: `${m.closed_won.count} deal${m.closed_won.count === 1 ? "" : "s"} this month` },
+    { label: "Closed won", value: cur(m.closed_won.value), delta: m.closed_won.delta,
+      // Undated wins are excluded from the month rather than dated by their last edit, so the tile
+      // says how many are unaccounted for. A number that quietly omits 9 deals is worse than one
+      // that admits it.
+      sub: (m.closed_won.undated ?? 0) > 0
+        ? `${m.closed_won.count} deal${m.closed_won.count === 1 ? "" : "s"} this month · ${m.closed_won.undated} won without a close date`
+        : `${m.closed_won.count} deal${m.closed_won.count === 1 ? "" : "s"} this month` },
     { label: "Cash collected", value: cur(m.cash.collected), delta: m.cash.delta, sub: `${cur(m.cash.invoiced)} invoiced · ${cur(data.pulse.outstanding)} outstanding` },
     { label: "Pipeline created", value: cur(m.pipeline_created.value), delta: m.pipeline_created.delta, sub: `${m.pipeline_created.count} new deal${m.pipeline_created.count === 1 ? "" : "s"}` },
     { label: "Forecast", value: cur(m.forecast.value), delta: undefined as number | null | undefined, sub: `weighted, over ${m.forecast.open_count} open (${cur(m.forecast.open_value)})` },
