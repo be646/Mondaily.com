@@ -1,4 +1,5 @@
 import { supabase } from "@mondaily/db/client";
+import { withStageStamps } from "../lib/stage-stamps";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { createNotification } from "../lib/notify";
@@ -264,7 +265,11 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       }
       // Scope the write to this workspace (every other write in the engine does) — never mutate a
       // node by bare id, which would be a cross-tenant isolation hole.
-      await supabase.from("nodes").update({ data: merged }).eq("id", record.id).eq("workspace_id", workspaceId);
+      // Same close-date stamping as the REST path. Without this an automation that moves a deal
+      // to Closed Won mints an undated win — the product manufacturing the exact gap the money
+      // model excludes and discloses.
+      const stamped = withStageStamps(record.object_type, record.data, merged);
+      await supabase.from("nodes").update({ data: stamped }).eq("id", record.id).eq("workspace_id", workspaceId);
       return { action: action.type, mode: "executed", detail: `${fu.field}=${fu.value}` };
     }
     return { action: action.type, mode: "executed", detail: "no field resolved" };

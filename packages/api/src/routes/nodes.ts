@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { denyViewerWrites } from "../middleware/rbac";
 import * as ubc from "@mondaily/db/ubc";
 import { supabase } from "@mondaily/db/client";
+import { withStageStamps } from "../lib/stage-stamps";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
 import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
@@ -206,32 +207,15 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   // Capture the previous stage BEFORE updating so we can detect a deal stage move.
   const { data: prev } = await supabase.from("nodes").select("object_type, data").eq("id", nodeId).eq("workspace_id", workspaceId).single();
 
-  // Stamp `won_at` the moment a deal moves INTO a won stage. Measured in production: zero of 44
-  // deals carry any close date, so "closed this month" could only ever approximate via updated_at —
-  // which moves on every edit. This makes the metric exact for every future close while the money
-  // model no longer falls back to updated_at at all: an undated win is excluded and disclosed.
-  // Only on the transition, so re-saving an already-won deal never refreshes its close date.
-  if (updates.data && String(prev?.object_type ?? "").toLowerCase().includes("deal")) {
-    const prevData = (prev?.data as Record<string, unknown>) ?? {};
-    const nextData = updates.data as Record<string, unknown>;
-    const before = dealStageOf(prevData);
-    const after = dealStageOf({ ...prevData, ...nextData });
-    if (/won/i.test(after) && !/won/i.test(before) && !nextData.won_at) {
-      nextData.won_at = new Date().toISOString();
-    }
-    // Same stamp for LOST. Nothing has ever recorded when a deal was lost, so the outcomes engine
-    // had only `updated_at` to date it — an approximation that moves on every edit. Stamping it
-    // here heals the data going forward, exactly as won_at did.
-    if (/lost/i.test(after) && !/lost/i.test(before) && !nextData.lost_at) {
-      nextData.lost_at = new Date().toISOString();
-    }
-    if (prevData.lost_at && !nextData.lost_at) nextData.lost_at = prevData.lost_at;
-    if (prevData.won_at && !nextData.won_at) {
-      // updateNode REPLACES data wholesale, so a client that fetched the record before the stamp
-      // existed and edits any other field would silently erase it. A server-stamped fact must
-      // survive client round-trips the client doesn't know about.
-      nextData.won_at = prevData.won_at;
-    }
+  // Close-date stamping lives in lib/stage-stamps, because this was NOT the only writer: the
+  // workflow engine's update_field action writes nodes.data directly and could set a stage to
+  // "Closed Won" without ever passing through here. Both call the same helper now.
+  if (updates.data) {
+    updates.data = withStageStamps(
+      String(prev?.object_type ?? ""),
+      prev?.data as Record<string, unknown> | undefined,
+      updates.data as Record<string, unknown>,
+    );
   }
 
   const node = await ubc.updateNode(nodeId, workspaceId, updates);

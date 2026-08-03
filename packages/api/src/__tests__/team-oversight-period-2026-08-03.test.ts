@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { withStageStamps } from "../lib/stage-stamps";
 
 const root = join(__dirname, "../../../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -49,10 +50,13 @@ describe("lost deals are not silently zeroed to be consistent", () => {
   });
 
   it("stamps lost_at going forward, so the approximation heals", () => {
-    const src = nodes();
-    expect(src).toMatch(/if \(\/lost\/i\.test\(after\) && !\/lost\/i\.test\(before\) && !nextData\.lost_at\)/);
+    // Behavioural since the 2026-08-03 extraction into lib/stage-stamps (routes/nodes.ts was not
+    // the only writer — the workflow engine bypassed it).
+    const at = () => "2026-08-03T00:00:00.000Z";
+    expect(withStageStamps("deals", { stage: "Proposal" }, { stage: "Closed Lost" }, at).lost_at).toBe(at());
     // And survives a wholesale data replace, like won_at does.
-    expect(src).toMatch(/if \(prevData\.lost_at && !nextData\.lost_at\) nextData\.lost_at = prevData\.lost_at;/);
+    expect(withStageStamps("deals", { stage: "Closed Lost", lost_at: "2026-04-01T00:00:00.000Z" }, { stage: "Closed Lost" }, at).lost_at)
+      .toBe("2026-04-01T00:00:00.000Z");
   });
 
   it("discloses both gaps rather than hiding either", () => {

@@ -5,6 +5,7 @@ import {
   type NodeRow,
 } from "../lib/money";
 import { readFileSync } from "node:fs";
+import { withStageStamps } from "../lib/stage-stamps";
 import { join } from "node:path";
 
 const deal = (o: Partial<{ id: string; data: Record<string, unknown>; created_at: string; updated_at: string }>): NodeRow => ({
@@ -180,14 +181,25 @@ describe("the brief reads through the model, with bounded reads", () => {
 
 describe("won_at is stamped at the transition and survives client round-trips", () => {
   const nodes = readFileSync(join(__dirname, "../routes/nodes.ts"), "utf8");
+  // Extracted to lib/stage-stamps on 2026-08-03, because routes/nodes.ts was NOT the only writer —
+  // the workflow engine wrote nodes.data directly and bypassed it. These now assert the BEHAVIOUR
+  // rather than the text of one file, which is what they should have done from the start.
   it("stamps on the move INTO won, only on the transition", () => {
-    expect(nodes).toMatch(/\/won\/i\.test\(after\) && !\/won\/i\.test\(before\) && !nextData\.won_at/);
+    const at = () => "2026-08-03T00:00:00.000Z";
+    expect(withStageStamps("deals", { stage: "Negotiation" }, { stage: "Closed Won" }, at).won_at).toBe(at());
+    // Already won → the date must not move.
+    expect(withStageStamps("deals", { stage: "Closed Won", won_at: "2026-06-01T00:00:00.000Z" }, { stage: "Closed Won" }, at).won_at)
+      .toBe("2026-06-01T00:00:00.000Z");
   });
   it("carries an existing stamp through full-replace updates", () => {
-    // updateNode replaces `data` wholesale; a client that fetched before the stamp existed and
+    // Both writers replace `data` wholesale; a client that fetched before the stamp existed and
     // edits any other field would silently erase it.
-    expect(nodes).toMatch(/prevData\.won_at && !nextData\.won_at/);
-    expect(nodes).toMatch(/nextData\.won_at = prevData\.won_at/);
+    expect(withStageStamps("deals", { stage: "Closed Won", won_at: "2026-05-05T00:00:00.000Z" }, { stage: "Closed Won", note: "edited" }).won_at)
+      .toBe("2026-05-05T00:00:00.000Z");
+  });
+  it("both writers delegate to the one helper", () => {
+    expect(nodes).toMatch(/withStageStamps\(/);
+    expect(readFileSync(join(__dirname, "../jobs/workflow-engine.ts"), "utf8")).toMatch(/withStageStamps\(/);
   });
   it("the model reads pages, never one bounded select", () => {
     const money = readFileSync(join(__dirname, "../lib/money.ts"), "utf8");

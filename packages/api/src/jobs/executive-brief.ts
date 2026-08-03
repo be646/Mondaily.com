@@ -1,4 +1,6 @@
 import { supabase } from "@mondaily/db/client";
+import { pastPeriodBounds, pastPeriodLabel } from "@mondaily/shared/period";
+import { workspacePeriodConfig } from "../lib/period-close";
 import { aiGateway } from "../lib/ai-gateway";
 import { groundingViolations } from "../lib/grounding";
 import { sendTransactionalEmail } from "../lib/mail";
@@ -16,18 +18,24 @@ import { goalAttainmentPct } from "../lib/oversight-metrics";
  *   • honest skip: a workspace with zero deals AND zero tasks in the month gets no email
  */
 export async function runExecutiveBrief(now: Date = new Date()): Promise<{ sent: number; skipped: number; failed: number }> {
-  // The just-completed calendar month, and the one before it.
-  const monthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-  const monthEnd = new Date(now.getFullYear(), now.getMonth(), 1).getTime() - 1;
-  const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
-  const prevEnd = monthStart - 1;
-  const monthName = new Date(monthStart).toLocaleString("en", { month: "long", year: "numeric" });
-
-  const { data: wsList } = await supabase.from("workspaces").select("id, name");
+  // The just-completed calendar month is resolved PER WORKSPACE below, not here: this cron runs in
+  // UTC, and a monthly brief boundary computed from the process timezone reports a different month
+  // than the workspace's own Reports and its filed period snapshot. The email is the one artefact a
+  // reader cannot cross-check against the UI, so it is the worst place to be an hour out.
+  const { data: wsList } = await supabase.from("workspaces").select("id, name, settings, timezone");
   let sent = 0, skipped = 0, failed = 0;
 
   for (const w of wsList ?? []) {
     const ws = String(w.id);
+    const cfg = workspacePeriodConfig(w as { timezone?: unknown; settings?: unknown });
+    // The month that just ended, in THIS workspace's calendar, and its predecessor.
+    const closed = pastPeriodBounds("MONTH", now, cfg, -1)!;
+    const before = pastPeriodBounds("MONTH", now, cfg, -2)!;
+    const monthStart = closed.start.getTime();
+    const monthEnd = closed.end.getTime() - 1;
+    const prevStart = before.start.getTime();
+    const prevEnd = before.end.getTime() - 1;
+    const monthName = pastPeriodLabel("MONTH", now, cfg, -1);
     try {
       const [outcomes, { data: tasks }, { data: decisions }, { data: admins }] = await Promise.all([
         computeOutcomes(ws, monthStart, monthEnd, prevStart, prevEnd),

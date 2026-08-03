@@ -63145,15 +63145,18 @@ __export(executive_brief_exports, {
   runExecutiveBrief: () => runExecutiveBrief
 });
 async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
-  const monthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-  const monthEnd = new Date(now.getFullYear(), now.getMonth(), 1).getTime() - 1;
-  const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
-  const prevEnd = monthStart - 1;
-  const monthName = new Date(monthStart).toLocaleString("en", { month: "long", year: "numeric" });
-  const { data: wsList } = await supabase.from("workspaces").select("id, name");
+  const { data: wsList } = await supabase.from("workspaces").select("id, name, settings, timezone");
   let sent = 0, skipped = 0, failed = 0;
   for (const w2 of wsList ?? []) {
     const ws = String(w2.id);
+    const cfg = workspacePeriodConfig(w2);
+    const closed = pastPeriodBounds("MONTH", now, cfg, -1);
+    const before = pastPeriodBounds("MONTH", now, cfg, -2);
+    const monthStart = closed.start.getTime();
+    const monthEnd = closed.end.getTime() - 1;
+    const prevStart = before.start.getTime();
+    const prevEnd = before.end.getTime() - 1;
+    const monthName = pastPeriodLabel("MONTH", now, cfg, -1);
     try {
       const [outcomes, { data: tasks2 }, { data: decisions }, { data: admins }] = await Promise.all([
         computeOutcomes(ws, monthStart, monthEnd, prevStart, prevEnd),
@@ -63228,6 +63231,8 @@ var init_executive_brief = __esm({
   "src/jobs/executive-brief.ts"() {
     "use strict";
     init_client();
+    init_period();
+    init_period_close();
     init_ai_gateway();
     init_grounding();
     init_mail();
@@ -65124,6 +65129,26 @@ init_inngest2();
 
 // src/jobs/workflow-engine.ts
 init_client();
+
+// src/lib/stage-stamps.ts
+function dealStageOf(d2) {
+  const data = d2 ?? {};
+  return String(data.deal_stage ?? data.stage ?? data.status ?? "");
+}
+function withStageStamps(objectType2, prevData, nextData, now = () => (/* @__PURE__ */ new Date()).toISOString()) {
+  if (!String(objectType2 ?? "").toLowerCase().includes("deal")) return nextData;
+  const prev = prevData ?? {};
+  const out = { ...nextData };
+  const before = dealStageOf(prev);
+  const after = dealStageOf({ ...prev, ...out });
+  if (/won/i.test(after) && !/won/i.test(before) && !out.won_at) out.won_at = now();
+  if (/lost/i.test(after) && !/lost/i.test(before) && !out.lost_at) out.lost_at = now();
+  if (prev.won_at && !out.won_at) out.won_at = prev.won_at;
+  if (prev.lost_at && !out.lost_at) out.lost_at = prev.lost_at;
+  return out;
+}
+
+// src/jobs/workflow-engine.ts
 init_agent_logger();
 init_ai_gateway();
 init_notify();
@@ -65366,7 +65391,8 @@ What single field should be set to what value?`,
       } else {
         merged[fu.field] = fu.value;
       }
-      await supabase.from("nodes").update({ data: merged }).eq("id", record.id).eq("workspace_id", workspaceId);
+      const stamped = withStageStamps(record.object_type, record.data, merged);
+      await supabase.from("nodes").update({ data: stamped }).eq("id", record.id).eq("workspace_id", workspaceId);
       return { action: action.type, mode: "executed", detail: `${fu.field}=${fu.value}` };
     }
     return { action: action.type, mode: "executed", detail: "no field resolved" };
@@ -66480,7 +66506,7 @@ init_client();
 init_inngest2();
 init_notify();
 init_embeddings2();
-function dealStageOf(data) {
+function dealStageOf2(data) {
   const d2 = data ?? {};
   return String(d2.deal_stage ?? d2.stage ?? d2.status ?? "").trim();
 }
@@ -66643,28 +66669,19 @@ router3.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external
   const workspaceId = c2.get("workspaceId");
   const nodeId = c2.req.param("id");
   const { data: prev } = await supabase.from("nodes").select("object_type, data").eq("id", nodeId).eq("workspace_id", workspaceId).single();
-  if (updates.data && String(prev?.object_type ?? "").toLowerCase().includes("deal")) {
-    const prevData = prev?.data ?? {};
-    const nextData = updates.data;
-    const before = dealStageOf(prevData);
-    const after = dealStageOf({ ...prevData, ...nextData });
-    if (/won/i.test(after) && !/won/i.test(before) && !nextData.won_at) {
-      nextData.won_at = (/* @__PURE__ */ new Date()).toISOString();
-    }
-    if (/lost/i.test(after) && !/lost/i.test(before) && !nextData.lost_at) {
-      nextData.lost_at = (/* @__PURE__ */ new Date()).toISOString();
-    }
-    if (prevData.lost_at && !nextData.lost_at) nextData.lost_at = prevData.lost_at;
-    if (prevData.won_at && !nextData.won_at) {
-      nextData.won_at = prevData.won_at;
-    }
+  if (updates.data) {
+    updates.data = withStageStamps(
+      String(prev?.object_type ?? ""),
+      prev?.data,
+      updates.data
+    );
   }
   const node = await updateNode(nodeId, workspaceId, updates);
   await logActivity(node.id, workspaceId, "human", c2.get("userId"), "updated", updates);
   try {
     const isDeal = String(node.object_type ?? "").toLowerCase().includes("deal");
-    const oldStage = dealStageOf(prev?.data);
-    const newStage = dealStageOf(node.data);
+    const oldStage = dealStageOf2(prev?.data);
+    const newStage = dealStageOf2(node.data);
     if (isDeal && newStage && oldStage !== newStage) {
       const d2 = node.data ?? {};
       const name = String(d2.name ?? d2.title ?? "A deal");
