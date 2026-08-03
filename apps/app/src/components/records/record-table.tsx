@@ -9,6 +9,7 @@ import {
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
   Sigma, Loader2, Sparkles, MoreHorizontal, Table2,
+  CalendarDays,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -52,6 +53,7 @@ type RowPlanItem =
   | { kind: "row"; record: NodeRecord; rowIdx: number };
 import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor, vocabRankPairs } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
+import { DatePicker } from "../ui/date-picker";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
 /** Columns that live as real node columns (not inside the data jsonb) — the AI
@@ -1556,24 +1558,24 @@ function fmtAbsDate(v: unknown, withTime: boolean): { text: string; ok: boolean 
 }
 // Date / datetime cell — formatted display, editable as raw text (unparseable input degrades to text).
 function DateCell({ value, withTime, onSave }: { value: unknown; withTime: boolean; onSave: (v: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value ?? ""));
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (editing) { setDraft(String(value ?? "")); inputRef.current?.focus(); inputRef.current?.select(); } }, [editing, value]);
-  function commit() { onSave(draft.trim()); setEditing(false); }
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
   const { text, ok } = fmtAbsDate(value, withTime);
-  if (editing) {
-    return (
-      <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
-        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-        placeholder={withTime ? "2026-01-31 14:00" : "2026-01-31"}
-        className="w-full max-w-[150px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
-    );
-  }
   return (
-    <button onClick={() => setEditing(true)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-left w-full truncate rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-      {text ? <span className={ok ? "tabular-nums" : ""}>{text}</span> : <span className="text-[var(--text-faint)]">— date</span>}
-    </button>
+    <>
+      {/* A date is PICKED, not typed. This used to be a free-text box expecting "2026-01-31", which
+          silently kept whatever you typed if it was not a date — so a cell could hold "next friday"
+          and read as empty everywhere that parsed it. */}
+      <button ref={anchorRef} onClick={() => setOpen(o => !o)}
+        title={text ? "Change date" : "Set a date"}
+        className="flex w-full items-center gap-1 truncate rounded-sm text-left text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-strong)]">
+        {text
+          ? <span className={ok ? "tabular-nums" : ""}>{text}</span>
+          : <span className="inline-flex items-center gap-1 text-[var(--text-faint)]"><CalendarDays size={11}/> set date</span>}
+      </button>
+      <DatePicker open={open} anchorRef={anchorRef} value={value} withTime={withTime}
+        onChange={v => onSave(v)} onClose={() => setOpen(false)} />
+    </>
   );
 }
 // Multi-select — renders the stored value (array OR comma string) as read chips; unknown shapes

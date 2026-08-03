@@ -133,7 +133,7 @@ interface MenuSelectProps {
  * So the panel leaves the clipping context entirely. `position: fixed` against the trigger's
  * viewport rect cannot be clipped by an ancestor, because it no longer has one.
  */
-function MenuLayer({
+export function MenuLayer({
   anchorRef, menuRef, open, align = "left", matchWidth = false, maxWidth = 260, minWidth, role, children,
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
