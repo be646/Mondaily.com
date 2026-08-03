@@ -108,12 +108,26 @@ describe("invoice metrics", () => {
 
 describe("the comparison window is same-point, not whole-month", () => {
   it("prev window ends at the same day-offset, not month end", () => {
-    const now = new Date("2026-07-15T10:00:00");
-    const prev = prevMonthSamePoint(now);
-    expect(new Date(prev.start).getMonth()).toBe(5);           // June
-    expect(new Date(prev.end).getDate()).toBe(15);             // ...to June 15, not June 30
-    const mtd = monthToDate(now);
-    expect(new Date(mtd.start).getDate()).toBe(1);
+    // Signature changed 2026-08-02: the config comes FIRST and is required, because the month must
+    // turn on the workspace's calendar rather than the server process's timezone.
+    const UTC = { timeZone: "UTC", weekStart: 0 as const };
+    const now = new Date("2026-07-15T10:00:00Z");
+    const prev = prevMonthSamePoint(UTC, now);
+    expect(new Date(prev.start).getUTCMonth()).toBe(5);        // June
+    expect(new Date(prev.end).getUTCDate()).toBe(15);          // ...to June 15, not June 30
+    const mtd = monthToDate(UTC, now);
+    expect(new Date(mtd.start).getUTCDate()).toBe(1);
+  });
+
+  it("clamps the same-point end to a shorter previous month", () => {
+    // July has a 31st; June does not. Without the clamp the comparison window would run past the
+    // end of June and pull in July rows, inflating the baseline it is meant to measure against.
+    const UTC = { timeZone: "UTC", weekStart: 0 as const };
+    const prev = prevMonthSamePoint(UTC, new Date("2026-07-31T10:00:00Z"));
+    // The range is half-open, so June's exclusive end IS July 1 00:00 — the clamp stopping exactly
+    // there means the window covers all of June and not one instant of July.
+    expect(prev.end).toBe(Date.parse("2026-07-01T00:00:00Z"));
+    expect(prev.start).toBe(Date.parse("2026-06-01T00:00:00Z"));
   });
   it("delta from zero is null, never Infinity", () => {
     expect(deltaPct(500, 0)).toBeNull();

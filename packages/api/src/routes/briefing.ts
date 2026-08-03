@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { workspacePeriodConfig } from "../lib/period-close";
 import { makeBaseConverter } from "../lib/currency-store";
 import { overdueCutoffISO } from "@mondaily/shared/dates";
 import {
@@ -26,8 +27,13 @@ router.get("/", async (c) => {
   const ws = c.get("workspaceId");
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
   const weekAgo = Date.now() - 7 * 86_400_000;
-  const mtd = monthToDate();
-  const prev = prevMonthSamePoint();
+  // The WORKSPACE's month, not the server's. This surface used to roll over on the process
+  // timezone (UTC on Vercel) while Reports rolled over on the workspace's, so the two could
+  // disagree for hours on the 1st and both look right.
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const periodCfg = workspacePeriodConfig(wsRow as { timezone?: unknown; settings?: unknown } | null);
+  const mtd = monthToDate(periodCfg);
+  const prev = prevMonthSamePoint(periodCfg);
 
   const [pendingR, autoR, overdueTasksR, invoices, deals, conv] = await Promise.all([
     supabase.from("decision_queue").select("id,title,risk_level,agent_name").eq("workspace_id", ws).eq("status", "pending").order("created_at", { ascending: true }).limit(500),

@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { isOutstanding } from "@mondaily/shared/finance";
+import { periodStart, previousPeriod, type PeriodConfig } from "@mondaily/shared/period";
 
 /**
  * THE money model — the single place "closed won", "pipeline created", "cash collected" and
@@ -17,24 +18,35 @@ import { isOutstanding } from "@mondaily/shared/finance";
  *
  * FLOW metrics (closed won, pipeline created, cash collected) are counted within a range.
  * BALANCE metrics (open pipeline, outstanding, overdue) are as-of-now and ignore the range.
- * Same doctrine as apps/app/src/lib/period.ts.
+ *
+ * WHOSE first-of-the-month, though? Until 2026-08-02 the answer here was "the server's", because
+ * `new Date(y, m, 1)` reads the process timezone — UTC on Vercel. Reports resolved the workspace's,
+ * the browser resolved its own, and the close worker resolved a third. A Warsaw workspace could
+ * watch its Brief roll over two hours before its Reports did, and both were defensible in
+ * isolation. There is one calendar now: the workspace's, via @mondaily/shared/period.
  */
 
 export interface MsRange { start: number; end: number }
 
-/** Month-to-date, local server time. The Brief's lens. */
-export function monthToDate(now: Date = new Date()): MsRange {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  return { start: start.getTime(), end: now.getTime() };
+/**
+ * Month-to-date in the WORKSPACE's calendar.
+ *
+ * `cfg` is required rather than optional-with-a-default: an optional config is an invitation to
+ * forget it, and forgetting it silently reintroduces the server-timezone bug at one call site while
+ * every other surface stays correct — the hardest kind of disagreement to notice.
+ */
+export function monthToDate(cfg: PeriodConfig, now: Date = new Date()): MsRange {
+  return { start: periodStart(now, "MONTHLY", cfg).getTime(), end: now.getTime() };
 }
 
 /** The SAME window inside the previous month (Jul 1–15 vs Jun 1–15), not the whole prior month —
  *  comparing 15 days against 31 would make every month look like a collapse until the 20th. */
-export function prevMonthSamePoint(now: Date = new Date()): MsRange {
-  const prev = new Date(now);
-  prev.setMonth(prev.getMonth() - 1);
-  const start = new Date(prev.getFullYear(), prev.getMonth(), 1);
-  return { start: start.getTime(), end: prev.getTime() };
+export function prevMonthSamePoint(cfg: PeriodConfig, now: Date = new Date()): MsRange {
+  const prev = previousPeriod(now, "MONTHLY", cfg);
+  // The same DISTANCE into the previous month, so 15 days are compared with 15 days. Clamped to
+  // that month's end for the 29th–31st, which July has and June does not.
+  const offset = now.getTime() - periodStart(now, "MONTHLY", cfg).getTime();
+  return { start: prev.start.getTime(), end: Math.min(prev.start.getTime() + offset, prev.end.getTime()) };
 }
 
 const inRange = (iso: string | undefined | null, r: MsRange): boolean => {

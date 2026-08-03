@@ -222,6 +222,51 @@ export function windowFor(kind: MetricKind, timeframe: Timeframe, at: Date, cfg:
   return kind === "STOCK" ? null : getPeriodBounds(timeframe, at, cfg);
 }
 
+/**
+ * Which KPIs reset when a period turns over, and which must not.
+ *
+ * This exists because "on the 1st everything resets to zero" is half right, and the wrong half is
+ * dangerous: a STOCK metric windowed to the new month reports 0 unpaid invoices on the morning of
+ * the 1st. The invoices were not paid — the filter stopped counting them. A FLOW metric reading
+ * zero on the 1st is correct and expected; a STOCK metric reading zero is a lie about money owed.
+ *
+ * Naming them here makes the split checkable instead of a convention each surface re-remembers.
+ */
+export const METRIC_KIND: Record<string, MetricKind> = {
+  // FLOW — happened during the window, so a new period genuinely starts at zero.
+  revenue_collected: "FLOW", cash_collected: "FLOW", expenses_approved: "FLOW",
+  credits_issued: "FLOW", closed_won: "FLOW", pipeline_created: "FLOW",
+  deals_won_count: "FLOW", tasks_completed: "FLOW", decisions_resolved: "FLOW",
+  net_margin: "FLOW", invoiced: "FLOW",
+
+  // STOCK — a balance as of now. Windowing these is the bug, not the feature.
+  outstanding: "STOCK", unpaid_invoices: "STOCK", overdue_invoices: "STOCK",
+  open_pipeline: "STOCK", forecast: "STOCK", overdue_tasks: "STOCK",
+  pending_decisions: "STOCK", total_records: "STOCK", headcount: "STOCK",
+  credits_remaining: "STOCK", account_balance: "STOCK",
+};
+
+/** The kind of a named metric. Unknown names are treated as FLOW's opposite — see below. */
+export function metricKind(name: string): MetricKind {
+  // An unrecognised metric defaults to STOCK, i.e. it does NOT get windowed. Guessing wrong in the
+  // STOCK direction shows a number that is too inclusive; guessing wrong in the FLOW direction
+  // hides real balances on the 1st of the month. Only one of those is recoverable by looking.
+  return METRIC_KIND[name] ?? "STOCK";
+}
+
+/** Human label for a KPI's window — so a number never appears without saying what it covers. */
+export function windowLabel(kind: MetricKind, timeframe: Timeframe): string {
+  if (kind === "STOCK") return "as of today";
+  switch (timeframe) {
+    case "TODAY":    return "today";
+    case "WEEK":     return "this week";
+    case "MONTH":    return "this month";
+    case "QUARTER":  return "this quarter";
+    case "YEAR":     return "this year";
+    case "ALL_TIME": return "all time";
+  }
+}
+
 /** Is an instant inside a half-open range? */
 export function inBounds(when: string | Date | null | undefined, b: Bounds | null): boolean {
   if (!b) return true;                       // no window = everything qualifies

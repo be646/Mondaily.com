@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { workspacePeriodConfig } from "../lib/period-close";
 import { makeBaseConverter } from "../lib/currency-store";
 import { aiGatewayComplete } from "../lib/ai-gateway";
 import { AUTONOMY_HOURLY_CAP, autonomyUsageLastHour, readAutonomy } from "../lib/autonomy";
@@ -71,8 +72,13 @@ async function aiSpendByFeature(ws: string, days: number): Promise<{ feature: st
  * grounded in EXACTLY what the console shows and can never narrate different numbers.
  */
 async function buildConsolePayload(ws: string) {
-  const mtd = monthToDate();
-  const prev = prevMonthSamePoint();
+  // The WORKSPACE's month, not the server's. This surface used to roll over on the process
+  // timezone (UTC on Vercel) while Reports rolled over on the workspace's, so the two could
+  // disagree for hours on the 1st and both look right.
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const periodCfg = workspacePeriodConfig(wsRow as { timezone?: unknown; settings?: unknown } | null);
+  const mtd = monthToDate(periodCfg);
+  const prev = prevMonthSamePoint(periodCfg);
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
   const [invoices, deals, conv, members, decisions7d, pendingR, level, hourUsed, recentActs, aiSpend] = await Promise.all([
