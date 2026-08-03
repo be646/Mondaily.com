@@ -74,3 +74,13 @@ describe("the control's edge cases live in one place", () => {
     expect(nav()).toMatch(/Math\.max\(-120, offset - 1\)/);
   });
 });
+
+describe("a tile's label follows its window, not the calendar today", () => {
+  it("Finance Reports names the viewed period instead of saying 'this year'", () => {
+    // Once a closed period can be stepped into, "PLN 0.00 collected · this year" over 2025's
+    // window is a label contradicting its own number. Seen live before the fix.
+    const src = read("apps/app/src/routes/dashboard/finance/reports.tsx");
+    expect(src).toMatch(/: periodName \? periodName/);
+    expect(src).toMatch(/a label\s*\n?\s*\/\/ contradicting its own number/);
+  });
+});

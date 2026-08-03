@@ -163,8 +163,13 @@ export function FinanceReportsPage() {
   const { range, previous: prev, label: periodName, complete: periodComplete } = useResolvedPeriod(period, customRange, periodOffset);
   // A fixed month window for the cash comparison below, independent of the selector.
   const monthWindow = useResolvedPeriod("month");
+  // "this year" is only true while you are LOOKING at this year. Once a closed period can be
+  // stepped into, a tile reading "PLN 0.00 collected · this year" over 2025's window is a label
+  // contradicting its own number — the same mismatch this work has been removing everywhere else.
+  // The server's name for the window wins whenever one exists.
   const periodScope = period === "all" ? "all time"
     : period === "custom" ? "selected range"
+    : periodName ? periodName
     : period === "today" ? "today"
     : `this ${periodLabel(period).toLowerCase()}`;
   const paidDate = (i: Invoice) => i.paid_at ?? i.created_at;               // when cash actually landed
