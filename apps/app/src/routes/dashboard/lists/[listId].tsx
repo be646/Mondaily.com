@@ -423,7 +423,7 @@ export function ListPage() {
           {assignOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setAssignOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:">
+              <div className="ui-menu absolute left-0 top-full z-30 mt-1 w-64 p-3">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Assign to</p>
                 {membersQuery.isLoading ? (
                   <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
@@ -492,7 +492,7 @@ export function ListPage() {
           {shareOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShareOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:">
+              <div className="ui-menu absolute left-0 top-full z-30 mt-1 w-64 p-3">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (

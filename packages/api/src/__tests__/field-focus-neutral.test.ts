@@ -63,3 +63,27 @@ describe("the sheet's cell cursor is neutral", () => {
   });
 });
 
+
+describe("every anchored dropdown wears the same skin", () => {
+  const files = [
+    "apps/app/src/components/records/record-table.tsx",
+    "apps/app/src/routes/dashboard/notes.tsx",
+    "apps/app/src/routes/dashboard/lists/[listId].tsx",
+  ];
+
+  it("no anchored panel hand-rolls its own surface", () => {
+    // Four different surfaces were in use for ONE concept — surface-card, surface-modal,
+    // surface-hover and the canonical .ui-menu — and only two of ~25 panels carried a shadow, so
+    // menus sat flat on the page in some places and floated in others. .ui-menu owns the surface,
+    // the 4px radius and the shadow in one place.
+    for (const f of files) {
+      const src = readFileSync(join(__dirname, "../../../..", f), "utf8");
+      const panels = src.match(/className="[^"]*absolute[^"]*(?:top-full|mt-1|mt-2)[^"]*"/g) ?? [];
+      for (const p of panels) {
+        if (/bg-\[var\(--surface-card\)\]|surface-modal/.test(p)) {
+          expect(p, `${f}: hand-rolled panel surface`).toMatch(/ui-menu/);
+        }
+      }
+    }
+  });
+});

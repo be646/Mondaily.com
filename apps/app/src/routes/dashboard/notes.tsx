@@ -665,7 +665,7 @@ export function NotesPage() {
                 placeholder="Link to a contact, company, deal…"
                 className="h-10 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
               {recordSearch && !linkedRecord && (
-                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto ui-menu p-1">
                   {recordOptions.length === 0 ? (
                     <p className="px-3 py-4 text-center text-xs text-[var(--text-secondary)]">No records found</p>
                   ) : recordOptions.map(r => (

@@ -1864,7 +1864,7 @@ function FilterBar({ records, columns, customCols, conditions, onChange, onClose
         {pickerOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => { setPickerOpen(false); setDraftCol(null); setDraftOp(null); }}/>
-            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+            <div className="absolute left-0 top-full z-50 mt-1 w-56 ui-menu p-1">
               {!draftCol ? (
                 <>
                   {/* Searchable + capped: the raw list rendered EVERY column unbounded, running
@@ -3640,7 +3640,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
             {moreOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)}/>
-                <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+                <div className="absolute right-0 top-full z-50 mt-1 w-44 ui-menu p-1">
                   {([
                     ["groupby", Rows3, "Group", groupByCol ? colLabel(groupByCol) : null],
                     ["ask", LogoMark, "Ask", nlpActive ? "on" : null],
@@ -3900,7 +3900,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               {setFieldOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => { setSetFieldOpen(false); setSetFieldCol(null); }}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
+                  <div className="absolute left-0 top-full z-50 mt-1 w-52 ui-menu p-1">
                     {!setFieldCol ? bulkEditableCols.map(col => (
                       <button key={col} onClick={() => setSetFieldCol(col)}
                         className="flex w-full items-center rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors first-letter:uppercase hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
@@ -3937,7 +3937,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
             {listPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-48 ui-menu overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-body text-[var(--text-secondary)]">Add {selected.size} to list</p>
                   </div>
@@ -3979,7 +3979,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
             {assignPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 ui-menu overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-body text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
                     <div className="relative">
@@ -4048,7 +4048,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               {bulkEditField && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+                  <div className="absolute left-0 top-full z-50 mt-1 w-60 ui-menu overflow-hidden">
                     <div className="px-3 py-2 border-b border-[var(--border-soft)] flex items-center gap-2">
                       <p className="text-body text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
                     </div>
