@@ -188,6 +188,57 @@ export function periodKey(at: Date, type: PeriodType, cfg: PeriodConfig): string
  * to include everything" are different instructions to a query planner, and only one of them lets
  * the caller skip the predicate entirely.
  */
+export function shiftPeriods(at: Date, type: PeriodType, cfg: PeriodConfig, offset: number): Date {
+  // Step whole calendar periods by walking the boundaries, rather than subtracting 30 days and
+  // hoping. Month lengths differ, DST shifts the clock, and quarters are not 90 days — walking
+  // gets every one of those right for free, and `offset: -13` from January still lands correctly
+  // in the previous year.
+  let cursor = periodStart(at, type, cfg);
+  for (let i = 0; i < Math.abs(offset); i++) {
+    cursor = offset < 0
+      ? periodStart(new Date(cursor.getTime() - 1000), type, cfg)
+      : periodEnd(cursor, type, cfg);
+  }
+  return cursor;
+}
+
+const TYPE_OF: Partial<Record<Timeframe, PeriodType>> = {
+  WEEK: "WEEKLY", MONTH: "MONTHLY", QUARTER: "QUARTERLY", YEAR: "YEARLY",
+};
+
+/**
+ * A COMPLETED past period, addressed by how many steps back it is.
+ *
+ * `offset: -1` on MONTH is last month IN FULL — start to end, not month-to-date. That distinction
+ * matters: a closed period's window is the whole period, and comparing all of July against three
+ * days of August is the mistake that makes every 1st-of-the-month look like a collapse.
+ *
+ * Returns null for TODAY/ALL_TIME, which have no meaningful "previous" of this kind.
+ */
+export function pastPeriodBounds(timeframe: Timeframe, at: Date, cfg: PeriodConfig, offset: number): Bounds | null {
+  if (offset === 0) return getPeriodBounds(timeframe, at, cfg);
+  const type = TYPE_OF[timeframe];
+  if (!type) return null;
+  const start = shiftPeriods(at, type, cfg, offset);
+  return { start, end: periodEnd(start, type, cfg) };
+}
+
+/** The label for a period at an offset — "July 2026", "Q2 2026", "2025". */
+export function pastPeriodLabel(timeframe: Timeframe, at: Date, cfg: PeriodConfig, offset: number): string {
+  const type = TYPE_OF[timeframe];
+  if (!type) return windowLabel("FLOW", timeframe);
+  const start = shiftPeriods(at, type, cfg, offset);
+  const w = wallClock(start, cfg.timeZone);
+  const MONTHS = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+  switch (type) {
+    case "MONTHLY":   return `${MONTHS[w.month - 1]} ${w.year}`;
+    case "QUARTERLY": return `Q${Math.floor((w.month - 1) / 3) + 1} ${w.year}`;
+    case "YEARLY":    return String(w.year);
+    case "WEEKLY":    return `week of ${MONTHS[w.month - 1]?.slice(0, 3)} ${w.day}, ${w.year}`;
+  }
+}
+
 export function getPeriodBounds(timeframe: Timeframe, at: Date, cfg: PeriodConfig): Bounds | null {
   switch (timeframe) {
     case "ALL_TIME": return null;

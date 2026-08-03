@@ -53,7 +53,8 @@ describe("business-outcomes engine (source-read guards)", () => {
     const t = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/team-oversight.tsx"), "utf8");
     expect(t).not.toContain("PERIOD_TO_DAYS");
     expect(t).toMatch(/function calendarDays/);
-    expect(t).toMatch(/<SalesStrip period=\{period\} \/>/);
+    // Now carries a period OFFSET too, so a closed month can be inspected. Same mount.
+    expect(t).toMatch(/<SalesStrip period=\{period\}[^>]*\/>/);
     expect(t).toMatch(/useOutcomes\(period\)/);
   });
 });
@@ -380,7 +381,8 @@ describe("deferred items closed — calendar-true Today + structured-path shadow
     // the WORKSPACE's (timezone + week start) rather than the browser's, so the window matches the
     // one the period close files.
     expect(t).toContain("since=${encodeURIComponent(oversightRange.start.toISOString())}");
-    expect(t).toContain("useResolvedPeriod(period)");
+    // The offset argument was added 2026-08-03 for stepping back through closed periods.
+    expect(t).toMatch(/useResolvedPeriod\(period(, undefined, periodOffset)?\)/);
   });
   it("tool-use calls mirror with the SAME tools body; shadow compares tool arguments", () => {
     const gw = read("../lib/ai-gateway.ts");

@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import {
-  periodKey, periodBounds, previousPeriod, getPeriodBounds,
+  periodKey, periodBounds, previousPeriod, getPeriodBounds, pastPeriodBounds, pastPeriodLabel,
   type PeriodType, type Timeframe,
 } from "@mondaily/shared/period";
 import { closeDuePeriods, computeMetrics, driftFor, verifyChain, workspacePeriodConfig, PERIOD_TYPES, METRICS_VERSION } from "../lib/period-close";
@@ -51,11 +51,16 @@ router.get("/current", async (c) => {
  * Exposed so the browser stops deriving windows from its own clock and locale. A user in a
  * different timezone from their workspace was, until now, filtering by THEIR midnight.
  */
-router.get("/bounds", zValidator("query", z.object({ timeframe: TIMEFRAME })), async (c) => {
+router.get("/bounds", zValidator("query", z.object({
+  timeframe: TIMEFRAME,
+  // How many whole periods back. 0 = the current, in-progress period; -1 = last month IN FULL.
+  // Bounded so a caller cannot ask the server to walk a million boundaries.
+  offset: z.coerce.number().int().min(-120).max(0).default(0),
+})), async (c) => {
   const cfg = await configFor(c.get("workspaceId"));
-  const timeframe = c.req.valid("query").timeframe;
+  const { timeframe, offset } = c.req.valid("query");
   const now = new Date();
-  const b = getPeriodBounds(timeframe, now, cfg);
+  const b = offset === 0 ? getPeriodBounds(timeframe, now, cfg) : pastPeriodBounds(timeframe, now, cfg, offset);
 
   // The comparison window comes from the SAME authority as the current one. Resolving "this month"
   // on the server and "last month" in the browser would compare a workspace-timezone window
@@ -66,8 +71,10 @@ router.get("/bounds", zValidator("query", z.object({ timeframe: TIMEFRAME })), a
   let previous: { start: string; end: string } | null = null;
   const type = PREV_TYPE[timeframe];
   if (type) {
-    const p = previousPeriod(now, type, cfg);
-    previous = { start: p.start.toISOString(), end: p.end.toISOString() };
+    // One step further back than whatever is being viewed, so a past period compares against ITS
+    // own predecessor rather than always against last month.
+    const p = pastPeriodBounds(timeframe, now, cfg, offset - 1);
+    if (p) previous = { start: p.start.toISOString(), end: p.end.toISOString() };
   } else if (timeframe === "TODAY") {
     const today = getPeriodBounds("TODAY", now, cfg)!;
     const y = getPeriodBounds("TODAY", new Date(today.start.getTime() - 1000), cfg)!;
@@ -76,6 +83,12 @@ router.get("/bounds", zValidator("query", z.object({ timeframe: TIMEFRAME })), a
 
   return c.json({
     timeframe,
+    offset,
+    // What this window IS, named — "July 2026" rather than "last month", so a UI never has to
+    // reconstruct the label from an offset and get it wrong at a year boundary.
+    label: pastPeriodLabel(timeframe, now, cfg, offset),
+    /** A past period is CLOSED: its window is the whole period, not period-to-date. */
+    complete: offset < 0,
     time_zone: cfg.timeZone,
     week_start: cfg.weekStart,
     // null means NO FILTER, which is different from a filter that happens to match everything.

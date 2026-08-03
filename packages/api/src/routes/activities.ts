@@ -162,6 +162,11 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(50000),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
     // Real per-member task rollups (assignee-scoped): open / overdue / completed (+ completed_at for the trend).
+    // Unwindowed ON PURPOSE for the STOCK half (open / overdue: work in hand right now), and the
+    // FLOW half is filtered below by completed_at. Previously the whole query was unwindowed, so
+    // "completed" was an ALL-TIME count sitting in the same row of tiles as windowed metrics —
+    // 36 completed next to 317 records touched this period, with nothing saying they measured
+    // different spans.
     supabase.from("tasks").select("assignee_id, completed, due_date, completed_at").eq("workspace_id", ws).limit(5000),
     // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
     supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(10000),
@@ -201,12 +206,18 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   };
 
   // Per-member task aggregates (all real, current-state).
-  const taskAgg = new Map<string, { open: number; overdue: number; completed: number }>();
+  const taskAgg = new Map<string, { open: number; overdue: number; completed: number; completed_all_time: number }>();
   for (const t of tasks ?? []) {
     const uid = String(t.assignee_id ?? "");
     if (!uid) continue;
-    const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
-    if (t.completed) cur.completed += 1;
+    const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0, completed_all_time: 0 };
+    if (t.completed) {
+      cur.completed_all_time += 1;
+      // FLOW: only completions INSIDE the window. A task finished in March is not work delivered
+      // this month, however true it is that it was finished.
+      const done = Date.parse(String(t.completed_at ?? ""));
+      if (Number.isFinite(done) && done >= Date.parse(sinceIso)) cur.completed += 1;
+    }
     else { cur.open += 1; if (isOverdue(t.due_date)) cur.overdue += 1; }
     taskAgg.set(uid, cur);
   }
@@ -249,7 +260,7 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     // REAL task count for this member (open + completed from the tasks table) — NOT activity-event
     // count. The old activity-based count was capped by the activities limit and never moved when
     // tasks were added; this reflects their actual assigned tasks and updates as work changes.
-    const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0, completed_all_time: 0 };
     const taskCount = taskAggU.open + taskAggU.completed;
 
     // ── Behavioral verdict (single source of truth), derived from REAL activity ──
@@ -284,6 +295,9 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       open_tasks: taskAgg.get(uid)?.open ?? 0,
       overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
       completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+      // Kept alongside, so "delivered this period" and "delivered ever" are both available and a
+      // surface never has to choose one and imply the other.
+      completed_tasks_all_time: taskAgg.get(uid)?.completed_all_time ?? 0,
       messages_sent: msgBy.get(uid) ?? 0,
       decisions_resolved: decBy.get(uid) ?? 0,
       // Real per-member deal tallies + "deals updated" (activity on deal nodes).

@@ -21,6 +21,9 @@ export type Timeframe = "TODAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR" | "ALL_T
 
 interface BoundsResponse {
   timeframe: Timeframe;
+  offset: number;
+  label: string;
+  complete: boolean;
   time_zone: string;
   week_start: number;
   bounds: { start: string; end: string } | null;
@@ -37,6 +40,10 @@ export interface ResolvedPeriod {
   /** Where the window came from. Surfaces can disclose it rather than implying one authority. */
   source: "workspace" | "browser";
   timeZone: string | null;
+  /** The window NAMED — "July 2026". Never reconstructed client-side from an offset. */
+  label: string | null;
+  /** True for a finished period: its window is the WHOLE period, not period-to-date. */
+  complete: boolean;
 }
 
 /**
@@ -50,12 +57,16 @@ export interface ResolvedPeriod {
  * A CUSTOM range stays local: it is a span the user typed, not a calendar period, so the server has
  * nothing to add and a round trip would only add latency.
  */
-export function useResolvedPeriod(period: Period, custom?: CustomRange): ResolvedPeriod {
+export function useResolvedPeriod(period: Period, custom?: CustomRange, offset = 0): ResolvedPeriod {
   const timeframe = period === "custom" ? null : TIMEFRAME_OF[period];
+  // TODAY and ALL_TIME have no meaningful "N periods back", so an offset is ignored rather than
+  // silently producing a window that means nothing.
+  const steppable = timeframe != null && timeframe !== "TODAY" && timeframe !== "ALL_TIME";
+  const off = steppable ? offset : 0;
 
   const q = useQuery<BoundsResponse>({
-    queryKey: ["period-bounds", timeframe],
-    queryFn: () => apiClient.get<BoundsResponse>(`/periods/bounds?timeframe=${timeframe}`),
+    queryKey: ["period-bounds", timeframe, off],
+    queryFn: () => apiClient.get<BoundsResponse>(`/periods/bounds?timeframe=${timeframe}&offset=${off}`),
     enabled: timeframe != null,
     // A calendar window is stable for minutes at a time; re-asking on every mount is pure latency.
     staleTime: 60_000,
@@ -65,7 +76,9 @@ export function useResolvedPeriod(period: Period, custom?: CustomRange): Resolve
   const localPrev = previousRange(period);
 
   if (timeframe == null || !q.data) {
-    return { range: localRange, previous: localPrev, source: "browser", timeZone: null };
+    // A past period CANNOT be computed locally without the workspace calendar, so stepping back
+    // waits for the server rather than showing a browser-derived guess labelled as history.
+    return { range: localRange, previous: localPrev, source: "browser", timeZone: null, label: null, complete: false };
   }
 
   const b = q.data.bounds;
@@ -76,5 +89,7 @@ export function useResolvedPeriod(period: Period, custom?: CustomRange): Resolve
     previous: q.data.previous ? { start: new Date(q.data.previous.start), end: new Date(q.data.previous.end) } : null,
     source: "workspace",
     timeZone: q.data.time_zone,
+    label: q.data.label,
+    complete: q.data.complete,
   };
 }

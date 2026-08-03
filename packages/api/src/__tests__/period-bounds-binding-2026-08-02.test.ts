@@ -69,7 +69,7 @@ describe("it degrades rather than blanking", () => {
     // A reporting page that blanks because a bounds lookup was slow is worse than one showing a
     // window computed a few hours off — and unlike a blank page, the fallback is explainable.
     const src = hook();
-    expect(src).toMatch(/if \(timeframe == null \|\| !q\.data\) \{[\s\S]{0,200}source: "browser"/);
+    expect(src).toMatch(/if \(timeframe == null \|\| !q\.data\) \{[\s\S]{0,600}source: "browser"/);
     expect(src).toMatch(/source: "workspace"/);
   });
 

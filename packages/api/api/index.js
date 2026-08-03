@@ -60964,6 +60964,50 @@ function periodKey2(at2, type, cfg) {
     }
   }
 }
+function shiftPeriods(at2, type, cfg, offset) {
+  let cursor = periodStart(at2, type, cfg);
+  for (let i2 = 0; i2 < Math.abs(offset); i2++) {
+    cursor = offset < 0 ? periodStart(new Date(cursor.getTime() - 1e3), type, cfg) : periodEnd(cursor, type, cfg);
+  }
+  return cursor;
+}
+function pastPeriodBounds(timeframe, at2, cfg, offset) {
+  if (offset === 0) return getPeriodBounds(timeframe, at2, cfg);
+  const type = TYPE_OF[timeframe];
+  if (!type) return null;
+  const start = shiftPeriods(at2, type, cfg, offset);
+  return { start, end: periodEnd(start, type, cfg) };
+}
+function pastPeriodLabel(timeframe, at2, cfg, offset) {
+  const type = TYPE_OF[timeframe];
+  if (!type) return windowLabel("FLOW", timeframe);
+  const start = shiftPeriods(at2, type, cfg, offset);
+  const w2 = wallClock(start, cfg.timeZone);
+  const MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ];
+  switch (type) {
+    case "MONTHLY":
+      return `${MONTHS[w2.month - 1]} ${w2.year}`;
+    case "QUARTERLY":
+      return `Q${Math.floor((w2.month - 1) / 3) + 1} ${w2.year}`;
+    case "YEARLY":
+      return String(w2.year);
+    case "WEEKLY":
+      return `week of ${MONTHS[w2.month - 1]?.slice(0, 3)} ${w2.day}, ${w2.year}`;
+  }
+}
 function getPeriodBounds(timeframe, at2, cfg) {
   switch (timeframe) {
     case "ALL_TIME":
@@ -60982,6 +61026,23 @@ function getPeriodBounds(timeframe, at2, cfg) {
       return { start: periodStart(at2, "QUARTERLY", cfg), end: at2 };
     case "YEAR":
       return { start: periodStart(at2, "YEARLY", cfg), end: at2 };
+  }
+}
+function windowLabel(kind2, timeframe) {
+  if (kind2 === "STOCK") return "as of today";
+  switch (timeframe) {
+    case "TODAY":
+      return "today";
+    case "WEEK":
+      return "this week";
+    case "MONTH":
+      return "this month";
+    case "QUARTER":
+      return "this quarter";
+    case "YEAR":
+      return "this year";
+    case "ALL_TIME":
+      return "all time";
   }
 }
 function periodConfigFrom(settings) {
@@ -61007,12 +61068,18 @@ function elapsedPeriods(since, until, type, cfg) {
   }
   return out;
 }
-var DEFAULT_PERIOD_CONFIG, FORMATTERS;
+var DEFAULT_PERIOD_CONFIG, FORMATTERS, TYPE_OF;
 var init_period = __esm({
   "../shared/src/period.ts"() {
     "use strict";
     DEFAULT_PERIOD_CONFIG = { timeZone: "UTC", weekStart: 0 };
     FORMATTERS = /* @__PURE__ */ new Map();
+    TYPE_OF = {
+      WEEK: "WEEKLY",
+      MONTH: "MONTHLY",
+      QUARTER: "QUARTERLY",
+      YEAR: "YEARLY"
+    };
   }
 });
 
@@ -62001,6 +62068,11 @@ var init_activities = __esm({
         supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(5e4),
         supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
         // Real per-member task rollups (assignee-scoped): open / overdue / completed (+ completed_at for the trend).
+        // Unwindowed ON PURPOSE for the STOCK half (open / overdue: work in hand right now), and the
+        // FLOW half is filtered below by completed_at. Previously the whole query was unwindowed, so
+        // "completed" was an ALL-TIME count sitting in the same row of tiles as windowed metrics —
+        // 36 completed next to 317 records touched this period, with nothing saying they measured
+        // different spans.
         supabase.from("tasks").select("assignee_id, completed, due_date, completed_at").eq("workspace_id", ws).limit(5e3),
         // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
         supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e4),
@@ -62042,9 +62114,12 @@ var init_activities = __esm({
       for (const t3 of tasks2 ?? []) {
         const uid = String(t3.assignee_id ?? "");
         if (!uid) continue;
-        const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
-        if (t3.completed) cur.completed += 1;
-        else {
+        const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0, completed_all_time: 0 };
+        if (t3.completed) {
+          cur.completed_all_time += 1;
+          const done = Date.parse(String(t3.completed_at ?? ""));
+          if (Number.isFinite(done) && done >= Date.parse(sinceIso)) cur.completed += 1;
+        } else {
           cur.open += 1;
           if (isOverdue(t3.due_date)) cur.overdue += 1;
         }
@@ -62081,7 +62156,7 @@ var init_activities = __esm({
         const last = lastAct.get(uid) ?? null;
         const hasSession2 = sessionUsers.has(uid);
         const verifiedPow = powUsers.has(uid);
-        const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+        const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0, completed_all_time: 0 };
         const taskCount = taskAggU.open + taskAggU.completed;
         const complexityDelta = taskCount > 0 ? Math.round(u2.tokens / taskCount) : 0;
         let verdict = "idle";
@@ -62104,6 +62179,9 @@ var init_activities = __esm({
           open_tasks: taskAgg.get(uid)?.open ?? 0,
           overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
           completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+          // Kept alongside, so "delivered this period" and "delivered ever" are both available and a
+          // surface never has to choose one and imply the other.
+          completed_tasks_all_time: taskAgg.get(uid)?.completed_all_time ?? 0,
           messages_sent: msgBy.get(uid) ?? 0,
           decisions_resolved: decBy.get(uid) ?? 0,
           // Real per-member deal tallies + "deals updated" (activity on deal nodes).
@@ -80205,11 +80283,16 @@ router33.get("/current", async (c2) => {
   }));
   return c2.json({ now: now.toISOString(), time_zone: cfg.timeZone, week_start: cfg.weekStart, periods: periods2 });
 });
-router33.get("/bounds", zValidator("query", external_exports.object({ timeframe: TIMEFRAME })), async (c2) => {
+router33.get("/bounds", zValidator("query", external_exports.object({
+  timeframe: TIMEFRAME,
+  // How many whole periods back. 0 = the current, in-progress period; -1 = last month IN FULL.
+  // Bounded so a caller cannot ask the server to walk a million boundaries.
+  offset: external_exports.coerce.number().int().min(-120).max(0).default(0)
+})), async (c2) => {
   const cfg = await configFor(c2.get("workspaceId"));
-  const timeframe = c2.req.valid("query").timeframe;
+  const { timeframe, offset } = c2.req.valid("query");
   const now = /* @__PURE__ */ new Date();
-  const b2 = getPeriodBounds(timeframe, now, cfg);
+  const b2 = offset === 0 ? getPeriodBounds(timeframe, now, cfg) : pastPeriodBounds(timeframe, now, cfg, offset);
   const PREV_TYPE = {
     WEEK: "WEEKLY",
     MONTH: "MONTHLY",
@@ -80219,8 +80302,8 @@ router33.get("/bounds", zValidator("query", external_exports.object({ timeframe:
   let previous = null;
   const type = PREV_TYPE[timeframe];
   if (type) {
-    const p2 = previousPeriod(now, type, cfg);
-    previous = { start: p2.start.toISOString(), end: p2.end.toISOString() };
+    const p2 = pastPeriodBounds(timeframe, now, cfg, offset - 1);
+    if (p2) previous = { start: p2.start.toISOString(), end: p2.end.toISOString() };
   } else if (timeframe === "TODAY") {
     const today = getPeriodBounds("TODAY", now, cfg);
     const y2 = getPeriodBounds("TODAY", new Date(today.start.getTime() - 1e3), cfg);
@@ -80228,6 +80311,12 @@ router33.get("/bounds", zValidator("query", external_exports.object({ timeframe:
   }
   return c2.json({
     timeframe,
+    offset,
+    // What this window IS, named — "July 2026" rather than "last month", so a UI never has to
+    // reconstruct the label from an offset and get it wrong at a year boundary.
+    label: pastPeriodLabel(timeframe, now, cfg, offset),
+    /** A past period is CLOSED: its window is the whole period, not period-to-date. */
+    complete: offset < 0,
     time_zone: cfg.timeZone,
     week_start: cfg.weekStart,
     // null means NO FILTER, which is different from a filter that happens to match everything.

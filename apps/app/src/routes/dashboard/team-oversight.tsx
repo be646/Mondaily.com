@@ -1,7 +1,7 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useEffect} from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer, Target, Plus, Trash2 } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer, Target, Plus, Trash2, ChevronLeft} from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection, ActionMenu } from "../../components/ui/controls";
@@ -362,14 +362,14 @@ interface OutcomesResp {
     deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
   members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number; undated_wins?: number; undated_lost?: number }[];
 }
-function useOutcomes(period: Period) {
+function useOutcomes(period: Period, offset = 0) {
   // Both windows from the WORKSPACE. Resolving the current window on the server and the comparison
   // window in the browser would make every delta wrong by the timezone offset.
-  const { range: r, previous: pr, timeZone } = useResolvedPeriod(period);
+  const { range: r, previous: pr, timeZone, label, complete } = useResolvedPeriod(period, undefined, offset);
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
   if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
   const q = useQuery<OutcomesResp>({ queryKey: ["outcomes", period, r.start.toISOString(), r.end.toISOString()], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
-  return { ...q, range: r, timeZone };
+  return { ...q, range: r, timeZone, label, complete };
 }
 
 /**
@@ -389,12 +389,13 @@ function windowName(period: Period, range: { start: Date }): string {
   }
 }
 const fmtMoney0 = (v: number, cur: string) => `${cur} ${Math.round(v).toLocaleString()}`;
-function SalesStrip({ period }: { period: Period }) {
-  const q = useOutcomes(period);
+function SalesStrip({ period, offset }: { period: Period; offset: number }) {
+  const q = useOutcomes(period, offset);
   const t = q.data?.team; if (!t) return null;
   const cur = q.data!.base_currency;
   const d = t.deltas?.value_won;
-  const win = windowName(period, q.range);
+  // The server names the window; windowName() is only the fallback while it is in flight.
+  const win = q.label ?? windowName(period, q.range);
   const undated = t.undated_wins ?? 0;
   return (
     <div className="mb-6">
@@ -770,7 +771,12 @@ export function TeamOversightPage() {
   const selectedId = params.get("member");
   // Shared reporting-period lens (same control as Finance) — every metric + trend recomputes.
   const [period, setPeriod] = usePeriod("mondaily_oversight_period");
-  const { range: oversightRange } = useResolvedPeriod(period);
+  // How many whole periods back we are looking. 0 is the live, in-progress period; -1 is the
+  // previous one IN FULL. Reset whenever the period type changes, because "3 months back" and
+  // "3 quarters back" are different places and carrying the number across is a silent jump.
+  const [periodOffset, setPeriodOffset] = useState(0);
+  useEffect(() => { setPeriodOffset(0); }, [period]);
+  const { range: oversightRange, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const days = period === "all" ? 365 : calendarDays(oversightRange.start);
   const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
     queryKey: ["oversight-matrix", days, period, oversightRange.start.toISOString()],
@@ -828,7 +834,35 @@ export function TeamOversightPage() {
         title="Team Intelligence"
         subtitle="Signal engine — real activity only, never invented."
         status={[{ label: "recorded activity only", kind: "complete" }]}
-        primaryAction={<PeriodSelector value={period} onChange={setPeriod} />}
+        primaryAction={
+          <div className="flex items-center gap-1.5">
+            <PeriodSelector value={period} onChange={setPeriod} />
+            {/* Stepping back through completed periods. Disabled for Today/All, which have no
+                meaningful "N back", and forward stops at 0 — there is no data from the future. */}
+            {period !== "today" && period !== "all" && period !== "custom" && (
+              <div className="flex items-center gap-1 rounded-sm border px-1 py-0.5" style={{ borderColor: "var(--border-soft)" }}>
+                <button onClick={() => setPeriodOffset(o => Math.max(-120, o - 1))}
+                  aria-label="Previous period" title="Previous period"
+                  className="btn-icon"><ChevronLeft size={13}/></button>
+                <span className="min-w-[92px] text-center font-mono text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>
+                  {periodName ?? periodLabel(period)}
+                </span>
+                <button onClick={() => setPeriodOffset(o => Math.min(0, o + 1))} disabled={periodOffset >= 0}
+                  aria-label="Next period" title="Next period"
+                  className="btn-icon disabled:opacity-30"><ChevronRight size={13}/></button>
+                {periodOffset < 0 && (
+                  <button onClick={() => setPeriodOffset(0)} className="ml-0.5 text-[10px]" style={{ color: "var(--section-accent)" }}>now</button>
+                )}
+              </div>
+            )}
+            {periodComplete && (
+              // A closed period is shown IN FULL, not period-to-date, and says so — otherwise a
+              // reader cannot tell whether a smaller number means less work or less elapsed time.
+              <span className="rounded-full border px-1.5 py-px text-[9.5px]"
+                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>closed period</span>
+            )}
+          </div>
+        }
       />
 
       {/* ── ZONE 1 · Team Health hero — one synthesized read + inputs + evaluation distribution ── */}
@@ -846,7 +880,7 @@ export function TeamOversightPage() {
       {data?.trends && <OverviewTiles trends={data.trends} periodLabel={`${days}d`} />}
 
       {/* ── Sales — the business-outcomes layer (deal VALUES, from /activities/outcomes) ── */}
-      {operators.length > 0 && <SalesStrip period={period} />}
+      {operators.length > 0 && <SalesStrip period={period} offset={periodOffset} />}
 
       {/* ── ZONE 2 · Velocity (real cycle times) + workload balance + goals ── */}
       {advancedQ.data && operators.length > 0 && <VelocityStrip adv={advancedQ.data} />}
