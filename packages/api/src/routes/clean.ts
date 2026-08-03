@@ -6,6 +6,7 @@ import { supabase } from "@mondaily/db/client";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
 import { requireAdminRole } from "../middleware/rbac";
 import { flattenEnrichment, ALLOWED_ENRICHMENT_KEYS } from "../lib/enrichment-fields";
+import { proposeFieldRecovery, applyFieldRecovery, renderRecoveryTable } from "../lib/recover-field";
 
 /**
  * DATA CLEANING — overlap analysis, and the two repairs it justified.
@@ -736,6 +737,40 @@ router.post("/dedupe-records", requireAdminRole, zValidator("json", z.object({
     blocked,
     recovery: "The deleted payloads are in the audit activity for this operation (diff.deleted_records).",
   });
+});
+
+/**
+ * POST /clean/recover-field — restore a column a bulk edit overwrote.
+ *
+ * Admin-gated and DRY-RUN BY DEFAULT. Every write files an activity row carrying a full snapshot of
+ * `data`, so the values a bulk "Set field" replaced are still on disk. This reads back through them.
+ *
+ * It proposes a restore ONLY where the overwrite was part of a burst — several records taking the
+ * same value within seconds. A lone edit is somebody choosing, and reverting that would make this
+ * tool the thing destroying data. Bursts are detected from the data rather than a hardcoded date,
+ * so it works for the next accident too.
+ */
+router.post("/recover-field", requireAdminRole, zValidator("json", z.object({
+  object_type: z.string().min(1).max(64),
+  field: z.string().min(1).max(64),
+  dry_run: z.boolean().default(true),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { object_type, field, dry_run } = c.req.valid("json");
+
+  const rows = await proposeFieldRecovery(ws, object_type, field);
+  const recoverable = rows.filter(r => r.proposed);
+
+  if (dry_run) {
+    return c.json({
+      dry_run: true, recoveries: rows, table: renderRecoveryTable(rows),
+      summary: { examined: rows.length, recoverable: recoverable.length, left_alone: rows.length - recoverable.length },
+      note: "Nothing was written. Only values replaced by a BULK overwrite are proposed; a lone edit is treated as a real choice and left alone.",
+    });
+  }
+
+  const result = await applyFieldRecovery(ws, rows);
+  return c.json({ dry_run: false, ...result });
 });
 
 export { router as cleanRouter };
