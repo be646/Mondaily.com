@@ -12,6 +12,7 @@ import { runMeetingAgent } from "../jobs/meeting-agent";
 import { normalizeStep } from "../lib/agent-logger";
 import { inngest } from "../lib/inngest";
 import { isOverdue } from "@mondaily/shared/dates";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -272,7 +273,7 @@ router.get("/", async (c) => {
 
   const deals = nodes.filter(n => n.object_type.toLowerCase().includes("deal"));
   const staleDeals = deals.filter(d => {
-    const stage = String((d.data as Record<string, unknown>)?.deal_stage ?? "");
+    const stage = dealStageOf(d.data as Record<string, unknown>);
     if (stage === "Closed Won" || stage === "Closed Lost") return false;
     return now - new Date(d.updated_at).getTime() > FOURTEEN_DAYS;
   });

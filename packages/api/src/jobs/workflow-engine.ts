@@ -4,6 +4,7 @@ import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { createNotification } from "../lib/notify";
 import { maybeAutoApprove } from "../lib/autonomy";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 /**
  * Workflow Agent execution engine.
@@ -76,7 +77,7 @@ async function candidateRecords(workspaceId: string, trigger: WorkflowBlock, rec
 function triggerKeyFor(trigger: WorkflowBlock, record: { data: Record<string, unknown> }): string {
   const t = `${trigger.type}`.toLowerCase();
   if (t.includes("stage") || t.includes("deal")) {
-    const stage = String(record.data.stage ?? record.data.status ?? record.data.deal_stage ?? "");
+    const stage = dealStageOf(record.data);
     return `stage:${stage}`;
   }
   return trigger.type || "fired";

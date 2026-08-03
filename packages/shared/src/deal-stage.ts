@@ -31,7 +31,34 @@ export const STAGE_LOST = "Closed Lost";
  */
 export function dealStageOf(d: Record<string, unknown> | null | undefined): string {
   const data = d ?? {};
-  return String(data.deal_stage ?? data.stage ?? data.status ?? "");
+  return String(data.deal_stage ?? data.stage ?? "");
+}
+
+/**
+ * `status` is deliberately NOT in that chain.
+ *
+ * Measured in this workspace, `status` holds "Not Started / In Progress / Completed / On Hold" —
+ * a task-progress vocabulary, not a pipeline. Treating it as a stage was actively wrong in two
+ * ways: "In Progress" collides with a real pipeline stage, so an unstaged deal resolved to a
+ * plausible-looking stage it never had; and the won-revenue predicate matches /complete/, so four
+ * deals whose `status` merely read "Completed" were counted as WON MONEY.
+ *
+ * Similar names, distinct populations — the same lesson as the schema-truth pass.
+ */
+export function progressStatusOf(d: Record<string, unknown> | null | undefined): string {
+  return String((d ?? {}).status ?? "");
+}
+
+/**
+ * Is this deal genuinely open?
+ *
+ * NOT "does its stage fail to say closed". An unstaged deal ("") passed that test and was counted
+ * into open pipeline value — the same inflation that `?? "Lead"` caused, surviving the removal of
+ * the default. A deal is open when it sits at a real pipeline stage; anything else is disclosed
+ * rather than summed.
+ */
+export function isOpenStage(s: string): boolean {
+  return stageIndex(s) >= 0 && !isWonStage(s) && !isLostStage(s);
 }
 
 /**

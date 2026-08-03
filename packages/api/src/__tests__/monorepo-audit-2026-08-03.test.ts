@@ -47,10 +47,11 @@ describe("close-date stamping has exactly ONE implementation", () => {
     expect(s.won_at).toBeUndefined();
   });
 
-  it("reads the stage from every spelling the data uses", () => {
+  it("reads the stage from every spelling the data actually uses", () => {
     expect(dealStageOf({ deal_stage: "Closed Won" })).toBe("Closed Won");
     expect(dealStageOf({ stage: "Lead" })).toBe("Lead");
-    expect(dealStageOf({ status: "Qualified" })).toBe("Qualified");
+    // `status` is excluded on measured evidence: it carries task progress, not a pipeline stage.
+    expect(dealStageOf({ status: "Qualified" })).toBe("");
   });
 
   it("BOTH writers call it — the REST path and the workflow engine", () => {

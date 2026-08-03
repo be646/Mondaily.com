@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { dealStageOf, dealStageKey, stageIndex } from "@mondaily/shared/deal-stage";
+import { dealStageOf, dealStageKey, stageIndex, isOpenStage } from "@mondaily/shared/deal-stage";
 
 const root = join(__dirname, "../../../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -15,10 +15,22 @@ const read = (p: string) => readFileSync(join(root, p), "utf8");
  * fields with DIFFERENT values, so the chains genuinely disagreed about which deals were won.
  */
 describe("deal stage is resolved in one place", () => {
-  it("prefers deal_stage, then stage, then status", () => {
+  it("prefers deal_stage, then stage — and never reads `status`", () => {
     expect(dealStageOf({ deal_stage: "Negotiation", stage: "Lead" })).toBe("Negotiation");
     expect(dealStageOf({ stage: "Proposal" })).toBe("Proposal");
-    expect(dealStageOf({ status: "Qualified" })).toBe("Qualified");
+    // Measured in prod: `status` holds Not Started / In Progress / Completed / On Hold. Two ways
+    // that broke things — "In Progress" collides with a real pipeline stage, and the won predicate
+    // matches /complete/, so "Completed" was counted as won money.
+    expect(dealStageOf({ status: "Qualified" })).toBe("");
+    expect(dealStageOf({ status: "Completed" })).toBe("");
+  });
+
+  it("an unstaged deal is not open — it is excluded and disclosed", () => {
+    expect(isOpenStage("")).toBe(false);
+    expect(isOpenStage("Negotiation")).toBe(true);
+    expect(isOpenStage("Closed Won")).toBe(false);
+    // "On Hold" is not a pipeline step in this workspace's ladder, so it is not summed as open.
+    expect(isOpenStage("On Hold")).toBe(false);
   });
 
   it("returns empty for an unstaged deal rather than inventing one", () => {

@@ -1,5 +1,6 @@
 import { convert } from "./currency";
 import { parseNumeric } from "@mondaily/shared/numbers";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 /**
  * Pure, deterministic record aggregation — the math behind POST /records/aggregate. No I/O, no
@@ -88,7 +89,7 @@ export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket 
   // (deal_stage-only rows folded into "stage" while the client filed them under "—").
   if (exact && groupBy !== "date") return String(aggValueOf(row, groupBy) ?? "—") || "—";
   if (groupBy === "status") return String(d.status ?? "—") || "—";
-  if (groupBy === "stage") return String(d.stage ?? d.deal_stage ?? d.deal_status ?? "—") || "—";
+  if (groupBy === "stage") return (dealStageOf(d) || "—");
   if (groupBy === "owner") return String(d.owner ?? d.deal_owner ?? d.assigned_to ?? d.assignee ?? "—") || "—";
   if (groupBy === "date") {
     const iso = (dateField === "updated_at" ? row.updated_at : row.created_at) ?? "";

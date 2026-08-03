@@ -18,10 +18,14 @@ const JULY: { start: number; end: number } = { start: Date.parse("2026-07-01T00:
  * here is a bug on every money surface at once, so the tests are behavioral and adversarial.
  */
 describe("field access matches production's split vocabulary", () => {
-  it("reads stage from deal_stage, then stage, then status — measured: both exist in prod", () => {
+  it("reads stage from deal_stage then stage — `status` is a DIFFERENT field, measured in prod", () => {
     expect(dealStage({ deal_stage: "Closed Won", stage: "Lead" })).toBe("Closed Won");
     expect(dealStage({ stage: "Negotiation" })).toBe("Negotiation");
-    expect(dealStage({ status: "Proposal" })).toBe("Proposal");
+    // This assertion used to expect `status: "Proposal"` to resolve as a stage. Measuring the
+    // workspace showed `status` NEVER holds pipeline vocabulary — it holds task progress
+    // ("Not Started" 4, "In Progress" 22, "Completed" 4, "On Hold" 1). Reading it as a stage made
+    // the won-revenue predicate (which matches /complete/) count four "Completed" rows as WON.
+    expect(dealStage({ status: "Completed" })).toBe("");
     expect(dealStage(null)).toBe("");
   });
 

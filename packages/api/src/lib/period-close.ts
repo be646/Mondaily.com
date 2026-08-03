@@ -7,6 +7,7 @@ import {
 import { isCollected, isOutstanding, moneyEventDate } from "@mondaily/shared/finance";
 import { readMoney } from "@mondaily/shared/money";
 import { makeBaseConverter } from "./currency-store";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 /**
  * The period close.
@@ -193,7 +194,7 @@ export async function computeMetrics(workspaceId: string, bounds: Bounds): Promi
   let dealsWon = 0;
   for (const row of deals.data ?? []) {
     const d = (row.data ?? {}) as Record<string, unknown>;
-    const stage = String(d.deal_stage ?? d.stage ?? "").toLowerCase().replace(/[\s_-]+/g, " ");
+    const stage = dealStageOf(d).toLowerCase().replace(/[\s_-]+/g, " ");
     if (stage !== "closed won" && stage !== "won") continue;
     // `won_at` ONLY. This line used to fall back to the row's updated_at, which is the same bug the
     // money model removed — and it means every snapshot filed before 2026-08-03 counted the 9

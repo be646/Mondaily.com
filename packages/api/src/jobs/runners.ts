@@ -11,6 +11,7 @@ import { runMeetingAgent } from "./meeting-agent";
 import { runDailyBrief } from "./daily-brief";
 import { overdueCutoffISO } from "@mondaily/shared/dates";
 import { runPendingPlanReminders } from "./pending-plan-reminders";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -814,7 +815,7 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         const signals: Record<string, unknown> = {};
         let score = 30;
 
-        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
+        const stage = dealStageOf(d);
         const intent = stageIntent(stage);
         signals.stage = stage || null;
         signals.stage_intent = intent;
@@ -956,7 +957,7 @@ export async function runPipelineHealth(workspaceId?: string): Promise<{ scored:
       const open = (allDeals ?? []).filter((n) => {
         if (!isDealType(String(n.object_type))) return false;
         const d = (n.data ?? {}) as Record<string, unknown>;
-        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "").toLowerCase();
+        const stage = dealStageOf(d).toLowerCase();
         return !["won", "lost", "closed"].some((s) => stage.includes(s));
       });
       if (!open.length) { await completeJob(jobId, { scored: 0, at_risk: 0, summary: "No open deals" }, [step("Scanned 0 open deal(s)"), step("Nothing to synthesize", { status: "info" })]); continue; }
@@ -970,7 +971,7 @@ export async function runPipelineHealth(workspaceId?: string): Promise<{ scored:
         const value = numericValue(d.deal_value ?? d.value ?? d.amount ?? d.arr);
         const scored = typeof deal.lead_score === "number";
         const momentum = scored ? clampScore(deal.lead_score as number) : 50;
-        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
+        const stage = dealStageOf(d);
         const daysIdle = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
         // Risk-adjusted (weighted) contribution to the forecast.
         const weighted = value != null ? Math.round(value * (momentum / 100)) : null;

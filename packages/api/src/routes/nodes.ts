@@ -9,12 +9,14 @@ import { withStageStamps } from "../lib/stage-stamps";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
 import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
-/** Deal stage lives in data.deal_stage (fallbacks: stage, status). */
-function dealStageOf(data: unknown): string {
-  const d = (data ?? {}) as Record<string, unknown>;
-  return String(d.deal_stage ?? d.stage ?? d.status ?? "").trim();
-}
+/** Deal stage lives in data.deal_stage, falling back to `stage`. `status` is a DIFFERENT field
+ *  (task progress: Not Started/In Progress/Completed) and is deliberately excluded — it was
+ *  letting "Completed" read as a won deal. */
+const dealStageOfRaw = (data: unknown): string =>
+  dealStageOf((data ?? {}) as Record<string, unknown>).trim();
+
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -224,8 +226,8 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   // Deal stage change → real notification, so the bell + "what changed" pick it up.
   try {
     const isDeal = String(node.object_type ?? "").toLowerCase().includes("deal");
-    const oldStage = dealStageOf(prev?.data);
-    const newStage = dealStageOf(node.data);
+    const oldStage = dealStageOfRaw(prev?.data);
+    const newStage = dealStageOfRaw(node.data);
     if (isDeal && newStage && oldStage !== newStage) {
       const d = (node.data ?? {}) as Record<string, unknown>;
       const name = String(d.name ?? d.title ?? "A deal");

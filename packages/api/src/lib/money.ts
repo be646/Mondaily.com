@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { isOutstanding } from "@mondaily/shared/finance";
 import { periodStart, previousPeriod, type PeriodConfig } from "@mondaily/shared/period";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 /**
  * THE money model — the single place "closed won", "pipeline created", "cash collected" and
@@ -83,7 +84,7 @@ export async function pagedNodes(ws: string, match: { eq?: string; ilike?: strin
 
 // ── Deals ────────────────────────────────────────────────────────────────────────────────────────
 export const dealStage = (d: Record<string, unknown> | null): string =>
-  String((d ?? {}).deal_stage ?? (d ?? {}).stage ?? (d ?? {}).status ?? "").trim();
+  dealStageOf(d).trim();
 export const dealValue = (d: Record<string, unknown> | null): number =>
   num((d ?? {}).deal_value ?? (d ?? {}).value ?? (d ?? {}).amount);
 export const dealOwner = (d: Record<string, unknown> | null): string =>

@@ -11,7 +11,7 @@ import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, 
 import { useResolvedPeriod } from "../../lib/period-bounds";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import { isOutstanding } from "@mondaily/shared/finance";
-import { dealStageOf } from "@mondaily/shared/deal-stage";
+import { dealStageOf, isOpenStage, isWonStage } from "@mondaily/shared/deal-stage";
 
 interface Invoice { id: string; total: number; currency: string; status: string; paid_at?: string | null; created_at: string }
 interface CreditNote { amount_cents: number; currency: string; status: string; updated_at?: string; created_at?: string }
@@ -23,8 +23,9 @@ const num = (v: unknown): number => {
   const n = parseFloat(String(v ?? "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
-const isWon = (s: string) => /won|closed won|complete/i.test(s);
-const isOpenStage = (s: string) => !/won|lost|closed/i.test(s);
+// /complete/ stays out: `status` carries "Completed" as task progress, and it used to reach this
+// predicate through the stage fallback chain — four deals were counted as won money on that basis.
+const isWon = (s: string) => isWonStage(s);
 
 function Delta({ pct, goodUp = true }: { pct: number | null; goodUp?: boolean }) {
   if (pct == null) return null;
@@ -105,6 +106,9 @@ export function InsightsPage() {
   // `deal_stage` alone, missed the wins stored under `stage`. Same fact, two chains, two answers.
   const pipelineSum = sumInDisplay(deals.filter(d => isOpenStage(dealStageOf(d.data))).map(deal$));
   const pipelineValue = pipelineSum.value;
+  // Counted OUT rather than counted in. A deal with no stage is not evidence of an open deal, and
+  // it used to pass the old "not closed" test and inflate this figure.
+  const unstagedDeals = deals.filter(d => !dealStageOf(d.data)).length;
   const wonSum = (r: DateRange) => sumInDisplay(deals.filter(d => isWon(dealStageOf(d.data)) && inRange(d.updated_at, r)).map(deal$));
   const wonIn = (r: DateRange) => wonSum(r).value;
   const newDealsIn = (r: DateRange) => deals.filter(d => inRange(d.created_at, r)).length;
@@ -162,7 +166,7 @@ export function InsightsPage() {
           {/* Pipeline + agents */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Pipeline &amp; agents · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={`${approx(pipelineSum.missing)}${cur(pipelineValue)}`} sub={`open deals · as of today${pipelineSum.missing > 0 ? ` · ${pipelineSum.missing} unconverted` : ""}`} onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={`${approx(pipelineSum.missing)}${cur(pipelineValue)}`} sub={`open deals · as of today${pipelineSum.missing > 0 ? ` · ${pipelineSum.missing} unconverted` : ""}${unstagedDeals > 0 ? ` · ${unstagedDeals} unstaged excluded` : ""}`} onClick={() => navigate("/pipeline")} />
             <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={`${approx(wonSum(range).missing)}${cur(dealsWon)}`} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
             {aiCredits != null ? (
               <KpiCard icon={Sparkles} tone="var(--section-accent)" label="AI credits used" value={aiCredits.toLocaleString()} sub={`${activeMembers ?? "—"} members · ${scope}`} onClick={() => navigate("/team/oversight")} />
