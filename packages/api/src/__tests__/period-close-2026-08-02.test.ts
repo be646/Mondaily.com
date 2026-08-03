@@ -248,3 +248,21 @@ describe("the timezone is read from where it actually lives", () => {
     expect(cron).toMatch(/\.select\("id, settings, timezone"\)/);
   });
 });
+
+describe("the workspace timezone picker actually saves", () => {
+  it("writes the COLUMN, which is what the read prefers", () => {
+    // Pre-existing and invisible: the PATCH wrote settings.timezone while the GET reads
+    // `data.timezone ?? settings.timezone`. The column already held a non-null 'UTC', so it always
+    // won, the saved value was never surfaced, and the endpoint still answered {ok:true}. Verified
+    // live before fixing: PATCH Europe/Warsaw → 200 → GET still UTC.
+    const src = read("packages/api/src/routes/app-data.ts");
+    expect(src).toMatch(/if \(body\.timezone !== undefined\) update\.timezone = body\.timezone;/);
+  });
+
+  it("still mirrors into settings, so a null column has a fallback", () => {
+    const src = read("packages/api/src/routes/app-data.ts");
+    expect(src).toMatch(/\.\.\.\(body\.timezone !== undefined \? \{ timezone: body\.timezone \} : \{\}\)/);
+    // And the read's precedence is unchanged, so the mirror can never outrank the column.
+    expect(src).toMatch(/\(data as Record<string, unknown> \| null\)\?\.timezone \?\? settings\.timezone \?\? "UTC"/);
+  });
+});

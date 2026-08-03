@@ -491,6 +491,12 @@ router.patch("/settings/workspace", async (c) => {
     },
   };
   if (body.name !== undefined) update.name = body.name;
+  // The COLUMN, because that is what the read prefers (`data.timezone ?? settings.timezone`).
+  // Writing only settings.timezone meant the picker returned {ok:true} and changed nothing: the
+  // column already held a non-null 'UTC', so it always won and the saved value was never surfaced.
+  // The settings key above is kept in sync purely as a fallback for the column being null; the
+  // precedence is unambiguous, so this is one value mirrored, not two sources of truth.
+  if (body.timezone !== undefined) update.timezone = body.timezone;
 
   // Slug: normalize, then enforce global uniqueness across tenants before committing.
   if (body.slug !== undefined) {
