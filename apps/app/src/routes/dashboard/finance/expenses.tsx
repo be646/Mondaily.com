@@ -18,6 +18,7 @@ import {
   CheckCircle2, XCircle, Clock, Trash2,
 } from "lucide-react";
 import { MoneyCell } from "../../../components/finance/money-cell";
+import { DateField } from "@/components/ui/date-picker";
 
 interface Expense {
   id: string;
@@ -155,8 +156,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             </div>
             <div>
               <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Date</label>
-              <input value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                type="date" className="key-input w-full text-sm"/>
+              <DateField value={form.date} onChange={v => setForm(f => ({ ...f, date: v }))} className="w-full"/>
             </div>
             <div className="col-span-2">
               <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Vendor (optional)</label>

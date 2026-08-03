@@ -29,6 +29,7 @@ import { AIInspector } from "../ai/ai-inspector";
 import { GraphContextButton } from "../graph/graph-context-drawer";
 import { dealValueOf, dealValueKey, dealOwnerOf, dealOwnerKey } from "@mondaily/shared/deal-fields";
 import { PIPE_STAGES, dealStageOf, dealStageKey, isWonStage, isLostStage, stageIndex, STAGE_WON, STAGE_LOST } from "@mondaily/shared/deal-stage";
+import { DateField } from "../ui/date-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1325,8 +1326,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[10px] text-[var(--text-faint)] mb-1">Date & time</p>
-              <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]"/>
+              <DateField value={date} onChange={setDate} withTime ariaLabel="Date and time" placeholder="Pick date & time" className="w-full"/>
             </div>
             <div>
               <p className="text-[10px] text-[var(--text-faint)] mb-1">Outcome</p>
@@ -1565,12 +1565,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               </div>
               <div>
                 <label className="text-[10px] text-[var(--text-faint)] mb-1 block">Due date</label>
-                <input
-                  type="date"
-                  value={newInvDueDate}
-                  onChange={e => setNewInvDueDate(e.target.value)}
-                  className="key-input w-full text-[12px]"
-                />
+                <DateField value={newInvDueDate} onChange={setNewInvDueDate} ariaLabel="Due date" className="w-full"/>
               </div>
             </div>
             <div className="flex justify-end gap-2">

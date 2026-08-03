@@ -875,10 +875,13 @@ describe("dashboard/calendar read-only 12px empty/meta uses text-body (Pass 8H)"
     expect(C).not.toMatch(/<button[^>]*\btext-body\b/);
     expect(C).not.toMatch(/<input[^>]*\btext-body\b/);
   });
-  it("deferred text-[12px] remain — event times/title, drawer input, Cancel/Create buttons", () => {
+  it("deferred text-[12px] remain — event times/title, Cancel/Create buttons (drawer input resolved)", () => {
     expect(C).toMatch(/w-14 shrink-0 text-\[12px\] tabular-nums/);                       // 284 event time
     expect(C).toMatch(/truncate text-\[12px\]" style=\{\{ color: "var\(--text-primary\)" \}\}>\{s\.title\}/); // 1046 event-list title
-    expect(C).toMatch(/px-2 py-1 text-\[12px\] outline-none/);                           // 1205 drawer input
+    // RESOLVED 2026-08-03: this deferred item was the repeat-until <input type="date">, which the
+    // browser painted with its own calendar. It is now a DateField, so the debt it tracked is gone
+    // rather than deferred — the assertion is inverted to keep the native input from coming back.
+    expect(C).not.toMatch(/type="date"/);
     expect(C).toMatch(/btn-secondary text-\[12px\]">\{t\("common\.cancel"\)/);           // Cancel button
   });
   it("8B/8D eyebrows still text-caption (15) + 8F items still text-label + mutations intact", () => {

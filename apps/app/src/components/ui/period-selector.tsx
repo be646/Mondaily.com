@@ -1,4 +1,5 @@
 import { PERIODS, type Period, type CustomRange } from "../../lib/period";
+import { DateField } from "./date-picker";
 
 /**
  * PeriodSelector — the single shared reporting-period control (Today/Week/Month/Quarter/Year/All
@@ -39,13 +40,11 @@ export function PeriodSelector({ value, onChange, custom, onCustom, className = 
       </div>
       {value === "custom" && onCustom && (
         <div className="flex items-center gap-1.5">
-          <input type="date" value={custom?.start ?? ""} onChange={e => onCustom({ ...custom, start: e.target.value })}
-            aria-label="From date"
-            className="key-input h-8 px-2 text-[11.5px] [color-scheme:dark]"/>
+          <DateField value={custom?.start ?? ""} onChange={v => onCustom({ ...custom, start: v })}
+            ariaLabel="From date" placeholder="From" className="!h-8 !text-[11.5px]"/>
           <span className="text-[11px] text-[var(--text-secondary)]">→</span>
-          <input type="date" value={custom?.end ?? ""} onChange={e => onCustom({ ...custom, end: e.target.value })}
-            aria-label="To date"
-            className="key-input h-8 px-2 text-[11.5px] [color-scheme:dark]"/>
+          <DateField value={custom?.end ?? ""} onChange={v => onCustom({ ...custom, end: v })}
+            ariaLabel="To date" placeholder="To" className="!h-8 !text-[11.5px]"/>
         </div>
       )}
     </div>

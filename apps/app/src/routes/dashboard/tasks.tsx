@@ -15,6 +15,7 @@ import { SegmentedControl } from "../../components/ui/segmented";
 import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { useLanguage } from "../../hooks/useLanguage";
 import { localStartOfTodayISO, isTaskOverdue } from "@mondaily/shared/dates";
+import { DateField } from "@/components/ui/date-picker";
 
 
 /** <input type="datetime-local"> reads/writes LOCAL wall-clock time, but due_date is stored as
@@ -123,8 +124,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && title.trim() && !create.isPending) create.mutate(); }}
           placeholder="Task title…" className={INPUT}/>
-        <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
-          className={`${INPUT} dark:[color-scheme:dark]`}/>
+        <DateField value={dueDate} onChange={setDueDate} withTime placeholder="Due date" ariaLabel="Due date"/>
         <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
           options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
         <div className="grid grid-cols-2 gap-3">
@@ -170,7 +170,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
     <ModalShell title="Edit Task" onClose={onClose}>
       <div className="space-y-3">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={INPUT}/>
-        <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} className={`${INPUT} dark:[color-scheme:dark]`}/>
+        <DateField value={dueDate} onChange={setDueDate} withTime placeholder="Due date" ariaLabel="Due date"/>
         <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
           options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
         <div className="grid grid-cols-2 gap-3">

@@ -12,6 +12,7 @@ import {
   Plus, ReceiptText, Clock, CheckCircle2, XCircle, Send, FileOutput,
 } from "lucide-react";
 import { MoneyCell } from "../../../components/finance/money-cell";
+import { DateField } from "@/components/ui/date-picker";
 
 type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
 
@@ -147,8 +148,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
             </div>
             <div className="col-span-2">
               <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Expires</label>
-              <input value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-                type="date" className="key-input w-full text-sm"/>
+              <DateField value={form.expires_at} onChange={v => setForm(f => ({ ...f, expires_at: v }))} className="w-full"/>
             </div>
             <div className="col-span-2">
               <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>

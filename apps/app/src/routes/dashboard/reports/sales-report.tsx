@@ -15,6 +15,7 @@ import { FieldSelect, FilterButton } from "../../../components/ui/controls";
 import { SegmentedControl } from "../../../components/ui/segmented";
 import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
 import { useRecordAggregate, type AggDateFilter, type AggFilter } from "../../../hooks/useRecordAggregate";
+import { DateField } from "@/components/ui/date-picker";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -1451,11 +1452,9 @@ export function SalesReportPage() {
           <div className="mb-4 flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 print:hidden">
             <span className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
-              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
+              <DateField value={customStart} onChange={setCustomStart} ariaLabel="From date" placeholder="From" className="!h-7 !text-xs"/>
               <span className="text-xs text-[var(--text-secondary)]">→</span>
-              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
+              <DateField value={customEnd} onChange={setCustomEnd} ariaLabel="To date" placeholder="To" className="!h-7 !text-xs"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-[var(--text-secondary)]">

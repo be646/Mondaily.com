@@ -9,6 +9,7 @@ import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleto
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { DateField } from "@/components/ui/date-picker";
 
 /**
  * Mondaily Smart Calendar — an AI-native meeting command center (native + workspace-scoped). A Today
@@ -1145,8 +1146,8 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
         <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
           <input autoFocus className={field} style={style} placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<input type="datetime-local" className={`${field} dark:[color-scheme:dark]`} style={style} value={start} onChange={e => setStart(e.target.value)} /></label>
-            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.ends")}<input type="datetime-local" className={`${field} dark:[color-scheme:dark]`} style={style} value={end} onChange={e => setEnd(e.target.value)} /></label>
+            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<DateField withTime value={start} onChange={setStart} ariaLabel="Starts" className="mt-1"/></label>
+            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.ends")}<DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" className="mt-1"/></label>
           </div>
           <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
           <div>
@@ -1206,8 +1207,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
             {repeat !== "none" && (
               <label className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
                 {t("cal.repeat_until")}
-                <input type="date" value={repeatUntil} onChange={e => setRepeatUntil(e.target.value)}
-                  className="rounded-sm border bg-transparent px-2 py-1 text-[12px] outline-none dark:[color-scheme:dark]" style={style} />
+                <DateField value={repeatUntil} onChange={setRepeatUntil} ariaLabel="Repeat until" placeholder="No end" className="!h-7 !text-[12px]"/>
               </label>
             )}
           </div>

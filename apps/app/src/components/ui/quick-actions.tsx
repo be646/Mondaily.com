@@ -4,6 +4,7 @@ import { Users, CheckSquare, FileText, Building2, TrendingUp, ArrowLeft } from "
 import { apiClient } from "../../lib/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "./controls";
+import { DateField } from "./date-picker";
 
 type ActionType = "create_task" | "create_note" | "create_contact" | "create_company" | "create_deal";
 
@@ -60,8 +61,7 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
               { value: "high", label: "High" },
               { value: "urgent", label: "Urgent" },
             ]} />
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            className={`${selectCls} flex-1 dark:[color-scheme:dark]`}/>
+          <DateField value={dueDate} onChange={setDueDate} placeholder="Due date" ariaLabel="Due date" className="flex-1"/>
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={onBack} className={btnSecondary}>Back</button>

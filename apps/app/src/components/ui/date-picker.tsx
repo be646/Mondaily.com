@@ -92,7 +92,11 @@ export function DatePicker({
   const grid = monthGrid(view);
 
   const emit = (d: Date, t: string) => {
-    onChange(withTime && t ? `${ymd(d)}T${t}` : ymd(d));
+    // A datetime field ALWAYS emits a time, defaulting to 00:00. Emitting a bare "2026-08-12" would
+    // be parsed by `new Date()` as UTC midnight rather than local — the exact offset bug the tasks
+    // page documents, where a due date displayed and then SAVED shifted by the viewer's timezone.
+    // Date-only fields keep the bare form, which is what a calendar date means.
+    onChange(withTime ? `${ymd(d)}T${t || "00:00"}` : ymd(d));
     if (!withTime) onClose();
   };
 
@@ -169,4 +173,53 @@ export function DatePicker({
   );
 }
 
+/**
+ * A form-shaped date field: the trigger and the picker in one, so a call site swaps
+ * `<input type="date">` for this without hand-wiring open state seventeen times.
+ *
+ * Deliberately matches .key-input's geometry (36px, same border, same radius) so it sits in a form
+ * grid next to text fields without being the odd one out — the whole reason the native input was a
+ * problem was that it looked like it came from somewhere else.
+ */
+export function DateField({
+  value, onChange, withTime = false, placeholder = "Pick a date", className = "", disabled, ariaLabel,
+}: {
+  value: unknown;
+  onChange: (v: string) => void;
+  withTime?: boolean;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  ariaLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const { date } = parseValue(value);
+  const label = date
+    ? (withTime
+        ? `${ymd(date)} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+        : ymd(date))
+    : "";
+
+  return (
+    <>
+      <button type="button" ref={ref} disabled={disabled} aria-label={ariaLabel}
+        aria-haspopup="dialog" aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        className={`flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        style={{
+          borderColor: open ? "var(--border-strong)" : "var(--border-soft)",
+          background: "var(--surface-input)",
+          color: label ? "var(--text-primary)" : "var(--text-muted)",
+        }}>
+        <span className={label ? "tabular-nums" : ""}>{label || placeholder}</span>
+        <CalendarDays size={13} style={{ color: "var(--text-faint)" }} />
+      </button>
+      <DatePicker open={open} anchorRef={ref} value={value} withTime={withTime}
+        onChange={onChange} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
 export { CalendarDays as DatePickerIcon };
+

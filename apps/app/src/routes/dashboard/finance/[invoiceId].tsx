@@ -11,6 +11,7 @@ import { GraphContextButton } from "../../../components/graph/graph-context-draw
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 import { FieldSelect } from "../../../components/ui/controls";
 import { isOutstanding } from "@mondaily/shared/finance";
+import { DateField } from "@/components/ui/date-picker";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -179,12 +180,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             </div>
             <div>
               <label className="text-[11px] text-[var(--text-secondary)]">Date</label>
-              <input
-                type="date"
-                value={paidAt}
-                onChange={e => setPaidAt(e.target.value)}
-                className="key-input mt-1 w-full text-[13px]"
-              />
+              <DateField value={paidAt} onChange={setPaidAt} ariaLabel="Paid on" className="mt-1 w-full"/>
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -553,13 +549,8 @@ export function InvoiceDetailPage() {
               </div>
               <div>
                 <label className="text-label text-[var(--text-secondary)]">Due date</label>
-                <input
-                  value={dueDate}
-                  onChange={e => { setDueDate(e.target.value); setDirty(true); }}
-                  disabled={!isEditable}
-                  type="date"
-                  className="key-input mt-1 w-full text-[13px]"
-                />
+                <DateField value={dueDate} onChange={v => { setDueDate(v); setDirty(true); }}
+                  disabled={!isEditable} ariaLabel="Due date" className="mt-1 w-full"/>
               </div>
               <div>
                 <label className="text-label text-[var(--text-secondary)]">Currency</label>
