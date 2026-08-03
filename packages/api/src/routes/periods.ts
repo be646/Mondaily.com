@@ -9,6 +9,7 @@ import {
 } from "@mondaily/shared/period";
 import { closeDuePeriods, computeMetrics, driftFor, verifyChain, workspacePeriodConfig, PERIOD_TYPES, METRICS_VERSION } from "../lib/period-close";
 import { proposeWinDates, renderProposalTable, applyWinDates } from "../lib/backfill-wins";
+import { proposeStageReconciliation, applyStageReconciliation, renderStageTable } from "../lib/reconcile-stage";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -210,6 +211,43 @@ router.post("/backfill-wins", zValidator("json", z.object({
 
   const result = await applyWinDates(ws, proposals);
   return c.json({ dry_run: false, ...result, still_undated: proposals.length - result.updated });
+});
+
+/**
+ * POST /periods/reconcile-stage — supervised fix for deals whose two stage fields disagree.
+ *
+ * Owner-gated and DRY-RUN BY DEFAULT, like every other supervised tool here. It proposes a value
+ * ONLY where a human demonstrably changed one field after the other; where a single import wrote
+ * both in the same instant there is nothing to prefer, and the record is reported untouched.
+ *
+ * A wrong stage is worse than a disclosed conflict: the conflict is visible on the record page,
+ * whereas a fabricated agreement would silently move revenue and could never be spotted again.
+ */
+router.post("/reconcile-stage", zValidator("json", z.object({
+  dry_run: z.boolean().default(true),
+})), async (c) => {
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const ws = c.get("workspaceId");
+  const { dry_run } = c.req.valid("json");
+
+  const proposals = await proposeStageReconciliation(ws);
+  const decidable = proposals.filter(p => p.proposed);
+
+  if (dry_run) {
+    return c.json({
+      dry_run: true, proposals, table: renderStageTable(proposals),
+      summary: {
+        conflicts: proposals.length,
+        with_evidence: decidable.length,
+        undecidable: proposals.length - decidable.length,
+      },
+      note: "Nothing was written. Records where both fields last changed in the same write are left alone — that is an import, not a human choosing, and there is no evidence to prefer either value.",
+    });
+  }
+
+  const result = await applyStageReconciliation(ws, proposals);
+  return c.json({ dry_run: false, ...result, still_conflicting: proposals.length - result.updated });
 });
 
 export { router as periodsRouter };

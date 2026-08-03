@@ -46,5 +46,25 @@ export function withStageStamps(
   if (/lost/i.test(after) && !/lost/i.test(before) && !out.lost_at) out.lost_at = now();
   if (prev.won_at && !out.won_at) out.won_at = prev.won_at;
   if (prev.lost_at && !out.lost_at) out.lost_at = prev.lost_at;
+
+  /**
+   * Keep the two stage fields IN STEP from here on.
+   *
+   * Deals in this workspace carry both `deal_stage` and `stage`, and measured 2026-08-03 they
+   * disagreed on 28 of 44 records — one saying "Closed Won" while the other said "Lead" on the same
+   * 500,000 deal. Every won/pipeline figure depends on which one a given surface happens to read.
+   *
+   * No resolver can fix the history: both fields are schema-declared, both draw from the same seven
+   * values, both are actively edited (88 vs 96 changes across the conflicting records), and on 20 of
+   * the 28 they were last written in the SAME instant by an import — so there is nothing to prefer.
+   *
+   * What CAN be fixed is the future. A stage write now lands on both keys, so the two can never
+   * diverge again and the precedence in `dealStageOf` stops mattering for anything written from
+   * today. This is the cheap half of the problem, and unlike a backfill it invents nothing.
+   */
+  if (after && after !== dealStageOf(prev)) {
+    if (prev.deal_stage !== undefined || out.deal_stage !== undefined) out.deal_stage = after;
+    if (prev.stage !== undefined || out.stage !== undefined) out.stage = after;
+  }
   return out;
 }
