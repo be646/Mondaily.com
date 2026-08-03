@@ -697,7 +697,11 @@ export async function goalActual(ws: string, metric: string, userId: string | nu
     let v = 0;
     for (const r of rows) {
       if (!moneyIsWon(moneyDealStage(r.data))) continue;
-      const t = Date.parse(moneyWonDate(r));
+      // No close date means the win cannot be attributed to this window. Counting it here would
+      // credit a member for a deal in whichever period its row was last edited.
+      const when = moneyWonDate(r);
+      if (!when) continue;
+      const t = Date.parse(when);
       if (!(t >= range.start && t <= range.end)) continue;
       if (moneyDealOwner(r.data).toLowerCase() !== name) continue;
       v += moneyDealValue(r.data);

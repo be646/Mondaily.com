@@ -36,14 +36,40 @@ describe("field access matches production's split vocabulary", () => {
   });
 });
 
-describe("closed won is a FLOW: stamped date first, legacy fallback labeled", () => {
-  it("uses won_at when stamped, updated_at when not", () => {
-    const stamped = deal({ data: { stage: "Closed Won", deal_value: 100, won_at: "2026-07-05T00:00:00Z" }, updated_at: "2026-06-01T00:00:00Z" });
-    const legacy  = deal({ data: { stage: "Closed Won", deal_value: 50 }, updated_at: "2026-07-06T00:00:00Z" });
-    const outside = deal({ data: { stage: "Closed Won", deal_value: 999, won_at: "2026-06-05T00:00:00Z" } });
-    const open    = deal({ data: { stage: "Negotiation", deal_value: 999 }, updated_at: "2026-07-06T00:00:00Z" });
-    const r = closedWonIn([stamped, legacy, outside, open], JULY);
-    expect(r).toEqual({ count: 2, value: 150 });   // stamped-in-July + legacy-in-July; June close and open deal excluded
+describe("closed won is a FLOW dated by the WIN, never by the last edit", () => {
+  // CHANGED 2026-08-02. This previously asserted an updated_at fallback for undated wins, which
+  // meant any edit to a won deal re-dated the win to the day of the edit. Measured in production:
+  // 9 of 10 won deals had no won_at, and unrelated schema work moved 1,422,500 of "closed won"
+  // into the current month. updated_at answers "when was this row last written" — a fact about the
+  // database, not the business.
+  const stamped = deal({ data: { stage: "Closed Won", deal_value: 100, won_at: "2026-07-05T00:00:00Z" }, updated_at: "2026-06-01T00:00:00Z" });
+  const undated = deal({ data: { stage: "Closed Won", deal_value: 50 }, updated_at: "2026-07-06T00:00:00Z" });
+  const outside = deal({ data: { stage: "Closed Won", deal_value: 999, won_at: "2026-06-05T00:00:00Z" } });
+  const open    = deal({ data: { stage: "Negotiation", deal_value: 999 }, updated_at: "2026-07-06T00:00:00Z" });
+
+  it("counts only wins whose own close date falls in the window", () => {
+    const r = closedWonIn([stamped, undated, outside, open], JULY);
+    expect(r.count).toBe(1);
+    expect(r.value).toBe(100);
+  });
+
+  it("reports the undated wins rather than dropping them silently", () => {
+    // They were certainly won; we cannot say when. Saying so beats inventing a month.
+    const r = closedWonIn([stamped, undated, outside, open], JULY);
+    expect(r.undated).toBe(1);
+    expect(r.undated_value).toBe(50);
+  });
+
+  it("an edit to an undated win does NOT pull it into the window", () => {
+    // The whole point: `updated_at` sits inside JULY here, and it still must not count.
+    const r = closedWonIn([undated], JULY);
+    expect(r.count).toBe(0);
+    expect(r.undated).toBe(1);
+  });
+
+  it("a win outside the window stays outside, and an open deal is not a win", () => {
+    const r = closedWonIn([outside, open], JULY);
+    expect(r).toMatchObject({ count: 0, value: 0, undated: 0 });
   });
 });
 

@@ -74,7 +74,12 @@ router.get("/", async (c) => {
     handled: { auto_approved_today: (autoR.data ?? []).length },
     // The four lead numbers. `delta` is % vs the same point last month, null when last month was 0.
     money: {
-      closed_won: { value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value) },
+      closed_won: {
+        value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value),
+        // Wins with no close date are excluded from the window rather than dated by their last
+        // edit. Reported so the gap is visible instead of silently missing from the total.
+        undated: won.undated ?? 0, undated_value: won.undated_value ?? 0,
+      },
       cash: { collected: inv.collected, invoiced: inv.invoiced, delta: deltaPct(inv.collected, invPrev.collected) },
       pipeline_created: { value: r2(created.value), count: created.count, delta: deltaPct(created.value, createdPrev.value) },
       forecast: { value: r2(weightedForecast(deals)), open_count: open.count, open_value: r2(open.value) },

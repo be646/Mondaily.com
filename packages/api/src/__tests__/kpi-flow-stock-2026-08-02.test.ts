@@ -96,3 +96,34 @@ describe("the Brief already separated the two kinds, and still does", () => {
     expect(src).toMatch(/const open = openPipeline\(deals\);/);
   });
 });
+
+describe("a win with no close date is never dated by its last edit", () => {
+  it("wonDate returns null instead of falling back to updated_at", () => {
+    // MEASURED in production 2026-08-02: 9 of 10 won deals had no won_at, and unrelated schema
+    // work that touched those rows moved 1,422,500 of "closed won" into the current month. A
+    // period metric built on updated_at does not reset on the 1st -- it re-accumulates whatever
+    // anyone happens to touch.
+    const src = read("packages/api/src/lib/money.ts");
+    expect(src).toMatch(/export const wonDate = \(row: NodeRow\): string \| null/);
+    expect(src).not.toMatch(/won_at \?\? row\.updated_at \?\? row\.created_at/);
+  });
+
+  it("excludes undated wins from the window and REPORTS them", () => {
+    // They were certainly won; we cannot say when. Attributing them to an invented period is how
+    // the number stopped being trustworthy — so they are counted separately, not dropped silently.
+    const src = read("packages/api/src/lib/money.ts");
+    expect(src).toMatch(/if \(!when\) \{ undated\+\+; undatedValue \+= dealValue\(r\.data\); continue; \}/);
+    expect(src).toMatch(/return \{ count, value, undated, undated_value/);
+  });
+
+  it("surfaces the undated count on the Brief and the Owner Console", () => {
+    for (const f of ["packages/api/src/routes/briefing.ts", "packages/api/src/routes/owner.ts"]) {
+      expect(read(f), f).toMatch(/undated: won\.undated \?\? 0, undated_value: won\.undated_value \?\? 0/);
+    }
+  });
+
+  it("per-member attribution refuses an undated win too", () => {
+    // Otherwise a member is credited for a deal in whichever period its row was last edited.
+    expect(read("packages/api/src/routes/activities.ts")).toMatch(/const when = moneyWonDate\(r\);\s*\n\s*if \(!when\) continue;/);
+  });
+});

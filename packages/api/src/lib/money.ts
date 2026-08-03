@@ -12,9 +12,11 @@ import { periodStart, previousPeriod, type PeriodConfig } from "@mondaily/shared
  * Field access is measured, not assumed (prod, 2026-07-30, 44 deals):
  *   - stage lives in BOTH `stage` (38) and `deal_stage` (25) — read the union, deal_stage first
  *   - owner lives in `deal_owner` (25) and `assigned_to` (28)
- *   - ZERO deals carried a close date, so wonDate() falls back to updated_at for legacy rows —
- *     an approximation (updated_at moves on any edit) that self-heals: routes/nodes.ts stamps
- *     `won_at` on every stage transition into Won from now on.
+ *   - ZERO deals carried a close date. The old wonDate() fell back to updated_at, which re-dated a
+ *     win on every edit; measured 2026-08-02 it had moved 1,422,500 into the current month after
+ *     unrelated schema work touched the rows. Undated wins are now EXCLUDED from period metrics
+ *     and reported separately. routes/nodes.ts stamps `won_at` on every transition into Won, so
+ *     the undated count shrinks toward zero as deals move through the pipeline.
  *
  * FLOW metrics (closed won, pipeline created, cash collected) are counted within a range.
  * BALANCE metrics (open pipeline, outstanding, overdue) are as-of-now and ignore the range.
@@ -92,19 +94,50 @@ export const isLost = (stage: string) => /lost/i.test(stage);
 export const isOpen = (stage: string) => !isWon(stage) && !isLost(stage) && !/closed/i.test(stage);
 
 /** When the deal closed: the stamped fact when present, updated_at as the labeled legacy fallback. */
-export const wonDate = (row: NodeRow): string =>
-  String((row.data ?? {}).won_at ?? row.updated_at ?? row.created_at);
+/**
+ * When a deal was WON — or null when nothing records it.
+ *
+ * This used to fall back to `updated_at`, and that fallback was not a harmless approximation: it
+ * meant every edit to a won deal re-dated the win to the day of the edit. MEASURED in production
+ * 2026-08-02: 9 of 10 won deals carried no `won_at`, and a batch of unrelated schema work that
+ * touched those rows moved 1,422,500 of "closed won" into the current month. A period metric built
+ * on it does not reset on the 1st so much as re-accumulate whatever anyone happens to touch.
+ *
+ * `updated_at` answers "when was this row last written", which is a fact about the database, not
+ * about the business. Returning null instead lets callers say "we do not know when this was won"
+ * rather than assert a date that is certainly wrong.
+ */
+export const wonDate = (row: NodeRow): string | null => {
+  const explicit = (row.data ?? {}).won_at;
+  return explicit ? String(explicit) : null;
+};
 
-export interface FlowMetric { count: number; value: number }
+export interface FlowMetric {
+  count: number;
+  value: number;
+  /** Rows that qualify but carry no event date, so they cannot be attributed to any period. */
+  undated?: number;
+  undated_value?: number;
+}
 
+/**
+ * Deals won INSIDE the window.
+ *
+ * A won deal with no close date is not counted, and is reported separately in `undated` — it was
+ * certainly won, we simply cannot say when, and attributing it to a period we invented is how the
+ * number stopped being trustworthy. The caller can disclose "3 wins have no close date" instead of
+ * quietly folding them into whichever month someone last edited them.
+ */
 export function closedWonIn(rows: NodeRow[], range: MsRange): FlowMetric {
-  let count = 0, value = 0;
+  let count = 0, value = 0, undated = 0, undatedValue = 0;
   for (const r of rows) {
     if (!isWon(dealStage(r.data))) continue;
-    if (!inRange(wonDate(r), range)) continue;
+    const when = wonDate(r);
+    if (!when) { undated++; undatedValue += dealValue(r.data); continue; }
+    if (!inRange(when, range)) continue;
     count++; value += dealValue(r.data);
   }
-  return { count, value };
+  return { count, value, undated, undated_value: Math.round(undatedValue * 100) / 100 };
 }
 
 export function pipelineCreatedIn(rows: NodeRow[], range: MsRange): FlowMetric {
@@ -153,7 +186,8 @@ export function weightedForecast(rows: NodeRow[]): number {
 export function closersIn(rows: NodeRow[], range: MsRange): { owner: string; count: number; value: number }[] {
   const by = new Map<string, { count: number; value: number }>();
   for (const r of rows) {
-    if (!isWon(dealStage(r.data)) || !inRange(wonDate(r), range)) continue;
+    const wd = wonDate(r);
+    if (!isWon(dealStage(r.data)) || !wd || !inRange(wd, range)) continue;
     const owner = dealOwner(r.data) || "Unassigned";
     const b = by.get(owner) ?? { count: 0, value: 0 };
     b.count++; b.value += dealValue(r.data);
