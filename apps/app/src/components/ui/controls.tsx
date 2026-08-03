@@ -271,8 +271,14 @@ interface FieldSelectProps {
   className?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  /**
+   * Toolbar idiom rather than form idiom: no box, no 36px height, small type. A bordered 36px
+   * field for a three-letter currency code reads as a form control that wandered into a toolbar,
+   * and it was the tallest thing in the row. Same control, same keyboard behaviour, less furniture.
+   */
+  compact?: boolean;
 }
-export function FieldSelect({ value, options, onChange, placeholder = "Select…", className, disabled, ariaLabel }: FieldSelectProps) {
+export function FieldSelect({ value, options, onChange, placeholder = "Select…", className, disabled, ariaLabel, compact = false }: FieldSelectProps) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -304,8 +310,15 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
     <div ref={rootRef} className={cx("relative w-full", className)} onKeyDown={onKeyDown}>
       <button type="button" onClick={() => (open ? setOpen(false) : openMenu())} disabled={disabled}
         aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
-        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-card)", color: current ? "var(--text-primary)" : "var(--text-muted)" }}>
+        className={cx(
+          "flex w-full items-center justify-between outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+          compact
+            ? "h-7 gap-1 rounded-sm px-2 text-[11.5px] font-medium hover:bg-[var(--surface-hover)]"
+            : "h-9 gap-2 rounded-md border px-3 text-sm",
+        )}
+        style={compact
+          ? { background: open ? "var(--surface-hover)" : "transparent", color: current ? "var(--text-primary)" : "var(--text-muted)" }
+          : { borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-card)", color: current ? "var(--text-primary)" : "var(--text-muted)" }}>
         <span className="flex min-w-0 items-center gap-1.5 truncate">
           {current?.dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: current.dot }} />}
           {current ? current.label : placeholder}

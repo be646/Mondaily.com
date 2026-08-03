@@ -43,7 +43,9 @@ export function PeriodNav({
   if (!isSteppable(period)) return null;
   return (
     <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-      <div className="flex items-center gap-1 rounded-sm border px-1 py-0.5" style={{ borderColor: "var(--border-soft)" }}>
+      {/* No box. The row already has structure; a border around three small controls just adds
+          another rectangle to a header that had four stacked hairlines. */}
+      <div className="flex items-center gap-0.5">
         <button onClick={() => onOffset(Math.max(-120, offset - 1))}
           aria-label="Previous period" title="Previous period" className="btn-icon">
           <ChevronLeft size={13}/>

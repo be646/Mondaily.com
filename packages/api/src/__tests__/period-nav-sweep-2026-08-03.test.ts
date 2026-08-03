@@ -121,3 +121,44 @@ describe("the toolbar is a toolbar, not a block", () => {
     }
   });
 });
+
+describe("the finance header is a header, not a grid of boxes", () => {
+  const shell = () => read("apps/app/src/routes/dashboard/finance/shell.tsx");
+
+  it("carries ONE hairline — the tab underline, continued across the strip", () => {
+    // Tabs, actions and the lens row each had their own rule: two lines a few pixels apart.
+    // A divider separates things; three dividers separate nothing.
+    expect((shell().match(/border-b border-\[var\(--border-soft\)\]/g) ?? []).length).toBe(1);
+  });
+
+  it("page actions sit on the RIGHT — the app-wide standard", () => {
+    // Dropping flex-1 while fixing the wrap left justify-end nothing to push against, and the
+    // page's New button drifted to the middle.
+    expect(shell()).toMatch(/id="finance-shell-actions"[^>]*flex-1[^>]*justify-end/);
+  });
+
+  it("the actions strip has NO overflow context, so the select can open", () => {
+    // FieldSelect's menu is absolutely positioned; an overflow context clips it. That is exactly
+    // how the currency picker stopped working.
+    const strip = shell().match(/id="finance-shell-actions"[^/]*\/>/)?.[0] ?? "";
+    expect(strip).not.toMatch(/overflow-/);
+  });
+
+  it("the stepper has no box of its own", () => {
+    expect(read("apps/app/src/components/ui/period-nav.tsx")).not.toMatch(/rounded-sm border px-1 py-0\.5/);
+  });
+});
+
+describe("a toolbar select looks like a toolbar control", () => {
+  it("FieldSelect has a compact variant", () => {
+    // A bordered 36px field for a three-letter currency code reads as a form control that
+    // wandered into a toolbar, and it was the tallest thing in the row.
+    const src = read("apps/app/src/components/ui/controls.tsx");
+    expect(src).toMatch(/compact\?: boolean;/);
+    expect(src).toMatch(/h-7 gap-1 rounded-sm px-2 text-\[11\.5px\]/);
+  });
+
+  it("the currency picker uses it", () => {
+    expect(read("apps/app/src/routes/dashboard/finance/reports.tsx")).toMatch(/<FieldSelect compact/);
+  });
+});

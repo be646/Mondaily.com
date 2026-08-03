@@ -333,8 +333,8 @@ export function FinanceReportsPage() {
                   reports in USD." A label repeating what the sentence below states, at the cost of
                   breaking the toolbar, is not carrying its weight. The select keeps its aria-label
                   so it is still announced. 3-letter codes do not need 7rem. */}
-              <div className="w-[74px] shrink-0">
-                <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+              <div className="w-[68px] shrink-0">
+                <FieldSelect compact value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
                   options={currencies.map(c => ({ value: c, label: c }))} />
               </div>
             </>
