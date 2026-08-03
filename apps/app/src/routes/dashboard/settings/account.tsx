@@ -12,6 +12,7 @@ import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } fro
 import { useLanguage } from "../../../hooks/useLanguage";
 import { LanguageSelect } from "../../../components/ui/language-select";
 import { FieldSelect, SettingsSection } from "../../../components/ui/controls";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -523,18 +524,19 @@ export function AccountSettings() {
 
       {/* ── Delete confirm modal ── */}
       {deleteOpen && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
-            <h2 className="font-semibold text-[var(--text-primary)]">Delete account</h2>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">This permanently deletes your account and all data. Type <strong className="text-[var(--text-primary)]">DELETE</strong> to confirm.</p>
-            <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-sm font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">Delete account</button>
-            </div>
-          </div>
-        </>
+        <Modal title="Delete account" width="sm" onClose={() => setDeleteOpen(false)} footer={
+          <ModalActions onCancel={() => setDeleteOpen(false)}>
+            <button onClick={deleteAccount} disabled={deleteText !== "DELETE"}
+              className="flex h-8 items-center rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-3 text-label font-semibold text-[#d1524a] transition-colors hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40">Delete account</button>
+          </ModalActions>
+        }>
+          <p className="text-body" style={{ color: "var(--text-muted)" }}>
+            This permanently deletes your account and all data. Type{" "}
+            <strong style={{ color: "var(--text-primary)" }}>DELETE</strong> to confirm.
+          </p>
+          <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE"
+            className="key-input mt-3 h-9 w-full px-3 text-sm" />
+        </Modal>
       )}
     </div>
   );

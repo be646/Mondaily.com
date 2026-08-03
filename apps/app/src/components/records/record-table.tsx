@@ -4457,8 +4457,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
         <ModalActions onCancel={() => setBulkConfirm(null)}>
           <button
             onClick={() => { const b = bulkConfirm; setBulkConfirm(null); void bulkSetField(b.col, b.value); }}
-            className="h-8 rounded-md border px-3 text-[12px] font-medium transition-colors"
-            style={{ borderColor: "rgba(209,82,74,.35)", color: "#d1524a" }}>
+            className="flex h-8 items-center rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-3 text-label font-semibold text-[#d1524a] transition-colors hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40">
             Overwrite {bulkConfirm.overwrites}
           </button>
         </ModalActions>

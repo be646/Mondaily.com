@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { MoneyCell } from "../../../components/finance/money-cell";
 import { DateField } from "@/components/ui/date-picker";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 interface Expense {
   id: string;
@@ -116,16 +117,15 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-[#c6892e]/10 flex items-center justify-center"><Receipt size={12} className="text-[#c6892e]"/></div>
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Log Expense</span>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
-        </div>
-        <div className="p-5 space-y-3">
+    <Modal title="Log Expense" onClose={onClose} footer={
+      <ModalActions onCancel={onClose}>
+        <button onClick={submit} disabled={loading}
+          className="flex h-8 items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+          {loading ? "Saving…" : "Log Expense"}
+        </button>
+      </ModalActions>
+    }>
+      <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Description</label>
@@ -165,16 +165,8 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             </div>
           </div>
           {error && <p className="text-label text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
-          <div className="flex justify-end gap-2 pt-1">
-            <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
-            <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50">
-              {loading ? "Saving…" : "Log Expense"}
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

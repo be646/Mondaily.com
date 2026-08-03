@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
+import { Modal } from "@/components/ui/modal";
 
 interface IntegrationProfile { account: string; connected_at?: string; scopes?: string[] }
 interface IntegrationData {
@@ -42,19 +43,15 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
   );
 }
 
+/**
+ * Delegates to the shared <Modal>.
+ *
+ * This was a private copy of the dialog shell — its own overlay, its own header, no Escape key.
+ * Kept as a thin wrapper so the call sites below are untouched, but the chrome, the hairlines and
+ * the dismiss behaviour now come from the one place that owns them.
+ */
 function ModalShell({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) {
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={close} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
-          <button onClick={close} className="btn-icon"><X size={15} /></button>
-        </div>
-        {children}
-      </div>
-    </>
-  );
+  return <Modal title={title} onClose={close} width="lg">{children}</Modal>;
 }
 
 export function IntegrationsSettings() {

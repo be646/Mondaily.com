@@ -9,6 +9,7 @@ import { downscaleImageToDataUrl } from "../../../lib/image-resize";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { FieldSelect } from "../../../components/ui/controls";
 import { EMPTY_PROFILE, discoverySuggestions, askStarterPrompts, profileRecommendations, type WorkspaceProfile } from "@mondaily/shared/profile";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 interface WorkspaceData {
   name: string;
@@ -267,17 +268,19 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
       </div>
 
       {deleteOpen && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold text-[var(--text-primary)]">Delete {form.name}</h2>
-              <button onClick={() => setDeleteOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
-            </div>
-            <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
-              The workspace goes inert for every member immediately, and all data is <strong style={{ color: "var(--text-secondary)" }}>permanently erased after 14 days</strong>.
-              You (the owner) can restore it any time inside that window — you'll get an email with the restore link.
-            </p>
+        <Modal title={`Delete ${form.name}`} onClose={() => setDeleteOpen(false)} footer={
+          <ModalActions onCancel={() => setDeleteOpen(false)}>
+            <button onClick={() => void deleteWorkspace()}
+              disabled={deleteText !== form.name || busy != null || (!exportedOnce && !skipExport)}
+              className="flex h-8 items-center rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-3 text-label font-semibold text-[#d1524a] transition-colors hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40">
+              {busy === "delete" ? "Scheduling…" : "Schedule deletion (14-day window)"}
+            </button>
+          </ModalActions>
+        }>
+          <p className="text-body leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            The workspace goes inert for every member immediately, and all data is <strong style={{ color: "var(--text-secondary)" }}>permanently erased after 14 days</strong>.
+            You (the owner) can restore it any time inside that window — you&rsquo;ll get an email with the restore link.
+          </p>
 
             {/* EXPORT-FIRST: deleting without a copy of your data requires an explicit opt-out. */}
             {!exportedOnce && !skipExport && (
@@ -298,16 +301,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
             <p className="mt-4 text-[12px]" style={{ color: "var(--text-muted)" }}>Type <strong style={{ color: "var(--text-secondary)" }}>{form.name}</strong> to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-2 h-10 w-full px-3 text-[12px]" />
             {msg && <p className="mt-2 text-[11.5px]" style={{ color: "var(--status-error)" }}>{msg}</p>}
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={() => void deleteWorkspace()}
-                disabled={deleteText !== form.name || busy != null || (!exportedOnce && !skipExport)}
-                className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">
-                {busy === "delete" ? "Scheduling…" : "Schedule deletion (14-day window)"}
-              </button>
-            </div>
-          </div>
-        </>
+        </Modal>
       )}
     </div>
   );
