@@ -127,10 +127,16 @@ select {
   background-repeat: no-repeat;
   padding-right: 30px;
 }
+/* Focus is NEUTRAL on form fields.
+     The accent is green on Deals, amber elsewhere, so clicking any field threw a coloured frame
+     plus a 2px glow around it — colour spent on "you are typing here", which the user does not
+     need told in green. A field still shows focus clearly (stronger border + a faint neutral ring),
+     it just stops shouting. The accent is kept where it MEANS something: the Ask composer's
+     signature and the pipeline's completed steps. */
 select:focus-visible {
   outline: none;
-  border-color: var(--section-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-faint) 14%, transparent);
 }
 select option { background: var(--surface-modal); color: var(--text-primary); }
 
@@ -1417,8 +1423,8 @@ html[data-theme="dark"] .minimal-sparkline {
   }
   .key-input::placeholder { color: var(--text-faint); }
   .key-input:focus {
-    border-color: var(--section-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-faint) 14%, transparent);
   }
   .key-button {
     @apply rounded-lg transition-all;
@@ -1457,8 +1463,8 @@ html[data-theme="dark"] .minimal-sparkline {
   select.ui-select:hover, select.key-input:hover { border-color: var(--border-strong); }
   select.ui-select:focus, select.key-input:focus {
     outline: none;
-    border-color: var(--section-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-faint) 14%, transparent);
   }
   select.ui-select option, select.key-input option { background: var(--surface-modal); color: var(--text-primary); }
 
