@@ -4,7 +4,7 @@ import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logg
 import { supabase } from "@mondaily/db/client";
 import { createNotification } from "../lib/notify";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
-import { flattenEnrichment } from "../lib/enrichment-fields";
+import { flattenEnrichment, fillBlanks } from "../lib/enrichment-fields";
 
 const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
 
@@ -218,22 +218,31 @@ export const enrichRecord = inngest.createFunction(
       // display them. The grouped objects are kept too, for richer detail views.
       const flat = flattenEnrichment(fields);
 
-      // Merge enriched fields into node data
+      // Merge enriched fields into node data — FILLING BLANKS ONLY.
+      //
+      // This used to spread `flat` last, so an agent silently replaced whatever a person had put
+      // there: set a deal's country by hand, let enrichment run, and the agent's guess won. The
+      // notification this sends says "AI filled in", which is what it should have been doing all
+      // along — a record is the user's, and an autonomous process may complete it, not correct it.
+      //
+      // Blank means absent, null, or an empty/whitespace string. Anything a human actually typed
+      // stays, and what was skipped is reported rather than silently dropped.
       const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
-      const merged = { ...(node?.data ?? {}), ...flat };
+      const { merged, applied: appliedKeys, kept: keptExisting } = fillBlanks(node?.data as Record<string, unknown>, flat);
       // Save data first (always works)
       await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
       // Save enrichment status columns (requires migration 0010)
       await supabase.from("nodes").update({ enriched_at: new Date().toISOString(), enrichment_status: "done" }).eq("id", nodeId);
 
       // Create notification for the workspace — summarize the FLAT keys actually written.
-      const flatKeys = Object.keys(flat);
+      const flatKeys = appliedKeys;
       const summary = flatKeys.slice(0, 3).join(", ");
       await createNotification({
         workspace_id: workspaceId,
         type: "agent",
         title: "✦ Record enriched",
-        body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`,
+        body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`
+          + (keptExisting.length ? ` · kept your ${keptExisting.slice(0, 3).join(", ")}` : ""),
         metadata: { fields_added: flatKeys.length },
         source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: nodeId, object_type: objectType },
       });

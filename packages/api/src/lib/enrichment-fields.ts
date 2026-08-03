@@ -64,3 +64,35 @@ export function flattenEnrichment(fields: Record<string, unknown>): Record<strin
   }
   return out;
 }
+
+/**
+ * Merge agent output into a record WITHOUT overwriting what a person put there.
+ *
+ * Both enrichment writers spread the agent's fields last — `{ ...node.data, ...fields }` — so an
+ * autonomous run silently replaced human input: set a deal's country by hand, let enrichment run,
+ * and the agent's guess won. The notification they send says "AI filled in", which is what they
+ * should have been doing all along. A record belongs to the user; an agent may COMPLETE it, not
+ * correct it.
+ *
+ * Extracted because there are two writers and fixing one is not fixing the rule — the same mistake
+ * this codebase has now made with close-date stamping, win-dating and stage resolution.
+ *
+ * Blank means absent, null, or empty/whitespace. Returns what was applied and what was kept, so the
+ * caller can tell the user honestly instead of claiming to have filled a field it left alone.
+ */
+export function fillBlanks(
+  existing: Record<string, unknown> | null | undefined,
+  incoming: Record<string, unknown>,
+): { merged: Record<string, unknown>; applied: string[]; kept: string[] } {
+  const base = existing ?? {};
+  const isBlank = (v: unknown) => v === undefined || v === null || String(v).trim() === "";
+  const applied: string[] = [], kept: string[] = [];
+  const out: Record<string, unknown> = { ...base };
+  for (const [k, v] of Object.entries(incoming)) {
+    if (isBlank(v)) continue;
+    if (isBlank(base[k])) { out[k] = v; applied.push(k); }
+    else kept.push(k);
+  }
+  return { merged: out, applied, kept };
+}
+

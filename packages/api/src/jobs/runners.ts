@@ -12,6 +12,7 @@ import { runDailyBrief } from "./daily-brief";
 import { overdueCutoffISO } from "@mondaily/shared/dates";
 import { runPendingPlanReminders } from "./pending-plan-reminders";
 import { dealStageOf } from "@mondaily/shared/deal-stage";
+import { fillBlanks } from "../lib/enrichment-fields";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -688,10 +689,12 @@ async function enrichOne(nodeId: string, objectType: string, recordData: Record<
   if (Object.keys(fields).length === 0) return 0;
 
   const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
-  const merged = { ...(node?.data ?? {}), ...fields };
+  // Fills blanks only — an agent completes a record, it does not correct one. See fillBlanks.
+  const { merged, applied } = fillBlanks(node?.data as Record<string, unknown>, fields);
+  if (applied.length === 0) return 0;
   await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
   await supabase.from("nodes").update({ enriched_at: new Date().toISOString(), enrichment_status: "done" }).eq("id", nodeId);
-  return Object.keys(fields).length;
+  return applied.length;
 }
 
 /** Enrich up to `limit` records in a workspace. On-demand "re-enrich" entry point. */
