@@ -129,3 +129,46 @@ describe("the operator console carries no pre-redesign artifacts", () => {
     expect(green.every(f => f.includes("onboarding") || f.includes("call-"))).toBe(true);
   });
 });
+
+describe("AUDIT PASS 2 — raw CSS radii, which pass 1 never checked", () => {
+  const css = () => read("apps/app/src/styles.css");
+
+  it("the primary input console uses the sm token, per spec", () => {
+    // Pass 1 swept Tailwind rounded-* classes in .tsx and never looked at styles.css, so
+    // .ask-input sat at 0.75rem — 12px, larger than --radius-lg and outside the scale entirely.
+    expect(css()).toMatch(/\.ask-input \{[\s\S]{0,200}border-radius: var\(--radius-sm\)/);
+  });
+
+  it("the composer family is ON the scale, not four different hand-picked values", () => {
+    // .ask-input .75 / .ai-composer 1 / .suggestion-row .75 / .chat-suggestion-row .7 /
+    // .chat-action .6 — five selectors in one family, four different radii. That is drift.
+    const src = css();
+    for (const sel of [".ai-composer", ".suggestion-row", ".chat-suggestion-row", ".chat-action"]) {
+      const m = new RegExp(`\\${sel} \\{[\\s\\S]{0,300}?border-radius: var\\(--radius-(sm|md|lg)\\)`);
+      expect(src, sel).toMatch(m);
+    }
+  });
+
+  it("no radius in the console stylesheet sits outside the scale", () => {
+    const ALLOWED = new Set(["9999px", "50%", "inherit", "4px",
+      "var(--radius-sm)", "var(--radius-md)", "var(--radius-lg)", "var(--radius-pill)"]);
+    const found = [...css().matchAll(/border-radius: *([^;]+);/g)].map(m => m[1]!.trim());
+    const off = [...new Set(found)].filter(v => !ALLOWED.has(v));
+    // 4px is grandfathered: the settings grid documents "sharp architectural corners" and sits
+    // between sm and md by intent, not by drift.
+    expect(off).toEqual([]);
+  });
+
+  it("the dead Tailwind radius shim is gone, with zero usages to justify it", () => {
+    const src = css();
+    expect(src).not.toMatch(/\.rounded-2xl *\{ *border-radius/);
+    const tsx = walk("apps/app/src", [".tsx"]).map(read).join("\n");
+    expect(tsx).not.toMatch(/rounded-(xl|2xl|3xl)\b/);
+  });
+
+  it("the input keeps a 1px border and an emerald focus ring", () => {
+    const src = css();
+    expect(src).toMatch(/\.ask-input \{[\s\S]{0,200}border: 1px solid var\(--border-soft\)/);
+    expect(src).toMatch(/\.ask-input:focus-within \{[\s\S]{0,200}border-color: var\(--section-accent\)/);
+  });
+});

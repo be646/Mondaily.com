@@ -1550,9 +1550,14 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
   const css = read("apps/app/src/styles.css");
   const dock = read("apps/app/src/components/ai/agent-dock.tsx");
 
-  it("AI composer is a carved 12px hairline, not an elevated pill", () => {
+  it("AI composer is a carved hairline on the radius scale, not an elevated pill", () => {
+    // CHANGED 2026-08-03 by explicit instruction, and it OVERRIDES the Pass HOME1 decision this
+    // test originally encoded (a hand-picked 12px). The audit spec requires .ask-input to use
+    // rounded-sm geometry, and 0.75rem sat outside the four-step scale entirely — larger than
+    // --radius-lg. The intent the original test protected (carved, flat, no pill, no bloom) is
+    // unchanged and still asserted below; only the radius moved onto the scale.
     const block = css.slice(css.indexOf(".ask-input {"), css.indexOf(".ask-suggestion-row"));
-    expect(block).toMatch(/border-radius: 0\.75rem/);
+    expect(block).toMatch(/border-radius: var\(--radius-sm\)/);
     expect(block).toMatch(/box-shadow: none/);
     expect(block).not.toMatch(/border-radius: 1\.25rem/);
     // focus is a precise accent ring, not a 24px bloom

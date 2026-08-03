@@ -547,7 +547,7 @@ html[data-theme="dark"] .minimal-sparkline {
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  border-radius: 0.7rem;
+  border-radius: var(--radius-md);   /* suggestion card */
   border: 1px solid transparent;
   padding: 0.46rem 0.75rem;
   color: var(--text-secondary);
@@ -565,7 +565,7 @@ html[data-theme="dark"] .minimal-sparkline {
    shadow, a borderless textarea inside, and the AI action sitting bottom-right.
    Lifts on focus-within. Reusable for any "type a prompt for the AI" surface. */
 .ai-composer {
-  border-radius: 1rem;
+  border-radius: var(--radius-md);   /* composer surface — on-scale, still distinct from a flat input */
   border: 1px solid var(--border-soft);
   background: var(--surface-card);
   padding: 0.75rem 0.85rem 0.6rem;
@@ -621,7 +621,7 @@ html[data-theme="dark"] .minimal-sparkline {
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);   /* suggestion card */
   padding: 0.6rem 0.85rem;
   text-align: left;
   font-size: 0.8125rem;
@@ -713,7 +713,7 @@ html[data-theme="dark"] .minimal-sparkline {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  border-radius: 0.6rem;
+  border-radius: var(--radius-md);   /* inline action chip */
   border: 1px solid var(--border-soft);
   background: var(--surface-card);
   padding: 0.4rem 0.7rem;
@@ -840,7 +840,7 @@ html[data-theme="dark"] .minimal-sparkline {
 .ask-input {
   background: var(--surface-card);
   border: 1px solid var(--border-soft);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-sm);   /* the primary input console — spec: rounded-sm geometry */
   box-shadow: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -1197,7 +1197,7 @@ html[data-theme="dark"] .minimal-sparkline {
   min-width: 0;
   align-items: baseline;
   gap: 0.4rem;
-  border-radius: 0.6rem;
+  border-radius: var(--radius-md);   /* on-scale */
   padding: 0.35rem 0.55rem;
   color: var(--text-muted);
   font-size: 0.72rem;
@@ -1512,9 +1512,9 @@ html[data-theme="dark"] .minimal-sparkline {
 
 /* ── Global border & radius tokens ───────────────────────────────────────── */
 @layer base {
-  .rounded-xl  { border-radius: 8px; }
-  .rounded-2xl { border-radius: 10px; }
-  .rounded-3xl { border-radius: 12px; }
+  /* The rounded-xl / 2xl / 3xl overrides were REMOVED 2026-08-03: every outlier was normalised
+     onto the four-step scale, so these matched nothing. A rule that matches nothing is not free —
+     it is why the next person believes those classes are still in use and keeps writing them. */
 
   h1, h2, h3, h4 { letter-spacing: -0.02em; }
 
