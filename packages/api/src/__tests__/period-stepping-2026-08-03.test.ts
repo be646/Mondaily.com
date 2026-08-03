@@ -79,21 +79,16 @@ describe("the client never invents a historical window", () => {
     expect(read("apps/app/src/lib/period-bounds.ts")).toMatch(/const steppable = timeframe != null && timeframe !== "TODAY" && timeframe !== "ALL_TIME"/);
   });
 
-  it("resets the offset when the period TYPE changes", () => {
-    // "3 months back" and "3 quarters back" are different places; carrying the number is a jump
-    // the user did not ask for.
-    expect(read("apps/app/src/routes/dashboard/team-oversight.tsx"))
-      .toMatch(/useEffect\(\(\) => \{ setPeriodOffset\(0\); \}, \[period\]\)/);
-  });
-
-  it("cannot step into the future", () => {
+  // The stepper's own edge cases (offset reset, no future, hidden where meaningless, server label,
+  // "closed period") moved into components/ui/period-nav when it was extracted for the six-surface
+  // sweep, and are asserted there — see period-nav-sweep-2026-08-03. Duplicating them here would
+  // be the same copy-paste problem this session keeps fixing, in test form. What belongs HERE is
+  // that the surface actually delegates.
+  it("the surface uses the shared control rather than its own", () => {
     const src = read("apps/app/src/routes/dashboard/team-oversight.tsx");
-    expect(src).toMatch(/setPeriodOffset\(o => Math\.min\(0, o \+ 1\)\)/);
-    expect(src).toMatch(/disabled=\{periodOffset >= 0\}/);
-  });
-
-  it("marks a closed period as shown IN FULL", () => {
-    expect(read("apps/app/src/routes/dashboard/team-oversight.tsx")).toMatch(/closed period/);
+    expect(src).toMatch(/<PeriodNav /);
+    expect(src).toMatch(/usePeriodOffset\(period\)/);
+    expect(src).not.toMatch(/ChevronLeft size=\{13\}/);
   });
 });
 

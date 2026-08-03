@@ -6,6 +6,7 @@ import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../components/ui/period-nav";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../lib/period";
 import { useResolvedPeriod } from "../../lib/period-bounds";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
@@ -51,8 +52,9 @@ function KpiCard({ icon: Icon, tone, label, value, sub, delta, goodUp, onClick }
 export function InsightsPage() {
   const navigate = useNavigate();
   const [period, setPeriod] = usePeriod("mondaily_insights_period", "month");
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
-  const { range, previous: prev } = useResolvedPeriod(period);
+  const { range, previous: prev, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const scope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
   const { display, sumInDisplay } = useCurrency();
 
@@ -127,7 +129,12 @@ export function InsightsPage() {
         title="Workspace Insights"
         subtitle="One cross-object view — finance, pipeline, and agents, on a single period lens."
         status={[{ label: "real data only", kind: "complete" }]}
-        primaryAction={<PeriodSelector value={period} onChange={setPeriod} />}
+        primaryAction={
+          <div className="flex items-center gap-1.5">
+            <PeriodSelector value={period} onChange={setPeriod} />
+            <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
+          </div>
+        }
       />
 
       {loading ? (

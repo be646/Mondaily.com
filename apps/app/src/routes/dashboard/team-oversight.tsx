@@ -10,6 +10,7 @@ import { SuggestionHints } from "../../components/ui/ai-button";
 import { compareWindows } from "@mondaily/shared/baseline";
 import { KPIGrid, KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../components/ui/period-nav";
 import { usePeriod, periodRange, previousRange, periodLabel, type Period } from "../../lib/period";
 import { useResolvedPeriod } from "../../lib/period-bounds";
 
@@ -774,8 +775,7 @@ export function TeamOversightPage() {
   // How many whole periods back we are looking. 0 is the live, in-progress period; -1 is the
   // previous one IN FULL. Reset whenever the period type changes, because "3 months back" and
   // "3 quarters back" are different places and carrying the number across is a silent jump.
-  const [periodOffset, setPeriodOffset] = useState(0);
-  useEffect(() => { setPeriodOffset(0); }, [period]);
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   const { range: oversightRange, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const days = period === "all" ? 365 : calendarDays(oversightRange.start);
   const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
@@ -837,30 +837,8 @@ export function TeamOversightPage() {
         primaryAction={
           <div className="flex items-center gap-1.5">
             <PeriodSelector value={period} onChange={setPeriod} />
-            {/* Stepping back through completed periods. Disabled for Today/All, which have no
-                meaningful "N back", and forward stops at 0 — there is no data from the future. */}
-            {period !== "today" && period !== "all" && period !== "custom" && (
-              <div className="flex items-center gap-1 rounded-sm border px-1 py-0.5" style={{ borderColor: "var(--border-soft)" }}>
-                <button onClick={() => setPeriodOffset(o => Math.max(-120, o - 1))}
-                  aria-label="Previous period" title="Previous period"
-                  className="btn-icon"><ChevronLeft size={13}/></button>
-                <span className="min-w-[92px] text-center font-mono text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>
-                  {periodName ?? periodLabel(period)}
-                </span>
-                <button onClick={() => setPeriodOffset(o => Math.min(0, o + 1))} disabled={periodOffset >= 0}
-                  aria-label="Next period" title="Next period"
-                  className="btn-icon disabled:opacity-30"><ChevronRight size={13}/></button>
-                {periodOffset < 0 && (
-                  <button onClick={() => setPeriodOffset(0)} className="ml-0.5 text-[10px]" style={{ color: "var(--section-accent)" }}>now</button>
-                )}
-              </div>
-            )}
-            {periodComplete && (
-              // A closed period is shown IN FULL, not period-to-date, and says so — otherwise a
-              // reader cannot tell whether a smaller number means less work or less elapsed time.
-              <span className="rounded-full border px-1.5 py-px text-[9.5px]"
-                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>closed period</span>
-            )}
+            <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset}
+              serverLabel={periodName} complete={periodComplete} />
           </div>
         }
       />

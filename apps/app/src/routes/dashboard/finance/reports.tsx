@@ -5,6 +5,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney, convertAmount } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../../components/ui/period-nav";
 import { compareWindows } from "@mondaily/shared/baseline";
 import { isBilled, isCollected, isOutstanding, moneyEventDate } from "@mondaily/shared/finance";
 import { sumInBase, currencyBreakdown, unrealisedFx } from "@mondaily/shared/money";
@@ -156,9 +157,10 @@ export function FinanceReportsPage() {
   // FLOW metrics (revenue collected, credits issued, expenses) are counted within the range on
   // their real event date; BALANCE metrics (outstanding) are read as-of and ignore the range.
   const [period, setPeriod] = usePeriod("mondaily_finance_period");
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   const [customRange, setCustomRange] = useState<CustomRange>({});
   // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
-  const { range, previous: prev } = useResolvedPeriod(period, customRange);
+  const { range, previous: prev, label: periodName, complete: periodComplete } = useResolvedPeriod(period, customRange, periodOffset);
   // A fixed month window for the cash comparison below, independent of the selector.
   const monthWindow = useResolvedPeriod("month");
   const periodScope = period === "all" ? "all time"
@@ -316,6 +318,7 @@ export function FinanceReportsPage() {
           action={
             <>
               <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
+              <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
                 <div className="w-28">

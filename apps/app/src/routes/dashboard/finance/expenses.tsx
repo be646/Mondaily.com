@@ -5,6 +5,7 @@ import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/c
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../../components/ui/period-nav";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { useResolvedPeriod } from "../../../lib/period-bounds";
@@ -302,9 +303,10 @@ export function ExpensesPage() {
   const currency = display;
   const e$ = (e: Expense) => ({ amount: e.amount_cents / 100, currency: e.currency });
   const [period, setPeriod] = usePeriod("mondaily_expenses_period", "all");
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   // Period lens (default All for a list page). Submitted is a pending BALANCE (as-of); Approved and
   // the period total are FLOWs counted within the window on the expense date.
-  const { range } = useResolvedPeriod(period);
+  const { range, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const inPeriod = (e: Expense) => period === "all" || inRange(e.date ?? "", range);
   const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
   const submittedSum = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$));
@@ -323,6 +325,7 @@ export function ExpensesPage() {
           action={
             <>
             <PeriodSelector value={period} onChange={setPeriod} />
+            <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
             <button onClick={() => setShowNew(true)}
               className="btn-primary h-7 shrink-0 gap-2 px-3 text-body font-semibold">
               <Plus size={13}/> Log Expense

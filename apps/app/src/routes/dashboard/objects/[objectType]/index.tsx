@@ -15,6 +15,7 @@ import { SegmentBuilder } from "../../../../components/records/segment-builder";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../../lib/api-client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PeriodSelector } from "../../../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../../../components/ui/period-nav";
 import { CommandPageHeader, ActionMenu } from "../../../../components/ui/controls";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
 import { useResolvedPeriod } from "../../../../lib/period-bounds";
@@ -929,6 +930,7 @@ export function ObjectIndexPage() {
   // period-over-period delta. Generic across every object type. Created date = node created_at
   // (fallback data.created_at). "All" hides the flow chip (nothing to scope).
   const [period, setPeriod] = usePeriod(`mondaily_obj_${objectType}_period`, "month");
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   // Global top-bar slot for the period stat (looked up after mount — the layout owns the node).
   const [statSlot, setStatSlot] = useState<HTMLElement | null>(null);
   useEffect(() => { setStatSlot(document.getElementById("mondaily-page-actions")); }, []);
@@ -939,7 +941,7 @@ export function ObjectIndexPage() {
     : [...new Set((recordsQuery.data ?? []).flatMap(r => Object.keys(r.data)))].slice(0, 30);
   const recCreatedAt = (r: { created_at?: string; data?: Record<string, unknown> }) => String(r.created_at ?? (r.data?.created_at as string | undefined) ?? "");
   // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
-  const { range: pRange, previous: pPrev } = useResolvedPeriod(period);
+  const { range: pRange, previous: pPrev, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const newThisPeriod = period === "all" ? [] : allRecords.filter((r) => inRange(recCreatedAt(r as never), pRange));
   const newPrevCount = pPrev ? allRecords.filter((r) => inRange(recCreatedAt(r as never), pPrev)).length : 0;
   const newDelta = pPrev ? deltaPct(newThisPeriod.length, newPrevCount) : null;
@@ -1005,6 +1007,7 @@ export function ObjectIndexPage() {
               />
               {/* Period lens — new records this window + period-over-period delta (flow). */}
               <PeriodSelector value={period} onChange={setPeriod} />
+              <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
               {/* The period stat lives in the GLOBAL top bar (via the page-actions portal) so the
                   sheet header row stays a pure control row — same real numbers, more grid space. */}
               {period !== "all" && allRecords.length > 0 && statSlot && createPortal(

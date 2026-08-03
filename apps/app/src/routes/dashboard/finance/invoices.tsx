@@ -9,6 +9,7 @@ import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, Dolla
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { PeriodNav, usePeriodOffset } from "../../../components/ui/period-nav";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { useResolvedPeriod } from "../../../lib/period-bounds";
@@ -141,7 +142,8 @@ export function InvoicesPage() {
   // Period lens (default All for a list page). Outstanding is a point-in-time BALANCE (as-of, never
   // scoped); Collected is a FLOW counted within the window on paid date.
   const [period, setPeriod] = usePeriod("mondaily_invoices_period", "all");
-  const { range } = useResolvedPeriod(period);
+  const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
+  const { range, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   // Outstanding must net off what has already been received; an invoice with 9,000 of 10,000
   // paid was contributing the full 10,000.
@@ -168,6 +170,7 @@ export function InvoicesPage() {
           action={
             <>
               <PeriodSelector value={period} onChange={setPeriod} />
+              <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
