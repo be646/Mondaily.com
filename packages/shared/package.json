@@ -21,7 +21,8 @@
     "./vocab": "./src/vocab.ts",
     "./finance": "./src/finance.ts",
     "./money": "./src/money.ts",
-    "./period": "./src/period.ts"
+    "./period": "./src/period.ts",
+    "./deal-stage": "./src/deal-stage.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

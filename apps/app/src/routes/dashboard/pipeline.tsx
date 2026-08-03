@@ -5,6 +5,7 @@ import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check, GitBranch 
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 interface DealRecord {
   id: string;
@@ -224,7 +225,7 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
   const value = fmtVal(d.deal_value);
   const owner = String(d.deal_owner ?? d.assigned_to ?? "");
   const ownerMember = owner ? members.find(m => m.id === owner || m.name === owner || m.email === owner) : null;
-  const stage = String(d.deal_stage ?? "Lead");
+  const stage = dealStageOf(d);
 
   return (
     <div className="group rounded-md border border-stone-800/60 bg-stone-900/40 hover:border-stone-700/60 hover:bg-stone-900/70 transition-all p-3 cursor-default">
@@ -432,7 +433,10 @@ export function PipelinePage() {
   const members = membersQuery.data ?? [];
 
   const byStage = stages.reduce((acc, s) => {
-    acc[s] = deals.filter(d => String(d.data.deal_stage ?? "Lead") === s);
+    // Unstaged deals used to be swept into Lead, which made the first column a mix of real Leads
+    // and records that simply never said. They now fall out of the columns rather than being
+    // asserted into one.
+    acc[s] = deals.filter(d => dealStageOf(d.data) === s);
     return acc;
   }, {} as Record<string, DealRecord[]>);
 

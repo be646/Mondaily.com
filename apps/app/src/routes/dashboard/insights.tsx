@@ -11,6 +11,7 @@ import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, 
 import { useResolvedPeriod } from "../../lib/period-bounds";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import { isOutstanding } from "@mondaily/shared/finance";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 interface Invoice { id: string; total: number; currency: string; status: string; paid_at?: string | null; created_at: string }
 interface CreditNote { amount_cents: number; currency: string; status: string; updated_at?: string; created_at?: string }
@@ -99,9 +100,12 @@ export function InsightsPage() {
   // symbol stamped on a raw EUR+USD sum. Route them through sumInDisplay like every other
   // money figure, and keep the `missing` flag so an unconvertible mix isn't shown as exact.
   const deal$ = (d: DealNode) => ({ amount: num(d.data.deal_value), currency: String(d.data.currency ?? "") || display });
-  const pipelineSum = sumInDisplay(deals.filter(d => isOpenStage(String(d.data.deal_stage ?? "Lead"))).map(deal$));
+  // Resolved, never defaulted. `?? "Lead"` counted every deal with no `deal_stage` as an OPEN Lead,
+  // so deals that were actually closed inflated open pipeline — and the won figure below, reading
+  // `deal_stage` alone, missed the wins stored under `stage`. Same fact, two chains, two answers.
+  const pipelineSum = sumInDisplay(deals.filter(d => isOpenStage(dealStageOf(d.data))).map(deal$));
   const pipelineValue = pipelineSum.value;
-  const wonSum = (r: DateRange) => sumInDisplay(deals.filter(d => isWon(String(d.data.deal_stage ?? "")) && inRange(d.updated_at, r)).map(deal$));
+  const wonSum = (r: DateRange) => sumInDisplay(deals.filter(d => isWon(dealStageOf(d.data)) && inRange(d.updated_at, r)).map(deal$));
   const wonIn = (r: DateRange) => wonSum(r).value;
   const newDealsIn = (r: DateRange) => deals.filter(d => inRange(d.created_at, r)).length;
   const dealsWon = wonIn(range);

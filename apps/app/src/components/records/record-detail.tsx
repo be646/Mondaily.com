@@ -27,6 +27,7 @@ import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList, OWNER_BY_OBJECT_TYPE } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
 import { GraphContextButton } from "../graph/graph-context-drawer";
+import { PIPE_STAGES, dealStageOf, dealStageKey, isWonStage, isLostStage, stageIndex, STAGE_WON, STAGE_LOST } from "@mondaily/shared/deal-stage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -71,7 +72,6 @@ const AVATAR_COLORS = [
   "from-stone-500/30 to-stone-600/10 text-[var(--text-secondary)] border-stone-500/20",
   "from-[#c6892e]/20 to-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
 ];
-const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
 const STAGE_DOT: Record<string, string> = {
   "Lead": "bg-stone-400", "Qualified": "bg-[#717784]", "In Progress": "bg-stone-400",
   "Proposal": "bg-[#c6892e]", "Negotiation": "bg-[#c6892e]",
@@ -437,10 +437,27 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
 }
 
 // ─── Deal pipeline ────────────────────────────────────────────────────────────
-function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string) => void }) {
-  const isWon  = stage === "Closed Won";
-  const isLost = stage === "Closed Lost";
-  const activeIdx = PIPE_STAGES.indexOf(stage as typeof PIPE_STAGES[number]);
+/**
+ * Returns the OTHER stage this record also claims, when its two stage fields disagree.
+ *
+ * 28 of the 44 deals in this workspace carry both `deal_stage` and `stage` with different values —
+ * one says "Closed Won" while the other says "Lead". No resolver can fix that: whichever field it
+ * prefers, it contradicts whatever the other surfaces read. Picking a winner silently would make
+ * the pipeline look authoritative about a fact the data does not actually agree on, so the
+ * disagreement is shown instead of hidden.
+ */
+function conflictingStage(d: Record<string, unknown>): string | null {
+  const a = d.deal_stage === undefined ? null : String(d.deal_stage);
+  const b = d.stage === undefined ? null : String(d.stage);
+  if (a == null || b == null || a === b) return null;
+  return b;   // `dealStageOf` prefers deal_stage, so the unshown one is `stage`
+}
+
+function DealProgressBar({ stage, conflict, onSave }: { stage: string; conflict?: string | null; onSave: (v: string) => void }) {
+  // Matched the same way the server does, so "closed won" and "Closed Won" are one stage.
+  const isWon  = isWonStage(stage);
+  const isLost = isLostStage(stage);
+  const activeIdx = stageIndex(stage);
   return (
     <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 col-span-2">
       <div className="flex items-center justify-between mb-4">
@@ -449,8 +466,8 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           <span className="text-body text-[var(--text-secondary)]">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
-          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-[var(--text-secondary)] border-stone-500/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[var(--text-secondary)] hover:border-stone-500/20"}`}>Lost</button>
+          <button onClick={() => onSave(STAGE_WON)} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
+          <button onClick={() => onSave(STAGE_LOST)} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-[var(--text-secondary)] border-stone-500/30" : "text-[var(--text-faint)] border-[var(--border-soft)] hover:text-[var(--text-secondary)] hover:border-stone-500/20"}`}>Lost</button>
         </div>
       </div>
       <div className="flex items-start">
@@ -458,21 +475,44 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           const isActive = s === stage;
           const isPast   = activeIdx > i && !isWon && !isLost;
           const dot = STAGE_DOT[s] ?? "bg-stone-400";
-          const dotCls = isActive ? `${dot} ring-2 ring-white/30 scale-125` : isPast ? `${dot} opacity-50` : "bg-[var(--surface-hover)]";
+          // An unreached step is an OUTLINE, not a filled dot. It used to be filled with
+          // --surface-hover, which is the exact colour of the card it sits on, so four of the five
+          // steps were invisible and the pipeline read as one stray dot floating in a box.
+          const dotCls = isActive
+            ? `${dot} ring-2 ring-white/30 scale-125`
+            : isPast
+              ? `${dot} opacity-50`
+              : "bg-transparent border border-[var(--border-soft)]";
           return (
             <div key={s} className="flex flex-col items-center flex-1">
+              {/* Both connectors always render — the first and last steps used to omit theirs, which
+                  pushed their dots to the edges of their columns while the labels stayed centred, so
+                  the end dots did not line up with the stage they named. An invisible spacer keeps
+                  every dot centred over its own label. */}
               <div className="flex items-center w-full">
-                {i > 0 && <div className={`h-px flex-1 ${isPast || isActive ? "bg-[var(--surface-hover)]" : "bg-[var(--surface-hover)]"}`}/>}
-                <button onClick={() => onSave(s)} className="shrink-0 hover:scale-110 transition-transform">
+                <div className={`h-px flex-1 ${i > 0 ? (isPast || isActive ? "bg-[var(--section-accent-line)]" : "bg-[var(--border-soft)]") : "bg-transparent"}`}/>
+                <button onClick={() => onSave(s)} title={`Move to ${s}`} aria-label={`Move to ${s}`}
+                  className="shrink-0 px-0.5 hover:scale-110 transition-transform">
                   <div className={`h-3 w-3 rounded-full transition-all ${dotCls}`}/>
                 </button>
-                {i < PIPE_STAGES.length - 1 && <div className={`h-px flex-1 ${isPast ? "bg-[var(--surface-hover)]" : "bg-[var(--surface-hover)]"}`}/>}
+                <div className={`h-px flex-1 ${i < PIPE_STAGES.length - 1 ? (isPast ? "bg-[var(--section-accent-line)]" : "bg-[var(--border-soft)]") : "bg-transparent"}`}/>
               </div>
               <span className={`mt-2 text-[9px] font-medium uppercase tracking-wide text-center leading-tight max-w-[50px] ${isActive ? "text-[var(--text-primary)]" : isPast ? "text-[var(--text-faint)]" : "text-[var(--text-faint)]"}`}>{s}</span>
             </div>
           );
         })}
       </div>
+      {conflict && (
+        <div className="mt-3 flex items-start gap-1.5 rounded-md border border-[var(--border-soft)] px-2.5 py-1.5 text-[11px]"
+          style={{ color: "var(--text-faint)" }}>
+          <span aria-hidden>⚠</span>
+          <span>
+            This record also stores <strong className="font-medium text-[var(--text-secondary)]">{conflict}</strong> under
+            a second <code>stage</code> field, which is what the sheet column shows. Setting a stage here writes the
+            field this page reads — it does not reconcile the two.
+          </span>
+        </div>
+      )}
       {(isWon || isLost) && (
         <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border border-[#2f9e6b]/25" : "bg-stone-500/10 text-[var(--text-secondary)] border border-stone-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
@@ -681,7 +721,12 @@ function DealHighlights({ data, onSave }: { data: Record<string, unknown>; onSav
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2">
-        <DealProgressBar stage={String(data.deal_stage ?? "Lead")} onSave={v => onSave("deal_stage", v)}/>
+        {/* Resolved, not assumed. Reading `deal_stage` alone and defaulting to "Lead" made this
+            widget assert a specific wrong stage for every deal that stores its stage under `stage`
+            — while the sheet and every server-side report said otherwise. The write goes back to
+            whichever key this record actually uses, or saving would leave two stage fields
+            disagreeing and silently move the deal. */}
+        <DealProgressBar stage={dealStageOf(data)} conflict={conflictingStage(data)} onSave={v => onSave(dealStageKey(data), v)}/>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <HighlightCard icon={DollarSign} label="Deal value" value={data.deal_value ?? "—"} accent="emerald" onSave={v => onSave("deal_value", v)} numeric/>

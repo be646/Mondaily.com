@@ -12,10 +12,12 @@
  * rule. Both writers now call this.
  */
 
-export function dealStageOf(d: Record<string, unknown> | null | undefined): string {
-  const data = d ?? {};
-  return String(data.deal_stage ?? data.stage ?? data.status ?? "");
-}
+// The resolver moved to @mondaily/shared so the RECORD PAGE can import the same one. It used to
+// read `data.deal_stage` alone and default to "Lead", so a deal staged via `stage` had its pipeline
+// widget assert the wrong stage while every server-side number said otherwise. Re-exported here so
+// this module's callers are untouched.
+export { dealStageOf } from "@mondaily/shared/deal-stage";
+import { dealStageOf } from "@mondaily/shared/deal-stage";
 
 /**
  * Apply the stamps for a transition from `prevData` to `nextData`, in place on a copy.
