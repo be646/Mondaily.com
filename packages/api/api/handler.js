@@ -60860,6 +60860,162 @@ var init_embed_index = __esm({
   }
 });
 
+// ../shared/src/period.ts
+function formatterFor(timeZone) {
+  let f2 = FORMATTERS.get(timeZone);
+  if (!f2) {
+    f2 = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+    FORMATTERS.set(timeZone, f2);
+  }
+  return f2;
+}
+function wallClock(at2, timeZone) {
+  const parts = formatterFor(timeZone).formatToParts(at2);
+  const get2 = (t3) => Number(parts.find((p2) => p2.type === t3)?.value ?? "0");
+  const hour2 = get2("hour") % 24;
+  return { year: get2("year"), month: get2("month"), day: get2("day"), hour: hour2, minute: get2("minute"), second: get2("second") };
+}
+function offsetMinutes(at2, timeZone) {
+  const w2 = wallClock(at2, timeZone);
+  const asUTC = Date.UTC(w2.year, w2.month - 1, w2.day, w2.hour, w2.minute, w2.second);
+  return (asUTC - Math.floor(at2.getTime() / 1e3) * 1e3) / 6e4;
+}
+function instantOf(w2, timeZone) {
+  const target = Date.UTC(w2.year, w2.month - 1, w2.day, w2.hour ?? 0, w2.minute ?? 0, w2.second ?? 0);
+  let guess = new Date(target);
+  for (let i2 = 0; i2 < 2; i2++) {
+    guess = new Date(target - offsetMinutes(guess, timeZone) * 6e4);
+  }
+  return guess;
+}
+function weekdayIn(at2, timeZone) {
+  const name = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(at2);
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(name);
+}
+function periodStart(at2, type, cfg) {
+  const w2 = wallClock(at2, cfg.timeZone);
+  switch (type) {
+    case "YEARLY":
+      return instantOf({ year: w2.year, month: 1, day: 1 }, cfg.timeZone);
+    case "QUARTERLY":
+      return instantOf({ year: w2.year, month: Math.floor((w2.month - 1) / 3) * 3 + 1, day: 1 }, cfg.timeZone);
+    case "MONTHLY":
+      return instantOf({ year: w2.year, month: w2.month, day: 1 }, cfg.timeZone);
+    case "WEEKLY": {
+      const dow = weekdayIn(at2, cfg.timeZone);
+      const back = (dow - cfg.weekStart + 7) % 7;
+      const midnight = instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
+      const stepped = wallClock(new Date(midnight.getTime() - back * 864e5 + 36e5 * 12), cfg.timeZone);
+      return instantOf({ year: stepped.year, month: stepped.month, day: stepped.day }, cfg.timeZone);
+    }
+  }
+}
+function periodEnd(at2, type, cfg) {
+  const s2 = wallClock(periodStart(at2, type, cfg), cfg.timeZone);
+  switch (type) {
+    case "YEARLY":
+      return instantOf({ year: s2.year + 1, month: 1, day: 1 }, cfg.timeZone);
+    case "QUARTERLY": {
+      const m2 = s2.month + 3;
+      return instantOf({ year: s2.year + (m2 > 12 ? 1 : 0), month: m2 > 12 ? m2 - 12 : m2, day: 1 }, cfg.timeZone);
+    }
+    case "MONTHLY": {
+      const m2 = s2.month + 1;
+      return instantOf({ year: s2.year + (m2 > 12 ? 1 : 0), month: m2 > 12 ? 1 : m2, day: 1 }, cfg.timeZone);
+    }
+    case "WEEKLY": {
+      const start = periodStart(at2, type, cfg);
+      const mid = wallClock(new Date(start.getTime() + 7 * 864e5 + 36e5 * 12), cfg.timeZone);
+      return instantOf({ year: mid.year, month: mid.month, day: mid.day }, cfg.timeZone);
+    }
+  }
+}
+function periodBounds(at2, type, cfg) {
+  return { start: periodStart(at2, type, cfg), end: periodEnd(at2, type, cfg) };
+}
+function previousPeriod(at2, type, cfg) {
+  const start = periodStart(at2, type, cfg);
+  return periodBounds(new Date(start.getTime() - 1e3), type, cfg);
+}
+function periodKey2(at2, type, cfg) {
+  const s2 = wallClock(periodStart(at2, type, cfg), cfg.timeZone);
+  switch (type) {
+    case "YEARLY":
+      return `${s2.year}-Y${s2.year}`;
+    case "QUARTERLY":
+      return `${s2.year}-Q${Math.floor((s2.month - 1) / 3) + 1}`;
+    case "MONTHLY":
+      return `${s2.year}-M${String(s2.month).padStart(2, "0")}`;
+    case "WEEKLY": {
+      const firstOfYear = instantOf({ year: s2.year, month: 1, day: 1 }, cfg.timeZone);
+      const firstWeekStart = periodStart(firstOfYear, "WEEKLY", cfg);
+      const thisWeekStart = periodStart(at2, "WEEKLY", cfg);
+      const week = Math.round((thisWeekStart.getTime() - firstWeekStart.getTime()) / (7 * 864e5)) + 1;
+      return `${s2.year}-W${String(week).padStart(2, "0")}`;
+    }
+  }
+}
+function getPeriodBounds(timeframe, at2, cfg) {
+  switch (timeframe) {
+    case "ALL_TIME":
+      return null;
+    case "TODAY": {
+      const w2 = wallClock(at2, cfg.timeZone);
+      const start = instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
+      const mid = wallClock(new Date(start.getTime() + 864e5 + 36e5 * 12), cfg.timeZone);
+      return { start, end: instantOf({ year: mid.year, month: mid.month, day: mid.day }, cfg.timeZone) };
+    }
+    case "WEEK":
+      return { start: periodStart(at2, "WEEKLY", cfg), end: at2 };
+    case "MONTH":
+      return { start: periodStart(at2, "MONTHLY", cfg), end: at2 };
+    case "QUARTER":
+      return { start: periodStart(at2, "QUARTERLY", cfg), end: at2 };
+    case "YEAR":
+      return { start: periodStart(at2, "YEARLY", cfg), end: at2 };
+  }
+}
+function periodConfigFrom(settings) {
+  const s2 = settings ?? {};
+  const tz = typeof s2.timezone === "string" && s2.timezone.trim() ? s2.timezone.trim() : DEFAULT_PERIOD_CONFIG.timeZone;
+  const ws = s2.week_start === 1 || s2.week_start === "monday" ? 1 : 0;
+  try {
+    formatterFor(tz).format(/* @__PURE__ */ new Date());
+  } catch {
+    return { timeZone: "UTC", weekStart: ws };
+  }
+  return { timeZone: tz, weekStart: ws };
+}
+function elapsedPeriods(since, until, type, cfg) {
+  const out = [];
+  if (until <= since) return out;
+  let cursor = periodStart(since, type, cfg);
+  for (let guard = 0; guard < 1e3; guard++) {
+    const bounds = periodBounds(cursor, type, cfg);
+    if (bounds.end > until) break;
+    out.push({ key: periodKey2(cursor, type, cfg), bounds });
+    cursor = bounds.end;
+  }
+  return out;
+}
+var DEFAULT_PERIOD_CONFIG, FORMATTERS;
+var init_period = __esm({
+  "../shared/src/period.ts"() {
+    "use strict";
+    DEFAULT_PERIOD_CONFIG = { timeZone: "UTC", weekStart: 0 };
+    FORMATTERS = /* @__PURE__ */ new Map();
+  }
+});
+
 // ../shared/src/finance.ts
 function moneyEventDate(inv) {
   if (isCollected(inv.status) && inv.paid_at) return inv.paid_at;
@@ -60881,16 +61037,237 @@ var init_finance = __esm({
   }
 });
 
-// src/lib/money.ts
-function monthToDate(now = /* @__PURE__ */ new Date()) {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  return { start: start.getTime(), end: now.getTime() };
+// src/lib/period-close.ts
+var period_close_exports = {};
+__export(period_close_exports, {
+  METRICS_VERSION: () => METRICS_VERSION,
+  PERIOD_TYPES: () => PERIOD_TYPES,
+  closeDuePeriods: () => closeDuePeriods,
+  closePeriod: () => closePeriod,
+  computeMetrics: () => computeMetrics,
+  driftFor: () => driftFor,
+  sha256: () => sha2566,
+  snapshotHash: () => snapshotHash,
+  verifyChain: () => verifyChain,
+  workspacePeriodConfig: () => workspacePeriodConfig
+});
+function workspacePeriodConfig(row) {
+  const settings = row?.settings ?? {};
+  const column = typeof row?.timezone === "string" && row.timezone.trim() ? row.timezone.trim() : null;
+  return periodConfigFrom({ ...settings, ...column ? { timezone: column } : {} });
 }
-function prevMonthSamePoint(now = /* @__PURE__ */ new Date()) {
-  const prev = new Date(now);
-  prev.setMonth(prev.getMonth() - 1);
-  const start = new Date(prev.getFullYear(), prev.getMonth(), 1);
-  return { start: start.getTime(), end: prev.getTime() };
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  const o2 = value;
+  return `{${Object.keys(o2).sort().map((k2) => `${JSON.stringify(k2)}:${canonical(o2[k2])}`).join(",")}}`;
+}
+function sha2566(s2) {
+  return (0, import_node_crypto7.createHash)("sha256").update(s2).digest("hex");
+}
+function snapshotHash(input) {
+  return sha2566(canonical(input));
+}
+async function computeMetrics(workspaceId, bounds) {
+  const startIso = bounds.start.toISOString();
+  const endIso = bounds.end.toISOString();
+  const [{ base, toBase }, invoices, expenses, creditNotes, deals, tasks2] = await Promise.all([
+    makeBaseConverter(workspaceId),
+    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice"),
+    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "expense"),
+    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "credit_note"),
+    supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "deals"),
+    supabase.from("tasks").select("id,status,completed_at,updated_at").eq("workspace_id", workspaceId).gte("updated_at", startIso).lt("updated_at", endIso)
+  ]);
+  const ids = [];
+  let unconverted = 0;
+  const valueOf = (d2) => {
+    const m2 = readMoney(d2);
+    if (m2.modelled && m2.base_amount != null && (m2.base_currency ?? "").toUpperCase() === base.toUpperCase()) {
+      return m2.base_amount;
+    }
+    unconverted += 1;
+    return toBase(m2.amount, m2.currency || base);
+  };
+  const within = (iso) => {
+    if (!iso) return false;
+    const t3 = Date.parse(iso);
+    return Number.isFinite(t3) && t3 >= bounds.start.getTime() && t3 < bounds.end.getTime();
+  };
+  let revenue = 0, outstanding2 = 0;
+  for (const row of invoices.data ?? []) {
+    const d2 = row.data ?? {};
+    const status = String(d2.status ?? "draft");
+    if (isCollected(status) && within(moneyEventDate(d2))) {
+      revenue += valueOf(d2);
+      ids.push(String(row.id));
+    }
+    if (isOutstanding(status)) outstanding2 += valueOf(d2);
+  }
+  let expensesTotal = 0;
+  for (const row of expenses.data ?? []) {
+    const d2 = row.data ?? {};
+    const status = String(d2.status ?? "").toLowerCase();
+    if (status !== "approved" && status !== "verified") continue;
+    if (!within(String(d2.date ?? d2.approved_at ?? "") || null)) continue;
+    expensesTotal += valueOf(d2);
+    ids.push(String(row.id));
+  }
+  let credits = 0;
+  for (const row of creditNotes.data ?? []) {
+    const d2 = row.data ?? {};
+    const status = String(d2.status ?? "").toLowerCase();
+    if (status !== "verified" && status !== "executed") continue;
+    if (!within(String(d2.updated_at ?? d2.created_at ?? "") || null)) continue;
+    credits += valueOf(d2);
+    ids.push(String(row.id));
+  }
+  let dealsWon = 0;
+  for (const row of deals.data ?? []) {
+    const d2 = row.data ?? {};
+    const stage = String(d2.deal_stage ?? d2.stage ?? "").toLowerCase().replace(/[\s_-]+/g, " ");
+    if (stage !== "closed won" && stage !== "won") continue;
+    if (!within(String(d2.won_at ?? "") || null)) continue;
+    dealsWon += 1;
+    ids.push(String(row.id));
+  }
+  const tasksDone = (tasks2.data ?? []).filter((t3) => {
+    const status = String(t3.status ?? "").toLowerCase();
+    return status === "done" || status === "completed";
+  });
+  for (const t3 of tasksDone) ids.push(String(t3.id));
+  const round = (n2) => Math.round(n2 * 100) / 100;
+  const metrics = {
+    revenue_collected: round(revenue),
+    expenses_approved: round(expensesTotal),
+    credits_issued: round(credits),
+    net_margin: round(revenue - expensesTotal - credits),
+    deals_won_count: dealsWon,
+    tasks_completed: tasksDone.length,
+    outstanding_at_close: round(outstanding2),
+    base_currency: base
+  };
+  const inputs = {
+    invoices_scanned: (invoices.data ?? []).length,
+    expenses_scanned: (expenses.data ?? []).length,
+    credit_notes_scanned: (creditNotes.data ?? []).length,
+    deals_scanned: (deals.data ?? []).length,
+    tasks_scanned: (tasks2.data ?? []).length,
+    source_digest: sha2566(ids.sort().join(",")),
+    metrics_version: METRICS_VERSION,
+    unconverted
+  };
+  return { metrics, inputs };
+}
+async function closePeriod(workspaceId, type, key, bounds, cfg, closedBy) {
+  const base = { workspace_id: workspaceId, period_type: type, period_key: key };
+  const { data: existing } = await supabase.from("period_snapshots").select("snapshot_id").eq("workspace_id", workspaceId).eq("period_type", type).eq("period_key", key).maybeSingle();
+  if (existing) return { ...base, status: "already_closed" };
+  const { metrics, inputs } = await computeMetrics(workspaceId, bounds);
+  const { data: prev } = await supabase.from("period_snapshots").select("hash").eq("workspace_id", workspaceId).eq("period_type", type).order("period_end", { ascending: false }).limit(1).maybeSingle();
+  const prevHash = prev?.hash ?? null;
+  const period_start = bounds.start.toISOString();
+  const period_end = bounds.end.toISOString();
+  const hash2 = snapshotHash({ ...base, period_start, period_end, metrics, inputs, prev_hash: prevHash });
+  const { error } = await supabase.from("period_snapshots").insert({
+    ...base,
+    period_start,
+    period_end,
+    time_zone: cfg.timeZone,
+    week_start: cfg.weekStart,
+    metrics,
+    inputs,
+    hash: hash2,
+    prev_hash: prevHash,
+    closed_by: closedBy
+  });
+  if (error) {
+    if (String(error.code) === "23505") return { ...base, status: "already_closed" };
+    return { ...base, status: "failed", detail: error.message };
+  }
+  return { ...base, status: "written" };
+}
+async function closeDuePeriods(workspaceId, workspaceRow, now = /* @__PURE__ */ new Date(), opts = {}) {
+  const cfg = workspacePeriodConfig(workspaceRow);
+  const lookback = opts.lookbackDays ?? 400;
+  const since = new Date(now.getTime() - lookback * 864e5);
+  const out = [];
+  for (const type of opts.types ?? PERIOD_TYPES) {
+    for (const { key, bounds } of elapsedPeriods(since, now, type, cfg)) {
+      out.push(await closePeriod(workspaceId, type, key, bounds, cfg, opts.closedBy ?? "scheduled"));
+    }
+  }
+  return out;
+}
+async function driftFor(workspaceId, type, key) {
+  const { data: snap } = await supabase.from("period_snapshots").select("period_key, period_start, period_end, metrics, inputs").eq("workspace_id", workspaceId).eq("period_type", type).eq("period_key", key).maybeSingle();
+  if (!snap) return null;
+  const { metrics: live } = await computeMetrics(workspaceId, {
+    start: new Date(String(snap.period_start)),
+    end: new Date(String(snap.period_end))
+  });
+  const filed = snap.metrics ?? {};
+  const inputs = snap.inputs ?? {};
+  const changes = {};
+  for (const [k2, liveValue] of Object.entries(live)) {
+    if (typeof liveValue !== "number") continue;
+    const filedValue = Number(filed[k2] ?? 0);
+    if (Math.round(filedValue * 100) !== Math.round(liveValue * 100)) {
+      changes[k2] = { snapshot: filedValue, live: liveValue };
+    }
+  }
+  return {
+    period_key: key,
+    drifted: Object.keys(changes).length > 0,
+    changes,
+    version_changed: Number(inputs.metrics_version ?? 0) !== METRICS_VERSION
+  };
+}
+async function verifyChain(workspaceId, type) {
+  const { data } = await supabase.from("period_snapshots").select("period_key, period_type, period_start, period_end, metrics, inputs, hash, prev_hash").eq("workspace_id", workspaceId).eq("period_type", type).order("period_end", { ascending: true });
+  const rows2 = data ?? [];
+  const broken = [];
+  let expectedPrev = null;
+  for (const r2 of rows2) {
+    const recomputed = snapshotHash({
+      workspace_id: workspaceId,
+      period_type: r2.period_type,
+      period_key: String(r2.period_key),
+      period_start: new Date(String(r2.period_start)).toISOString(),
+      period_end: new Date(String(r2.period_end)).toISOString(),
+      metrics: r2.metrics,
+      inputs: r2.inputs,
+      prev_hash: r2.prev_hash ?? null
+    });
+    if (recomputed !== r2.hash) broken.push({ period_key: String(r2.period_key), reason: "content does not match its hash" });
+    else if ((r2.prev_hash ?? null) !== expectedPrev) broken.push({ period_key: String(r2.period_key), reason: "chain link does not match the previous snapshot" });
+    expectedPrev = String(r2.hash);
+  }
+  return { ok: broken.length === 0, checked: rows2.length, broken };
+}
+var import_node_crypto7, PERIOD_TYPES, METRICS_VERSION;
+var init_period_close = __esm({
+  "src/lib/period-close.ts"() {
+    "use strict";
+    import_node_crypto7 = require("crypto");
+    init_client();
+    init_period();
+    init_finance();
+    init_money();
+    init_currency_store();
+    PERIOD_TYPES = ["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"];
+    METRICS_VERSION = 1;
+  }
+});
+
+// src/lib/money.ts
+function monthToDate(cfg, now = /* @__PURE__ */ new Date()) {
+  return { start: periodStart(now, "MONTHLY", cfg).getTime(), end: now.getTime() };
+}
+function prevMonthSamePoint(cfg, now = /* @__PURE__ */ new Date()) {
+  const prev = previousPeriod(now, "MONTHLY", cfg);
+  const offset = now.getTime() - periodStart(now, "MONTHLY", cfg).getTime();
+  return { start: prev.start.getTime(), end: Math.min(prev.start.getTime() + offset, prev.end.getTime()) };
 }
 async function pagedNodes(ws, match2) {
   const rows2 = [];
@@ -60907,14 +61284,20 @@ async function pagedNodes(ws, match2) {
   return rows2;
 }
 function closedWonIn(rows2, range) {
-  let count = 0, value = 0;
+  let count = 0, value = 0, undated = 0, undatedValue = 0;
   for (const r2 of rows2) {
     if (!isWon(dealStage(r2.data))) continue;
-    if (!inRange(wonDate(r2), range)) continue;
+    const when = wonDate(r2);
+    if (!when) {
+      undated++;
+      undatedValue += dealValue(r2.data);
+      continue;
+    }
+    if (!inRange(when, range)) continue;
     count++;
     value += dealValue(r2.data);
   }
-  return { count, value };
+  return { count, value, undated, undated_value: Math.round(undatedValue * 100) / 100 };
 }
 function pipelineCreatedIn(rows2, range) {
   let count = 0, value = 0;
@@ -60947,7 +61330,8 @@ function weightedForecast(rows2) {
 function closersIn(rows2, range) {
   const by = /* @__PURE__ */ new Map();
   for (const r2 of rows2) {
-    if (!isWon(dealStage(r2.data)) || !inRange(wonDate(r2), range)) continue;
+    const wd = wonDate(r2);
+    if (!isWon(dealStage(r2.data)) || !wd || !inRange(wd, range)) continue;
     const owner = dealOwner(r2.data) || "Unassigned";
     const b2 = by.get(owner) ?? { count: 0, value: 0 };
     b2.count++;
@@ -61001,6 +61385,7 @@ var init_money2 = __esm({
     "use strict";
     init_client();
     init_finance();
+    init_period();
     inRange = (iso, r2) => {
       if (!iso) return false;
       const t3 = Date.parse(iso);
@@ -61017,7 +61402,10 @@ var init_money2 = __esm({
     isWon = (stage) => /won/i.test(stage);
     isLost = (stage) => /lost/i.test(stage);
     isOpen = (stage) => !isWon(stage) && !isLost(stage) && !/closed/i.test(stage);
-    wonDate = (row) => String((row.data ?? {}).won_at ?? row.updated_at ?? row.created_at);
+    wonDate = (row) => {
+      const explicit = (row.data ?? {}).won_at;
+      return explicit ? String(explicit) : null;
+    };
     STAGE_WEIGHTS = [
       [/negotiat/i, 0.75],
       [/proposal|quote/i, 0.5],
@@ -61069,7 +61457,7 @@ var init_grounding = __esm({
 // src/lib/pow-claims.ts
 function logPowClaim(userId, challenge, nonce, context2) {
   if (!userId || !challenge || !nonce) return;
-  const challenge_hash = (0, import_node_crypto9.createHash)("sha256").update(challenge).digest("hex");
+  const challenge_hash = (0, import_node_crypto10.createHash)("sha256").update(challenge).digest("hex");
   void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
   }, () => {
   });
@@ -61080,11 +61468,11 @@ async function verifiedPowUserIds(sinceMs = 30 * 24 * 60 * 60 * 1e3) {
   if (error || !data) return /* @__PURE__ */ new Set();
   return new Set(data.map((r2) => String(r2.user_id ?? "")));
 }
-var import_node_crypto9;
+var import_node_crypto10;
 var init_pow_claims = __esm({
   "src/lib/pow-claims.ts"() {
     "use strict";
-    import_node_crypto9 = require("crypto");
+    import_node_crypto10 = require("crypto");
     init_client();
   }
 });
@@ -61295,6 +61683,7 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
     makeBaseConverter(ws)
   ]);
   const emptyWin = () => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [] });
+  let undatedWins2 = 0, undatedLost = 0;
   const inWin = (ms5, s0, e0) => ms5 >= s0 && ms5 <= e0;
   const teamNow = emptyWin();
   const teamPrev = emptyWin();
@@ -61314,7 +61703,15 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
     const val = toBase(face, cur);
     const convertible = !(face > 0 && val === 0 && cur && cur.toUpperCase() !== base);
     if (isWon(stage) || /lost/i.test(stage)) {
-      const closedAt = Date.parse(wonDate(row) || String(row.updated_at ?? row.created_at ?? ""));
+      const isWonRow = isWon(stage);
+      const lostAt = String(d2.lost_at ?? "") || null;
+      const when = isWonRow ? wonDate(row) : lostAt ?? String(row.updated_at ?? row.created_at ?? "");
+      if (isWonRow && !when) {
+        undatedWins2 += 1;
+        continue;
+      }
+      if (!isWonRow && !lostAt) undatedLost += 1;
+      const closedAt = when ? Date.parse(when) : NaN;
       const target = inWin(closedAt, start, end) ? "now" : hasPrev && inWin(closedAt, prevStart, prevEnd) ? "prev" : null;
       if (!target) continue;
       const bucket = target === "now" ? teamNow : teamPrev;
@@ -61376,6 +61773,8 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
     team: {
       value_won: Math.round(teamNow.won),
       deals_won: teamNow.won_n,
+      undated_wins: undatedWins2,
+      undated_lost: undatedLost,
       value_lost: Math.round(teamNow.lost),
       deals_lost: teamNow.lost_n,
       pipeline_value: Math.round(pipelineValue),
@@ -61456,7 +61855,9 @@ async function goalActual(ws, metric, userId, windowDays) {
     let v2 = 0;
     for (const r2 of rows2) {
       if (!isWon(dealStage(r2.data))) continue;
-      const t3 = Date.parse(wonDate(r2));
+      const when = wonDate(r2);
+      if (!when) continue;
+      const t3 = Date.parse(when);
       if (!(t3 >= range.start && t3 <= range.end)) continue;
       if (dealOwner(r2.data).toLowerCase() !== name) continue;
       v2 += dealValue(r2.data);
@@ -61938,8 +62339,11 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
       return c2.json(data ?? []);
     });
     router12.get("/", requireAuth, async (c2) => {
-      const limit2 = Number(c2.req.query("limit") ?? 50);
-      const { data } = await supabase.from("activities").select("*, nodes(id, object_type, data)").eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(limit2);
+      const limit2 = Math.min(Math.max(Number(c2.req.query("limit") ?? 50) || 50, 1), 500);
+      const nodeId = c2.req.query("node_id");
+      let q2 = supabase.from("activities").select("*, nodes(id, object_type, data)").eq("workspace_id", c2.get("workspaceId"));
+      if (nodeId) q2 = q2.eq("node_id", nodeId);
+      const { data } = await q2.order("created_at", { ascending: false }).limit(limit2);
       return c2.json(data ?? []);
     });
     router12.get("/oversight-advanced", requireAuth, requireAdminRole, async (c2) => {
@@ -62225,7 +62629,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto17.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto18.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -62241,7 +62645,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto17.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto18.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -62249,385 +62653,12 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto17, b64url2;
+var import_node_crypto18, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto17 = require("crypto");
+    import_node_crypto18 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }
-});
-
-// ../shared/src/period.ts
-function formatterFor(timeZone) {
-  let f2 = FORMATTERS.get(timeZone);
-  if (!f2) {
-    f2 = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
-    FORMATTERS.set(timeZone, f2);
-  }
-  return f2;
-}
-function wallClock(at2, timeZone) {
-  const parts = formatterFor(timeZone).formatToParts(at2);
-  const get2 = (t3) => Number(parts.find((p2) => p2.type === t3)?.value ?? "0");
-  const hour2 = get2("hour") % 24;
-  return { year: get2("year"), month: get2("month"), day: get2("day"), hour: hour2, minute: get2("minute"), second: get2("second") };
-}
-function offsetMinutes(at2, timeZone) {
-  const w2 = wallClock(at2, timeZone);
-  const asUTC = Date.UTC(w2.year, w2.month - 1, w2.day, w2.hour, w2.minute, w2.second);
-  return (asUTC - Math.floor(at2.getTime() / 1e3) * 1e3) / 6e4;
-}
-function instantOf(w2, timeZone) {
-  const target = Date.UTC(w2.year, w2.month - 1, w2.day, w2.hour ?? 0, w2.minute ?? 0, w2.second ?? 0);
-  let guess = new Date(target);
-  for (let i2 = 0; i2 < 2; i2++) {
-    guess = new Date(target - offsetMinutes(guess, timeZone) * 6e4);
-  }
-  return guess;
-}
-function weekdayIn(at2, timeZone) {
-  const name = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(at2);
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(name);
-}
-function periodStart(at2, type, cfg) {
-  const w2 = wallClock(at2, cfg.timeZone);
-  switch (type) {
-    case "YEARLY":
-      return instantOf({ year: w2.year, month: 1, day: 1 }, cfg.timeZone);
-    case "QUARTERLY":
-      return instantOf({ year: w2.year, month: Math.floor((w2.month - 1) / 3) * 3 + 1, day: 1 }, cfg.timeZone);
-    case "MONTHLY":
-      return instantOf({ year: w2.year, month: w2.month, day: 1 }, cfg.timeZone);
-    case "WEEKLY": {
-      const dow = weekdayIn(at2, cfg.timeZone);
-      const back = (dow - cfg.weekStart + 7) % 7;
-      const midnight = instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
-      const stepped = wallClock(new Date(midnight.getTime() - back * 864e5 + 36e5 * 12), cfg.timeZone);
-      return instantOf({ year: stepped.year, month: stepped.month, day: stepped.day }, cfg.timeZone);
-    }
-  }
-}
-function periodEnd(at2, type, cfg) {
-  const s2 = wallClock(periodStart(at2, type, cfg), cfg.timeZone);
-  switch (type) {
-    case "YEARLY":
-      return instantOf({ year: s2.year + 1, month: 1, day: 1 }, cfg.timeZone);
-    case "QUARTERLY": {
-      const m2 = s2.month + 3;
-      return instantOf({ year: s2.year + (m2 > 12 ? 1 : 0), month: m2 > 12 ? m2 - 12 : m2, day: 1 }, cfg.timeZone);
-    }
-    case "MONTHLY": {
-      const m2 = s2.month + 1;
-      return instantOf({ year: s2.year + (m2 > 12 ? 1 : 0), month: m2 > 12 ? 1 : m2, day: 1 }, cfg.timeZone);
-    }
-    case "WEEKLY": {
-      const start = periodStart(at2, type, cfg);
-      const mid = wallClock(new Date(start.getTime() + 7 * 864e5 + 36e5 * 12), cfg.timeZone);
-      return instantOf({ year: mid.year, month: mid.month, day: mid.day }, cfg.timeZone);
-    }
-  }
-}
-function periodBounds(at2, type, cfg) {
-  return { start: periodStart(at2, type, cfg), end: periodEnd(at2, type, cfg) };
-}
-function previousPeriod(at2, type, cfg) {
-  const start = periodStart(at2, type, cfg);
-  return periodBounds(new Date(start.getTime() - 1e3), type, cfg);
-}
-function periodKey2(at2, type, cfg) {
-  const s2 = wallClock(periodStart(at2, type, cfg), cfg.timeZone);
-  switch (type) {
-    case "YEARLY":
-      return `${s2.year}-Y${s2.year}`;
-    case "QUARTERLY":
-      return `${s2.year}-Q${Math.floor((s2.month - 1) / 3) + 1}`;
-    case "MONTHLY":
-      return `${s2.year}-M${String(s2.month).padStart(2, "0")}`;
-    case "WEEKLY": {
-      const firstOfYear = instantOf({ year: s2.year, month: 1, day: 1 }, cfg.timeZone);
-      const firstWeekStart = periodStart(firstOfYear, "WEEKLY", cfg);
-      const thisWeekStart = periodStart(at2, "WEEKLY", cfg);
-      const week = Math.round((thisWeekStart.getTime() - firstWeekStart.getTime()) / (7 * 864e5)) + 1;
-      return `${s2.year}-W${String(week).padStart(2, "0")}`;
-    }
-  }
-}
-function getPeriodBounds(timeframe, at2, cfg) {
-  switch (timeframe) {
-    case "ALL_TIME":
-      return null;
-    case "TODAY": {
-      const w2 = wallClock(at2, cfg.timeZone);
-      const start = instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
-      const mid = wallClock(new Date(start.getTime() + 864e5 + 36e5 * 12), cfg.timeZone);
-      return { start, end: instantOf({ year: mid.year, month: mid.month, day: mid.day }, cfg.timeZone) };
-    }
-    case "WEEK":
-      return { start: periodStart(at2, "WEEKLY", cfg), end: at2 };
-    case "MONTH":
-      return { start: periodStart(at2, "MONTHLY", cfg), end: at2 };
-    case "QUARTER":
-      return { start: periodStart(at2, "QUARTERLY", cfg), end: at2 };
-    case "YEAR":
-      return { start: periodStart(at2, "YEARLY", cfg), end: at2 };
-  }
-}
-function periodConfigFrom(settings) {
-  const s2 = settings ?? {};
-  const tz = typeof s2.timezone === "string" && s2.timezone.trim() ? s2.timezone.trim() : DEFAULT_PERIOD_CONFIG.timeZone;
-  const ws = s2.week_start === 1 || s2.week_start === "monday" ? 1 : 0;
-  try {
-    formatterFor(tz).format(/* @__PURE__ */ new Date());
-  } catch {
-    return { timeZone: "UTC", weekStart: ws };
-  }
-  return { timeZone: tz, weekStart: ws };
-}
-function elapsedPeriods(since, until, type, cfg) {
-  const out = [];
-  if (until <= since) return out;
-  let cursor = periodStart(since, type, cfg);
-  for (let guard = 0; guard < 1e3; guard++) {
-    const bounds = periodBounds(cursor, type, cfg);
-    if (bounds.end > until) break;
-    out.push({ key: periodKey2(cursor, type, cfg), bounds });
-    cursor = bounds.end;
-  }
-  return out;
-}
-var DEFAULT_PERIOD_CONFIG, FORMATTERS;
-var init_period = __esm({
-  "../shared/src/period.ts"() {
-    "use strict";
-    DEFAULT_PERIOD_CONFIG = { timeZone: "UTC", weekStart: 0 };
-    FORMATTERS = /* @__PURE__ */ new Map();
-  }
-});
-
-// src/lib/period-close.ts
-var period_close_exports = {};
-__export(period_close_exports, {
-  METRICS_VERSION: () => METRICS_VERSION,
-  PERIOD_TYPES: () => PERIOD_TYPES,
-  closeDuePeriods: () => closeDuePeriods,
-  closePeriod: () => closePeriod,
-  computeMetrics: () => computeMetrics,
-  driftFor: () => driftFor,
-  sha256: () => sha2566,
-  snapshotHash: () => snapshotHash,
-  verifyChain: () => verifyChain
-});
-function canonical(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  const o2 = value;
-  return `{${Object.keys(o2).sort().map((k2) => `${JSON.stringify(k2)}:${canonical(o2[k2])}`).join(",")}}`;
-}
-function sha2566(s2) {
-  return (0, import_node_crypto20.createHash)("sha256").update(s2).digest("hex");
-}
-function snapshotHash(input) {
-  return sha2566(canonical(input));
-}
-async function computeMetrics(workspaceId, bounds) {
-  const startIso = bounds.start.toISOString();
-  const endIso = bounds.end.toISOString();
-  const [{ base, toBase }, invoices, expenses, creditNotes, deals, tasks2] = await Promise.all([
-    makeBaseConverter(workspaceId),
-    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice"),
-    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "expense"),
-    supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "credit_note"),
-    supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "deals"),
-    supabase.from("tasks").select("id,status,completed_at,updated_at").eq("workspace_id", workspaceId).gte("updated_at", startIso).lt("updated_at", endIso)
-  ]);
-  const ids = [];
-  let unconverted = 0;
-  const valueOf = (d2) => {
-    const m2 = readMoney(d2);
-    if (m2.modelled && m2.base_amount != null && (m2.base_currency ?? "").toUpperCase() === base.toUpperCase()) {
-      return m2.base_amount;
-    }
-    unconverted += 1;
-    return toBase(m2.amount, m2.currency || base);
-  };
-  const within = (iso) => {
-    if (!iso) return false;
-    const t3 = Date.parse(iso);
-    return Number.isFinite(t3) && t3 >= bounds.start.getTime() && t3 < bounds.end.getTime();
-  };
-  let revenue = 0, outstanding2 = 0;
-  for (const row of invoices.data ?? []) {
-    const d2 = row.data ?? {};
-    const status = String(d2.status ?? "draft");
-    if (isCollected(status) && within(moneyEventDate(d2))) {
-      revenue += valueOf(d2);
-      ids.push(String(row.id));
-    }
-    if (isOutstanding(status)) outstanding2 += valueOf(d2);
-  }
-  let expensesTotal = 0;
-  for (const row of expenses.data ?? []) {
-    const d2 = row.data ?? {};
-    const status = String(d2.status ?? "").toLowerCase();
-    if (status !== "approved" && status !== "verified") continue;
-    if (!within(String(d2.date ?? d2.approved_at ?? "") || null)) continue;
-    expensesTotal += valueOf(d2);
-    ids.push(String(row.id));
-  }
-  let credits = 0;
-  for (const row of creditNotes.data ?? []) {
-    const d2 = row.data ?? {};
-    const status = String(d2.status ?? "").toLowerCase();
-    if (status !== "verified" && status !== "executed") continue;
-    if (!within(String(d2.updated_at ?? d2.created_at ?? "") || null)) continue;
-    credits += valueOf(d2);
-    ids.push(String(row.id));
-  }
-  let dealsWon = 0;
-  for (const row of deals.data ?? []) {
-    const d2 = row.data ?? {};
-    const stage = String(d2.deal_stage ?? d2.stage ?? "").toLowerCase().replace(/[\s_-]+/g, " ");
-    if (stage !== "closed won" && stage !== "won") continue;
-    if (!within(String(d2.won_at ?? "") || row.updated_at || null)) continue;
-    dealsWon += 1;
-    ids.push(String(row.id));
-  }
-  const tasksDone = (tasks2.data ?? []).filter((t3) => {
-    const status = String(t3.status ?? "").toLowerCase();
-    return status === "done" || status === "completed";
-  });
-  for (const t3 of tasksDone) ids.push(String(t3.id));
-  const round = (n2) => Math.round(n2 * 100) / 100;
-  const metrics = {
-    revenue_collected: round(revenue),
-    expenses_approved: round(expensesTotal),
-    credits_issued: round(credits),
-    net_margin: round(revenue - expensesTotal - credits),
-    deals_won_count: dealsWon,
-    tasks_completed: tasksDone.length,
-    outstanding_at_close: round(outstanding2),
-    base_currency: base
-  };
-  const inputs = {
-    invoices_scanned: (invoices.data ?? []).length,
-    expenses_scanned: (expenses.data ?? []).length,
-    credit_notes_scanned: (creditNotes.data ?? []).length,
-    deals_scanned: (deals.data ?? []).length,
-    tasks_scanned: (tasks2.data ?? []).length,
-    source_digest: sha2566(ids.sort().join(",")),
-    metrics_version: METRICS_VERSION,
-    unconverted
-  };
-  return { metrics, inputs };
-}
-async function closePeriod(workspaceId, type, key, bounds, cfg, closedBy) {
-  const base = { workspace_id: workspaceId, period_type: type, period_key: key };
-  const { data: existing } = await supabase.from("period_snapshots").select("snapshot_id").eq("workspace_id", workspaceId).eq("period_type", type).eq("period_key", key).maybeSingle();
-  if (existing) return { ...base, status: "already_closed" };
-  const { metrics, inputs } = await computeMetrics(workspaceId, bounds);
-  const { data: prev } = await supabase.from("period_snapshots").select("hash").eq("workspace_id", workspaceId).eq("period_type", type).order("period_end", { ascending: false }).limit(1).maybeSingle();
-  const prevHash = prev?.hash ?? null;
-  const period_start = bounds.start.toISOString();
-  const period_end = bounds.end.toISOString();
-  const hash2 = snapshotHash({ ...base, period_start, period_end, metrics, inputs, prev_hash: prevHash });
-  const { error } = await supabase.from("period_snapshots").insert({
-    ...base,
-    period_start,
-    period_end,
-    time_zone: cfg.timeZone,
-    week_start: cfg.weekStart,
-    metrics,
-    inputs,
-    hash: hash2,
-    prev_hash: prevHash,
-    closed_by: closedBy
-  });
-  if (error) {
-    if (String(error.code) === "23505") return { ...base, status: "already_closed" };
-    return { ...base, status: "failed", detail: error.message };
-  }
-  return { ...base, status: "written" };
-}
-async function closeDuePeriods(workspaceId, settings, now = /* @__PURE__ */ new Date(), opts = {}) {
-  const cfg = periodConfigFrom(settings);
-  const lookback = opts.lookbackDays ?? 400;
-  const since = new Date(now.getTime() - lookback * 864e5);
-  const out = [];
-  for (const type of opts.types ?? PERIOD_TYPES) {
-    for (const { key, bounds } of elapsedPeriods(since, now, type, cfg)) {
-      out.push(await closePeriod(workspaceId, type, key, bounds, cfg, opts.closedBy ?? "scheduled"));
-    }
-  }
-  return out;
-}
-async function driftFor(workspaceId, type, key) {
-  const { data: snap } = await supabase.from("period_snapshots").select("period_key, period_start, period_end, metrics, inputs").eq("workspace_id", workspaceId).eq("period_type", type).eq("period_key", key).maybeSingle();
-  if (!snap) return null;
-  const { metrics: live } = await computeMetrics(workspaceId, {
-    start: new Date(String(snap.period_start)),
-    end: new Date(String(snap.period_end))
-  });
-  const filed = snap.metrics ?? {};
-  const inputs = snap.inputs ?? {};
-  const changes = {};
-  for (const [k2, liveValue] of Object.entries(live)) {
-    if (typeof liveValue !== "number") continue;
-    const filedValue = Number(filed[k2] ?? 0);
-    if (Math.round(filedValue * 100) !== Math.round(liveValue * 100)) {
-      changes[k2] = { snapshot: filedValue, live: liveValue };
-    }
-  }
-  return {
-    period_key: key,
-    drifted: Object.keys(changes).length > 0,
-    changes,
-    version_changed: Number(inputs.metrics_version ?? 0) !== METRICS_VERSION
-  };
-}
-async function verifyChain(workspaceId, type) {
-  const { data } = await supabase.from("period_snapshots").select("period_key, period_type, period_start, period_end, metrics, inputs, hash, prev_hash").eq("workspace_id", workspaceId).eq("period_type", type).order("period_end", { ascending: true });
-  const rows2 = data ?? [];
-  const broken = [];
-  let expectedPrev = null;
-  for (const r2 of rows2) {
-    const recomputed = snapshotHash({
-      workspace_id: workspaceId,
-      period_type: r2.period_type,
-      period_key: String(r2.period_key),
-      period_start: new Date(String(r2.period_start)).toISOString(),
-      period_end: new Date(String(r2.period_end)).toISOString(),
-      metrics: r2.metrics,
-      inputs: r2.inputs,
-      prev_hash: r2.prev_hash ?? null
-    });
-    if (recomputed !== r2.hash) broken.push({ period_key: String(r2.period_key), reason: "content does not match its hash" });
-    else if ((r2.prev_hash ?? null) !== expectedPrev) broken.push({ period_key: String(r2.period_key), reason: "chain link does not match the previous snapshot" });
-    expectedPrev = String(r2.hash);
-  }
-  return { ok: broken.length === 0, checked: rows2.length, broken };
-}
-var import_node_crypto20, PERIOD_TYPES, METRICS_VERSION;
-var init_period_close = __esm({
-  "src/lib/period-close.ts"() {
-    "use strict";
-    import_node_crypto20 = require("crypto");
-    init_client();
-    init_period();
-    init_finance();
-    init_money();
-    init_currency_store();
-    PERIOD_TYPES = ["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"];
-    METRICS_VERSION = 1;
   }
 });
 
@@ -66535,7 +66566,12 @@ router3.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external
     const after = dealStageOf({ ...prevData, ...nextData });
     if (/won/i.test(after) && !/won/i.test(before) && !nextData.won_at) {
       nextData.won_at = (/* @__PURE__ */ new Date()).toISOString();
-    } else if (prevData.won_at && !nextData.won_at) {
+    }
+    if (/lost/i.test(after) && !/lost/i.test(before) && !nextData.lost_at) {
+      nextData.lost_at = (/* @__PURE__ */ new Date()).toISOString();
+    }
+    if (prevData.lost_at && !nextData.lost_at) nextData.lost_at = prevData.lost_at;
+    if (prevData.won_at && !nextData.won_at) {
       nextData.won_at = prevData.won_at;
     }
   }
@@ -66729,6 +66765,7 @@ router4.post("/reconcile", requireAuth, async (c2) => {
 init_dist();
 init_auth();
 init_client();
+init_period_close();
 init_currency_store();
 init_dates();
 init_money2();
@@ -66739,8 +66776,10 @@ router5.get("/", async (c2) => {
   const startOfToday = /* @__PURE__ */ new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const weekAgo = Date.now() - 7 * 864e5;
-  const mtd = monthToDate();
-  const prev = prevMonthSamePoint();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const periodCfg = workspacePeriodConfig(wsRow);
+  const mtd = monthToDate(periodCfg);
+  const prev = prevMonthSamePoint(periodCfg);
   const [pendingR, autoR, overdueTasksR, invoices, deals, conv] = await Promise.all([
     supabase.from("decision_queue").select("id,title,risk_level,agent_name").eq("workspace_id", ws).eq("status", "pending").order("created_at", { ascending: true }).limit(500),
     supabase.from("decision_queue").select("id").eq("workspace_id", ws).eq("resolved_by", "autonomy").gte("resolved_at", startOfToday.toISOString()).limit(500),
@@ -66774,7 +66813,15 @@ router5.get("/", async (c2) => {
     handled: { auto_approved_today: (autoR.data ?? []).length },
     // The four lead numbers. `delta` is % vs the same point last month, null when last month was 0.
     money: {
-      closed_won: { value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value) },
+      closed_won: {
+        value: r2(won.value),
+        count: won.count,
+        delta: deltaPct(won.value, wonPrev.value),
+        // Wins with no close date are excluded from the window rather than dated by their last
+        // edit. Reported so the gap is visible instead of silently missing from the total.
+        undated: won.undated ?? 0,
+        undated_value: won.undated_value ?? 0
+      },
       cash: { collected: inv.collected, invoiced: inv.invoiced, delta: deltaPct(inv.collected, invPrev.collected) },
       pipeline_created: { value: r2(created.value), count: created.count, delta: deltaPct(created.value, createdPrev.value) },
       forecast: { value: r2(weightedForecast(deals)), open_count: open.count, open_value: r2(open.value) },
@@ -66797,6 +66844,7 @@ init_dist();
 init_auth();
 init_rbac();
 init_client();
+init_period_close();
 init_currency_store();
 init_ai_gateway();
 init_autonomy();
@@ -66838,8 +66886,10 @@ async function aiSpendByFeature(ws, days) {
   return [...by].map(([feature, b2]) => ({ feature, ...b2 })).sort((a2, b2) => b2.total_tokens - a2.total_tokens).slice(0, 10);
 }
 async function buildConsolePayload(ws) {
-  const mtd = monthToDate();
-  const prev = prevMonthSamePoint();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const periodCfg = workspacePeriodConfig(wsRow);
+  const mtd = monthToDate(periodCfg);
+  const prev = prevMonthSamePoint(periodCfg);
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const [invoices, deals, conv, members4, decisions7d, pendingR, level, hourUsed, recentActs, aiSpend] = await Promise.all([
     pagedNodes(ws, { eq: "invoice" }),
@@ -66903,7 +66953,15 @@ async function buildConsolePayload(ws) {
   return {
     base,
     money: {
-      closed_won: { value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value) },
+      closed_won: {
+        value: r2(won.value),
+        count: won.count,
+        delta: deltaPct(won.value, wonPrev.value),
+        // Wins with no close date are excluded from the window rather than dated by their last
+        // edit. Reported so the gap is visible instead of silently missing from the total.
+        undated: won.undated ?? 0,
+        undated_value: won.undated_value ?? 0
+      },
       cash: { collected: inv.collected, invoiced: inv.invoiced, outstanding: inv.outstanding, delta: deltaPct(inv.collected, invPrev.collected) },
       pipeline_created: { value: r2(created.value), count: created.count, delta: deltaPct(created.value, createdPrev.value) },
       forecast: { value: r2(weightedForecast(deals)), open_count: open.count, open_value: r2(open.value) },
@@ -70270,7 +70328,7 @@ User: ${lastMsg.content}` : lastMsg.content;
 
 // src/routes/guest-calls.ts
 init_dist();
-var import_node_crypto8 = require("crypto");
+var import_node_crypto9 = require("crypto");
 init_jwt4();
 init_dist6();
 init_zod();
@@ -70333,7 +70391,7 @@ function sanitizeLiveTranscriptLine(raw2) {
 }
 
 // src/lib/translation.ts
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 init_client();
 init_ai_gateway();
 var translationConfigured = () => {
@@ -70341,7 +70399,7 @@ var translationConfigured = () => {
   return !!(baseURL && apiKey);
 };
 var normalizeForHash = (s2) => s2.trim().replace(/\s+/g, " ");
-var textHash = (s2) => (0, import_node_crypto7.createHash)("sha256").update(normalizeForHash(s2)).digest("hex");
+var textHash = (s2) => (0, import_node_crypto8.createHash)("sha256").update(normalizeForHash(s2)).digest("hex");
 var langName = (code) => SUPPORTED_LANGUAGES.find((l2) => l2.code === code)?.name ?? code;
 var nativeName = (code) => SUPPORTED_LANGUAGES.find((l2) => l2.code === code)?.nativeName ?? code;
 async function translateOne(text, sourceLang, targetLang, ws, userId) {
@@ -70514,7 +70572,7 @@ router10.post("/request", rateLimit({ max: 15, windowMs: 6e4 }), zValidator("jso
     return c2.json({ error: "This meeting may be recorded \u2014 you must consent to join.", code: "consent_required" }, 400);
   }
   if (!r2.data.guest_waiting_room) return c2.json({ waiting: false });
-  const request_id = (0, import_node_crypto8.randomUUID)();
+  const request_id = (0, import_node_crypto9.randomUUID)();
   const guest_name = String(name ?? "").trim().slice(0, 40) || "Guest";
   const waiting = { event_id: r2.claims.ev, room: r2.claims.room, guest_name, status: "waiting", request_id, created_at: (/* @__PURE__ */ new Date()).toISOString() };
   const { error } = await supabase.from("nodes").insert({ workspace_id: r2.claims.ws, vertical: "shared", object_type: WAITING_OBJECT, created_by: null, data: waiting });
@@ -71672,7 +71730,7 @@ router13.delete("/:id", async (c2) => {
 });
 
 // src/routes/calendar.ts
-var import_node_crypto10 = require("crypto");
+var import_node_crypto11 = require("crypto");
 init_dist();
 init_zod();
 init_dist6();
@@ -72087,7 +72145,7 @@ router14.post("/events/:id/guest-link", async (c2) => {
   const now = Math.floor(Date.now() / 1e3);
   const exp = now + 24 * 60 * 60;
   const epoch = Number(ev.data.guest_link_epoch ?? 0);
-  const jti = (0, import_node_crypto10.randomUUID)();
+  const jti = (0, import_node_crypto11.randomUUID)();
   const token = await sign2({ kind: "call_guest", ev: ev.id, ws, room, exp, epoch, jti }, secret4, "HS256");
   return c2.json({ url: `${appUrl3()}/join/${ev.id}#g=${token}`, expires_at: new Date(exp * 1e3).toISOString() });
 });
@@ -72273,7 +72331,7 @@ ${sources.map((s2) => `- [${s2.type}] ${s2.title} (${s2.match_reason})`).join("\
 var INTEL_KEY = "transcript_intel";
 function transcriptFingerprint(lines) {
   const basis = lines.map((l2) => `${l2.ts}|${l2.speaker_name ?? ""}|${l2.text ?? ""}`).join("\n");
-  return (0, import_node_crypto10.createHash)("sha256").update(basis).digest("hex").slice(0, 32);
+  return (0, import_node_crypto11.createHash)("sha256").update(basis).digest("hex").slice(0, 32);
 }
 var readIntelMap = (d2) => {
   const m2 = d2[INTEL_KEY];
@@ -72427,6 +72485,123 @@ init_dist();
 init_zod();
 init_dist6();
 init_client();
+
+// src/lib/rebase-currency.ts
+init_client();
+init_currency_store();
+init_money();
+var FINANCE_TYPES = ["invoice", "quote", "credit_note", "expense"];
+function transactionDate(data, createdAt) {
+  const candidates = [data.issued_on, data.date, data.paid_at, data.created_at, createdAt];
+  for (const c2 of candidates) {
+    const s2 = String(c2 ?? "").slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s2)) return s2;
+  }
+  return String(createdAt).slice(0, 10);
+}
+async function planRebase(workspaceId, toCurrency) {
+  const target = toCurrency.toUpperCase();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const from = typeof settings.base_currency === "string" ? String(settings.base_currency).toUpperCase() : null;
+  const { data } = await supabase.from("nodes").select("id, object_type, data, created_at").eq("workspace_id", workspaceId).eq("vertical", "finance").in("object_type", FINANCE_TYPES);
+  const rows2 = [];
+  const rateCache = /* @__PURE__ */ new Map();
+  for (const r2 of data ?? []) {
+    const d2 = r2.data ?? {};
+    const m2 = readMoney(d2);
+    const presentmentCurrency = (m2.currency || "").toUpperCase();
+    const as_of = transactionDate(d2, String(r2.created_at));
+    const base = {
+      id: String(r2.id),
+      object_type: String(r2.object_type),
+      presentment: m2.amount,
+      currency_presentment: presentmentCurrency,
+      as_of,
+      old_base: m2.base_amount ?? null,
+      old_currency_base: m2.base_currency ?? null,
+      new_base: null,
+      new_rate: null,
+      blocked: null
+    };
+    if ((m2.base_currency ?? "").toUpperCase() === target) {
+      base.blocked = null;
+      base.new_base = m2.base_amount ?? null;
+      base.new_rate = m2.rate ?? null;
+      rows2.push(base);
+      continue;
+    }
+    if (!presentmentCurrency) {
+      base.blocked = "no presentment currency recorded";
+      rows2.push(base);
+      continue;
+    }
+    if (!rateCache.has(as_of)) rateCache.set(as_of, (await loadRatesAsOf(as_of)).rates);
+    const rates = rateCache.get(as_of);
+    const pFrom = presentmentCurrency === "EUR" ? 1 : rates[presentmentCurrency];
+    const pTo = target === "EUR" ? 1 : rates[target];
+    if (!pFrom || !pTo) {
+      base.blocked = `no stored rate for ${!pFrom ? presentmentCurrency : target} on ${as_of}`;
+      rows2.push(base);
+      continue;
+    }
+    const rate = pTo / pFrom;
+    base.new_rate = Math.round(rate * 1e8) / 1e8;
+    base.new_base = Math.round(m2.amount * rate * 100) / 100;
+    rows2.push(base);
+  }
+  const alreadyTarget = rows2.filter((r2) => (r2.old_currency_base ?? "").toUpperCase() === target).length;
+  return {
+    from_currency: from,
+    to_currency: target,
+    rows: rows2,
+    summary: {
+      scanned: rows2.length,
+      convertible: rows2.filter((r2) => !r2.blocked && (r2.old_currency_base ?? "").toUpperCase() !== target).length,
+      blocked: rows2.filter((r2) => r2.blocked).length,
+      already_in_target: alreadyTarget
+    }
+  };
+}
+async function applyRebase(workspaceId, plan) {
+  const errors = [];
+  let updated = 0, skipped = 0;
+  for (const row of plan.rows) {
+    if (row.blocked || row.new_base == null || row.new_rate == null) {
+      skipped++;
+      continue;
+    }
+    if ((row.old_currency_base ?? "").toUpperCase() === plan.to_currency) {
+      skipped++;
+      continue;
+    }
+    const { data: current } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("id", row.id).maybeSingle();
+    if (!current) {
+      errors.push(`${row.id}: not found`);
+      continue;
+    }
+    const d2 = current.data ?? {};
+    const { error } = await supabase.from("nodes").update({
+      data: {
+        ...d2,
+        // presentment survives verbatim
+        amount_base: row.new_base,
+        currency_base: plan.to_currency,
+        fx_rate: row.new_rate,
+        fx_rate_as_of: row.as_of,
+        fx_rate_source: "ecb",
+        // So a rebased figure can always be told from one frozen at the original transaction.
+        rebased_from: row.old_currency_base ?? null,
+        rebased_at: (/* @__PURE__ */ new Date()).toISOString()
+      }
+    }).eq("workspace_id", workspaceId).eq("id", row.id);
+    if (error) errors.push(`${row.id}: ${error.message}`);
+    else updated++;
+  }
+  return { updated, skipped, errors };
+}
+
+// src/routes/currency.ts
 init_auth();
 init_rbac();
 init_currency();
@@ -72471,6 +72646,30 @@ router15.post("/display", zValidator("json", external_exports.object({ currency:
   const { error } = await supabase.from("workspaces").update({ settings: { ...settings, user_preferences: prefs } }).eq("id", ws);
   if (error) return c2.json({ error: "Could not update your display currency." }, 500);
   return c2.json({ ok: true, display: c2.req.valid("json").currency });
+});
+router15.post("/rebase", zValidator("json", external_exports.object({
+  to_currency: external_exports.string().length(3),
+  dry_run: external_exports.boolean().default(true)
+})), async (c2) => {
+  const role = c2.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c2.json({ error: "Owner/admin only." }, 403);
+  const ws = c2.get("workspaceId");
+  const { to_currency, dry_run } = c2.req.valid("json");
+  const plan = await planRebase(ws, to_currency);
+  if (dry_run) {
+    return c2.json({
+      dry_run: true,
+      from_currency: plan.from_currency,
+      to_currency: plan.to_currency,
+      summary: plan.summary,
+      // Blocked rows are named, not counted away: a missing rate is a fact worth acting on.
+      blocked: plan.rows.filter((r2) => r2.blocked).slice(0, 50).map((r2) => ({ id: r2.id, as_of: r2.as_of, reason: r2.blocked })),
+      sample: plan.rows.filter((r2) => !r2.blocked).slice(0, 10),
+      note: "Nothing was written. amount_presentment and currency_presentment are never modified by this operation."
+    });
+  }
+  const result = await applyRebase(ws, plan);
+  return c2.json({ dry_run: false, to_currency: plan.to_currency, ...result });
 });
 
 // src/routes/training.ts
@@ -72878,14 +73077,14 @@ init_dist();
 init_zod();
 init_dist6();
 init_cookie2();
-var import_node_crypto14 = require("crypto");
+var import_node_crypto15 = require("crypto");
 init_client();
 
 // src/lib/password.ts
-var import_node_crypto11 = require("crypto");
+var import_node_crypto12 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto11.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto12.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -72894,7 +73093,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto11.randomBytes)(16);
+  const salt = (0, import_node_crypto12.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -72906,7 +73105,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto11.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto12.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -72958,7 +73157,7 @@ init_auth_tokens();
 init_mail();
 
 // src/lib/totp.ts
-var import_node_crypto12 = require("crypto");
+var import_node_crypto13 = require("crypto");
 init_jwt4();
 var B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 function base32Encode(buf) {
@@ -72989,13 +73188,13 @@ function base32Decode(s2) {
   return Buffer.from(out);
 }
 function generateTotpSecret() {
-  return base32Encode((0, import_node_crypto12.randomBytes)(20));
+  return base32Encode((0, import_node_crypto13.randomBytes)(20));
 }
 function hotp(secretB32, counter) {
   const key = base32Decode(secretB32);
   const msg = Buffer.alloc(8);
   msg.writeBigUInt64BE(BigInt(counter));
-  const h2 = (0, import_node_crypto12.createHmac)("sha1", key).update(msg).digest();
+  const h2 = (0, import_node_crypto13.createHmac)("sha1", key).update(msg).digest();
   const offset = h2[h2.length - 1] & 15;
   const code = (h2[offset] & 127) << 24 | h2[offset + 1] << 16 | h2[offset + 2] << 8 | h2[offset + 3];
   return String(code % 1e6).padStart(6, "0");
@@ -73006,7 +73205,7 @@ function verifyTotp(secretB32, code, atMs = Date.now()) {
   const step3 = Math.floor(atMs / 1e3 / 30);
   for (const s2 of [step3, step3 - 1, step3 + 1]) {
     const expect = hotp(secretB32, s2);
-    if ((0, import_node_crypto12.timingSafeEqual)(Buffer.from(expect), Buffer.from(given))) return true;
+    if ((0, import_node_crypto13.timingSafeEqual)(Buffer.from(expect), Buffer.from(given))) return true;
   }
   return false;
 }
@@ -73016,13 +73215,13 @@ function otpauthUrl(secretB32, email) {
 var WORDS = "acre amber arch atlas basil beacon birch bloom bolt brook cedar chalk cliff cloud comet coral crane creek delta drift dune ember fable fern flint frost gale glade grove harbor hazel heron ivory jade juniper kelp knoll lagoon larch ledge linen lotus lumen maple marsh mesa mist moss north oak ocean olive onyx opal orbit osprey otter pearl pine plume prairie quill reef ridge river robin rowan sage sand shale shore sierra slate sparrow spruce stone summit swift tarn teak thistle tide timber topaz trail tundra vale violet wharf willow wren zephyr alder aspen bay bramble briar cairn canyon cape cove crag cypress dawn dell eddy elm falcon fen field fjord flare foam ford fox garnet geyser gill gorge grain gulf gull heath hollow inlet iris isle jetty karst kestrel lark lava lichen loch magma mead meadow mineral moor moraine nectar ness nimbus oat orchard outcrop oxbow palm pampas peak peat pebble petal pika pinyon plain plateau pond pool poppy pumice quarry quartz rain rapids raven reed ripple roost rye saffron sagebrush salt savanna sea sedge seed sequoia silt sky sleet slope snow sol sorrel spire spring sprout star steppe strait stream sumac summitry sun surf swale sward talus terrace thicket thorn torrent tor trellis tributary tuff tule tup tussock vernal vetch vine wadi wave weald wheat whin wick wold woodland yarrow yew yucca zenith basin bluff briarwood butte cascade channel chasm cinder cirque coast crest current darkwood dell2 dingle down escarp estuary firth flat floe fount".split(/\s+/).slice(0, 256);
 function generateRecoveryCodes() {
   const plain = Array.from({ length: 8 }, () => {
-    const b2 = (0, import_node_crypto12.randomBytes)(4);
+    const b2 = (0, import_node_crypto13.randomBytes)(4);
     return [b2[0], b2[1], b2[2], b2[3]].map((n2) => WORDS[n2 % WORDS.length]).join("-");
   });
-  return { plain, hashes: plain.map((p2) => (0, import_node_crypto12.createHash)("sha256").update(p2).digest("hex")) };
+  return { plain, hashes: plain.map((p2) => (0, import_node_crypto13.createHash)("sha256").update(p2).digest("hex")) };
 }
 function hashRecoveryCode(code) {
-  return (0, import_node_crypto12.createHash)("sha256").update(code.trim().toLowerCase()).digest("hex");
+  return (0, import_node_crypto13.createHash)("sha256").update(code.trim().toLowerCase()).digest("hex");
 }
 var MFA_TTL_SECONDS = 5 * 60;
 function jwtSecret2() {
@@ -73064,7 +73263,7 @@ init_pricing();
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto13 = require("crypto");
+var import_node_crypto14 = require("crypto");
 init_factory();
 init_http_exception();
 var DIFFICULTY = "0000";
@@ -73076,7 +73275,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto13.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto14.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -73087,7 +73286,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto13.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto14.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -73163,7 +73362,7 @@ router19.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router19.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto14.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto15.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -74968,7 +75167,7 @@ router23.post("/tickets/:id/comments", zValidator("json", external_exports.objec
 
 // src/routes/webhooks.ts
 init_dist();
-var import_node_crypto15 = require("crypto");
+var import_node_crypto16 = require("crypto");
 init_client();
 init_inngest2();
 init_notify();
@@ -75031,7 +75230,7 @@ router24.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto15.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto16.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -75070,9 +75269,9 @@ router24.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto15.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto16.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (provided.length !== expected.length || !(0, import_node_crypto15.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided))) {
+    if (provided.length !== expected.length || !(0, import_node_crypto16.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -75510,13 +75709,13 @@ init_auth();
 init_mail();
 
 // src/lib/tracking.ts
-var import_node_crypto16 = require("crypto");
+var import_node_crypto17 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto16.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto17.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -75530,7 +75729,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto16.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto17.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -75956,6 +76155,7 @@ router26.patch("/settings/workspace", async (c2) => {
     }
   };
   if (body.name !== void 0) update.name = body.name;
+  if (body.timezone !== void 0) update.timezone = body.timezone;
   if (body.slug !== void 0) {
     const slug = body.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
     if (slug.length < 2) return c2.json({ error: "Workspace URL must be at least 2 characters." }, 400);
@@ -76602,7 +76802,7 @@ router26.patch("/settings/general", requireAuth, async (c2) => {
 init_dist();
 init_dist6();
 init_zod();
-var import_node_crypto18 = require("crypto");
+var import_node_crypto19 = require("crypto");
 init_auth();
 init_client();
 init_mail();
@@ -76687,7 +76887,7 @@ router27.post("/link", requireAuth, async (c2) => {
   if (linkSeats.remaining <= 0) return c2.json({ error: seatLimitMessage(linkSeats), seat_limit: linkSeats.limit, seats_used: linkSeats.used }, 402);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto18.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto19.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -76869,7 +77069,7 @@ init_dist6();
 init_client();
 init_dist();
 init_zod();
-var import_node_crypto19 = require("crypto");
+var import_node_crypto20 = require("crypto");
 init_auth();
 init_email_sovereign();
 init_google();
@@ -76934,10 +77134,10 @@ router29.post("/inbound", async (c2) => {
   const secret4 = process.env.SOVEREIGN_MAIL_SECRET;
   const sig = c2.req.header("x-mondaily-mail-signature") ?? "";
   if (!secret4) return c2.json({ error: "Sovereign mail isn't configured." }, 401);
-  const expected = (0, import_node_crypto19.createHmac)("sha256", secret4).update(raw2).digest("hex");
+  const expected = (0, import_node_crypto20.createHmac)("sha256", secret4).update(raw2).digest("hex");
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto19.timingSafeEqual)(a2, b2)) return c2.json({ error: "invalid signature" }, 401);
+  if (a2.length !== b2.length || !(0, import_node_crypto20.timingSafeEqual)(a2, b2)) return c2.json({ error: "invalid signature" }, 401);
   let msg;
   try {
     msg = JSON.parse(raw2);
@@ -78792,13 +78992,147 @@ init_client();
 init_auth();
 init_period();
 init_period_close();
+
+// src/lib/backfill-wins.ts
+init_client();
+init_money2();
+var WON_FIELDS = ["closed_at", "close_date", "won_on", "date_won"];
+async function undatedWins(workspaceId) {
+  const rows2 = [];
+  const PAGE2 = 1e3;
+  for (let from = 0; from < 1e5; from += PAGE2) {
+    const { data, error } = await supabase.from("nodes").select("id, data, created_at, updated_at").eq("workspace_id", workspaceId).eq("object_type", "deals").order("id", { ascending: true }).range(from, from + PAGE2 - 1);
+    if (error) throw new Error(`Could not read deals: ${error.message}`);
+    const page = data ?? [];
+    rows2.push(...page);
+    if (page.length < PAGE2) break;
+  }
+  return rows2.filter((r2) => isWon(dealStage(r2.data)) && !(r2.data ?? {}).won_at);
+}
+async function transitionEvidence(workspaceId, dealId) {
+  const { data } = await supabase.from("activities").select("action, created_at, diff").eq("workspace_id", workspaceId).eq("node_id", dealId).order("created_at", { ascending: true }).limit(500);
+  for (const a2 of data ?? []) {
+    const diff = a2.diff;
+    if (!diff) continue;
+    const candidates = [];
+    for (const key of ["stage", "deal_stage"]) {
+      const entry = diff[key];
+      if (entry && typeof entry === "object") candidates.push({ before: entry.from, after: entry.to });
+    }
+    const before = diff.before ?? {};
+    const after = diff.after ?? {};
+    if (Object.keys(before).length || Object.keys(after).length) {
+      candidates.push({ before: before.deal_stage ?? before.stage, after: after.deal_stage ?? after.stage });
+    }
+    for (const c2 of candidates) {
+      const wasWon = isWon(String(c2.before ?? ""));
+      const nowWon = isWon(String(c2.after ?? ""));
+      if (nowWon && !wasWon) {
+        return { at: String(a2.created_at), detail: `activity "${a2.action}" shows stage ${String(c2.before ?? "\u2014")} \u2192 ${String(c2.after ?? "\u2014")}` };
+      }
+    }
+  }
+  return null;
+}
+async function proposeWinDates(workspaceId, supplied = {}) {
+  const deals = await undatedWins(workspaceId);
+  const out = [];
+  for (const d2 of deals) {
+    const data = d2.data ?? {};
+    const base = {
+      deal_id: d2.id,
+      title: String(data.name ?? data.title ?? "Untitled"),
+      amount: dealValue(data)
+    };
+    const byHand = supplied[d2.id];
+    if (byHand && Number.isFinite(Date.parse(byHand))) {
+      out.push({
+        ...base,
+        proposed_closed_at: new Date(byHand).toISOString(),
+        source: "operator_supplied",
+        evidence_detail: "supplied by an operator for this deal"
+      });
+      continue;
+    }
+    const recorded = WON_FIELDS.map((f2) => data[f2]).find((v2) => v2 && Number.isFinite(Date.parse(String(v2))));
+    if (recorded) {
+      out.push({
+        ...base,
+        proposed_closed_at: new Date(String(recorded)).toISOString(),
+        source: "recorded_close_field",
+        evidence_detail: `record already carries ${WON_FIELDS.find((f2) => data[f2] === recorded)}`
+      });
+      continue;
+    }
+    const t3 = await transitionEvidence(workspaceId, d2.id);
+    if (t3) {
+      out.push({ ...base, proposed_closed_at: t3.at, source: "stage_transition", evidence_detail: t3.detail });
+      continue;
+    }
+    out.push({
+      ...base,
+      proposed_closed_at: null,
+      source: "no_evidence",
+      evidence_detail: "no stage-transition activity and no recorded close field; created_at is not evidence of when it was won"
+    });
+  }
+  return out;
+}
+function renderProposalTable(proposals) {
+  const cols = [
+    { h: "DEAL ID", w: 10, get: (p2) => p2.deal_id.slice(0, 8) },
+    { h: "TITLE", w: 28, get: (p2) => p2.title },
+    { h: "AMOUNT", w: 12, get: (p2) => p2.amount.toLocaleString() },
+    { h: "PROPOSED CLOSED_AT", w: 22, get: (p2) => p2.proposed_closed_at?.slice(0, 19) ?? "\u2014 none \u2014" },
+    { h: "SOURCE", w: 20, get: (p2) => p2.source }
+  ];
+  const pad2 = (s2, w2) => s2.length > w2 ? `${s2.slice(0, w2 - 1)}\u2026` : s2.padEnd(w2);
+  const line = cols.map((c2) => "\u2500".repeat(c2.w)).join("\u2500\u253C\u2500");
+  const head2 = cols.map((c2) => pad2(c2.h, c2.w)).join(" \u2502 ");
+  const body = proposals.map((p2) => cols.map((c2) => pad2(String(c2.get(p2)), c2.w)).join(" \u2502 "));
+  const withDate = proposals.filter((p2) => p2.proposed_closed_at).length;
+  return [
+    head2,
+    line,
+    ...body,
+    line,
+    `${proposals.length} undated win(s) \xB7 ${withDate} with evidence \xB7 ${proposals.length - withDate} without`,
+    proposals.length - withDate > 0 ? "Deals without evidence are left alone. created_at is when the row was made, not when the deal was won." : ""
+  ].filter(Boolean).join("\n");
+}
+async function applyWinDates(workspaceId, proposals) {
+  const errors = [];
+  let updated = 0, skipped = 0;
+  for (const p2 of proposals) {
+    if (!p2.proposed_closed_at) {
+      skipped++;
+      continue;
+    }
+    const { data: row } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("id", p2.deal_id).maybeSingle();
+    if (!row) {
+      errors.push(`${p2.deal_id}: not found`);
+      continue;
+    }
+    const data = row.data ?? {};
+    if (data.won_at) {
+      skipped++;
+      continue;
+    }
+    const { error } = await supabase.from("nodes").update({ data: { ...data, won_at: p2.proposed_closed_at, won_at_source: p2.source, won_at_backfilled: true } }).eq("workspace_id", workspaceId).eq("id", p2.deal_id);
+    if (error) errors.push(`${p2.deal_id}: ${error.message}`);
+    else updated++;
+  }
+  return { updated, skipped, errors };
+}
+
+// src/routes/periods.ts
 var router33 = new Hono2();
 router33.use("*", requireAuth);
 var TYPE2 = external_exports.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]);
 var TIMEFRAME = external_exports.enum(["TODAY", "WEEK", "MONTH", "QUARTER", "YEAR", "ALL_TIME"]);
 async function configFor(workspaceId) {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-  return periodConfigFrom(data?.settings);
+  const { data } = await supabase.from("workspaces").select("settings, timezone").eq("id", workspaceId).maybeSingle();
+  return workspacePeriodConfig(data);
 }
 router33.get("/current", async (c2) => {
   const ws = c2.get("workspaceId");
@@ -78901,13 +79235,31 @@ router33.post("/close", zValidator("json", external_exports.object({
       note: "Nothing was written. Closing does not delete or reset anything \u2014 it files a snapshot of what the period held."
     });
   }
-  const results = await closeDuePeriods(
-    ws,
-    (await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle()).data?.settings,
-    now,
-    { types, closedBy: "manual" }
-  );
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const results = await closeDuePeriods(ws, wsRow, now, { types, closedBy: "manual" });
   return c2.json({ dry_run: false, results });
+});
+router33.post("/backfill-wins", zValidator("json", external_exports.object({
+  dry_run: external_exports.boolean().default(true),
+  supplied: external_exports.record(external_exports.string(), external_exports.string()).default({})
+})), async (c2) => {
+  const role = c2.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c2.json({ error: "Owner/admin only." }, 403);
+  const ws = c2.get("workspaceId");
+  const { dry_run, supplied } = c2.req.valid("json");
+  const proposals = await proposeWinDates(ws, supplied);
+  const withEvidence = proposals.filter((p2) => p2.proposed_closed_at).length;
+  if (dry_run) {
+    return c2.json({
+      dry_run: true,
+      proposals,
+      table: renderProposalTable(proposals),
+      summary: { undated: proposals.length, with_evidence: withEvidence, without_evidence: proposals.length - withEvidence },
+      note: "Nothing was written. Deals without evidence are not given a date \u2014 a fabricated close date is worse than a disclosed gap, because it cannot be spotted."
+    });
+  }
+  const result = await applyWinDates(ws, proposals);
+  return c2.json({ dry_run: false, ...result, still_undated: proposals.length - result.updated });
 });
 
 // src/routes/money.ts
@@ -84100,12 +84452,12 @@ app.get("/api/cron/period-close", async (c2) => {
   if (provided !== `Bearer ${secret4}`) return c2.json({ error: "Unauthorized" }, 401);
   const { closeDuePeriods: closeDuePeriods2 } = await Promise.resolve().then(() => (init_period_close(), period_close_exports));
   const { supabase: supabase2 } = await Promise.resolve().then(() => (init_client(), client_exports));
-  const { data: workspaces, error } = await supabase2.from("workspaces").select("id, settings");
+  const { data: workspaces, error } = await supabase2.from("workspaces").select("id, settings, timezone");
   if (error) return c2.json({ error: error.message }, 500);
   const results = {};
   for (const ws of workspaces ?? []) {
     try {
-      const r2 = await closeDuePeriods2(String(ws.id), ws.settings);
+      const r2 = await closeDuePeriods2(String(ws.id), ws);
       const written = r2.filter((x2) => x2.status === "written");
       if (written.length) results[String(ws.id)] = written.map((x2) => `${x2.period_type}:${x2.period_key}`);
       const failed = r2.filter((x2) => x2.status === "failed");

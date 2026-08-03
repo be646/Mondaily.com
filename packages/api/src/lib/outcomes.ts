@@ -19,6 +19,10 @@ export interface OutcomesResult {
   base_currency: string;
   team: {
     value_won: number; deals_won: number; value_lost: number; deals_lost: number;
+    /** Wins excluded because nothing records when they closed — disclosed, never dated by an edit. */
+    undated_wins: number;
+    /** Lost deals dated by their last edit because no lost date exists yet. An approximation. */
+    undated_lost: number;
     pipeline_value: number; pipeline_deals: number;
     /** Stage-weighted forecast over open deals (declared editorial weights from lib/money). */
     projected_amount: number;
@@ -46,6 +50,10 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
   ]);
 
   const emptyWin = (): OutcomeWindow => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [] });
+  // Wins with no close date are EXCLUDED from every window and reported, rather than dated by
+  // their last edit. Lost deals with no lost date are still counted (see the note below) but the
+  // approximation is disclosed instead of hidden.
+  let undatedWins = 0, undatedLost = 0;
   const inWin = (ms: number, s0: number, e0: number) => ms >= s0 && ms <= e0;
 
   const teamNow = emptyWin(); const teamPrev = emptyWin();
@@ -67,7 +75,25 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
     const convertible = !(face > 0 && val === 0 && cur && cur.toUpperCase() !== base);
 
     if (moneyIsWon(stage) || /lost/i.test(stage)) {
-      const closedAt = Date.parse(moneyWonDate(row as never) || String(row.updated_at ?? row.created_at ?? ""));
+      // NO updated_at fallback. wonDate() deliberately returns null for a win with no close date,
+      // and re-adding the fallback here — as this line did — put every undated win into whichever
+      // month its row was last edited. Measured 2026-08-03: the Brief reported 0 for August while
+      // this endpoint reported 1,422,500 for the same month, from the same 9 deals. Two surfaces
+      // disagreeing about "value won this month" is exactly what the shared money model exists to
+      // prevent, and a fallback re-implemented at a call site defeats it as surely as one in the
+      // helper.
+      // WON and LOST do not have the same evidence available, so they are dated separately.
+      //  - Won: `won_at` only. No fallback.
+      //  - Lost: nothing has ever stamped a lost date, so `updated_at` is the ONLY date there is.
+      //    Zeroing every lost deal to be consistent would delete real reporting with no path to
+      //    recover it, so the approximation stays for legacy rows and is counted in `undated_lost`
+      //    — and nodes.ts now stamps `lost_at` on the transition, so it heals going forward.
+      const isWonRow = moneyIsWon(stage);
+      const lostAt = String(d.lost_at ?? "") || null;
+      const when = isWonRow ? moneyWonDate(row as never) : (lostAt ?? String(row.updated_at ?? row.created_at ?? ""));
+      if (isWonRow && !when) { undatedWins += 1; continue; }
+      if (!isWonRow && !lostAt) undatedLost += 1;
+      const closedAt = when ? Date.parse(when) : NaN;
       const target = inWin(closedAt, start, end) ? "now" : hasPrev && inWin(closedAt, prevStart as number, prevEnd as number) ? "prev" : null;
       if (!target) continue;
       const bucket = target === "now" ? teamNow : teamPrev;
@@ -111,6 +137,7 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
     base_currency: base,
     team: {
       value_won: Math.round(teamNow.won), deals_won: teamNow.won_n,
+      undated_wins: undatedWins, undated_lost: undatedLost,
       value_lost: Math.round(teamNow.lost), deals_lost: teamNow.lost_n,
       pipeline_value: Math.round(pipelineValue), pipeline_deals: pipelineN,
       projected_amount: Math.round(projected),

@@ -358,16 +358,35 @@ function OversightAsk() {
 interface OutcomesResp {
   base_currency: string;
   team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; projected_amount: number; close_rate_pct: number | null; avg_open_deal_age_days: number | null; stages: { stage: string; deals: number; value: number }[]; lost_reasons: { reason: string; deals: number; value: number }[]; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
+    undated_wins?: number; undated_lost?: number;
     deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
   members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
 }
 function useOutcomes(period: Period) {
   // Both windows from the WORKSPACE. Resolving the current window on the server and the comparison
   // window in the browser would make every delta wrong by the timezone offset.
-  const { range: r, previous: pr } = useResolvedPeriod(period);
+  const { range: r, previous: pr, timeZone } = useResolvedPeriod(period);
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
   if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
-  return useQuery<OutcomesResp>({ queryKey: ["outcomes", period, r.start.toISOString(), r.end.toISOString()], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
+  const q = useQuery<OutcomesResp>({ queryKey: ["outcomes", period, r.start.toISOString(), r.end.toISOString()], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
+  return { ...q, range: r, timeZone };
+}
+
+/**
+ * The window a FLOW tile covers, named rather than described: "August 2026", not "this month".
+ * On the 3rd of a month a tile reading 0.00 is correct and looks broken; naming the period is what
+ * tells a reader the number is new rather than missing.
+ */
+function windowName(period: Period, range: { start: Date }): string {
+  const d = range.start;
+  switch (period) {
+    case "month":   return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    case "quarter": return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+    case "year":    return String(d.getFullYear());
+    case "today":   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    case "week":    return `week of ${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+    default:        return periodLabel(period).toLowerCase();
+  }
 }
 const fmtMoney0 = (v: number, cur: string) => `${cur} ${Math.round(v).toLocaleString()}`;
 function SalesStrip({ period }: { period: Period }) {
@@ -375,14 +394,21 @@ function SalesStrip({ period }: { period: Period }) {
   const t = q.data?.team; if (!t) return null;
   const cur = q.data!.base_currency;
   const d = t.deltas?.value_won;
+  const win = windowName(period, q.range);
+  const undated = t.undated_wins ?? 0;
   return (
     <div className="mb-6">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Sales · {periodLabel(period).toLowerCase()}</p>
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Sales · {win}{q.timeZone ? ` · ${q.timeZone}` : ""}</p>
       <KPIGrid>
         <KPITile label="Value won" accent value={fmtMoney0(t.value_won, cur)}
           delta={d && d.label ? <span className="text-[10px] font-semibold tabular-nums" title={d.detail} style={{ color: d.direction >= 0 ? "var(--status-ok)" : "var(--status-error)" }}>{d.direction >= 0 ? "▲" : "▼"} {d.label}</span> : undefined}
-          sub={<>{t.deals_won} deal{t.deals_won === 1 ? "" : "s"} won{t.unconverted > 0 ? ` · ${t.unconverted} unconverted` : ""}</>} />
-        <KPITile label="Value lost" valueColor={t.value_lost > 0 ? "var(--status-error)" : undefined} value={fmtMoney0(t.value_lost, cur)} sub={<>{t.deals_lost} lost</>} />
+          sub={<>{t.deals_won} deal{t.deals_won === 1 ? "" : "s"} won · {win}
+            {t.unconverted > 0 ? ` · ${t.unconverted} unconverted` : ""}
+            {/* Wins with no close date are excluded from the window rather than dated by their last
+                edit, so the tile says how many are unaccounted for instead of quietly omitting them. */}
+            {undated > 0 ? ` · ${undated} without a close date` : ""}</>} />
+        <KPITile label="Value lost" valueColor={t.value_lost > 0 ? "var(--status-error)" : undefined} value={fmtMoney0(t.value_lost, cur)}
+          sub={<>{t.deals_lost} lost · {win}{(t.undated_lost ?? 0) > 0 ? ` · ${t.undated_lost} dated by last edit` : ""}</>} />
         <KPITile label="Open pipeline" value={fmtMoney0(t.pipeline_value, cur)} sub={<>{t.pipeline_deals} open · as of today{t.pipeline_unconverted > 0 ? ` · ${t.pipeline_unconverted} unconverted` : ""}</>} />
         <KPITile label="Win rate" value={t.win_rate_pct != null ? `${t.win_rate_pct}%` : "—"} sub={t.win_rate_pct != null ? "of closed deals" : "no closed deals yet"} />
         <KPITile label="Avg deal" value={t.avg_deal_size != null ? fmtMoney0(t.avg_deal_size, cur) : "—"} sub={t.avg_cycle_days != null ? `${t.avg_cycle_days}d avg cycle` : "won deals only"} />

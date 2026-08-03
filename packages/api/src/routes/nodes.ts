@@ -209,7 +209,7 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   // Stamp `won_at` the moment a deal moves INTO a won stage. Measured in production: zero of 44
   // deals carry any close date, so "closed this month" could only ever approximate via updated_at —
   // which moves on every edit. This makes the metric exact for every future close while the money
-  // model (lib/money) falls back to updated_at for legacy rows and labels the difference.
+  // model no longer falls back to updated_at at all: an undated win is excluded and disclosed.
   // Only on the transition, so re-saving an already-won deal never refreshes its close date.
   if (updates.data && String(prev?.object_type ?? "").toLowerCase().includes("deal")) {
     const prevData = (prev?.data as Record<string, unknown>) ?? {};
@@ -218,7 +218,15 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
     const after = dealStageOf({ ...prevData, ...nextData });
     if (/won/i.test(after) && !/won/i.test(before) && !nextData.won_at) {
       nextData.won_at = new Date().toISOString();
-    } else if (prevData.won_at && !nextData.won_at) {
+    }
+    // Same stamp for LOST. Nothing has ever recorded when a deal was lost, so the outcomes engine
+    // had only `updated_at` to date it — an approximation that moves on every edit. Stamping it
+    // here heals the data going forward, exactly as won_at did.
+    if (/lost/i.test(after) && !/lost/i.test(before) && !nextData.lost_at) {
+      nextData.lost_at = new Date().toISOString();
+    }
+    if (prevData.lost_at && !nextData.lost_at) nextData.lost_at = prevData.lost_at;
+    if (prevData.won_at && !nextData.won_at) {
       // updateNode REPLACES data wholesale, so a client that fetched the record before the stamp
       // existed and edits any other field would silently erase it. A server-stamped fact must
       // survive client round-trips the client doesn't know about.
