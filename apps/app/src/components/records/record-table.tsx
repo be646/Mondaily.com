@@ -54,6 +54,7 @@ type RowPlanItem =
 import { vocabSlotOf, vocabSortKey, vocabDirWords, defaultSortFor, vocabRankPairs } from "@mondaily/shared/vocab";
 import type { PipelineHealth } from "./pipeline-health-badge";
 import { DatePicker } from "../ui/date-picker";
+import { Modal, ModalActions } from "../ui/modal";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
 /** Columns that live as real node columns (not inside the data jsonb) — the AI
@@ -2826,6 +2827,30 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   // real per-row PATCHes with honest per-row success/failure feedback, never a silent partial. ──
   const [setFieldOpen, setSetFieldOpen] = useState(false);
   const [setFieldCol, setSetFieldCol] = useState<string | null>(null);
+  /**
+   * Bulk set is CONFIRMED when it would overwrite existing values.
+   *
+   * This wrote immediately on a single click, across every selected record. Measured 2026-08-03:
+   * all 44 deals read "Albania" — they once held Algeria, Guinea and others, and all changed within
+   * the same sub-second burst on 2026-08-02. One click on the first country in an alphabetical list
+   * silently replaced 44 real values, and nothing asked and nothing could undo it.
+   *
+   * The session had already added a confirm before deleting ONE row. Overwriting a column on 44 is
+   * strictly more destructive, and had none. The count that matters is not how many rows are
+   * selected but how many already hold a DIFFERENT non-empty value — filling blanks is cheap,
+   * replacing data is not, so that is the number the dialog leads with.
+   */
+  function requestBulkSetField(col: string, value: string) {
+    const rows = visibleRows.filter(r => selected.has(r.id));
+    const overwrites = rows.filter(r => {
+      const cur = (r.data as Record<string, unknown>)?.[col];
+      return cur != null && String(cur).trim() !== "" && String(cur) !== value;
+    }).length;
+    if (overwrites === 0) { void bulkSetField(col, value); return; }
+    setBulkConfirm({ col, value, total: rows.length, overwrites });
+    setSetFieldOpen(false); setSetFieldCol(null);
+  }
+
   async function bulkSetField(col: string, value: string) {
     const rows = visibleRows.filter(r => selected.has(r.id));
     const results = await Promise.allSettled(rows.map(r => apiClient.patch(`/nodes/${r.id}`, { data: { ...r.data, [col]: value } })));
@@ -2838,6 +2863,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
   }
   const bulkEditableCols = allColumnsWithCustom.filter(c => /stage|status|priority|country|region|label|^category$|^type$/.test(c.toLowerCase()));
 
+  const [bulkConfirm, setBulkConfirm] = useState<{ col: string; value: string; total: number; overwrites: number } | null>(null);
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [assignPickerOpen, setAssignPickerOpen] = useState(false);
   const [assignSearch, setAssignSearch] = useState("");
@@ -3913,7 +3939,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                           ...(/stage/.test(setFieldCol.toLowerCase()) ? DEFAULT_STAGE_OPTIONS : /status/.test(setFieldCol.toLowerCase()) ? DEFAULT_STATUS_OPTIONS : []),
                           ...records.map(r => String(cellValue(r, setFieldCol) ?? "")).filter(v => v && v.length <= 24),
                         ])].slice(0, 14).map(v => (
-                          <button key={v} onClick={() => void bulkSetField(setFieldCol, v)}
+                          <button key={v} onClick={() => requestBulkSetField(setFieldCol, v)}
                             className="flex w-full items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-[11.5px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
                             <span className={`h-1.5 w-1.5 rounded-full ${stageStyle(v).dot}`}/>{v}
                           </button>
@@ -4425,6 +4451,28 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
 
     {/* Undo delete toast */}
     {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
+
+    {bulkConfirm && (
+      <Modal title="Overwrite existing values?" width="sm" onClose={() => setBulkConfirm(null)} footer={
+        <ModalActions onCancel={() => setBulkConfirm(null)}>
+          <button
+            onClick={() => { const b = bulkConfirm; setBulkConfirm(null); void bulkSetField(b.col, b.value); }}
+            className="h-8 rounded-md border px-3 text-[12px] font-medium transition-colors"
+            style={{ borderColor: "rgba(209,82,74,.35)", color: "#d1524a" }}>
+            Overwrite {bulkConfirm.overwrites}
+          </button>
+        </ModalActions>
+      }>
+        <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+          Setting <strong style={{ color: "var(--text-primary)" }}>{colLabel(bulkConfirm.col)}</strong> to{" "}
+          <strong style={{ color: "var(--text-primary)" }}>&ldquo;{bulkConfirm.value}&rdquo;</strong> on{" "}
+          {bulkConfirm.total} record{bulkConfirm.total === 1 ? "" : "s"}.
+        </p>
+        <p className="mt-2 text-[12.5px]" style={{ color: "#d1524a" }}>
+          {bulkConfirm.overwrites} already {bulkConfirm.overwrites === 1 ? "holds a different value" : "hold different values"} and will be replaced. This cannot be undone.
+        </p>
+      </Modal>
+    )}
 
     {undoToast && (
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3">
