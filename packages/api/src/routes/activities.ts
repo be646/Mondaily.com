@@ -577,13 +577,18 @@ router.get("/node/:nodeId", requireAuth, async (c) => {
 
 // All activities for workspace (feed)
 router.get("/", requireAuth, async (c) => {
-  const limit = Number(c.req.query("limit") ?? 50);
-  const { data } = await supabase
+  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 500);
+  // `node_id` was accepted by callers and silently ignored, so asking for one record's history
+  // returned the whole workspace feed — indistinguishable from "this record has 50 activities"
+  // unless you compared the ids. Found while sourcing evidence for the undated-wins backfill:
+  // every deal appeared to have 50 activities and in fact had none.
+  const nodeId = c.req.query("node_id");
+  let q = supabase
     .from("activities")
     .select("*, nodes(id, object_type, data)")
-    .eq("workspace_id", c.get("workspaceId"))
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .eq("workspace_id", c.get("workspaceId"));
+  if (nodeId) q = q.eq("node_id", nodeId);
+  const { data } = await q.order("created_at", { ascending: false }).limit(limit);
   return c.json(data ?? []);
 });
 

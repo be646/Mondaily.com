@@ -8,6 +8,7 @@ import {
   type PeriodType, type Timeframe,
 } from "@mondaily/shared/period";
 import { closeDuePeriods, computeMetrics, driftFor, verifyChain, workspacePeriodConfig, PERIOD_TYPES, METRICS_VERSION } from "../lib/period-close";
+import { proposeWinDates, renderProposalTable, applyWinDates } from "../lib/backfill-wins";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -163,6 +164,39 @@ router.post("/close", zValidator("json", z.object({
   const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
   const results = await closeDuePeriods(ws, wsRow as { timezone?: unknown; settings?: unknown } | null, now, { types, closedBy: "manual" });
   return c.json({ dry_run: false, results });
+});
+
+/**
+ * POST /periods/backfill-wins — supervised close-date backfill for undated wins.
+ *
+ * Owner-gated and DRY-RUN BY DEFAULT, like every other supervised tool here. It proposes a date
+ * ONLY where evidence supports one; deals with no evidence are reported and left alone, because
+ * `created_at` is when the row was made, not when the deal was won. `supplied` lets an operator
+ * decide a date for a specific deal — recorded as such, so a human decision never looks like
+ * something the system inferred.
+ */
+router.post("/backfill-wins", zValidator("json", z.object({
+  dry_run: z.boolean().default(true),
+  supplied: z.record(z.string(), z.string()).default({}),
+})), async (c) => {
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const ws = c.get("workspaceId");
+  const { dry_run, supplied } = c.req.valid("json");
+
+  const proposals = await proposeWinDates(ws, supplied);
+  const withEvidence = proposals.filter(p => p.proposed_closed_at).length;
+
+  if (dry_run) {
+    return c.json({
+      dry_run: true, proposals, table: renderProposalTable(proposals),
+      summary: { undated: proposals.length, with_evidence: withEvidence, without_evidence: proposals.length - withEvidence },
+      note: "Nothing was written. Deals without evidence are not given a date — a fabricated close date is worse than a disclosed gap, because it cannot be spotted.",
+    });
+  }
+
+  const result = await applyWinDates(ws, proposals);
+  return c.json({ dry_run: false, ...result, still_undated: proposals.length - result.updated });
 });
 
 export { router as periodsRouter };
