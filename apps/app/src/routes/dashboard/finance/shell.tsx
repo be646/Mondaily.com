@@ -55,7 +55,10 @@ export function FinanceShell() {
           onChange={(id) => { const t = TABS.find(x => x.key === id); if (t) navigate(t.path); }}
         />
         {/* Same border-b as Tabs, so the hairline runs unbroken under tabs AND actions. */}
-        <div id="finance-shell-actions" className="flex min-w-0 flex-1 items-center justify-end gap-2 border-b border-[var(--border-soft)] pl-3"/>
+        {/* nowrap + overflow-x: when this strip runs out of room it must SCROLL, never reflow. A
+            wrapping toolbar turns into three ragged stacked rows and stops reading as a toolbar —
+            which is exactly what happened when the period stepper was added beside the selector. */}
+        <div id="finance-shell-actions" className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto border-b border-[var(--border-soft)] pl-3"/>
       </div>
       {/* One line, once, above every finance page — the reporting basis belongs to the whole
           surface, not to whichever page happens to render a total. */}

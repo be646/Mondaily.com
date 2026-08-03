@@ -17,10 +17,13 @@ export function PeriodSelector({ value, onChange, custom, onCustom, className = 
 }) {
   const chips = [...PERIODS, ...(onCustom ? [{ key: "custom" as Period, label: "Custom" }] : [])];
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+    <div className={`flex shrink-0 items-center gap-2 ${className}`}>
       {/* HAIRLINES, NOT BOXES — same idiom as SegmentedControl (measured 2026-07-30): no track
-          border, no lifted card, no shadow. Active chip = faint ink wash + small radius. */}
-      <div className="inline-flex flex-wrap items-center gap-0.5">
+          border, no lifted card, no shadow. Active chip = faint ink wash + small radius.
+          NEVER wraps: this control sits in a fixed-width toolbar strip, and flex-wrap turned
+          "out of room" into three ragged stacked rows the moment a period stepper was added
+          beside it. A toolbar that reflows into a block is not a toolbar. */}
+      <div className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap">
         {chips.map(p => {
           const active = value === p.key;
           return (

@@ -42,13 +42,13 @@ export function PeriodNav({
 }) {
   if (!isSteppable(period)) return null;
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
       <div className="flex items-center gap-1 rounded-sm border px-1 py-0.5" style={{ borderColor: "var(--border-soft)" }}>
         <button onClick={() => onOffset(Math.max(-120, offset - 1))}
           aria-label="Previous period" title="Previous period" className="btn-icon">
           <ChevronLeft size={13}/>
         </button>
-        <span className="min-w-[92px] text-center font-mono text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>
+        <span className="min-w-[84px] whitespace-nowrap text-center font-mono text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>
           {serverLabel ?? periodLabel(period)}
         </span>
         <button onClick={() => onOffset(Math.min(0, offset + 1))} disabled={offset >= 0}
@@ -62,8 +62,15 @@ export function PeriodNav({
       {complete && (
         // Said out loud, because otherwise a reader cannot tell a smaller number from less elapsed
         // time: a closed period covers the WHOLE period, the live one only covers what has happened.
-        <span className="rounded-full border px-1.5 py-px text-[9.5px]"
-          style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>closed period</span>
+        // A dot, not a two-word pill: the text wrapped inside its own badge in a tight strip, and
+        // the fact ("this period is finished, so the window is the whole period") is a footnote,
+        // not a headline. The title carries the full sentence for anyone who needs it.
+        <span title="Closed period — shown in full, not period-to-date"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px]"
+          style={{ color: "var(--text-faint)" }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--text-faint)" }} />
+          closed
+        </span>
       )}
     </div>
   );

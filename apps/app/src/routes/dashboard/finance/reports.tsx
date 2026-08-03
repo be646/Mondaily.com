@@ -324,12 +324,14 @@ export function FinanceReportsPage() {
             <>
               <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
               <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
-                <div className="w-28">
-                  <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
-                    options={currencies.map(c => ({ value: c, label: c }))} />
-                </div>
+              {/* No "Show in" label: it wrapped to two lines in the strip, and the line directly
+                  under this header already says "Showing PLN at today's rate. This workspace
+                  reports in USD." A label repeating what the sentence below states, at the cost of
+                  breaking the toolbar, is not carrying its weight. The select keeps its aria-label
+                  so it is still announced. 3-letter codes do not need 7rem. */}
+              <div className="w-[74px] shrink-0">
+                <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+                  options={currencies.map(c => ({ value: c, label: c }))} />
               </div>
             </>
           }
