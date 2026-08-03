@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
+import { ActionMenu } from "@/components/ui/controls";
 import { AIButton } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
@@ -38,8 +39,27 @@ function recordProvenance(r: NodeRecord): { kind: "web" | "ai" | "manual" | "sys
 interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; owner_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
 interface Member { id: string; user_id: string; name: string; email: string; role?: string }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function display(value: unknown) {
   return value == null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+/**
+ * A cell that holds a raw user id shows a PERSON, or says it cannot.
+ *
+ * The Owner column was rendering "de009554-dfe4-4593-b65b-…" — 36 characters of primary key in a
+ * column headed by a human word. Some of these rows carry a name, some a UUID, some a misspelt
+ * name, which is why the schema audit reports how many values actually resolve to members.
+ *
+ * Resolving is best-effort and NEVER invents: an id with no matching member is shown as "unknown
+ * member" with the raw id on hover, rather than as a plausible-looking name or as the id itself.
+ */
+function displayMaybeMember(value: unknown, members: Member[]) {
+  const raw = display(value);
+  if (!UUID_RE.test(raw)) return raw;
+  const m = members.find(x => x.user_id === raw);
+  return m?.name?.trim() || "unknown member";
 }
 
 function fmtDate(iso: string) {
@@ -237,7 +257,14 @@ export function ListPage() {
             )}
           </span>
         );
-        return display(record.data[c]);
+        // Owner-ish columns can hold a raw user id; show the person, or say it is unresolved.
+        const v = record.data[c];
+        if (/owner|assign|member|user/i.test(c)) {
+          const shown = displayMaybeMember(v, members);
+          return <span title={UUID_RE.test(display(v)) ? display(v) : undefined}
+            className={shown === "unknown member" ? "italic text-[var(--text-faint)]" : undefined}>{shown}</span>;
+        }
+        return display(v);
       },
     })),
     { key: "__updated", header: "Updated", sortable: true, cellClassName: "text-[11px] tabular-nums text-[var(--text-secondary)] dark:text-[var(--text-faint)]", cell: (record) => fmtDate(record.updated_at) },
@@ -248,7 +275,7 @@ export function ListPage() {
           <X size={12} />
         </button>
       ) },
-  ], [columns, removeEntry]);
+  ], [columns, removeEntry, members]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   function exportCsv() {
@@ -377,7 +404,7 @@ export function ListPage() {
               {records.length} record{records.length === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="list-toolbar flex flex-wrap items-center justify-between gap-3">
+          <div className="list-toolbar flex flex-nowrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
 
         {/* ── Assignment chip + popover ── */}
@@ -517,51 +544,43 @@ export function ListPage() {
         </div>
             </div>
         {/* Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* The records sheet's shape: ONE primary action, rightmost; everything secondary
+                collapsed behind ⋯. This was a wall of eight equal-weight buttons with the green
+                primary stranded in the middle and a bare, unlabelled trash icon at the far right —
+                a destructive action with no word on it, sitting where the eye lands last. */}
+            <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
         {records.length > 0 && (
-          <>
-            <AIButton
-              size="sm"
-              variant="subtle"
-              onClick={enrichAll}
-              disabled={enrichingAll || !isEnrichable}
-              loading={enrichingAll}
-              title={isEnrichable ? "Enrich every record with web/AI lookup" : "This list type can't be enriched"}
-            >
-              {enrichAllDone ? "Enriching…" : "Enrich All"}
-            </AIButton>
-            <button
-              onClick={() => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); }}
-              className="btn-secondary !px-3 !py-1.5 !text-xs"
-            >
-              <Mail size={13}/> Enroll in Sequence
-            </button>
-          </>
+          <AIButton
+            size="sm"
+            variant="subtle"
+            onClick={enrichAll}
+            disabled={enrichingAll || !isEnrichable}
+            loading={enrichingAll}
+            title={isEnrichable ? "Enrich every record with web/AI lookup" : "This list type can't be enriched"}
+          >
+            {enrichAllDone ? "Enriching…" : "Enrich All"}
+          </AIButton>
         )}
+        <AIButton size="sm" variant="subtle" onClick={openAi}>Add</AIButton>
+        <ActionMenu
+          ariaLabel="List actions"
+          items={[
+            ...(records.length > 0 ? [{
+              key: "enroll", label: "Enroll in sequence", icon: Mail,
+              onClick: () => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); },
+            }] : []),
+            { key: "prospect", label: "Find from web", icon: Globe, onClick: () => setProspectOpen(true) },
+            { key: "export", label: "Export CSV", icon: Download, onClick: exportCsv },
+            // Named, not a bare glyph. No action is removed — just relocated, and the one that
+            // destroys the list now has to be read before it can be reached.
+            { key: "delete", label: "Delete list", icon: Trash2, onClick: () => setDeleteConfirm(true) },
+          ]}
+        />
         <button
           onClick={() => setAddOpen(true)}
-          className="btn-primary !px-3 !py-1.5 !text-xs"
+          className="btn-primary shrink-0 whitespace-nowrap !px-3 !py-1.5 !text-xs"
         >
           <Plus size={13}/> Add record
-        </button>
-        <AIButton size="sm" variant="subtle" onClick={openAi}>Add</AIButton>
-        <button
-          onClick={() => setProspectOpen(true)}
-          className="btn-secondary !px-3 !py-1.5 !text-xs"
-        >
-          <Globe size={13}/> Find from web
-        </button>
-        {/* Export + Delete — unified with the token-based btn-secondary like every other header
-            action (were hardcoded stone, which read as a different button style). */}
-        <button onClick={exportCsv} title="Export CSV" className="btn-secondary !px-2.5 !py-1.5 !text-[11px]">
-          <Download size={11}/> Export
-        </button>
-        <button
-          onClick={() => setDeleteConfirm(true)}
-          title="Delete list"
-          className="btn-secondary !px-2.5 !py-1.5 !text-[11px] hover:!border-[#d1524a] hover:!text-[#d1524a]"
-        >
-          <Trash2 size={11}/>
         </button>
             </div>
             {enrichMsg && (

@@ -406,7 +406,12 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
     if (onSave && draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className={`rounded-sm border border-[var(--border-soft)] p-3.5 transition-colors ${onSave ? "cursor-pointer hover:border-[var(--section-accent-line)]" : ""}`}>
+    // An editable field lights up in the NEUTRAL border, not the section accent. The accent is
+    // green on Deals, so pointing at any editable card threw a green box around it — colour used as
+    // a hover affordance, which is louder than the affordance needs to be and reads as a state
+    // rather than a hint. The accent stays for things that MEAN something (the pipeline's completed
+    // steps below); chrome stays quiet.
+    <div className={`rounded-sm border border-[var(--border-soft)] p-3.5 transition-colors ${onSave ? "cursor-pointer hover:border-[var(--border-strong)]" : ""}`}>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Icon size={12} className={ACCENT_MAP[accent]}/>
