@@ -147,7 +147,9 @@ function EditableCell({
           if (e.key === "Escape") setEditing(false);
           e.stopPropagation();
         }}
-        className={`-mx-1 w-full min-w-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--surface-card)] px-1 py-0.5 text-[12px] text-[var(--text-primary)] outline-none ${numeric ? "text-right font-mono" : ""} ${className}`}
+        // Matches the selection ring: typing into a cell should not change its colour, only its
+        // affordance. This was accent-green too, so the frame stayed green from click to commit.
+        className={`-mx-1 w-full min-w-0 rounded-sm border border-[var(--border-strong)] bg-[var(--surface-card)] px-1 py-0.5 text-[12px] text-[var(--text-primary)] outline-none ${numeric ? "text-right font-mono" : ""} ${className}`}
       />
     );
   }
@@ -3478,8 +3480,13 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
               // An inset ring rather than an outline: the cell is inside a scroll container with
               // sticky columns, and an outline is painted outside the box, so it would be clipped
               // by the neighbour that is stacked above it.
+              // NEUTRAL, not the section accent. The accent is green on Deals, so clicking any cell
+              // put a bright green frame around it — the loudest thing on a screen of quiet rows,
+              // for the least interesting fact (where the cursor is). A spreadsheet cursor needs to
+              // be UNAMBIGUOUS, not colourful: a crisp 2px neutral ring reads instantly against the
+              // row's own borders without competing with the status pills that DO carry colour.
               ...(focus && focus.row === dataIdx && focus.col === colIdx
-                ? { boxShadow: "inset 0 0 0 2px var(--section-accent)" }
+                ? { boxShadow: "inset 0 0 0 2px var(--text-muted)" }
                 : null),
             }}
             className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[var(--border-faint)] overflow-hidden whitespace-nowrap ${isNumericCol(col) ? "text-right tabular-nums font-mono text-[var(--text-muted)] dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}

@@ -42,3 +42,24 @@ describe("form fields do not focus in the section accent", () => {
     expect(css).toMatch(/\.ask-input:focus-within\s*\{[^}]*--section-accent/);
   });
 });
+
+describe("the sheet's cell cursor is neutral", () => {
+  const sheet = readFileSync(
+    join(__dirname, "../../../../apps/app/src/components/records/record-table.tsx"), "utf8");
+
+  it("the selected cell ring does not use the section accent", () => {
+    // Reported from a screenshot: clicking any cell drew a bright green frame — the loudest thing
+    // on a screen of quiet rows, for the least interesting fact (where the cursor is).
+    const m = sheet.match(/boxShadow:\s*"inset 0 0 0 2px [^"]+"/);
+    expect(m).toBeTruthy();
+    expect(m![0]).not.toMatch(/--section-accent/);
+  });
+
+  it("the inline cell editor matches the cursor rather than recolouring it", () => {
+    // Typing into a cell should change its affordance, not its colour.
+    const m = sheet.match(/-mx-1 w-full min-w-0 rounded-sm border border-\[var\(--[a-z-]+\)\]/);
+    expect(m).toBeTruthy();
+    expect(m![0]).not.toMatch(/section-accent/);
+  });
+});
+
