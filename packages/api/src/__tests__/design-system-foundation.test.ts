@@ -715,7 +715,11 @@ describe("dashboard/tasks read-only meta uses text-caption/text-label (Pass 6C)"
   });
   it("deferred zones unchanged — row title, delete modal, sheet text-xs cells, DataTable, mutations", () => {
     expect(T).toMatch(/text-left text-sm font-medium truncate/);
-    expect(T).toMatch(/text-base font-semibold text-\[var\(--text-primary\)\] mb-1">Delete task\?/);
+    // RESOLVED 2026-08-03: the delete confirm was a hand-rolled `fixed inset-0` card with its own
+    // heading. It is now the shared <Modal>, which renders the title, so this deferred zone is gone
+    // rather than pending. Asserted from the other side: tasks.tsx must not hand-roll a dialog.
+    expect(T).toMatch(/<Modal title="Delete task\?"/);
+    expect(T).not.toMatch(/fixed inset-0 z-50 grid place-items-center/);
     expect(T).toMatch(/import \{ DataTable, type DataTableColumn \}/);
     expect(T).toMatch(/qc\.setQueryData/);
     expect(T).toMatch(/apiClient\.patch\(`\/tasks\/\$\{/);
@@ -741,7 +745,11 @@ describe("dashboard/tasks sheet meta cells use text-label (Pass 6E)", () => {
     expect(T).toMatch(/text-left text-sm font-medium truncate/);                          // clickable row title
     expect(T).toMatch(/text-sm text-\[var\(--text-faint\)\] leading-relaxed/);             // notes body prose
     expect(T).toMatch(/className="min-w-full text-sm"/);                                    // DataTable table base
-    expect(T).toMatch(/text-base font-semibold text-\[var\(--text-primary\)\] mb-1">Delete task\?/);
+    // RESOLVED 2026-08-03: the delete confirm was a hand-rolled `fixed inset-0` card with its own
+    // heading. It is now the shared <Modal>, which renders the title, so this deferred zone is gone
+    // rather than pending. Asserted from the other side: tasks.tsx must not hand-roll a dialog.
+    expect(T).toMatch(/<Modal title="Delete task\?"/);
+    expect(T).not.toMatch(/fixed inset-0 z-50 grid place-items-center/);
   });
   it("DataTable model + mutations unchanged", () => {
     expect(T).toMatch(/import \{ DataTable, type DataTableColumn \}/);
@@ -1009,7 +1017,11 @@ describe("dashboard/tasks display pills use text-caption font-medium (Pass 6B)",
   });
   it("deferred zones unchanged — row title, delete modal, non-pill meta, DataTable, mutations", () => {
     expect(T).toMatch(/text-left text-sm font-medium truncate/);          // clickable row title (deferred)
-    expect(T).toMatch(/text-base font-semibold text-\[var\(--text-primary\)\] mb-1">Delete task\?/); // delete modal title
+    // RESOLVED 2026-08-03: the delete confirm was a hand-rolled `fixed inset-0` card with its own
+    // heading. It is now the shared <Modal>, which renders the title, so this deferred zone is gone
+    // rather than pending. Asserted from the other side: tasks.tsx must not hand-roll a dialog.
+    expect(T).toMatch(/<Modal title="Delete task\?"/);
+    expect(T).not.toMatch(/fixed inset-0 z-50 grid place-items-center/);
     expect(T).toMatch(/import \{ DataTable, type DataTableColumn \}/);
     expect(T).toMatch(/columns=\{/);
     expect(T).toMatch(/qc\.setQueryData/);                                // optimistic update untouched

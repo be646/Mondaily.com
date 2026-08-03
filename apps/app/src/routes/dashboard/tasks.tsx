@@ -16,6 +16,7 @@ import { DataTable, type DataTableColumn } from "../../components/ui/data-table"
 import { useLanguage } from "../../hooks/useLanguage";
 import { localStartOfTodayISO, isTaskOverdue } from "@mondaily/shared/dates";
 import { DateField } from "@/components/ui/date-picker";
+import { Modal, Field, ModalActions } from "@/components/ui/modal";
 
 
 /** <input type="datetime-local"> reads/writes LOCAL wall-clock time, but due_date is stored as
@@ -81,22 +82,7 @@ function fmtDateTime(iso: string) {
 // ── Shared modal shell ────────────────────────────────────────────────────────
 const INPUT = "key-input h-9 w-full px-3 text-sm";
 const SELECT = "key-input h-9 w-full px-3 text-sm";
-const BTN_CANCEL = "btn-secondary flex-1 h-10 text-sm";
-const BTN_PRIMARY = "btn-primary flex-1 h-10 text-sm";
 
-function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className="surface-modal w-full max-w-md rounded-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
-          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15}/></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 // ── Create Task modal ─────────────────────────────────────────────────────────
 function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClose: () => void; members: Member[]; currentUserId: string; userName: string }) {
@@ -119,30 +105,45 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
   });
 
   return (
-    <ModalShell title="New Task" onClose={onClose}>
+    <Modal title="New Task" onClose={onClose} footer={
+      <ModalActions onCancel={onClose}>
+        <button onClick={() => title.trim() && create.mutate()} disabled={!title.trim() || create.isPending}
+          className="btn-primary h-8 px-3 text-[12px]">
+          {create.isPending ? "Creating…" : "Create Task"}
+        </button>
+      </ModalActions>
+    }>
       <div className="space-y-3">
-        <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && title.trim() && !create.isPending) create.mutate(); }}
-          placeholder="Task title…" className={INPUT}/>
-        <DateField value={dueDate} onChange={setDueDate} withTime placeholder="Due date" ariaLabel="Due date"/>
-        <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
-          options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
+        <Field label="Title">
+          <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && title.trim() && !create.isPending) create.mutate(); }}
+            placeholder="Task title…" className={INPUT}/>
+        </Field>
+        <Field label="Due date">
+          <DateField value={dueDate} onChange={setDueDate} withTime placeholder="No due date" ariaLabel="Due date"/>
+        </Field>
+        <Field label="Assignee">
+          <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
+            options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
+        </Field>
+        {/* Labelled, so two selects of the same size read as two different facts rather than as one
+            control drawn twice. */}
         <div className="grid grid-cols-2 gap-3">
-          <FieldSelect value={priority} onChange={v => setPriority(v)} ariaLabel="Priority" className={SELECT}
-            options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
-          <FieldSelect value={status} onChange={v => setStatus(v)} ariaLabel="Status" className={SELECT}
-            options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
+          <Field label="Priority">
+            <FieldSelect value={priority} onChange={v => setPriority(v)} ariaLabel="Priority" className={SELECT}
+              options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
+          </Field>
+          <Field label="Status">
+            <FieldSelect value={status} onChange={v => setStatus(v)} ariaLabel="Status" className={SELECT}
+              options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
+          </Field>
         </div>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Notes (optional)…"
-          className="key-input w-full px-3 py-2 text-sm resize-none"/>
-        <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className={BTN_CANCEL}>Cancel</button>
-          <button onClick={() => title.trim() && create.mutate()} disabled={!title.trim() || create.isPending} className={BTN_PRIMARY}>
-            {create.isPending ? "Creating…" : "Create Task"}
-          </button>
-        </div>
+        <Field label="Notes">
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional…"
+            className="key-input w-full resize-none px-3 py-2 text-sm"/>
+        </Field>
       </div>
-    </ModalShell>
+    </Modal>
   );
 }
 
@@ -167,28 +168,44 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
   });
 
   return (
-    <ModalShell title="Edit Task" onClose={onClose}>
+    <Modal title="Edit Task" onClose={onClose} footer={
+      <ModalActions onCancel={onClose}>
+        <button onClick={() => title.trim() && update.mutate()} disabled={!title.trim() || update.isPending}
+          className="btn-primary h-8 px-3 text-[12px]">
+          {update.isPending ? "Saving…" : "Save Changes"}
+        </button>
+      </ModalActions>
+    }>
       <div className="space-y-3">
-        <input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={INPUT}/>
-        <DateField value={dueDate} onChange={setDueDate} withTime placeholder="Due date" ariaLabel="Due date"/>
-        <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
-          options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
+        <Field label="Title">
+          <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
+            placeholder="Task title…" className={INPUT}/>
+        </Field>
+        <Field label="Due date">
+          <DateField value={dueDate} onChange={setDueDate} withTime placeholder="No due date" ariaLabel="Due date"/>
+        </Field>
+        <Field label="Assignee">
+          <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
+            options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
+        </Field>
+        {/* Labelled, so two selects of the same size read as two different facts rather than as one
+            control drawn twice. */}
         <div className="grid grid-cols-2 gap-3">
-          <FieldSelect value={priority} onChange={v => setPriority(v as any)} ariaLabel="Priority" className={SELECT}
-            options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
-          <FieldSelect value={status} onChange={v => setStatus(v as any)} ariaLabel="Status" className={SELECT}
-            options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
+          <Field label="Priority">
+            <FieldSelect value={priority} onChange={v => setPriority(v as any)} ariaLabel="Priority" className={SELECT}
+              options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
+          </Field>
+          <Field label="Status">
+            <FieldSelect value={status} onChange={v => setStatus(v as any)} ariaLabel="Status" className={SELECT}
+              options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
+          </Field>
         </div>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-          className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-[var(--border-strong)] focus:ring-2 focus:ring-stone-500/20 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:ring-0 transition-colors"/>
-        <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className={BTN_CANCEL}>Cancel</button>
-          <button onClick={() => title.trim() && update.mutate()} disabled={!title.trim() || update.isPending} className={BTN_PRIMARY}>
-            {update.isPending ? "Saving…" : "Save Changes"}
-          </button>
-        </div>
+        <Field label="Notes">
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional…"
+            className="key-input w-full resize-none px-3 py-2 text-sm"/>
+        </Field>
       </div>
-    </ModalShell>
+    </Modal>
   );
 }
 
@@ -324,15 +341,29 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
   const PCOL: Record<string, string> = { low: "text-[var(--text-secondary)]", medium: "text-[#717784]", high: "text-[#c6892e]", urgent: "text-[var(--text-secondary)]" };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden transition-all ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
-          <div className="flex items-center gap-2">
-            <LogoMark size={14} className="text-[var(--text-secondary)]"/>
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Suggest tasks with AI</span>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"><X size={15}/></button>
-        </div>
+    <Modal title="Suggest tasks with AI" onClose={onClose}
+      width={suggestions.length ? "lg" : "md"}
+      footer={
+        <ModalActions onCancel={onClose}>
+          {suggestions.length === 0 ? (
+            <button onClick={generate} disabled={loading || !prompt.trim()} className="btn-primary h-8 gap-1.5 px-3 text-[12px]">
+              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
+            </button>
+          ) : (
+            <>
+              <button onClick={generate} disabled={loading}
+                className="h-8 rounded-md px-3 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
+                style={{ color: "var(--text-secondary)" }}>
+                {loading ? "Regenerating…" : "Regenerate"}
+              </button>
+              <button onClick={importSelected} disabled={selected.size === 0 || saving} className="btn-primary h-8 gap-1.5 px-3 text-[12px]">
+                {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
+                Add {selected.size} task{selected.size !== 1 ? "s" : ""}
+              </button>
+            </>
+          )}
+        </ModalActions>
+      }>
 
         <div className="p-5 space-y-4">
           <textarea autoFocus value={prompt} onChange={e => setPrompt(e.target.value)} rows={3}
@@ -380,28 +411,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           </div>
         )}
 
-        <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--border-soft)]">
-          <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-          {suggestions.length === 0 ? (
-            <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-                {loading ? "Regenerating…" : "Regenerate"}
-              </button>
-              <button onClick={importSelected} disabled={selected.size === 0 || saving}
-                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-                {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
-                Add {selected.size} task{selected.size !== 1 ? "s" : ""}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -906,19 +916,22 @@ export function TasksPage() {
 
       {/* ── Delete confirm ── */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
-              <Trash2 size={16} className="text-[var(--text-faint)] dark:text-[var(--text-secondary)]"/>
-            </div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">Delete task?</h2>
-            <p className="text-sm text-[var(--text-muted)] mb-5">This cannot be undone.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmDeleteId(null)} className={BTN_CANCEL}>Cancel</button>
-              <button onClick={() => { remove.mutate(confirmDeleteId); setConfirmDeleteId(null); }} className={BTN_PRIMARY}>Delete</button>
-            </div>
-          </div>
-        </div>
+        <Modal title="Delete task?" width="sm" onClose={() => setConfirmDeleteId(null)} footer={
+          <ModalActions onCancel={() => setConfirmDeleteId(null)}>
+            {/* The destructive action is the PRIMARY here — it is what the dialog is for — but it
+                is coloured as danger, not as the accent, and Cancel stays a quiet ghost so the two
+                never read as a matched pair of buttons. */}
+            <button onClick={() => { remove.mutate(confirmDeleteId); setConfirmDeleteId(null); }}
+              className="h-8 rounded-md border px-3 text-[12px] font-medium transition-colors"
+              style={{ borderColor: "var(--status-bad-line, rgba(209,82,74,.35))", color: "#d1524a" }}>
+              Delete task
+            </button>
+          </ModalActions>
+        }>
+          <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+            This permanently deletes the task. It cannot be undone.
+          </p>
+        </Modal>
       )}
 
       {detailTask && (

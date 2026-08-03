@@ -51,3 +51,59 @@ export function Modal({ title, subtitle, onClose, footer, width = "md", children
     document.body,
   );
 }
+
+/**
+ * Field — a labelled row in a dialog.
+ *
+ * The Edit Task dialog put Priority and Status side by side as two identical unlabelled selects, and
+ * they read as one duplicated button: nothing on screen said which was which, so the eye saw the
+ * same control twice rather than two different facts. A control without a name is not a form field,
+ * it is a mystery box — and two mystery boxes of equal size look like a mistake.
+ *
+ * The label is the fix. Hairline chrome does the rest: dialogs in this app are made of rules, not
+ * of filled panels stacked on filled panels.
+ */
+export function Field({ label, hint, htmlFor, children, className = "" }: {
+  label: string;
+  hint?: string;
+  htmlFor?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={htmlFor}
+        className="mb-1 block text-[10px] font-medium uppercase tracking-wide"
+        style={{ color: "var(--text-faint)" }}>
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>{hint}</p>}
+    </div>
+  );
+}
+
+/**
+ * The dialog's action row. Cancel is a QUIET ghost, the primary carries the weight, and neither is
+ * stretched — two equal-width filled buttons side by side are the same duplicate-looking mistake as
+ * two unlabelled selects. Destructive actions sit left, away from the confirm.
+ */
+export function ModalActions({ onCancel, cancelLabel = "Cancel", children, destructive }: {
+  onCancel: () => void;
+  cancelLabel?: string;
+  children: ReactNode;
+  destructive?: ReactNode;
+}) {
+  return (
+    <>
+      {destructive && <div className="mr-auto">{destructive}</div>}
+      <button type="button" onClick={onCancel}
+        className="h-8 rounded-md px-3 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
+        style={{ color: "var(--text-secondary)" }}>
+        {cancelLabel}
+      </button>
+      {children}
+    </>
+  );
+}
+
