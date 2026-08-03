@@ -3,6 +3,7 @@ import { Plus, X, Sparkles, List, Loader2, Check, Filter } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../ui/controls";
+import { useEscapeClose } from "../ui/modal";
 
 interface NodeRecord { id: string; data: Record<string, unknown> }
 
@@ -69,6 +70,7 @@ export function SegmentBuilder({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  useEscapeClose(onClose);
   const [logic, setLogic] = useState<"AND" | "OR">("AND");
   const [rules, setRules] = useState<Rule[]>([newRule(columns[0] ?? "email")]);
   const [listName, setListName] = useState("");

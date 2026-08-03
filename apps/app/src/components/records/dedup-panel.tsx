@@ -3,6 +3,7 @@ import { X, Merge, List, Phone, Mail, AlertTriangle, Check, Loader2, ChevronDown
 import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEscapeClose } from "../ui/modal";
 
 interface NodeRecord { id: string; data: Record<string, unknown> }
 
@@ -100,6 +101,7 @@ export function DedupPanel({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  useEscapeClose(onClose);
   const [step, setStep] = useState<"scan" | "review" | "lists">("scan");
   const [groups, setGroups] = useState<DupGroup[]>([]);
   const [missing, setMissing] = useState<MissingInfo | null>(null);

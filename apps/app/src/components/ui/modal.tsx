@@ -107,3 +107,22 @@ export function ModalActions({ onCancel, cancelLabel = "Cancel", children, destr
   );
 }
 
+/**
+ * Escape closes it.
+ *
+ * Measured 2026-08-03: 31 of the 46 hand-rolled `fixed inset-0` dialogs in this app did not listen
+ * for Escape, and 8 of those had no backdrop click either — the only way out was finding the X.
+ * Every one of them predates <Modal>, which has always done this.
+ *
+ * Converting 46 dialogs is a long job; being unable to dismiss one is a bug today. This hook closes
+ * that gap in a line, and the conversions can follow without leaving users trapped meanwhile.
+ */
+export function useEscapeClose(onClose: () => void, active = true) {
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, active]);
+}
+

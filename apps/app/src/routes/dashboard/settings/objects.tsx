@@ -12,6 +12,7 @@ import { EmptyState, ConsoleSkeleton } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { FieldSelect } from "../../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions";
+import { useEscapeClose } from "@/components/ui/modal";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
 interface Attribute { id?: string; name: string; type: AttributeType; required?: boolean; unique?: boolean }
@@ -74,6 +75,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   onCreated: (id: string) => void;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const qc = useQueryClient();
   const [step, setStep] = useState<"prompt" | "preview" | "creating">("prompt");
   const [prompt, setPrompt] = useState("");

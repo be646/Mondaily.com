@@ -5,6 +5,7 @@ import { X, GitBranch, History, CheckSquare, StickyNote, Receipt, Bot, MessageSq
 import { apiClient } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
 import type { InspectorContext } from "../ai/ai-inspector";
+import { useEscapeClose } from "../ui/modal";
 
 /**
  * Graph Context Drawer — a reusable right-side panel showing the REAL connected context around the
@@ -52,6 +53,7 @@ export function GraphContextDrawer({ ctx, activities: passedActivities, onClose 
   ctx: InspectorContext; activities?: Activity[]; onClose: () => void;
 }) {
   const nodeId = ctx.kind === "record" ? ctx.nodeId : undefined;
+  useEscapeClose(onClose);
 
   // Graph neighbours (real edges).
   const relatedQ = useQuery({

@@ -11,6 +11,7 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { AutoChart } from "../../../components/charts/charts";
 import { FieldSelect } from "../../../components/ui/controls";
+import { useEscapeClose } from "@/components/ui/modal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
@@ -346,6 +347,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   objects: ObjectType[]; reports: ReportOption[];
   onAdd: (w: AnyWidget) => void; onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   const [tab, setTab] = useState<"live"|"report"|"custom">("live");
   const TABS = [
     { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/> },
