@@ -95,7 +95,11 @@ export function InsightsPage() {
   // `missing`. Every caller here discarded it, so mixed-currency KPIs were shown as exact.
   const revenueSum = sumInDisplay(invoices.filter(i => i.status === "paid" && inRange(i.paid_at ?? i.created_at, range)).map(inv$));
 
-  // Pipeline (as-of open value) + deals won (flow, by updated_at as the close proxy) + new deals (flow)
+  // Pipeline (as-of open STOCK) + deals won (FLOW, by the stamped close date) + new deals (FLOW).
+  // `updated_at` is NOT a close proxy. money.ts documents what that cost: it re-dated a win on
+  // every edit, and measured 2026-08-02 it had moved 1,422,500 into the current month after
+  // unrelated schema work merely touched the rows. This surface was still doing it — the rule was
+  // fixed in the ledger, Brief and Team Oversight, and reconstructed by hand here.
   // Deal values carry their own currency. These used to `reduce` the raw numbers with NO
   // conversion and then render through cur() — so a workspace with EUR and USD deals got one
   // symbol stamped on a raw EUR+USD sum. Route them through sumInDisplay like every other
@@ -109,7 +113,15 @@ export function InsightsPage() {
   // Counted OUT rather than counted in. A deal with no stage is not evidence of an open deal, and
   // it used to pass the old "not closed" test and inflate this figure.
   const unstagedDeals = deals.filter(d => !dealStageOf(d.data)).length;
-  const wonSum = (r: DateRange) => sumInDisplay(deals.filter(d => isWon(dealStageOf(d.data)) && inRange(d.updated_at, r)).map(deal$));
+  /** The stamped close date, or null. Never a fallback — an undated win is disclosed, not dated. */
+  const wonAt = (d: DealNode): string | null => {
+    const v = d.data.won_at;
+    return v ? String(v) : null;
+  };
+  const wonDeals = deals.filter(d => isWon(dealStageOf(d.data)));
+  const wonSum = (r: DateRange) => sumInDisplay(wonDeals.filter(d => { const w = wonAt(d); return w != null && inRange(w, r); }).map(deal$));
+  // Counted OUT of the period figure and stated, exactly as Brief and Team Oversight do.
+  const undatedWins = wonDeals.filter(d => wonAt(d) == null).length;
   const wonIn = (r: DateRange) => wonSum(r).value;
   const newDealsIn = (r: DateRange) => deals.filter(d => inRange(d.created_at, r)).length;
   const dealsWon = wonIn(range);
@@ -167,7 +179,7 @@ export function InsightsPage() {
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Pipeline &amp; agents · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
             <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={`${approx(pipelineSum.missing)}${cur(pipelineValue)}`} sub={`open deals · as of today${pipelineSum.missing > 0 ? ` · ${pipelineSum.missing} unconverted` : ""}${unstagedDeals > 0 ? ` · ${unstagedDeals} unstaged excluded` : ""}`} onClick={() => navigate("/pipeline")} />
-            <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={`${approx(wonSum(range).missing)}${cur(dealsWon)}`} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={`${approx(wonSum(range).missing)}${cur(dealsWon)}`} sub={`${newDeals} new · ${scope}${undatedWins > 0 ? ` · ${undatedWins} won without a close date` : ""}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
             {aiCredits != null ? (
               <KpiCard icon={Sparkles} tone="var(--section-accent)" label="AI credits used" value={aiCredits.toLocaleString()} sub={`${activeMembers ?? "—"} members · ${scope}`} onClick={() => navigate("/team/oversight")} />
             ) : (

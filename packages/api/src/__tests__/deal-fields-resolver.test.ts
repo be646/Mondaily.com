@@ -67,3 +67,20 @@ describe("open pipeline means AT a stage", () => {
     expect(read("packages/api/src/lib/money.ts")).toMatch(/isOpen = \(stage: string\) => isOpenStage\(stage\)/);
   });
 });
+
+describe("a win is dated by its close date, on every surface", () => {
+  it("Insights does not date wins by updated_at", () => {
+    // The rule was fixed in money.ts, Brief and Team Oversight, then reconstructed by hand here —
+    // the fifth time this session that a rule written in one place was bypassed in another.
+    // `updated_at` re-dates a win on every edit; it had moved 1,422,500 into the current month.
+    const src = read("apps/app/src/routes/dashboard/insights.tsx");
+    expect(src).not.toMatch(/isWon\([^)]*\)\s*&&\s*inRange\(d\.updated_at/);
+    expect(src).toMatch(/won_at/);
+  });
+
+  it("Insights discloses undated wins rather than silently dropping them", () => {
+    const src = read("apps/app/src/routes/dashboard/insights.tsx");
+    expect(src).toMatch(/undatedWins/);
+    expect(src).toMatch(/won without a close date/);
+  });
+});
