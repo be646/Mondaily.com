@@ -12,12 +12,18 @@ import { CommandPageHeader } from "@/components/ui/controls";
  * of the app (Decisions/Discovery/Team). Kept as a light component (no soul-rule) so it drops into
  * the finance pages' pinned header band without a double divider.
  */
-export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
+export function FinanceHeader({ icon, callsign, title, subtitle, action, periodLens }: {
   icon: LucideIcon;
   callsign: string;
   title: string;
   subtitle?: ReactNode;
   action?: ReactNode;
+  /**
+   * The reporting LENS (period selector + stepper). Portals into its own row rather than the tab
+   * strip: measured, seven pills plus a stepper plus a currency select need ~620px and the strip
+   * has 560, so the leading pills spilled left under the tabs and "Today" became unreachable.
+   */
+  periodLens?: ReactNode;
 }) {
   // FOLDED INTO THE SHELL STRIP (bar 2). Inside the finance shell the page title is redundant —
   // the active tab already says "Invoices" — so this renders no header block at all: it stamps
@@ -26,16 +32,23 @@ export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
   // in the same pass as the page's first render. Outside the shell (no slot found — safety for
   // any future standalone use) it falls back to the standard header bar unchanged.
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [lensSlot, setLensSlot] = useState<HTMLElement | null>(null);
   const [noShell, setNoShell] = useState(false);
   useEffect(() => {
     const el = document.getElementById("finance-shell-actions");
+    setLensSlot(document.getElementById("finance-shell-period"));
     if (el) setSlot(el); else setNoShell(true);
   }, []);
   useEffect(() => {
     document.title = `${title} · Mondaily`;
     (window as unknown as { __mdTitledPath?: string }).__mdTitledPath = window.location.pathname;
   }, [title]);
-  if (slot) return createPortal(action ?? null, slot);
+  if (slot) return (
+    <>
+      {createPortal(action ?? null, slot)}
+      {lensSlot && periodLens ? createPortal(periodLens, lensSlot) : null}
+    </>
+  );
   if (!noShell) return null;  // first paint, slot not resolved yet — render nothing, no flash
   return (
     <CommandPageHeader
@@ -43,7 +56,7 @@ export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
       callsign={callsign}
       title={title}
       subtitle={subtitle}
-      primaryAction={action}
+      primaryAction={<>{periodLens}{action}</>}
       divider={false}
     />
   );

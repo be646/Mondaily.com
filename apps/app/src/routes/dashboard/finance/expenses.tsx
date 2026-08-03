@@ -308,7 +308,12 @@ export function ExpensesPage() {
   // the period total are FLOWs counted within the window on the expense date.
   const { range, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
   const inPeriod = (e: Expense) => period === "all" || inRange(e.date ?? "", range);
-  const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
+  // The window's NAME wins when the server has one — see reports.tsx. "this month" over a
+  // stepped-back window is a label contradicting its own number.
+  const periodScope = period === "all" ? "all time"
+    : periodName ? periodName
+    : period === "today" ? "today"
+    : `this ${periodLabel(period).toLowerCase()}`;
   const submittedSum = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$));
   const approvedSum  = sumInDisplay(expenses.filter(e => e.status === "approved" && inPeriod(e)).map(e$));
   // "Total logged" = real spend in the window: exclude rejected AND draft (neither is committed spend).
@@ -321,11 +326,11 @@ export function ExpensesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <FinanceHeader icon={Receipt} callsign="EXPENSES" title="Expenses" subtitle="Track and manage business expenses"
+        <FinanceHeader
+          periodLens={<><PeriodSelector value={period} onChange={setPeriod} />
+            <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} /></>} icon={Receipt} callsign="EXPENSES" title="Expenses" subtitle="Track and manage business expenses"
           action={
             <>
-            <PeriodSelector value={period} onChange={setPeriod} />
-            <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
             <button onClick={() => setShowNew(true)}
               className="btn-primary h-7 shrink-0 gap-2 px-3 text-body font-semibold">
               <Plus size={13}/> Log Expense

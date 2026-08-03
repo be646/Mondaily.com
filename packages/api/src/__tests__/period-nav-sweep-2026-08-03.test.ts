@@ -84,3 +84,40 @@ describe("a tile's label follows its window, not the calendar today", () => {
     expect(src).toMatch(/a label\s*\n?\s*\/\/ contradicting its own number/);
   });
 });
+
+describe("the toolbar is a toolbar, not a block", () => {
+  it("the period pills never wrap", () => {
+    // Regression: PeriodSelector was flex-wrap, so adding the stepper beside it broke the pills
+    // into three ragged stacked rows — Today Week / Month Quarter / Year All / Custom.
+    const src = read("apps/app/src/components/ui/period-selector.tsx");
+    expect(src).not.toMatch(/flex flex-wrap items-center gap-2/);
+    expect(src).toMatch(/inline-flex shrink-0 items-center gap-0\.5 whitespace-nowrap/);
+  });
+
+  it("the stepper and its badge never wrap either", () => {
+    const src = read("apps/app/src/components/ui/period-nav.tsx");
+    expect(src).toMatch(/flex shrink-0 items-center gap-1\.5 whitespace-nowrap/);
+    // "closed period" wrapped inside its own pill; it is a dot + one word now.
+    expect(src).not.toMatch(/>closed period</);
+    expect(src).toMatch(/title="Closed period — shown in full, not period-to-date"/);
+  });
+
+  it("the lens has its OWN row — it does not borrow space the tab strip lacks", () => {
+    // Measured: 7 pills + stepper + currency need ~620px; the strip has 560, so the leading pills
+    // spilled left UNDER the tabs and "Today" became unreachable at x=796 vs a strip starting 856.
+    const shell = read("apps/app/src/routes/dashboard/finance/shell.tsx");
+    expect(shell).toMatch(/id="finance-shell-period"/);
+    expect(read("apps/app/src/components/finance/finance-toolbar.tsx")).toMatch(/periodLens\?: ReactNode/);
+  });
+
+  it("every stepping surface names its window instead of saying 'this month'", () => {
+    for (const f of [
+      "apps/app/src/routes/dashboard/finance/reports.tsx",
+      "apps/app/src/routes/dashboard/finance/invoices.tsx",
+      "apps/app/src/routes/dashboard/finance/expenses.tsx",
+      "apps/app/src/routes/dashboard/insights.tsx",
+    ]) {
+      expect(read(f), f).toMatch(/: periodName \? periodName/);
+    }
+  });
+});

@@ -160,17 +160,22 @@ export function InvoicesPage() {
   const totalPaid = paidSum.value;
   const approx = (n: number) => (n > 0 ? "~" : "");
   const unconverted = (n: number) => (n > 0 ? ` · ${n} unconverted` : "");
-  const collectedScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
+  // The window's NAME wins when the server has one — see reports.tsx. "this month" over a
+  // stepped-back window is a label contradicting its own number.
+  const collectedScope = period === "all" ? "all time"
+    : periodName ? periodName
+    : period === "today" ? "today"
+    : `this ${periodLabel(period).toLowerCase()}`;
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <FinanceHeader icon={FileText} callsign="BILLING" title="Invoices" subtitle="Create, send, and track invoices"
+        <FinanceHeader
+          periodLens={<><PeriodSelector value={period} onChange={setPeriod} />
+              <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} /></>} icon={FileText} callsign="BILLING" title="Invoices" subtitle="Create, send, and track invoices"
           action={
             <>
-              <PeriodSelector value={period} onChange={setPeriod} />
-              <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}

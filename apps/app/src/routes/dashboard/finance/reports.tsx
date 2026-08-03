@@ -320,10 +320,14 @@ export function FinanceReportsPage() {
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
         <FinanceHeader icon={BarChart2} callsign="FINANCE" title="Finance Reports"
           subtitle={<>Revenue overview, client breakdown and credit analysis{mixedCurrency && (<> · shown in <span className="font-medium text-[var(--text-secondary)]">{display}</span>{hasRates && ratesAsOf ? <> at ECB rate, {new Date(ratesAsOf).toLocaleDateString()}</> : ""}</>)}</>}
-          action={
+          periodLens={
             <>
               <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
               <PeriodNav period={period} offset={periodOffset} onOffset={setPeriodOffset} serverLabel={periodName} complete={periodComplete} />
+            </>
+          }
+          action={
+            <>
               {/* No "Show in" label: it wrapped to two lines in the strip, and the line directly
                   under this header already says "Showing PLN at today's rate. This workspace
                   reports in USD." A label repeating what the sentence below states, at the cost of

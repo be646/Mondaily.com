@@ -55,7 +55,13 @@ export function InsightsPage() {
   const [periodOffset, setPeriodOffset] = usePeriodOffset(period);
   // Window resolved by the WORKSPACE (timezone + week start), not by this browser's clock.
   const { range, previous: prev, label: periodName, complete: periodComplete } = useResolvedPeriod(period, undefined, periodOffset);
-  const scope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
+  // The window's NAME wins whenever the server has supplied one. "this week" is only true while
+  // you are looking at this week; once a closed period can be stepped into, a tile reading
+  // "collected · this week" over the week of 20 July is a label contradicting its own number.
+  const scope = period === "all" ? "all time"
+    : periodName ? periodName
+    : period === "today" ? "today"
+    : `this ${periodLabel(period).toLowerCase()}`;
   const { display, sumInDisplay } = useCurrency();
 
   const invoicesQ = useQuery<Invoice[]>({ queryKey: ["insights-invoices"], queryFn: () => apiClient.get("/invoices") });
