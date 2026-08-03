@@ -87,3 +87,23 @@ describe("every anchored dropdown wears the same skin", () => {
     }
   });
 });
+
+describe("hover on secondary chrome is neutral", () => {
+  it("secondary and ghost buttons do not border in the accent on hover", () => {
+    // Reported twice. The accent is green on Deals, so every secondary button in a toolbar lit up
+    // green under the cursor — colour spent on "the pointer is here".
+    for (const re of [/\.btn-secondary:hover:not\(:disabled\)\s*\{[^}]*\}/,
+                      /\.ui-btn:hover:not\(:disabled\)\s*\{[^}]*\}/]) {
+      const m = css.match(re);
+      expect(m, `missing ${re}`).toBeTruthy();
+      expect(m![0], m![0]).not.toMatch(/--section-accent/);
+    }
+  });
+
+  it("the PRIMARY button keeps its accent — that one is meant to be coloured", () => {
+    // Quieting chrome must not flatten the one control that carries emphasis.
+    const m = css.match(/\.ui-btn--primary:hover:not\(:disabled\)\s*\{[^}]*\}/);
+    expect(m![0]).toMatch(/--section-accent/);
+  });
+});
+

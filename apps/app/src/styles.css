@@ -1301,9 +1301,12 @@ html[data-theme="dark"] .minimal-sparkline {
     border: 1px solid var(--border-soft);
     color: var(--text-secondary);
   }
+  /* Neutral on hover. A secondary button is chrome: pointing at it is not an event worth colouring,
+     and with the accent green on Deals every button in a toolbar lit up green under the cursor.
+     The PRIMARY button keeps its accent below — that one IS the coloured thing on purpose. */
   .btn-secondary:hover:not(:disabled) {
     background: var(--surface-hover);
-    border-color: var(--section-accent);
+    border-color: var(--border-strong);
     color: var(--text-primary);
   }
 
@@ -1486,7 +1489,8 @@ html[data-theme="dark"] .minimal-sparkline {
   .ui-menu-item:hover { background: var(--surface-hover); color: var(--text-primary); }
   .ui-menu-item[data-active="true"] { color: var(--section-accent); }
 
-  /* Buttons — slate base, section-accent halo on hover (never a solid colour fill) */
+  /* Buttons — slate base. Hover is NEUTRAL for secondary/ghost; only the primary keeps a
+     section-accent halo, because the primary action is the one thing meant to be coloured. */
   .ui-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1;
@@ -1495,7 +1499,7 @@ html[data-theme="dark"] .minimal-sparkline {
     background: var(--surface-selected); color: var(--text-secondary);
     transition: border-color .15s, color .15s, background .15s;
   }
-  .ui-btn:hover:not(:disabled) { border-color: var(--section-accent); color: var(--text-primary); }
+  .ui-btn:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-primary); }
   .ui-btn:disabled { opacity: .5; cursor: not-allowed; }
   .ui-btn--primary { background: var(--surface-selected); color: var(--text-primary); }
   .ui-btn--primary:hover:not(:disabled) { border-color: var(--section-accent); box-shadow: 0 0 0 1px var(--section-accent); }
