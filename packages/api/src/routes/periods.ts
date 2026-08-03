@@ -4,10 +4,10 @@ import { zValidator } from "@hono/zod-validator";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import {
-  periodConfigFrom, periodKey, periodBounds, previousPeriod, getPeriodBounds,
+  periodKey, periodBounds, previousPeriod, getPeriodBounds,
   type PeriodType, type Timeframe,
 } from "@mondaily/shared/period";
-import { closeDuePeriods, computeMetrics, driftFor, verifyChain, PERIOD_TYPES, METRICS_VERSION } from "../lib/period-close";
+import { closeDuePeriods, computeMetrics, driftFor, verifyChain, workspacePeriodConfig, PERIOD_TYPES, METRICS_VERSION } from "../lib/period-close";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -16,8 +16,9 @@ const TYPE = z.enum(["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]);
 const TIMEFRAME = z.enum(["TODAY", "WEEK", "MONTH", "QUARTER", "YEAR", "ALL_TIME"]);
 
 async function configFor(workspaceId: string) {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-  return periodConfigFrom((data as { settings?: unknown } | null)?.settings);
+  // Both, because the timezone lives in the COLUMN and the Settings picker writes there.
+  const { data } = await supabase.from("workspaces").select("settings, timezone").eq("id", workspaceId).maybeSingle();
+  return workspacePeriodConfig(data as { timezone?: unknown; settings?: unknown } | null);
 }
 
 /**
@@ -159,8 +160,8 @@ router.post("/close", zValidator("json", z.object({
     });
   }
 
-  const results = await closeDuePeriods(ws, (await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle()).data?.settings,
-    now, { types, closedBy: "manual" });
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const results = await closeDuePeriods(ws, wsRow as { timezone?: unknown; settings?: unknown } | null, now, { types, closedBy: "manual" });
   return c.json({ dry_run: false, results });
 });
 

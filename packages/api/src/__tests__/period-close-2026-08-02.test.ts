@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { snapshotHash, sha256, METRICS_VERSION, PERIOD_TYPES } from "../lib/period-close";
+import { snapshotHash, sha256, workspacePeriodConfig, METRICS_VERSION, PERIOD_TYPES } from "../lib/period-close";
 
 const root = join(__dirname, "../../../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -213,5 +213,38 @@ describe("a backdated payment books revenue in the month the money arrived", () 
     const src = read("packages/api/src/routes/invoices.ts");
     expect(src).toMatch(/paid_at: z\.string\(\)\.datetime\(\)\.optional\(\)/);
     expect(src).toMatch(/statusUpdates\.paid_at = body\.paid_at \?\? new Date\(\)\.toISOString\(\)/);
+  });
+});
+
+describe("the timezone is read from where it actually lives", () => {
+  it("prefers the workspaces.timezone COLUMN over settings.timezone", () => {
+    // Found while checking the Settings picker: the picker writes to the column, and app-data
+    // treats settings.timezone as a legacy fallback. Reading settings alone made the entire
+    // timezone story inert — a workspace could pick Europe/Warsaw and every boundary would still
+    // be computed in UTC. Invisible, too, because UTC is a plausible answer.
+    expect(workspacePeriodConfig({ timezone: "Europe/Warsaw", settings: { timezone: "UTC" } }).timeZone)
+      .toBe("Europe/Warsaw");
+  });
+
+  it("falls back to settings when the column is empty", () => {
+    expect(workspacePeriodConfig({ timezone: null, settings: { timezone: "America/New_York" } }).timeZone)
+      .toBe("America/New_York");
+    expect(workspacePeriodConfig({ timezone: "   ", settings: { timezone: "America/New_York" } }).timeZone)
+      .toBe("America/New_York");
+  });
+
+  it("still keeps week_start, which only exists in settings", () => {
+    expect(workspacePeriodConfig({ timezone: "Europe/Warsaw", settings: { week_start: 1 } }).weekStart).toBe(1);
+  });
+
+  it("survives a missing row entirely", () => {
+    expect(workspacePeriodConfig(null).timeZone).toBe("UTC");
+    expect(workspacePeriodConfig(undefined).timeZone).toBe("UTC");
+  });
+
+  it("every caller selects the column, not settings alone", () => {
+    expect(routes()).toMatch(/\.select\("settings, timezone"\)/);
+    const cron = app().slice(app().indexOf('app.get("/api/cron/period-close"'));
+    expect(cron).toMatch(/\.select\("id, settings, timezone"\)/);
   });
 });

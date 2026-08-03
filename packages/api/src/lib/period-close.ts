@@ -30,6 +30,21 @@ import { makeBaseConverter } from "./currency-store";
 
 export const PERIOD_TYPES: PeriodType[] = ["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"];
 
+/**
+ * The workspace's period config, read from where the timezone ACTUALLY lives.
+ *
+ * `workspaces.timezone` is a real column and the Settings → General picker writes to it;
+ * `settings.timezone` is only a legacy fallback (app-data prefers the column, so this must too).
+ * Reading settings alone made the whole timezone story inert: a workspace could pick Europe/Warsaw
+ * and every boundary would still be computed in UTC, which is precisely the bug this engine exists
+ * to prevent — and it would have been invisible, because UTC is a plausible answer.
+ */
+export function workspacePeriodConfig(row: { timezone?: unknown; settings?: unknown } | null | undefined): PeriodConfig {
+  const settings = (row?.settings ?? {}) as Record<string, unknown>;
+  const column = typeof row?.timezone === "string" && row.timezone.trim() ? row.timezone.trim() : null;
+  return periodConfigFrom({ ...settings, ...(column ? { timezone: column } : {}) });
+}
+
 export interface PeriodMetrics {
   /** FLOW — cash that actually landed inside the period, in workspace base currency. */
   revenue_collected: number;
@@ -271,10 +286,10 @@ export async function closePeriod(
  * still produces exactly one snapshot per period.
  */
 export async function closeDuePeriods(
-  workspaceId: string, settings: unknown, now = new Date(),
+  workspaceId: string, workspaceRow: { timezone?: unknown; settings?: unknown } | null | undefined, now = new Date(),
   opts: { lookbackDays?: number; types?: PeriodType[]; closedBy?: "scheduled" | "backfill" | "manual" } = {},
 ): Promise<CloseResult[]> {
-  const cfg = periodConfigFrom(settings);
+  const cfg = workspacePeriodConfig(workspaceRow);
   const lookback = opts.lookbackDays ?? 400;         // a year plus slack, so a yearly close is reachable
   const since = new Date(now.getTime() - lookback * 86_400_000);
   const out: CloseResult[] = [];

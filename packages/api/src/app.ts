@@ -225,14 +225,16 @@ app.get("/api/cron/period-close", async (c) => {
 
   const { closeDuePeriods } = await import("./lib/period-close");
   const { supabase } = await import("@mondaily/db/client");
-  const { data: workspaces, error } = await supabase.from("workspaces").select("id, settings");
+  // `timezone` is a column; settings.timezone is only a legacy fallback. Selecting settings alone
+  // made every close compute in UTC regardless of what the workspace had chosen.
+  const { data: workspaces, error } = await supabase.from("workspaces").select("id, settings, timezone");
   if (error) return c.json({ error: error.message }, 500);
 
   const results: Record<string, unknown> = {};
   for (const ws of workspaces ?? []) {
     // One workspace failing must not stop the rest closing their own periods.
     try {
-      const r = await closeDuePeriods(String(ws.id), (ws as { settings?: unknown }).settings);
+      const r = await closeDuePeriods(String(ws.id), ws as { timezone?: unknown; settings?: unknown });
       const written = r.filter(x => x.status === "written");
       if (written.length) results[String(ws.id)] = written.map(x => `${x.period_type}:${x.period_key}`);
       const failed = r.filter(x => x.status === "failed");
