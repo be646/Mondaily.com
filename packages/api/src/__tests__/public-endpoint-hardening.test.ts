@@ -61,8 +61,12 @@ describe("rate limiting survives serverless", () => {
     // A limiter that takes the product down because its own migration has not run is a worse
     // outage than the abuse it prevents.
     const st = read("lib/rate-limit-store.ts");
-    expect(st).toMatch(/tableMissing = true/);
     expect(st).toMatch(/return null/);
+    // ...and RECOVERS. The first version latched a permanent boolean, so every instance that
+    // probed before the migration was applied fell back forever — after the table was correct,
+    // sixteen rapid requests still all returned 200 and only a redeploy could fix it.
+    expect(st).toMatch(/RETRY_AFTER_MS/);
+    expect(st).not.toMatch(/let tableMissing/);
     expect(mw).toMatch(/if \(durable\) \{/);
   });
 

@@ -7,6 +7,7 @@ import { isEmbeddingsEnabled } from "../lib/embeddings";
 import { inferenceMode, sovereignVllmConfigured, sovereignVllmProbe } from "../lib/inference-backend";
 import { sendTransactionalEmail, sovereignRelayStatus, recordingsStorageUsage } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
+import { rateLimitStoreHealth } from "../lib/rate-limit-store";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -111,6 +112,11 @@ router.get("/readiness", async (c) => {
     deploy_commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     checked_at: null, // stamped client-side; the server stays deterministic + side-effect free
     fields: {
+      // Whether the DURABLE rate limiter is actually working — not merely configured. An in-memory
+      // fallback is invisible from outside, which is how a limiter that had silently stopped
+      // protecting anything went unnoticed until it was probed with sixteen requests.
+      rate_limit_durable: rateLimitStoreHealth().durable,
+      rate_limit_error: rateLimitStoreHealth().error,
       ai_gateway_configured,
       ai_gateway_healthy: null,   // configured-only: a live probe would cost paid AI requests, so we don't
       stripe_configured,

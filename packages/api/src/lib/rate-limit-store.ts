@@ -21,7 +21,20 @@ export interface RateState {
   lockedForSecs: number;
 }
 
-let tableMissing = false;   // latched after the first "relation does not exist" — stop retrying
+/**
+ * "Store unavailable" is TIME-BOXED, never permanent.
+ *
+ * The first version latched a boolean forever. So every serverless instance that happened to probe
+ * before the migration was applied kept falling back to the in-memory bucket for the rest of its
+ * life — and after the migration landed, sixteen rapid requests STILL all returned 200. The fix was
+ * live, the table was correct, and the app could not notice without a redeploy.
+ *
+ * A fail-soft that cannot recover is just a failure with better manners.
+ */
+const RETRY_AFTER_MS = 60_000;
+let unavailableUntil = 0;
+const isUnavailable = () => Date.now() < unavailableUntil;
+const markUnavailable = () => { unavailableUntil = Date.now() + RETRY_AFTER_MS; };
 
 /**
  * The last RPC error, surfaced so a BROKEN limiter is distinguishable from an ABSENT one.
@@ -34,14 +47,14 @@ let tableMissing = false;   // latched after the first "relation does not exist"
 let lastError: string | null = null;
 
 export async function hit(key: string, windowMs: number): Promise<RateState | null> {
-  if (tableMissing) return null;
+  if (isUnavailable()) return null;
   try {
     const { data, error } = await supabase.rpc("rate_limit_hit", { p_key: key, p_window_ms: windowMs });
     if (error) {
       // 42P01 undefined_table / 42883 undefined_function → the migration has not been applied.
       if (/does not exist|undefined_table|undefined_function|42P01|42883/i.test(error.message)) {
-        tableMissing = true;
-        lastError = `rate-limit store not installed: ${error.message}`;
+        markUnavailable();
+        lastError = `rate-limit store not installed (retrying in ${RETRY_AFTER_MS / 1000}s): ${error.message}`;
       } else {
         // Installed but BROKEN — do not latch, and make it visible.
         lastError = `rate-limit store failing: ${error.message}`;
@@ -52,6 +65,7 @@ export async function hit(key: string, windowMs: number): Promise<RateState | nu
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) return null;
     lastError = null;
+    unavailableUntil = 0;
     // Accept both shapes: the fixed function returns out_* (renamed to dodge the ambiguity that
     // broke the original), the first version returned bare names.
     const r = row as { hits?: number; out_hits?: number; locked_until?: string | null; out_locked_until?: string | null };
@@ -66,15 +80,15 @@ export async function hit(key: string, windowMs: number): Promise<RateState | nu
 }
 
 export async function lock(key: string, ms: number): Promise<void> {
-  if (tableMissing) return;
+  if (isUnavailable()) return;
   try { await supabase.rpc("rate_limit_lock", { p_key: key, p_ms: ms }); } catch { /* fail-soft */ }
 }
 
 export async function clear(key: string): Promise<void> {
-  if (tableMissing) return;
+  if (isUnavailable()) return;
   try { await supabase.rpc("rate_limit_clear", { p_key: key }); } catch { /* fail-soft */ }
 }
 
 /** Health for /admin/readiness: is the durable limiter actually working, and if not, why. */
-export const rateLimitStoreHealth = () => ({ durable: !tableMissing && !lastError, error: lastError });
-export const isDurableRateLimitAvailable = () => !tableMissing;
+export const rateLimitStoreHealth = () => ({ durable: !isUnavailable() && !lastError, error: lastError });
+export const isDurableRateLimitAvailable = () => !isUnavailable();
