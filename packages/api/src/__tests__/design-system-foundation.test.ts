@@ -922,7 +922,9 @@ describe("dashboard/calendar safe read-only 13px items use text-row (Pass 8J)", 
     expect((C.match(/overflow-y-auto[^"]*text-\[13px\]/g) ?? []).length).toBeGreaterThanOrEqual(2);                          // 560/794 containers
     expect(C).toMatch(/block min-w-0 truncate text-\[13px\] font-medium/);                                                   // 581 button title
     expect(C).toMatch(/px-3 py-2 text-\[13px\] outline-none/);                                                               // 1129 input const
-    expect(C).toMatch(/text-\[13px\] font-semibold" style=\{\{ color: "var\(--text-primary\)" \}\}>\{t\("cal\.new_meeting"\)/); // 1137 drawer header
+    // RESOLVED 2026-08-04: the new-meeting dialog moved to the shared <Modal>, which renders
+    // its title. Asserted from the other side so it cannot regress to a private header.
+    expect(C).toMatch(/<Modal title=\{t\("cal\.new_meeting"\)\}/);
   });
   it("8B/8D eyebrows still text-caption (15) + mutations untouched", () => {
     expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(16); // +1 2026-07-30: agent line in the nav bar
@@ -2327,10 +2329,10 @@ describe("button chrome ratchet (Pass BTN-1, 2026-07-30)", () => {
       }
     }
     expect(handRolled, `hand-rolled chrome buttons grew to ${handRolled} — use the .btn-* classes`).toBeLessThanOrEqual(52);
-    // Floor 35 → 34 on 2026-08-04, and NOT because adoption slipped: this walk covers
+    // Floor 35 → 33 across 2026-08-04, and NOT because adoption slipped: this walk covers
     // routes/dashboard only, and converting a dialog to the shared <Modal> moves its canonical
     // btn-icon close button into components/ui/modal.tsx. The button became MORE shared, not
     // less. The hand-rolled CEILING above is the half that actually guards against drift.
-    expect(canonical, `canonical .btn-* adoption regressed to ${canonical}`).toBeGreaterThanOrEqual(34);
+    expect(canonical, `canonical .btn-* adoption regressed to ${canonical}`).toBeGreaterThanOrEqual(33);
   });
 });

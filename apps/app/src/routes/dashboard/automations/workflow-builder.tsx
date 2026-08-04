@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type NodeKind = "trigger" | "condition" | "action";
@@ -219,13 +220,7 @@ function NodePicker({ onPick, onClose }: {
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
-          <p className="text-xs font-semibold text-[var(--text-primary)]">Add step</p>
-          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)]"><X size={14}/></button>
-        </div>
+      <Modal title="Add step" width="sm" onClose={onClose}>
         <div className="flex border-b border-[var(--border-soft)]">
           {(["condition","action"] as NodeKind[]).map(k => (
             <button
@@ -255,8 +250,7 @@ function NodePicker({ onPick, onClose }: {
             );
           })}
         </div>
-      </div>
-    </>
+      </Modal>
   );
 }
 
@@ -301,15 +295,24 @@ function AIWorkflowModal({ onClose, onApply }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
-        <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
-          <div className="flex items-center gap-2">
-            <LogoMark size={15} className="text-[var(--text-faint)]"/>
-            <h2 className="font-semibold text-[var(--text-primary)]">Generate workflow with AI</h2>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16}/></button>
-        </div>
+    <Modal title="Generate workflow with AI" onClose={onClose} width={preview ? "lg" : "md"} footer={
+      <ModalActions onCancel={onClose}>
+        {!preview ? (
+          <button onClick={generate} disabled={loading || !prompt.trim()} className="flex h-8 items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+            {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
+          </button>
+        ) : (
+          <>
+            <button onClick={generate} disabled={loading}
+              className="h-8 rounded-md px-3 text-label transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ color: "var(--text-secondary)" }}>Regenerate</button>
+            <button onClick={apply} className="flex h-8 items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+              <LogoMark size={13}/> Apply to builder
+            </button>
+          </>
+        )}
+      </ModalActions>
+    }>
 
         <div className="p-5 space-y-4">
           <textarea
@@ -347,25 +350,7 @@ function AIWorkflowModal({ onClose, onApply }: {
           </div>
         )}
 
-        <div className="flex items-center justify-between p-5 border-t border-[var(--border-soft)]">
-          <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
-          {!preview ? (
-            <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
-              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Regenerate</button>
-              <button onClick={apply}
-                className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
-                <LogoMark size={13}/> Apply to builder
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

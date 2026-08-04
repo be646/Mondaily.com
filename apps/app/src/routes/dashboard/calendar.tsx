@@ -10,6 +10,7 @@ import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { DateField } from "@/components/ui/date-picker";
+import { Modal } from "@/components/ui/modal";
 
 /**
  * Mondaily Smart Calendar — an AI-native meeting command center (native + workspace-scoped). A Today
@@ -1136,13 +1137,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
 
   return (
-    <>
-      <div className="fixed inset-0 z-[200] bg-black/40" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border" style={{ background: "var(--surface-modal)", borderColor: "var(--border-strong)" }}>
-        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.new_meeting")}</span>
-          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
-        </div>
+      <Modal title={t("cal.new_meeting")} width="sm" onClose={onClose}>
         <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
           <input autoFocus className={field} style={style} placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
@@ -1218,7 +1213,6 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
             {create.isPending ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
           </button>
         </div>
-      </div>
-    </>
+      </Modal>
   );
 }
