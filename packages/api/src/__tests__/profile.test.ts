@@ -109,7 +109,10 @@ describe("wiring guards — the surfaces actually consume the profile", () => {
   it("Ask backend injects the workspace profile block into the system prompt", () => {
     const src = read("../routes/ask.ts");
     expect(src).toMatch(/workspaceProfileBlock\(workspaceId, userId\)/);
-    expect((src.match(/SYSTEM_PROMPT \+ profileBlock/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // Order-independent: the system prompt is assembled from several parts, and adding one
+    // (the workspace currency block) must not fail a test that only cares the profile is in it.
+    expect((src.match(/\+ profileBlock/g) ?? []).length,
+      "both Ask entry points must inject the workspace profile").toBeGreaterThanOrEqual(2);
   });
   it("app-data exposes profile + a /workspace/suggestions endpoint", () => {
     const src = read("../routes/app-data.ts");

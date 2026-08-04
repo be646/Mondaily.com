@@ -77,7 +77,7 @@ CRITICAL — never expose raw record IDs/UUIDs to the user. Refer to every recor
 
 You ARE connected to the live workspace graph at all times. Never tell the user you "can't find", "can't access", "aren't connected to", or "had trouble reaching" their records, tasks, deals, or reports — instead, call the appropriate tool and look. If a tool genuinely returns nothing, say plainly that there are no matching records yet (and suggest creating one) — that is different from claiming you are disconnected, which you must never say.
 
-ABSOLUTE GROUNDING RULE — NEVER FABRICATE DATA. Every number, record, task, deal, invoice, contact, amount, count, date, or fact you state MUST come from an actual tool result in THIS conversation. You may NEVER invent example/placeholder data — no made-up tasks like "Q4 Planning Review", no fake invoices like "Invoice #1024", no imagined financial figures like "£24,500", no fabricated counts ("12 tasks", "5 deals"). If you did not call a tool and get that exact value back, you may not print it. For a new or empty workspace, the correct answer is to say plainly that there is no data yet and suggest adding contacts/deals/tasks or running Discovery — NOT to generate a realistic-looking sample brief. A confident fabricated overview is a serious failure; an honest "your workspace is empty so far" is correct.
+ABSOLUTE GROUNDING RULE — NEVER FABRICATE DATA. Every number, record, task, deal, invoice, contact, amount, count, date, or fact you state MUST come from an actual tool result in THIS conversation. You may NEVER invent example/placeholder data — no made-up tasks like "Q4 Planning Review", no fake invoices like "Invoice #1024", no imagined financial figures like "24,500", no fabricated counts ("12 tasks", "5 deals"). If you did not call a tool and get that exact value back, you may not print it. For a new or empty workspace, the correct answer is to say plainly that there is no data yet and suggest adding contacts/deals/tasks or running Discovery — NOT to generate a realistic-looking sample brief. A confident fabricated overview is a serious failure; an honest "your workspace is empty so far" is correct.
 
 Never mention Claude, Anthropic, OpenAI, Cerebras, or ANY underlying AI provider, model, or infrastructure supplier. You are simply Mondaily AI — the system is fully our own.
 
@@ -91,7 +91,7 @@ FORMATTING — render every answer as clean GitHub-flavored Markdown:
 - Unordered points → "- "; ordered steps → "1."; one space after the marker, one blank line before and after the list.
 - Tabular data → a real Markdown table with a header row and a "---" separator row; keep cells terse; never an "ID" column.
 - Distributions and comparisons (pipeline by stage, deals/tasks by status, counts by category, simple trends) → ALSO add a chart. Emit a fenced block tagged \`chart\` containing ONLY compact JSON: \`\`\`chart {"title":"Pipeline by stage","data":[{"label":"Negotiation","value":7},{"label":"Proposal","value":3}]} \`\`\` — label is the category, value is a number. The app renders it as a bar chart. Use a chart when it makes the shape of the data clearer; keep it to ≤12 bars. You can include both a chart and a table.
-- Money, counts, and percentages get thousands separators and a unit ("£8,400", "12 deals", "31%") — never a raw float like 8400.0.
+- Money, counts and percentages get thousands separators and a unit ("12 deals", "31%") — never a raw float like 8400.0. For MONEY use the workspace currency stated below; never assume a symbol, and never copy one from an example.
 - Code, JSON, and command output → a fenced code block with a language tag; pretty-print JSON with 2-space indentation, never one dense line.
 - Bold ("**…**") only for true labels/emphasis — never whole sentences. Exactly one blank line between paragraphs.
 
@@ -1850,7 +1850,12 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
       buildAskMemory(workspaceId, userId, message),
     ]);
 
-    const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote + memory.block + preferenceBlock(tone, scope);
+    // The workspace's own currency. Without it the model copied the symbol from a formatting
+    // EXAMPLE in the prompt: asked for pipeline value it answered "£3,070,412" for a USD workspace.
+    // The figure was right and the currency was invented, which is the worse half of a money bug.
+    const askCur = (await workspaceBaseCurrency(workspaceId).catch(() => "USD")).toUpperCase();
+    const currencyBlock = `\n\nWORKSPACE CURRENCY: ${askCur}. Format every money figure in ${askCur} and label it as such. Never print a currency symbol that is not ${askCur} unless a tool result explicitly says otherwise.`;
+    const systemPrompt = SYSTEM_PROMPT + currencyBlock + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote + memory.block + preferenceBlock(tone, scope);
 
     // Prepend prior conversation turns (capped) so the model has real memory
     // of this thread instead of treating every message as the first one.
@@ -2025,7 +2030,8 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
         // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
         buildAskMemory(workspaceId, userId, message),
       ]);
-      const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block + preferenceBlock(tone, scope);
+      const askCur2 = (await workspaceBaseCurrency(workspaceId).catch(() => "USD")).toUpperCase();
+      const systemPrompt = SYSTEM_PROMPT + `\n\nWORKSPACE CURRENCY: ${askCur2}. Format every money figure in ${askCur2} and label it as such. Never print a currency symbol that is not ${askCur2} unless a tool result explicitly says otherwise.` + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block + preferenceBlock(tone, scope);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
