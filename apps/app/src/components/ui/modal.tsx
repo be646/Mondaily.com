@@ -10,10 +10,16 @@ import { createPortal } from "react-dom";
  *
  * Not for the Ask drawer / side panels (those are push-aside surfaces, not dialogs).
  */
-export function Modal({ title, subtitle, onClose, footer, width = "md", children }: {
+export function Modal({ title, subtitle, onClose, footer, headerAction, width = "md", children }: {
   title: string;
   subtitle?: ReactNode;
   onClose: () => void;
+  /**
+   * An action that belongs beside the title rather than in the footer — Export on a report, Copy on
+   * a generated result. Added because two dialogs had one and the alternative was each keeping its
+   * own header, which is how the 46 private shells started.
+   */
+  headerAction?: ReactNode;
   /** Right-aligned action row under the body; omit for read-only dialogs. */
   footer?: ReactNode;
   width?: "sm" | "md" | "lg";
@@ -36,6 +42,7 @@ export function Modal({ title, subtitle, onClose, footer, width = "md", children
             <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
             {subtitle && <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>{subtitle}</p>}
           </div>
+          {headerAction}
           <button onClick={onClose} aria-label="Close" className="btn-icon -mr-1 h-7 w-7 shrink-0">
             <X size={14} />
           </button>

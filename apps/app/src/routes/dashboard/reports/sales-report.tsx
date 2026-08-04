@@ -16,6 +16,7 @@ import { SegmentedControl } from "../../../components/ui/segmented";
 import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
 import { useRecordAggregate, type AggDateFilter, type AggFilter } from "../../../hooks/useRecordAggregate";
 import { DateField } from "@/components/ui/date-picker";
+import { Modal } from "@/components/ui/modal";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -339,34 +340,18 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
-      <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Modal header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border-soft)] shrink-0">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/15 ring-1 ring-stone-500/20">
-            <LogoMark size={13} className="text-[var(--text-secondary)]"/>
-          </div>
-          <span className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{title}</span>
-          {onPrint && (
-            <button onClick={onPrint}
-              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
-              <Printer size={11}/> Export
-            </button>
-          )}
-          <button onClick={onClose} className="rounded-sm p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-            <X size={14}/>
-          </button>
-        </div>
+    <Modal title={title} width="lg" onClose={onClose}
+      headerAction={onPrint ? (
+        <button onClick={onPrint}
+          className="flex h-7 items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 text-label text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">
+          <Printer size={11}/> Export
+        </button>
+      ) : undefined}>
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
           {children}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
