@@ -139,4 +139,69 @@ router.post("/tickets/:id/comments", zValidator("json", z.object({ body: z.strin
   return c.json({ ok: true, comment });
 });
 
+/**
+ * GET /platform/support/signups — who has actually joined.
+ *
+ * Written because I advised "watch the panel for your first 20 signups" and then checked: no such
+ * panel existed. Support lists tickets; nothing listed workspaces, so at a public launch there was
+ * no way to see how many people signed up, let alone whether they got through onboarding.
+ *
+ * ONBOARDING COMPLETION IS THE COLUMN THAT MATTERS. Signup never reached onboarding at all until it
+ * was fixed today, and the symptom was invisible from the inside: the account worked, it simply had
+ * no trial, no profile and no starter tasks. A row here that stays `onboarded: false` is that bug
+ * returning, and it would otherwise be silent again.
+ *
+ * Cross-workspace by design — the platform-admin gate above IS the scope.
+ */
+router.get("/signups", zValidator("query", z.object({
+  days: z.coerce.number().min(1).max(90).default(14),
+  limit: z.coerce.number().min(1).max(200).default(100),
+})), async (c) => {
+  const { days, limit } = c.req.valid("query");
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+
+  const { data: rows, error } = await supabase
+    .from("workspaces")
+    .select("id, name, created_at, onboarded, plan, deleted_at")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) return c.json({ error: error.message }, 500);
+
+  const ids = (rows ?? []).map(r => String(r.id));
+  // Member counts in ONE query — a per-row lookup would be N+1 and would slow down exactly when
+  // signups are healthy, which is the worst time for the dashboard to crawl.
+  const counts = new Map<string, number>();
+  if (ids.length) {
+    const { data: mem } = await supabase.from("workspace_members").select("workspace_id").in("workspace_id", ids);
+    for (const m of mem ?? []) {
+      const k = String(m.workspace_id);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+  }
+
+  const signups = (rows ?? []).map(r => ({
+    workspace_id: r.id,
+    name: r.name,
+    created_at: r.created_at,
+    onboarded: r.onboarded === true,
+    plan: r.plan ?? null,
+    members: counts.get(String(r.id)) ?? 0,
+    deleted: r.deleted_at != null,
+  }));
+
+  const live = signups.filter(s => !s.deleted);
+  return c.json({
+    days,
+    signups,
+    summary: {
+      total: live.length,
+      onboarded: live.filter(s => s.onboarded).length,
+      // The number to watch. Persistent stragglers mean onboarding is not being reached.
+      not_onboarded: live.filter(s => !s.onboarded).length,
+      deleted: signups.length - live.length,
+    },
+  });
+});
+
 export { router as platformSupportRouter };

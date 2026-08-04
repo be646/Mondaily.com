@@ -117,3 +117,33 @@ describe("the sink is readable without SQL", () => {
     expect(ui).toMatch(/resolve\.mutate\(e\.fingerprint\)/);
   });
 });
+
+describe("signups are visible to a platform operator", () => {
+  const api = read("routes/platform-support.ts");
+  const ui = readFileSync(join(APP, "routes/dashboard/platform-support.tsx"), "utf8");
+
+  it("exists at all", () => {
+    // "Watch the panel for your first 20 signups" was advice about a panel that did not exist:
+    // support listed tickets, nothing listed workspaces.
+    expect(api).toMatch(/router\.get\("\/signups"/);
+    expect(ui).toMatch(/function Signups\(\)/);
+  });
+
+  it("surfaces NOT-ONBOARDED as the headline number", () => {
+    // Signup never reached onboarding at all until it was fixed, and the symptom was invisible from
+    // inside the account: it worked, it just had no trial, profile or starter tasks. A row that
+    // stays un-onboarded is that bug returning.
+    expect(api).toMatch(/not_onboarded: live\.filter\(s => !s\.onboarded\)\.length/);
+    expect(ui).toMatch(/stuck in signup/);
+  });
+
+  it("counts members in ONE query, not per row", () => {
+    // N+1 would slow the dashboard exactly when signups are healthy.
+    expect(api).toMatch(/\.in\("workspace_id", ids\)/);
+  });
+
+  it("sits behind the platform-admin gate", () => {
+    // Cross-workspace by design — the gate IS the scope.
+    expect(api).toMatch(/router\.use\("\*", requirePlatformAdmin\)/);
+  });
+});

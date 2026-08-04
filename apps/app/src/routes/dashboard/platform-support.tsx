@@ -28,6 +28,68 @@ export function usePlatformAdmin() {
   });
 }
 
+
+interface Signup {
+  workspace_id: string; name: string; created_at: string;
+  onboarded: boolean; plan: string | null; members: number; deleted: boolean;
+}
+
+/**
+ * Who has actually signed up — and, more importantly, who got stuck.
+ *
+ * Added because "watch the panel for your first 20 signups" turned out to be advice about a panel
+ * that did not exist. Support listed tickets; nothing listed workspaces.
+ *
+ * `not onboarded` is the number that matters. Signup never reached onboarding at all until it was
+ * fixed, and the symptom was invisible from the inside: the account worked, it simply had no trial,
+ * no profile and no starter tasks. A row that stays un-onboarded is that bug coming back.
+ */
+function Signups() {
+  const q = useQuery<{ signups: Signup[]; summary: { total: number; onboarded: number; not_onboarded: number } }>({
+    queryKey: ["platform-signups"],
+    queryFn: () => apiClient.get("/platform/support/signups?days=14"),
+    retry: false, staleTime: 60_000,
+  });
+  const s = q.data?.summary;
+  const rows = (q.data?.signups ?? []).filter(r => !r.deleted);
+
+  return (
+    <section className="mb-6 rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div>
+          <p className="text-body font-semibold" style={{ color: "var(--text-primary)" }}>Signups · last 14 days</p>
+          <p className="text-caption" style={{ color: "var(--text-faint)" }}>
+            {s ? `${s.total} workspace(s) · ${s.onboarded} onboarded · ${s.not_onboarded} not onboarded` : "Loading…"}
+          </p>
+        </div>
+        {/* Called out rather than buried in a row: a non-zero count here is the onboarding gap returning. */}
+        {s && s.not_onboarded > 0 && (
+          <span className="rounded-sm px-2 py-1 text-caption font-medium"
+            style={{ background: "color-mix(in srgb, var(--status-warn) 14%, transparent)", color: "var(--status-warn)" }}>
+            {s.not_onboarded} stuck in signup
+          </span>
+        )}
+      </div>
+      {rows.length === 0 && !q.isLoading && (
+        <p className="px-4 py-6 text-body" style={{ color: "var(--text-muted)" }}>No signups in the last 14 days.</p>
+      )}
+      <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+        {rows.map(r => (
+          <div key={r.workspace_id} className="flex items-center gap-3 px-4 py-2.5">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: r.onboarded ? "var(--status-ok)" : "var(--status-warn)" }}
+              title={r.onboarded ? "Completed onboarding" : "Never completed onboarding"} />
+            <span className="min-w-0 flex-1 truncate text-body" style={{ color: "var(--text-primary)" }}>{r.name}</span>
+            <span className="shrink-0 text-caption tabular-nums" style={{ color: "var(--text-faint)" }}>
+              {r.plan ?? "—"} · {r.members} member{r.members === 1 ? "" : "s"} · {new Date(r.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function PlatformSupportPage() {
   const probe = usePlatformAdmin();
   const [statusFilter, setStatusFilter] = useState("");
@@ -66,6 +128,8 @@ export function PlatformSupportPage() {
             options={STATUSES.map(s => ({ value: s, label: label(s), dot: STATUS_TONE[s] }))} />
         }
       />
+
+      <Signups />
 
       {list.isLoading ? (
         <div className="flex items-center gap-2 rounded-sm border px-4 py-10 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>
