@@ -87,6 +87,79 @@ export function AIControlRoomSettings() {
     );
   }
 
+
+/**
+ * Production errors, where someone will actually see them.
+ *
+ * The sink collected reports and readiness showed a COUNT — which says something is wrong without
+ * saying what. An operator should not need SQL to read their own failures, and for a public launch
+ * "check the database" is not an answer.
+ *
+ * Loudest first: one fault firing 400 times matters more than four firing once.
+ */
+function ProductionErrors() {
+  const qc = useQueryClient();
+  const q = useQuery<{ errors: ClientError[]; available: boolean; reason?: string }>({
+    queryKey: ["client-errors"],
+    queryFn: () => apiClient.get("/telemetry/errors?limit=25"),
+    retry: false, staleTime: 30_000,
+  });
+  const resolve = useMutation({
+    mutationFn: (fp: string) => apiClient.post(`/telemetry/errors/${fp}/resolve`, {}),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["client-errors"] }); },
+  });
+
+  // "Not installed" is NOT "no errors" — conflating them is how a dead rate limiter went unnoticed.
+  if (q.data && q.data.available === false) {
+    return (
+      <Section title="Production errors" hint="Not yet collecting.">
+        <p className="text-body" style={{ color: "var(--text-muted)" }}>
+          The error table is not installed, so nothing is being recorded. This is not the same as
+          having no errors.
+        </p>
+      </Section>
+    );
+  }
+
+  const rows = q.data?.errors ?? [];
+  return (
+    <Section title="Production errors"
+      hint={rows.length ? `${rows.length} unresolved — loudest first.` : "Nothing unresolved. This is real, not a placeholder."}>
+      {q.isLoading && <p className="text-body" style={{ color: "var(--text-faint)" }}>Loading…</p>}
+      {!q.isLoading && rows.length === 0 && (
+        <p className="text-body" style={{ color: "var(--text-muted)" }}>
+          No unresolved errors reported.
+        </p>
+      )}
+      <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+        {rows.map(e => (
+          <div key={e.fingerprint} className="flex items-start gap-3 py-2.5">
+            <span className="mt-0.5 shrink-0 rounded-sm px-1.5 py-0.5 text-caption tabular-nums"
+              style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
+              ×{e.occurrences}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-body" style={{ color: "var(--text-primary)" }} title={e.message}>{e.message}</p>
+              <p className="text-caption" style={{ color: "var(--text-faint)" }}>
+                {e.route || "unknown route"} · {e.source} · last {new Date(e.last_seen_at).toLocaleString()}
+              </p>
+            </div>
+            <button onClick={() => resolve.mutate(e.fingerprint)} disabled={resolve.isPending}
+              className="btn-secondary shrink-0 !px-2.5 !py-1 !text-label">
+              Resolve
+            </button>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+interface ClientError {
+  fingerprint: string; message: string; source: string; route: string | null;
+  occurrences: number; first_seen_at: string; last_seen_at: string; resolved_at: string | null;
+}
+
   return (
     <div className="mx-auto max-w-3xl px-1 py-2">
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
@@ -94,6 +167,8 @@ export function AIControlRoomSettings() {
         <CommandPageHeader
           variant="bar" icon={ShieldCheck} callsign="AI CONTROL ROOM" title="AI Control Room" subtitle="Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only." />
       </div>
+
+      <ProductionErrors />
 
       {/* Sovereignty matrix — the honest at-a-glance posture. Layers are self-hosted/native where
           it matters (auth, inference gateway, search); Google/Outlook/Stripe are optional

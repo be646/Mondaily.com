@@ -4,6 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import { createHash } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { rateLimit } from "../middleware/rate-limit";
+import { requireAuth } from "../middleware/auth";
+import { requireAdminRole } from "../middleware/rbac";
 
 /**
  * Where production errors go.
@@ -75,5 +77,43 @@ router.post(
     return c.json({ recorded: !error, occurrences }, 202);
   },
 );
+
+/**
+ * GET /telemetry/errors — the worklist.
+ *
+ * A sink nobody can read is a slower console.error. Readiness reports a COUNT, which tells an
+ * operator something is wrong but not what — so this returns the actual rows, newest-hurting first.
+ *
+ * ADMIN-GATED, unlike the write path: reporting must work for anyone (an error before auth resolves
+ * is the class most worth hearing about), but reading exposes messages and routes across the
+ * workspace and is not for every member.
+ */
+router.get("/errors", requireAuth, requireAdminRole, zValidator("query", z.object({
+  include_resolved: z.enum(["true", "false"]).default("false"),
+  limit: z.coerce.number().min(1).max(200).default(50),
+})), async (c) => {
+  const { include_resolved, limit } = c.req.valid("query");
+  let q = supabase.from("client_errors")
+    .select("fingerprint, message, source, route, occurrences, first_seen_at, last_seen_at, release, resolved_at")
+    // Loudest first: one fault firing 400 times matters more than four firing once.
+    .order("occurrences", { ascending: false })
+    .order("last_seen_at", { ascending: false })
+    .limit(limit);
+  if (include_resolved === "false") q = q.is("resolved_at", null);
+
+  const { data, error } = await q;
+  // Distinguish "no errors" from "table missing" — the same confusion that hid a dead rate limiter.
+  if (error) return c.json({ errors: [], available: false, reason: error.message }, 200);
+  return c.json({ errors: data ?? [], available: true });
+});
+
+/** POST /telemetry/errors/:fingerprint/resolve — mark handled. A recurrence reopens it (see the migration). */
+router.post("/errors/:fingerprint/resolve", requireAuth, requireAdminRole, async (c) => {
+  const { error } = await supabase.from("client_errors")
+    .update({ resolved_at: new Date().toISOString() })
+    .eq("fingerprint", c.req.param("fingerprint"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
 
 export { router as telemetryRouter };

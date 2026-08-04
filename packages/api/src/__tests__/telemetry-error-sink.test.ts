@@ -87,3 +87,33 @@ describe("dedup is verifiable from outside", () => {
   });
 });
 
+
+describe("the sink is readable without SQL", () => {
+  const src = read("routes/telemetry.ts");
+  const ui = readFileSync(join(APP, "routes/dashboard/settings/ai-control-room.tsx"), "utf8");
+
+  it("reading is ADMIN-gated even though writing is public", () => {
+    // Reporting must work for anyone — an error before auth resolves is the class most worth
+    // hearing about. Reading exposes messages and routes across the workspace and is not.
+    expect(src).toMatch(/router\.get\("\/errors", requireAuth, requireAdminRole/);
+    expect(src).toMatch(/router\.post\("\/errors\/:fingerprint\/resolve", requireAuth, requireAdminRole/);
+  });
+
+  it("orders by loudest, not merely newest", () => {
+    // One fault firing 400 times matters more than four firing once.
+    expect(src).toMatch(/\.order\("occurrences", \{ ascending: false \}\)/);
+  });
+
+  it("distinguishes 'not installed' from 'no errors'", () => {
+    // Conflating them is exactly how a dead rate limiter went unnoticed for a day.
+    expect(src).toMatch(/available: false, reason: error\.message/);
+    expect(ui).toMatch(/available === false/);
+    expect(ui).toMatch(/not the same as/);
+  });
+
+  it("an operator can see and clear them in the UI", () => {
+    expect(ui).toMatch(/function ProductionErrors/);
+    expect(ui).toMatch(/\/telemetry\/errors\?limit=/);
+    expect(ui).toMatch(/resolve\.mutate\(e\.fingerprint\)/);
+  });
+});
