@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Terms of Service — Mondaily",
+  title: "Terms of Service",
   description: "The terms that govern your use of Mondaily.",
 };
 

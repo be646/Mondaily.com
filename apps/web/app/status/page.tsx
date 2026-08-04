@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "System Status — Mondaily",
+  title: "System Status",
   description: "Mondaily's hosting and infrastructure status.",
 };
 

@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "API Docs — Mondaily",
+  title: "API Docs",
   description: "Mondaily's API — authentication, workspace scoping, and core endpoints.",
 };
 

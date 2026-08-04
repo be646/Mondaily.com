@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Roadmap — Mondaily",
+  title: "Roadmap",
   description: "What's shipped, what's running, and what's planned for Mondaily.",
 };
 

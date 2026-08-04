@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Security & Compliance — Mondaily",
+  title: "Security & Compliance",
   description: "How Mondaily handles privacy, data protection, and hosting infrastructure security.",
 };
 

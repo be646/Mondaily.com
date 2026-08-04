@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Data Processing Agreement — Mondaily",
+  title: "Data Processing Agreement",
   description: "Mondaily's DPA for enterprise and business customers.",
 };
 

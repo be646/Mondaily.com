@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Help Center — Mondaily",
+  title: "Help Center",
   description: "Get help with Mondaily — workspace setup, agents, and billing.",
 };
 

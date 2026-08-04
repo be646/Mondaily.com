@@ -1,7 +1,7 @@
 import { Nav } from "../../components/nav";
 
 export const metadata = {
-  title: "Privacy Policy — Mondaily",
+  title: "Privacy Policy",
   description: "How Mondaily collects, uses, and protects your data.",
 };
 
