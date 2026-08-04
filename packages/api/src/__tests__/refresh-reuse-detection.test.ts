@@ -34,3 +34,30 @@ describe("refresh tokens detect reuse", () => {
     expect(src).toMatch(/token_hash", sha256\(raw\)/);   // raw value is never stored
   });
 });
+
+describe("reuse detection does not punish normal concurrency", () => {
+  it("a duplicate arriving within the grace window is a RACE, not theft", () => {
+    // A single-page app fires many requests at once; when the access token expires they can all
+    // 401 together and all call /refresh, so the 2nd and 3rd legitimately present a token the 1st
+    // has just rotated. Nuking the family there signs honest users out mid-session — a
+    // self-inflicted outage, and far likelier than the attack it guards against.
+    expect(src).toMatch(/const revokedMsAgo = Date\.now\(\)/);
+    expect(src).toMatch(/GRACE_MS = 30_000/);
+    expect(src).toMatch(/if \(revokedMsAgo <= GRACE_MS\)/);
+  });
+
+  it("inside the window it fails WITHOUT revoking anything", () => {
+    // The caller already holds the newer cookie and simply retries.
+    const grace = src.match(/if \(revokedMsAgo <= GRACE_MS\) \{[\s\S]{0,200}?\}/)![0];
+    expect(grace).not.toMatch(/update\(/);
+    expect(grace).not.toMatch(/clearSessionCookies/);
+    expect(grace).toMatch(/Retry/);
+  });
+
+  it("outside the window it still revokes the whole family", () => {
+    // A stolen token surfaces later than an in-flight duplicate — that separation is the signal.
+    expect(src).toMatch(/\.eq\("user_id", row\.user_id as string\)\.is\("revoked_at", null\)/);
+    expect(src).toMatch(/already used elsewhere/);
+  });
+});
+

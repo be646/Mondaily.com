@@ -497,6 +497,25 @@ router.post("/refresh", async (c) => {
    * silently holding one forever is not.
    */
   if (row && row.revoked_at) {
+    /**
+     * GRACE WINDOW for concurrent refreshes.
+     *
+     * A single-page app fires many requests at once. When an access token expires they can ALL
+     * 401 together and all call /refresh, so the second and third legitimately present a token the
+     * first has just rotated. Treating that as theft would sign honest users out mid-session — a
+     * self-inflicted outage in the name of security, and far more likely than the attack.
+     *
+     * A real replay is separated from that race by TIME: an in-flight duplicate arrives within
+     * seconds of the rotation, a stolen token surfaces later. Inside the window the request simply
+     * fails (the caller already holds the newer cookie and retries); outside it, the whole family
+     * is revoked.
+     */
+    const revokedMsAgo = Date.now() - new Date(row.revoked_at as string).getTime();
+    const GRACE_MS = 30_000;
+    if (revokedMsAgo <= GRACE_MS) {
+      return c.json({ error: "Session refreshed elsewhere. Retry." }, 401);
+    }
+
     await supabase.from("auth_refresh_tokens")
       .update({ revoked_at: new Date().toISOString() })
       .eq("user_id", row.user_id as string).is("revoked_at", null);
