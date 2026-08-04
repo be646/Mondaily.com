@@ -170,7 +170,10 @@ router.post("/accept", requireJwt, async (c) => {
   const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", invite.workspace_id).eq("user_id", userId).maybeSingle();
   const RANK: Record<string, number> = { owner: 4, admin: 3, member: 2, viewer: 1, guest: 1 };
   if (existing && (RANK[existing.role as string] ?? 0) >= (RANK[invite.role as string] ?? 0)) {
-    await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+    // A shareable link is not consumed by one person bouncing off it — see the note at the end.
+    if (!isLinkInvite) {
+      await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+    }
     return c.json({ workspace_id: invite.workspace_id, role: existing.role, already_member: true });
   }
 
@@ -203,8 +206,19 @@ router.post("/accept", requireJwt, async (c) => {
   }
   if (memberErr) return c.json({ error: memberErr.message }, 500);
 
-  // Mark accepted
-  await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+  // Mark accepted — EMAIL invites only.
+  //
+  // A shareable link exists to be handed to several people: /link mints it with a placeholder
+  // address precisely so it is bound to nobody, and the seat check above reasons explicitly about
+  // a link being "redeemed an unlimited number of times". But accept filters on
+  // `accepted_at IS NULL` and then stamped it for every invite — so the SECOND person to click a
+  // shared link got "Invalid or expired invite". The feature worked exactly once.
+  //
+  // Links stay open until their 7-day expiry, gated by the seat cap at redemption, which is the
+  // chokepoint that comment already describes. Email invites remain strictly single-use.
+  if (!isLinkInvite) {
+    await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+  }
 
   return c.json({ workspace_id: invite.workspace_id, role: invite.role });
 });
