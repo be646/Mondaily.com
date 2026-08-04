@@ -45,6 +45,9 @@ const markUnavailable = () => { unavailableUntil = Date.now() + RETRY_AFTER_MS; 
  * returned 200. A security control that fails silently is worse than one that is obviously off.
  */
 let lastError: string | null = null;
+/** Last row the RPC actually produced — so "healthy" cannot mean "returned nothing, quietly". */
+let lastHits: number | null = null;
+let lastShape: string | null = null;
 
 export async function hit(key: string, windowMs: number): Promise<RateState | null> {
   if (isUnavailable()) return null;
@@ -63,9 +66,15 @@ export async function hit(key: string, windowMs: number): Promise<RateState | nu
       return null;
     }
     const row = Array.isArray(data) ? data[0] : data;
-    if (!row) return null;
+    if (!row) {
+      // Previously returned null here WITHOUT recording anything, so health reported "durable" while
+      // every call produced nothing and the limiter silently used the in-memory bucket.
+      lastError = `rate-limit store returned no row (data=${JSON.stringify(data)?.slice(0, 120)})`;
+      return null;
+    }
     lastError = null;
     unavailableUntil = 0;
+    lastShape = Object.keys(row as Record<string, unknown>).join(",");
     // Accept both shapes: the fixed function returns out_* (renamed to dodge the ambiguity that
     // broke the original), the first version returned bare names.
     const r = row as { hits?: number; out_hits?: number; locked_until?: string | null; out_locked_until?: string | null };
@@ -73,7 +82,8 @@ export async function hit(key: string, windowMs: number): Promise<RateState | nu
     const lockedForSecs = locked
       ? Math.max(0, Math.ceil((new Date(locked).getTime() - Date.now()) / 1000))
       : 0;
-    return { hits: Number(r.out_hits ?? r.hits ?? 0), lockedForSecs };
+    lastHits = Number(r.out_hits ?? r.hits ?? 0);
+    return { hits: lastHits, lockedForSecs };
   } catch {
     return null;
   }
@@ -90,5 +100,10 @@ export async function clear(key: string): Promise<void> {
 }
 
 /** Health for /admin/readiness: is the durable limiter actually working, and if not, why. */
-export const rateLimitStoreHealth = () => ({ durable: !isUnavailable() && !lastError, error: lastError });
+export const rateLimitStoreHealth = () => ({
+  durable: !isUnavailable() && !lastError && lastHits !== null,
+  error: lastError,
+  last_hits: lastHits,
+  row_shape: lastShape,
+});
 export const isDurableRateLimitAvailable = () => !isUnavailable();

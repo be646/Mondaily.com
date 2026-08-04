@@ -117,6 +117,8 @@ router.get("/readiness", async (c) => {
       // protecting anything went unnoticed until it was probed with sixteen requests.
       rate_limit_durable: rateLimitStoreHealth().durable,
       rate_limit_error: rateLimitStoreHealth().error,
+      rate_limit_last_hits: rateLimitStoreHealth().last_hits,
+      rate_limit_row_shape: rateLimitStoreHealth().row_shape,
       ai_gateway_configured,
       ai_gateway_healthy: null,   // configured-only: a live probe would cost paid AI requests, so we don't
       stripe_configured,
