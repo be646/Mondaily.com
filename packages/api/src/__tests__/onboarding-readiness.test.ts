@@ -42,3 +42,28 @@ describe("onboarding is driven by server state, not a browser flag", () => {
     expect(read("apps/app/src/components/auth/sovereign-auth-context.tsx")).toMatch(/onboarded: d\.onboarded \?\? true/);
   });
 });
+
+describe("a brand-new signup actually reaches onboarding", () => {
+  it("registration does NOT set the localStorage flag — so the server flag is the only mechanism", () => {
+    // The whole reason the server check has to exist. shadow-register registers and then calls
+    // navigate(next); it never writes mondaily_needs_onboarding. The ONLY writer is the sidebar's
+    // "create another workspace" action. So before the server check, a brand-new signup landed on
+    // the dashboard and never onboarded at all — no trial stamped, no profile, no starter tasks,
+    // and workspaces.onboarded false forever.
+    const reg = read("apps/app/src/routes/auth/shadow-register.tsx");
+    expect(reg).not.toMatch(/needs_onboarding/);
+
+    const setters = read("apps/app/src/components/layout/sidebar.tsx");
+    expect(setters).toMatch(/setItem\("mondaily_needs_onboarding", "1"\)/);
+  });
+
+  it("a new workspace starts un-onboarded, and only completing onboarding clears it", () => {
+    const sql = read("packages/db/migrations/20260615_workspace_invites.sql");
+    expect(sql).toMatch(/onboarded boolean NOT NULL DEFAULT false/);
+    // Set true only by finishing the wizard or the explicit settings endpoint — never by merely
+    // loading the dashboard, which would silently skip onboarding again.
+    expect(read("packages/api/src/routes/onboarding.ts")).toMatch(/onboarded: true/);
+    expect(read("packages/api/src/routes/app-data.ts")).toMatch(/settings\/complete-onboarding/);
+  });
+});
+
