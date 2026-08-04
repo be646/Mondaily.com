@@ -23,6 +23,7 @@ import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
 import { logPowClaim } from "../lib/pow-claims";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
+import * as store from "../lib/rate-limit-store";
 
 /**
  * Sovereign Auth — native email/password identity, mounted at /api/v1/auth/*. Runs ALONGSIDE
@@ -191,22 +192,49 @@ router.post("/resend-verification", requireAuth, rateLimit({ max: 3, windowMs: 1
 const failedLogins = new Map<string, { count: number; until: number }>();
 const LOCK_THRESHOLD = 6;
 const LOCK_MS = 15 * 60_000;
-function loginLockedSecs(email: string): number {
+const LOCK_WINDOW_MS = 60 * 60_000;   // failures older than an hour stop counting toward a lock
+
+/**
+ * The lock is DURABLE first (Postgres), in-memory second.
+ *
+ * A distributed brute-force spreads attempts across serverless instances, so a per-instance Map
+ * never reaches the threshold — the exact attack this lockout exists to stop. The counter now lives
+ * in one place. If the store is unavailable it falls back to the Map, which is weak but better than
+ * refusing every login because a table is missing.
+ */
+async function loginLockedSecs(email: string): Promise<number> {
+  const st = await store.hit(`login-lock|${email}`, LOCK_WINDOW_MS);
+  if (st) return st.lockedForSecs;
   const rec = failedLogins.get(email);
   return rec && rec.until > Date.now() ? Math.ceil((rec.until - Date.now()) / 1000) : 0;
 }
-function recordLoginFail(email: string) {
+async function recordLoginFail(email: string) {
+  const key = `login-fail|${email}`;
+  const st = await store.hit(key, LOCK_WINDOW_MS);
+  if (st) {
+    if (st.hits >= LOCK_THRESHOLD) {
+      await store.lock(`login-lock|${email}`, LOCK_MS);
+      await store.clear(key);
+    }
+    return;
+  }
   const rec = failedLogins.get(email) ?? { count: 0, until: 0 };
   rec.count += 1;
   if (rec.count >= LOCK_THRESHOLD) { rec.until = Date.now() + LOCK_MS; rec.count = 0; }
   failedLogins.set(email, rec);
+}
+/** A correct password forgives the record — otherwise one bad week locks a legitimate user out. */
+async function clearLoginFails(email: string) {
+  await store.clear(`login-fail|${email}`);
+  await store.clear(`login-lock|${email}`);
+  failedLogins.delete(email);
 }
 
 // requirePow: login now also demands a solved proof-of-work, so each attempt costs real CPU —
 // the same anti-bot gate register/reset use. (The frontend solves it transparently.)
 router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), async (c) => {
   const { email, password } = c.req.valid("json");
-  const lock = loginLockedSecs(email.toLowerCase());
+  const lock = await loginLockedSecs(email.toLowerCase());
   if (lock > 0) {
     c.header("Retry-After", String(lock));
     return c.json({ error: `Too many failed attempts. Try again in ${Math.ceil(lock / 60)} min.` }, 429);
@@ -220,10 +248,10 @@ router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), a
   }
   const ok = await verifyPassword(cred.password_hash as string, password);
   if (!ok) {
-    recordLoginFail(email.toLowerCase());
+    await recordLoginFail(email.toLowerCase());
     return c.json({ error: "Invalid email or password." }, 401);
   }
-  failedLogins.delete(email.toLowerCase()); // clean slate on success
+  await clearLoginFails(email.toLowerCase()); // a correct password forgives past failures
   // 2FA branch: password verified but a second factor is enrolled → issue a 5-minute mfa token
   // instead of a session. Rows without the migrated columns simply don't have totp_enabled_at,
   // so this is a no-op until enrollment exists — no lockout path.

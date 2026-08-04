@@ -43,3 +43,38 @@ describe("there is exactly one rateLimit implementation", () => {
     expect(real).toMatch(/Retry-After/);
   });
 });
+
+describe("rate limiting survives serverless", () => {
+  const mw = read("middleware/rate-limit.ts");
+  const auth = read("routes/auth.ts");
+
+  it("counts in Postgres first, memory only as fallback", () => {
+    // In-memory counters are per warm instance. Measured in prod 2026-08-04: fifteen rapid requests
+    // to a 12/min endpoint all returned 200, because each landed on a different instance. The
+    // limiter and the login lockout both believed they were protecting something they were not.
+    expect(mw).toMatch(/const durable = await store\.hit\(/);
+    expect(mw).toMatch(/from "\.\.\/lib\/rate-limit-store"/);
+    expect(auth).toMatch(/await store\.hit\(`login-lock\|/);
+  });
+
+  it("FAILS SOFT when the table is missing", () => {
+    // A limiter that takes the product down because its own migration has not run is a worse
+    // outage than the abuse it prevents.
+    const st = read("lib/rate-limit-store.ts");
+    expect(st).toMatch(/tableMissing = true/);
+    expect(st).toMatch(/return null/);
+    expect(mw).toMatch(/if \(durable\) \{/);
+  });
+
+  it("a correct password forgives past failures", () => {
+    // Otherwise a legitimate user who mistyped six times stays locked out after logging in.
+    expect(auth).toMatch(/clearLoginFails/);
+  });
+
+  it("counts atomically, so two concurrent requests cannot both read '1'", () => {
+    const sql = readFileSync(
+      join(SRC, "../../db/migrations/20260804_rate_limits.sql"), "utf8");
+    expect(sql).toMatch(/on conflict \(key\) do update/);
+    expect(sql).toMatch(/rate_limit_hit/);
+  });
+});
