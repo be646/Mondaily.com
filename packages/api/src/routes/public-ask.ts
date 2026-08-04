@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { aiGateway } from "../lib/ai-gateway";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, ANNUAL_BONUS_PCT } from "@mondaily/shared/pricing";
+import { rateLimit } from "../middleware/rate-limit";
 
 const router = new Hono();
 
@@ -27,10 +28,27 @@ For any pricing / plan / credits / packs / discount question, answer ONLY from t
 ${PRICING_FACTS}
 If asked which plan fits: solo/trying it → Scout; a growing team running on AI → Operator; a larger team needing oversight & more credits → Command; private/self-hosted or compliance needs → Sovereign. If they'll exceed included credits, mention pay-as-you-go packs.`;
 
+/**
+ * The landing page's chat. UNAUTHENTICATED by design — a visitor asking about pricing has no
+ * account yet — which makes it the one endpoint anyone on the internet can bill us through.
+ *
+ * So it is bounded on three axes, all of which were missing:
+ *   - RATE: 12 requests per IP per minute. Enough for a real conversation, useless for a loop.
+ *   - LENGTH: 1,000 chars per message. The prompt is what we pay for, and `z.string()` with no max
+ *     let a caller paste a novel into it.
+ *   - DEPTH: at most 12 messages, of which only the last 4 are sent on. Without a cap the array
+ *     itself was an unbounded prompt.
+ *
+ * maxTokens was already capped at 300, which bounded the ANSWER but not the question.
+ */
 router.post(
   "/",
+  rateLimit({ max: 12, windowMs: 60_000 }),
   zValidator("json", z.object({
-    messages: z.array(z.object({ role: z.enum(["user","assistant"]), content: z.string() })).min(1),
+    messages: z.array(z.object({
+      role: z.enum(["user","assistant"]),
+      content: z.string().max(1_000),
+    })).min(1).max(12),
   })),
   async (c) => {
     const { messages } = c.req.valid("json");
