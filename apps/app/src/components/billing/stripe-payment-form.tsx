@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { Modal } from "../ui/modal";
 
 /**
  * Embedded Stripe payment — the card field lives on OUR OWN page (never a redirect to
@@ -167,19 +168,7 @@ export function StripePaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-sm border"
-        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
-          <div>
-            <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Upgrade to {planLabel}</div>
-            <div className="text-[12px]" style={{ color: "var(--text-muted)" }}>{priceLabel}</div>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16} /></button>
-        </div>
+    <Modal title={`Upgrade to ${planLabel}`} subtitle={priceLabel} onClose={onClose}>
 
         <div className="space-y-4 p-5">
           {status === "loading" && (
@@ -219,7 +208,6 @@ export function StripePaymentModal({
             <Lock size={10} /> Payments secured and processed by Stripe. Mondaily never sees your card number.
           </p>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { ActionMenu } from "@/components/ui/controls";
+import { Modal } from "@/components/ui/modal";
 import { AIButton } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
@@ -69,15 +70,13 @@ function fmtDate(iso: string) {
 }
 
 // ─── Modal shell ──────────────────────────────────────────────────────────────
-function ModalShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:">
-        {children}
-      </div>
-    </>
-  );
+/**
+ * Delegates to the shared <Modal>. The private version had no Escape key and a bespoke shadow
+ * heavier than every other dialog's; the title now comes from the caller instead of being baked
+ * into each body.
+ */
+function ModalShell({ title, onClose, children }: { title?: string; onClose: () => void; children: React.ReactNode }) {
+  return <Modal title={title ?? ""} onClose={onClose} width="lg">{children}</Modal>;
 }
 
 function memberInitials(m: Member) {

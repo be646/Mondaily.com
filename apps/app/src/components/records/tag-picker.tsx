@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, Tag, Check } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { Modal } from "../ui/modal";
 
 interface TagData { id: string; name: string; color: string }
 
@@ -66,22 +67,9 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-xs rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center">
-              <Tag size={12} className="text-[var(--text-secondary)]"/>
-            </div>
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Tags</span>
-            {nodeTags.data && nodeTags.data.length > 0 && (
-              <span className="rounded-full bg-stone-500/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">{nodeTags.data.length}</span>
-            )}
-          </div>
-          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"><X size={14}/></button>
-        </div>
-
+    <Modal title="Tags" width="sm" onClose={onClose}
+      subtitle={nodeTags.data && nodeTags.data.length > 0
+        ? `${nodeTags.data.length} on this record` : undefined}>
         {/* Search */}
         <div className="px-3 pt-3 pb-1">
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
@@ -156,8 +144,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
             <p className="text-[11px] text-[var(--text-secondary)] bg-stone-400/10 rounded-lg px-2 py-1.5">{error}</p>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 

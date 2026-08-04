@@ -14,6 +14,8 @@ const read = (p: string) => readFileSync(join(APP, p), "utf8");
  * Escape and backdrop dismissal — it was just used by one file.
  */
 const CONVERTED = [
+  "components/records/tag-picker.tsx",
+  "components/billing/stripe-payment-form.tsx",
   "routes/dashboard/home.tsx",
   "routes/dashboard/messages.tsx",
   "routes/dashboard/reports/sales-report.tsx",
@@ -32,7 +34,9 @@ const CONVERTED = [
 
 describe("converted dialogs", () => {
   it("use the shared Modal", () => {
-    for (const f of CONVERTED) expect(read(f), f).toMatch(/from "@\/components\/ui\/modal"/);
+    // Path-agnostic: components import it relatively, routes via the @ alias. Both are the
+    // same module; pinning one style makes the test about spelling rather than about wiring.
+    for (const f of CONVERTED) expect(read(f), f).toMatch(/from "[^"]*ui\/modal"/);
   });
 
   it("no longer hand-roll a CENTRED dialog overlay", () => {
@@ -63,3 +67,35 @@ describe("converted dialogs", () => {
     expect(read("routes/dashboard/settings/support.tsx")).not.toMatch(/from "@\/components\/ui\/modal"/);
   });
 });
+
+describe("the centred-dialog sweep is complete", () => {
+  it("no route or component hand-rolls a centred dialog any more", () => {
+    // Drawers and dropdown backdrops are a DIFFERENT surface and stay hand-rolled on purpose;
+    // this only counts centred dialogs, which all belong to the shared <Modal>.
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const files: string[] = [];
+    const walk = (d: string) => { for (const n of readdirSync(d)) { const p = join(d, n);
+      statSync(p).isDirectory() ? walk(p) : p.endsWith(".tsx") && files.push(p); } };
+    walk(join(APP, "routes")); walk(join(APP, "components"));
+
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (f.endsWith("ui/modal.tsx") || f.endsWith("ui/dialog-service.tsx")) continue;  // the primitives
+      const s = readFileSync(f, "utf8");
+      if (/from "[^"]*ui\/modal"/.test(s)) continue;
+      if (/fixed inset-0[^"]*(grid place-items-center|flex items-center justify-center)/.test(s)) {
+        offenders.push(f.slice(APP.length));
+      }
+    }
+    expect(offenders, `hand-rolled centred dialogs remain: ${offenders.join(", ")}`).toEqual([]);
+  });
+
+  it("dialog-service stays its own primitive", () => {
+    // It IS the window.confirm replacement — it already portals and handles Escape. Routing a
+    // primitive through another primitive buys nothing.
+    const s = readFileSync(join(APP, "components/ui/dialog-service.tsx"), "utf8");
+    expect(s).toMatch(/createPortal/);
+    expect(s).toMatch(/Escape/);
+  });
+});
+
