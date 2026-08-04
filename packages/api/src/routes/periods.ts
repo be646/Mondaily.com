@@ -225,18 +225,21 @@ router.post("/backfill-wins", zValidator("json", z.object({
  */
 router.post("/reconcile-stage", zValidator("json", z.object({
   dry_run: z.boolean().default(true),
+  // "evidence" resolves only what history can justify (7 of 28); "canonical" settles all of them on
+  // the value the app already computes, which moves no figure anyone is reading.
+  strategy: z.enum(["evidence", "canonical"]).default("evidence"),
 })), async (c) => {
   const role = c.get("role") || "member";
   if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
   const ws = c.get("workspaceId");
-  const { dry_run } = c.req.valid("json");
+  const { dry_run, strategy } = c.req.valid("json");
 
-  const proposals = await proposeStageReconciliation(ws);
+  const proposals = await proposeStageReconciliation(ws, strategy);
   const decidable = proposals.filter(p => p.proposed);
 
   if (dry_run) {
     return c.json({
-      dry_run: true, proposals, table: renderStageTable(proposals),
+      dry_run: true, strategy, proposals, table: renderStageTable(proposals),
       summary: {
         conflicts: proposals.length,
         with_evidence: decidable.length,

@@ -53,3 +53,21 @@ describe("reconciliation proposes only where evidence exists", () => {
     expect(routes).toMatch(/Owner\/admin only/);
   });
 });
+
+describe("canonical strategy settles every conflict without moving a figure", () => {
+  const src = read("packages/api/src/lib/reconcile-stage.ts");
+
+  it("resolves to what dealStageOf already computes", () => {
+    // Not a new opinion about the deal — the value the money paths, the reports and the record page
+    // have been showing all along. The contradiction goes; the numbers do not.
+    expect(src).toMatch(/strategy === "canonical"/);
+    expect(src).toMatch(/const resolved = dealStageOf\(d\)/);
+  });
+
+  it("evidence remains the DEFAULT so nothing settles silently", () => {
+    const routes = read("packages/api/src/routes/periods.ts");
+    expect(routes).toMatch(/z\.enum\(\["evidence", "canonical"\]\)\.default\("evidence"\)/);
+    expect(routes).toMatch(/dry_run: z\.boolean\(\)\.default\(true\)/);
+  });
+});
+

@@ -65,7 +65,23 @@ function safeParse(s: string): Record<string, unknown> | null {
   try { return JSON.parse(s) as Record<string, unknown>; } catch { return null; }
 }
 
-export async function proposeStageReconciliation(workspaceId: string): Promise<StageProposal[]> {
+/**
+ * How to settle a conflict.
+ *
+ *  - "evidence"  — propose only where a human demonstrably changed one field after the other.
+ *                  Honest, but it resolves 7 of 28 and leaves the rest disagreeing.
+ *  - "canonical" — set both fields to `dealStageOf(record)`, which is the value every money path,
+ *                  report and the record page ALREADY computes. This moves no number anyone is
+ *                  currently reading; it removes the contradiction inside the record. Where the
+ *                  sheet's Stage column showed the other field, that cell changes — to the value the
+ *                  rest of the app already believed. One rule, applied uniformly, explainable in a
+ *                  sentence, and paired with the write-path fix that keeps the two in step from now.
+ */
+export type StageStrategy = "evidence" | "canonical";
+
+export async function proposeStageReconciliation(
+  workspaceId: string, strategy: StageStrategy = "evidence",
+): Promise<StageProposal[]> {
   const { data: nodes } = await supabase
     .from("nodes").select("id, data")
     .eq("workspace_id", workspaceId).eq("object_type", "deals").limit(1000);
@@ -90,6 +106,14 @@ export async function proposeStageReconciliation(workspaceId: string): Promise<S
       deal_stage: d.deal_stage == null ? null : String(d.deal_stage),
       stage: d.stage == null ? null : String(d.stage),
     };
+
+    if (strategy === "canonical") {
+      const resolved = dealStageOf(d);
+      out.push({ ...base, proposed: resolved, winner: base.deal_stage === resolved ? "deal_stage" : "stage",
+        gap_ms: null,
+        reason: `Both fields set to "${resolved}" — the value dealStageOf already resolves, and therefore the one every report and the record page has been showing.` });
+      continue;
+    }
 
     if (!deal || !stage) {
       out.push({ ...base, proposed: null, winner: null, gap_ms: null,
