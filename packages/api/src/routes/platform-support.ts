@@ -172,11 +172,18 @@ router.get("/signups", zValidator("query", z.object({
   // Member counts in ONE query — a per-row lookup would be N+1 and would slow down exactly when
   // signups are healthy, which is the worst time for the dashboard to crawl.
   const counts = new Map<string, number>();
+  // The owner's email, so an operator can tell a real person who got stuck from an automated
+  // signup. Without it, twelve un-onboarded workspaces are indistinguishable from twelve bots —
+  // and the response to those two is completely different.
+  const owners = new Map<string, string>();
   if (ids.length) {
-    const { data: mem } = await supabase.from("workspace_members").select("workspace_id").in("workspace_id", ids);
+    const { data: mem } = await supabase.from("workspace_members")
+      .select("workspace_id, email, role, created_at").in("workspace_id", ids)
+      .order("created_at", { ascending: true });
     for (const m of mem ?? []) {
       const k = String(m.workspace_id);
       counts.set(k, (counts.get(k) ?? 0) + 1);
+      if (!owners.has(k) && m.email) owners.set(k, String(m.email));
     }
   }
 
@@ -187,6 +194,7 @@ router.get("/signups", zValidator("query", z.object({
     onboarded: r.onboarded === true,
     plan: r.plan ?? null,
     members: counts.get(String(r.id)) ?? 0,
+    owner_email: owners.get(String(r.id)) ?? null,
     deleted: r.deleted_at != null,
   }));
 
