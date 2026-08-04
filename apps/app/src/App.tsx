@@ -100,16 +100,21 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 // When workspace data genuinely can't resolve, we show the WorkspaceDiagnostic instead of silently
 // dumping the user into onboarding or an empty Home.
 function DashboardRoute({ children }: { children: ReactNode }) {
-  const { isSignedIn, isLoaded, workspaceId } = useCurrentUser();
+  const { isSignedIn, isLoaded, workspaceId, onboarded } = useCurrentUser();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/auth/shadow-login" replace />;
   // Fresh signup (bootstrap returned is_new=true) runs the conversational onboarding console first.
   // The console clears this flag AND hard-redirects, so there's no SPA loop-back. Kept before the
   // workspace check so a brand-new user still flows seamlessly into onboarding.
+  // The SERVER decides. The localStorage flag only made the very first hop faster; on its own it
+  // meant that closing the tab mid-onboarding — or signing in from another device — dropped the
+  // user onto an empty dashboard with `workspaces.onboarded` still false forever: no trial
+  // stamped, no profile, no starter tasks, and no way back.
   if (localStorage.getItem("mondaily_needs_onboarding") === "1") {
     localStorage.removeItem("mondaily_needs_onboarding");
     return <Navigate to="/onboarding" replace />;
   }
+  if (onboarded === false) return <Navigate to="/onboarding" replace />;
   // A valid 36-char workspace UUID → normal path, render the dashboard.
   const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
   if (!hasWorkspace) return <WorkspaceDiagnostic />;

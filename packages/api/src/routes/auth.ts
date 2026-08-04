@@ -91,7 +91,15 @@ async function credByEmail(email: string) {
 }
 // Session profile: a default workspace (so the SPA can set X-Workspace-Id) plus the cached
 // display name + avatar (the /settings/members fields), so profile components render natively.
-async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null; emailVerified: boolean }> {
+/**
+ * `onboarded` is included because routing to onboarding used to depend on a localStorage flag set
+ * once at signup. Close the tab before finishing — or sign in from another device — and the flag
+ * was gone, so the user landed on an empty dashboard having never completed onboarding: no trial
+ * stamped, no profile, no starter tasks, and `workspaces.onboarded` still false forever.
+ *
+ * The server already knew. It just was not asked.
+ */
+async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null; emailVerified: boolean; onboarded: boolean }> {
   const [{ data }, { data: cred }] = await Promise.all([
     // Deterministic: without an order, Postgres may return a different row per login, so a
     // multi-workspace user booted into an arbitrary workspace that changed between sessions.
@@ -100,11 +108,19 @@ async function sessionProfile(userId: string): Promise<{ workspaceId: string | n
     // email_verified may not exist pre-migration → default to true so no banner shows (graceful).
     supabase.from("auth_credentials").select("email_verified").eq("user_id", userId).maybeSingle(),
   ]);
+  const workspaceId = (data?.workspace_id as string) ?? null;
+  // Defaults TRUE when unknown: a failed lookup must not trap an existing user in onboarding.
+  let onboarded = true;
+  if (workspaceId) {
+    const { data: ws } = await supabase.from("workspaces").select("onboarded").eq("id", workspaceId).maybeSingle();
+    onboarded = (ws as { onboarded?: boolean } | null)?.onboarded ?? true;
+  }
   return {
-    workspaceId: (data?.workspace_id as string) ?? null,
+    workspaceId,
     name: (data?.name as string) ?? null,
     imageUrl: (data?.avatar_url as string) ?? null,
     emailVerified: (cred as { email_verified?: boolean } | null)?.email_verified ?? true,
+    onboarded,
   };
 }
 

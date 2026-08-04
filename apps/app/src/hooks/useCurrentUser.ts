@@ -13,6 +13,8 @@ export interface CurrentUser {
   email: string | null;
   name: string | null;
   imageUrl: string | null;
+  /** From the SERVER (workspaces.onboarded), not a localStorage flag. */
+  onboarded: boolean;
 }
 
 function workspaceFromStorage(): string | null {
@@ -29,5 +31,6 @@ export function useCurrentUser(): CurrentUser {
     email: sov.user?.email ?? null,
     name: sov.user?.name ?? null,
     imageUrl: sov.user?.imageUrl ?? null,
+    onboarded: sov.user?.onboarded ?? true,
   };
 }

@@ -144,14 +144,19 @@ router.get("/status", requireAuth, async (c) => {
     { count: threadCount },
     { count: emailCount },
   ] = await Promise.all([
-    // contacts/companies: nodes with object_type in ('person','company')
+    // Contacts/companies. Matched by STEM, not by exact name: this workspace's types are
+    // "people"/"companies"/"contact-leads", so `in ("person","company")` missed nearly all of them.
+    // Same lesson the agent runners already learned — an object type is named by the user, and
+    // "deal" and "deals" are the same thing to everyone except an equality check.
     supabase.from("nodes").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .in("object_type", ["person", "company"]),
-    // deals
+      .or("object_type.ilike.person%,object_type.ilike.people%,object_type.ilike.compan%,object_type.ilike.contact%"),
+    // Deals. Measured 2026-08-04: this workspace holds 44 under "deals" while the checklist
+    // reported deal:false, because it compared against "deal" exactly. A checklist that can never
+    // tick is worse than no checklist — it tells a new user their work did not count.
     supabase.from("nodes").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .eq("object_type", "deal"),
+      .ilike("object_type", "deal%"),
     // team members (> 1 means at least one other member)
     supabase.from("workspace_members").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
