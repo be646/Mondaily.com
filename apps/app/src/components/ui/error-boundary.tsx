@@ -1,4 +1,6 @@
 import { Component, type ReactNode } from "react";
+// The one definition of the API origin — not a second copy of the same env expression.
+import { BASE_URL } from "../../lib/api-client";
 
 interface Props { children: ReactNode; fallback?: ReactNode }
 interface State { hasError: boolean; message: string }
@@ -35,6 +37,31 @@ export class ErrorBoundary extends Component<Props, State> {
     }
     // eslint-disable-next-line no-console
     console.error("[ErrorBoundary]", error);
+
+    /**
+     * Report it somewhere a human will actually look.
+     *
+     * console.error goes into a browser nobody is watching. Until this existed, a render error in
+     * production was invisible unless a user described it — and a user rarely can.
+     *
+     * BEST EFFORT, and silent on failure: an error reporter that throws, blocks, or retries would
+     * turn one broken component into a broken app. keepalive so the report survives the reload that
+     * a chunk error triggers a few lines above.
+     */
+    try {
+      const body = JSON.stringify({
+        message: msg.slice(0, 2000),
+        route: typeof location !== "undefined" ? location.pathname : undefined,
+        source: "client",
+      });
+      void fetch(`${BASE_URL}/api/v1/telemetry/error`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        credentials: "include",
+        keepalive: true,
+      }).catch(() => { /* never surface a reporting failure to the user */ });
+    } catch { /* never let reporting break the fallback render */ }
   }
 
   render() {

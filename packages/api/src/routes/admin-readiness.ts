@@ -83,6 +83,17 @@ router.get("/readiness", async (c) => {
   // Reported as measured bytes, flagged partial when the walk hit its bound — never an undercount
   // presented as a total. The 5GB free-plan scare of 2026-07-30 is why this row exists.
   const storage = await recordingsStorageUsage();
+
+  // Unresolved client errors. Stored is not the same as SEEN — a sink nobody reads is a slower
+  // version of console.error. Surfacing the count here puts it next to everything else an operator
+  // already checks. `null` means the migration has not run, which is distinct from "zero errors".
+  let unresolved_client_errors: number | null = null;
+  {
+    const { count, error } = await supabase
+      .from("client_errors").select("fingerprint", { count: "exact", head: true })
+      .is("resolved_at", null);
+    if (!error) unresolved_client_errors = count ?? 0;
+  }
   const sovereign_mail_reachable = relay.reachable;
   const sovereign_mail_checkable = relay.checkable;
 
@@ -115,6 +126,7 @@ router.get("/readiness", async (c) => {
       // Whether the DURABLE rate limiter is actually working — not merely configured. An in-memory
       // fallback is invisible from outside, which is how a limiter that had silently stopped
       // protecting anything went unnoticed until it was probed with sixteen requests.
+      unresolved_client_errors,
       rate_limit_durable: rateLimitStoreHealth().durable,
       rate_limit_error: rateLimitStoreHealth().error,
       rate_limit_last_hits: rateLimitStoreHealth().last_hits,

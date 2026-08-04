@@ -29,6 +29,7 @@ import { cleanRouter } from "./routes/clean";
 import { supportRouter } from "./routes/support";
 import { platformSupportRouter } from "./routes/platform-support";
 import { webhooksRouter } from "./routes/webhooks";
+import { telemetryRouter } from "./routes/telemetry";
 import { billingRouter } from "./routes/billing";
 import { appDataRouter } from "./routes/app-data";
 import { invitesRouter } from "./routes/invites";
@@ -114,6 +115,9 @@ app.route("/api/v1/auth", authRouter);   // Sovereign Auth — the sole auth run
 app.route("/api/v1/credits", creditsRouter);
 app.route("/api/v1/clean", cleanRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
+// Unauthenticated BY DESIGN: an error thrown before auth resolves is the class most worth
+// hearing about. Bounded by its own rate limit + field caps, like /public/ask.
+app.route("/api/v1/telemetry", telemetryRouter);
 app.route("/api/v1/billing", billingRouter);
 app.route("/api/v1/invites", invitesRouter);
 app.route("/api/v1/notes", notesRouter);
