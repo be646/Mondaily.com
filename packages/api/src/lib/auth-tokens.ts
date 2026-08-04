@@ -72,15 +72,36 @@ export async function verifyVerifyToken(token: string): Promise<{ sub: string; e
 
 // ── Password-reset tokens — short-lived, single-purpose, email-delivered ──────────
 const RESET_TTL_SECONDS = 30 * 60;
-export async function signResetToken(userId: string, email: string): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  return sign({ sub: userId, email, type: "reset", iat: now, exp: now + RESET_TTL_SECONDS }, jwtSecret());
+
+/**
+ * A reset link must work EXACTLY ONCE.
+ *
+ * The token is a stateless JWT, so `exp` alone made it replayable for its whole 30-minute life —
+ * including AFTER the password had already been changed. Anyone still holding the link (a forwarded
+ * email, a shared inbox, browser history, a proxy log) could reset again, which revokes the real
+ * owner's sessions and hands the attacker a fresh one. That is account takeover from a link the
+ * user already used.
+ *
+ * Rather than add a table of spent tokens, the token carries a fingerprint of the password it was
+ * issued against. Change the password — by this link or any other route — and every outstanding
+ * link for that account stops verifying. Single-use, and self-invalidating, with no storage.
+ */
+export function passwordFingerprint(passwordHash: string | null | undefined): string {
+  return sha256(String(passwordHash ?? "")).slice(0, 16);
 }
-export async function verifyResetToken(token: string): Promise<{ sub: string; email: string } | null> {
+
+export async function signResetToken(userId: string, email: string, pv: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign({ sub: userId, email, type: "reset", pv, iat: now, exp: now + RESET_TTL_SECONDS }, jwtSecret());
+}
+export async function verifyResetToken(token: string): Promise<{ sub: string; email: string; pv: string } | null> {
   try {
     const p = (await verify(token, jwtSecret(), "HS256")) as Record<string, unknown>;
     if (p.type !== "reset" || typeof p.sub !== "string" || typeof p.email !== "string") return null;
-    return { sub: p.sub, email: p.email };
+    // FAIL CLOSED on a token minted before fingerprints existed: it cannot be proven unused, and
+    // the cost of rejecting it is one more "request a new link" click.
+    if (typeof p.pv !== "string" || !p.pv) return null;
+    return { sub: p.sub, email: p.email, pv: p.pv };
   } catch {
     return null;
   }

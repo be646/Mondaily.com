@@ -12,6 +12,7 @@ import {
   signResetToken, verifyResetToken,
   signVerifyToken, verifyVerifyToken,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
+  passwordFingerprint,
 } from "../lib/auth-tokens";
 import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
@@ -422,7 +423,13 @@ router.post("/request-password-reset", rateLimit(), requirePow, zValidator("json
   const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
   const cred = await credByEmail(email);
   if (!cred) return c.json(generic);
-  const token = await signResetToken(cred.user_id as string, cred.email as string);
+  // Fingerprint the password this link is issued against, so using the link (or changing the
+  // password any other way) invalidates it — see passwordFingerprint.
+  const token = await signResetToken(
+    cred.user_id as string,
+    cred.email as string,
+    passwordFingerprint(cred.password_hash as string | null),
+  );
   const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
   const link = `${appUrl}/auth/reset?token=${encodeURIComponent(token)}`;
   {
@@ -442,6 +449,19 @@ router.post("/reset-password", rateLimit(), requirePow, zValidator("json", z.obj
   const { token, password } = c.req.valid("json");
   const claims = await verifyResetToken(token);
   if (!claims) return c.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);
+
+  // SINGLE USE: the link is bound to the password it was minted against. If that password has
+  // changed — because this link was already used, or the user reset another way — the fingerprint
+  // no longer matches and the link is spent. Without this the token stayed valid for its whole
+  // 30-minute life AFTER a successful reset, so anyone still holding it could reset again, revoke
+  // the owner's sessions and take the account.
+  const { data: current } = await supabase.from("auth_credentials")
+    .select("password_hash").eq("user_id", claims.sub).maybeSingle();
+  const currentPv = passwordFingerprint((current as { password_hash?: string } | null)?.password_hash);
+  if (currentPv !== claims.pv) {
+    return c.json({ error: "This reset link has already been used. Request a new one." }, 400);
+  }
+
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").update({ password_hash, updated_at: new Date().toISOString() }).eq("user_id", claims.sub);
   if (error) return c.json({ error: error.message }, 400);
