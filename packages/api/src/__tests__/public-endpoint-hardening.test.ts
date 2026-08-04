@@ -78,3 +78,29 @@ describe("rate limiting survives serverless", () => {
     expect(sql).toMatch(/rate_limit_hit/);
   });
 });
+
+describe("a broken limiter is distinguishable from an absent one", () => {
+  const st = read("lib/rate-limit-store.ts");
+
+  it("an RPC error that is NOT 'missing' is reported, not latched", () => {
+    // rate_limit_hit installed cleanly and failed at CALL time (an ambiguous OUT parameter named
+    // like a column). Every error returned null → in-memory fallback → still 200 fifteen times.
+    // A security control that fails silently is worse than one that is obviously off.
+    expect(st).toMatch(/rate-limit store failing/);
+    expect(st).toMatch(/console\.error\("\[rate-limit\]/);
+  });
+
+  it("exposes health for readiness", () => {
+    expect(st).toMatch(/export const rateLimitStoreHealth/);
+  });
+
+  it("the SQL fix names outputs so they cannot collide with columns", () => {
+    const sql = readFileSync(
+      join(SRC, "../../db/migrations/20260804b_rate_limits_fix_ambiguity.sql"), "utf8");
+    expect(sql).toMatch(/returns table \(out_hits integer, out_locked_until timestamptz\)/);
+    expect(sql).toMatch(/into v_hits, v_locked/);
+    // And PROVES it runs — a successful CREATE proved nothing last time.
+    expect(sql).toMatch(/select \* from rate_limit_hit\('migration-selftest'/);
+  });
+});
+
