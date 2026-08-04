@@ -43,7 +43,10 @@ const SequenceBuilderPage = lazy(() => import("./routes/dashboard/automations/se
 const AskPage = lazy(() => import("./routes/dashboard/ask/[threadId]").then(m => ({ default: m.AskPage })));
 const CanvasPage = lazy(() => import("./routes/dashboard/canvas"));
 const ObjectIndexPage = lazy(() => import("./routes/dashboard/objects/[objectType]/index").then(m => ({ default: m.ObjectIndexPage })));
-const PipelinePage = lazy(() => import("./routes/dashboard/pipeline").then(m => ({ default: m.PipelinePage })));
+// PipelinePage is NOT imported: `pipeline` is a redirect to /objects/deals?view=board, so the
+// component was lazy-loaded into the bundle and rendered by nothing. The file is left on disk
+// — it is a working page, just unrouted — but it no longer costs a chunk. Delete it or restore
+// the route deliberately; do not re-add this import to "fix" the unused file.
 const RecordDetailPage = lazy(() => import("./routes/dashboard/objects/[objectType]/[recordId]").then(m => ({ default: m.RecordDetailPage })));
 // SettingsLayout stays static — it's the stable settings shell/nav. The individual settings pages are
 // lazy-loaded so their code (and settings/email's Tiptap editor → the ~304 kB vendor-editor chunk) no
