@@ -634,7 +634,9 @@ describe("dashboard/home secondary status messages use text-body (Pass 5F)", () 
     expect(H).toMatch(/ask-user-bubble[^"]*text-sm/);                              // chat user bubble
     expect(H).toMatch(/ask-assistant-line[^"]*text-sm/);                           // chat assistant
     expect(H).toMatch(/text-sm font-medium" style=\{\{ color: "var\(--text-primary\)" \}\}>Meetings/); // card title
-    expect(H).toMatch(/text-sm font-medium" style=\{\{ color: "var\(--text-primary\)" \}\}>AI Scan Report/); // card title
+    // RESOLVED 2026-08-04: the scan report moved to the shared <Modal>, which renders the
+    // title. Asserted from the other side so it cannot regress to a hand-rolled header.
+    expect(H).toMatch(/<Modal title="AI Scan Report"/);
     expect(H).toMatch(/flex-1 bg-transparent text-sm outline-none/);               // attach input
     expect(H).toMatch(/truncate text-sm transition-colors/);                        // task row
     expect(H).toMatch(/text-sm text-\[#c6892e\]/);                                  // warning banner
@@ -665,7 +667,8 @@ describe("dashboard/home read-only supporting copy fully migrated (Pass 5H)", ()
     expect(H).toMatch(/className="px-2 py-2 text-body" style=\{\{ color: "var\(--text-faint\)" \}\}>\{attachQuery/);                       // 922 → text-body
     expect(H).toMatch(/className="mt-1 text-body" style=\{\{ color: "var\(--text-muted\)" \}\}>\{\(tasksQuery\.error/);                    // 1124 → text-body
     expect(H).toMatch(/className="mt-0\.5 text-body" style=\{\{ color: "var\(--text-faint\)" \}\}>Ask AI to create tasks/);               // 1132 → text-body
-    expect(H).toMatch(/className="mt-px text-caption" style=\{\{ color: "var\(--text-faint\)" \}\}>\{scanTimestamp\}/);                    // 1307 → text-caption
+    // RESOLVED 2026-08-04: the timestamp is now the Modal's subtitle.
+    expect(H).toMatch(/subtitle=\{scanTimestamp \|\| undefined\}/);
     expect(H).toMatch(/className="mt-2 text-label" style=\{\{ color: "var\(--status-warn\)" \}\}>Reconnect needed/);                       // 1270 → text-label (cond)
   });
   it("controls/pills/chips/card-titles/chat prose remain untouched", () => {
@@ -2324,6 +2327,10 @@ describe("button chrome ratchet (Pass BTN-1, 2026-07-30)", () => {
       }
     }
     expect(handRolled, `hand-rolled chrome buttons grew to ${handRolled} — use the .btn-* classes`).toBeLessThanOrEqual(52);
-    expect(canonical, `canonical .btn-* adoption regressed to ${canonical}`).toBeGreaterThanOrEqual(35);
+    // Floor 35 → 34 on 2026-08-04, and NOT because adoption slipped: this walk covers
+    // routes/dashboard only, and converting a dialog to the shared <Modal> moves its canonical
+    // btn-icon close button into components/ui/modal.tsx. The button became MORE shared, not
+    // less. The hand-rolled CEILING above is the half that actually guards against drift.
+    expect(canonical, `canonical .btn-* adoption regressed to ${canonical}`).toBeGreaterThanOrEqual(34);
   });
 });

@@ -8,6 +8,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState, ErrorState } from "../../components/ui/page-state";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { Modal } from "@/components/ui/modal";
 
 
 
@@ -716,21 +717,8 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
   }, [onClose]);
 
   return (
-    <>
-      <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label={t("inbox.new_message")}
-        className="fixed left-1/2 top-1/2 z-[201] flex max-h-[85vh] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-sm border" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
-        {/* Premium header — accent glyph tile + honest subtitle. */}
-        <div className="flex items-center gap-2.5 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
-            {mode === "dm" ? <MessagesSquare size={15} /> : <UsersRound size={15} />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.new_message")}</span>
-            <span className="block text-[11px]" style={{ color: "var(--text-faint)" }}>{mode === "dm" ? "Open a private 1:1 thread" : "A members-only team thread"}</span>
-          </div>
-          <button onClick={onClose} className="btn-icon h-7 w-7 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" aria-label="Close"><X size={15} /></button>
-        </div>
+      <Modal title={t("inbox.new_message")} width="sm" onClose={onClose}
+        subtitle={mode === "dm" ? "Open a private 1:1 thread" : "A members-only team thread"}>
         {/* Segmented, squared tab control — full-width, clear active state. */}
         <div role="tablist" aria-label="New conversation type" className="grid grid-cols-2 gap-1 border-b p-2" style={{ borderColor: "var(--border-soft)" }}>
           {(["dm", "group"] as const).map((m) => (
@@ -791,7 +779,6 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
             </button>
           </div>
         )}
-      </div>
-    </>
+      </Modal>
   );
 }

@@ -20,6 +20,7 @@ import { CommandPageHeader, ActionMenu } from "../../../../components/ui/control
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
 import { useResolvedPeriod } from "../../../../lib/period-bounds";
 import { vocabSlotOf, vocabValues } from "@mondaily/shared/vocab";
+import { Modal } from "@/components/ui/modal";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -690,27 +691,9 @@ function AIFillModal({
   }, [onClose]);
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[3px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[min(720px,92vw)]" : "w-[min(500px,92vw)]"}`}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <LogoMark size={13} className="text-[var(--text-secondary)]"/>
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[var(--text-primary)] capitalize">Fill "{cleanName}" with AI</p>
-              <p className="text-[10px] text-[var(--text-faint)]">
-                {fieldKeys.length} column{fieldKeys.length !== 1 ? "s" : ""}: {fieldKeys.slice(0, 4).map(label).join(", ")}{fieldKeys.length > 4 ? ` +${fieldKeys.length - 4} more` : ""}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="btn-icon">
-            <X size={14}/>
-          </button>
-        </div>
+      <Modal width="lg" onClose={onClose}
+        title={`Fill "${cleanName}" with AI`}
+        subtitle={`${fieldKeys.length} column${fieldKeys.length !== 1 ? "s" : ""}: ${fieldKeys.slice(0, 4).map(label).join(", ")}${fieldKeys.length > 4 ? ` +${fieldKeys.length - 4} more` : ""}`}>
 
         <div className="flex">
           {/* Left: prompt + controls */}
@@ -801,8 +784,7 @@ function AIFillModal({
             </div>
           )}
         </div>
-      </div>
-    </>
+      </Modal>
   );
 }
 

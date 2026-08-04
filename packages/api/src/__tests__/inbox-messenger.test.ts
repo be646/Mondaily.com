@@ -85,10 +85,16 @@ describe("premium redesign — structured empty states (not giant dead panels)",
 describe("premium redesign — accessible, keyboard-friendly new-message modal", () => {
   const modal = inbox.slice(inbox.indexOf("function NewMessageModal"));
   it("modal is a labelled dialog with a tablist and Esc-to-close", () => {
-    expect(modal).toMatch(/role="dialog" aria-modal="true"/);
+    // The dialog semantics moved to the shared <Modal> on 2026-08-04 — role="dialog",
+    // aria-modal, aria-label={title} and Escape now come from one implementation instead of this
+    // component's own copy. Verified on BOTH sides so neither half can quietly drop them.
+    expect(modal).toMatch(/<Modal title=\{t\("inbox\.new_message"\)\}/);
+    const shell = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/ui/modal.tsx", import.meta.url)), "utf8");
+    expect(shell).toMatch(/role="dialog" aria-modal="true" aria-label=\{title\}/);
+    expect(shell).toMatch(/e\.key === "Escape"/);
     expect(modal).toMatch(/role="tablist"/);
     expect(modal).toMatch(/role="tab" aria-selected=\{mode === m\}/);
-    expect(modal).toMatch(/if \(e\.key === "Escape"\) onClose\(\)/);
+    // (Escape is asserted on the shell above.)
   });
   it("modal controls expose focus-visible rings + labels (keyboard + a11y)", () => {
     expect(modal).toMatch(/aria-label="Group name"/);

@@ -23,6 +23,7 @@ import { applyTerms, EMPTY_PROFILE } from "@mondaily/shared/profile";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useDisplayIdentity } from "../../hooks/useDisplayIdentity";
 import { isOverdue as isPastDue } from "@mondaily/shared/dates";
+import { Modal } from "@/components/ui/modal";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 // (Removed a second, local markdown renderer used only by the scan modal — the shared <Markdown>
@@ -1288,33 +1289,20 @@ export function HomePage() {
 
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
-            <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
-                  <LogoMark size={11} style={{ color: "var(--text-muted)" }}/>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>AI Scan Report</p>
-                    {/* Removed a permanently-pinging "AI Signal" badge that was bound to no data —
-                        a live indicator for nothing. The timestamp below is the real signal. */}
-                  </div>
-                  {scanTimestamp && <p className="mt-px text-caption" style={{ color: "var(--text-faint)" }}>{scanTimestamp}</p>}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                    <Printer size={11}/> Print
-                  </button>
-                )}
-                {!scanLoading && (
-                  <button onClick={() => setScanReport(null)} className="text-xl leading-none transition-colors hover:opacity-70" style={{ color: "var(--text-muted)" }}>×</button>
-                )}
-              </div>
-            </div>
+        <Modal title="AI Scan Report" subtitle={scanTimestamp || undefined}
+          onClose={() => { if (!scanLoading) setScanReport(null); }}
+          headerAction={!scanLoading && scanReport ? (
+            <button onClick={printReport}
+              className="flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-label transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              <Printer size={11}/> Print
+            </button>
+          ) : undefined}
+          footer={!scanLoading && scanReport ? (
+            <button onClick={() => setScanReport(null)}
+              className="h-8 rounded-md px-3 text-label transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ color: "var(--text-secondary)" }}>Close</button>
+          ) : undefined}>
             <div className="flex-1 space-y-1 overflow-y-auto px-5 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>
               {scanLoading ? (
                 <div className="flex items-center gap-3 py-4" style={{ color: "var(--text-muted)" }}>
@@ -1323,15 +1311,7 @@ export function HomePage() {
                 </div>
               ) : scanReport ? <Markdown text={scanReport}/> : null}
             </div>
-            {!scanLoading && scanReport && (
-              <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-                <button onClick={() => setScanReport(null)} className="w-full rounded-sm border py-2 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                  Close
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

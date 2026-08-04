@@ -14,6 +14,10 @@ const read = (p: string) => readFileSync(join(APP, p), "utf8");
  * Escape and backdrop dismissal — it was just used by one file.
  */
 const CONVERTED = [
+  "routes/dashboard/home.tsx",
+  "routes/dashboard/messages.tsx",
+  "routes/dashboard/reports/sales-report.tsx",
+  "routes/dashboard/objects/[objectType]/index.tsx",
   "routes/dashboard/pipeline.tsx",
   "routes/dashboard/automations/index.tsx",
   "routes/dashboard/reports/index.tsx",
@@ -31,10 +35,19 @@ describe("converted dialogs", () => {
     for (const f of CONVERTED) expect(read(f), f).toMatch(/from "@\/components\/ui\/modal"/);
   });
 
-  it("no longer hand-roll an overlay", () => {
+  it("no longer hand-roll a CENTRED dialog overlay", () => {
+    // Scoped deliberately: several of these files still contain right-side DRAWERS and
+    // dropdown backdrops, which are different surfaces and must not be converted.
     for (const f of CONVERTED) {
       expect(read(f), f).not.toMatch(/fixed inset-0 z-50 (flex items-center justify-center )?bg-black\/60/);
     }
+  });
+
+  it("drawers and dropdown backdrops are NOT swept into Modal", () => {
+    // Recorded so a future pass does not "finish the job" by converting a push-aside panel.
+    expect(read("routes/dashboard/discovery.tsx")).toMatch(/fixed right-0 top-0/);
+    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/fixed right-0 top-0/);
+    expect(read("routes/dashboard/reports/sales-report.tsx")).toMatch(/border-l/);
   });
 
   it("destructive confirms are danger-coloured, never the accent", () => {
