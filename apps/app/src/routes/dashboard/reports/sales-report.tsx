@@ -874,7 +874,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   placeholder="email@example.com"
                   className="flex-1 h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-stone-500/40"
                 />
-                <button onClick={addEmail} className="btn-icon h-8 w-8">
+                <button aria-label="Add email recipient" onClick={addEmail} className="btn-icon h-8 w-8">
                   <Plus size={12}/>
                 </button>
               </div>

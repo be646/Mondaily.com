@@ -44,7 +44,7 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
   return (
     <>
       <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
-        <button onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
+        <button aria-label="Back" onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
           <ArrowLeft size={14}/>
         </button>
         <span className="text-sm font-semibold text-stone-950 dark:text-[var(--text-primary)]">New Task</span>
@@ -102,7 +102,7 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
   return (
     <>
       <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
-        <button onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
+        <button aria-label="Back" onClick={onBack} className="shrink-0 text-[var(--text-secondary)] transition-colors hover:text-stone-950 dark:text-[var(--text-faint)] dark:hover:text-[var(--text-primary)]">
           <ArrowLeft size={14}/>
         </button>
         <span className="text-sm font-semibold text-stone-950 dark:text-[var(--text-primary)]">{titleLabel}</span>

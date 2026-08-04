@@ -3879,7 +3879,7 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange, vie
                 onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
                 placeholder="Name this view…"
                 className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
-              <button onClick={saveCurrentView} className="text-[#2f9e6b] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
+              <button aria-label="Save this view" onClick={saveCurrentView} className="text-[#2f9e6b] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
               <button onClick={() => setSaveViewOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] p-0.5"><X size={11}/></button>
             </div>
           ) : (

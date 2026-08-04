@@ -562,7 +562,7 @@ export function BoardView({ objectType, search = "", conditions = [] }: { object
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
               className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
-            <button onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-[#2f9e6b] transition-colors"><Check size={12}/></button>
+            <button aria-label="Save stage" onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-[#2f9e6b] transition-colors"><Check size={12}/></button>
             <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors"><X size={12}/></button>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[80px]">

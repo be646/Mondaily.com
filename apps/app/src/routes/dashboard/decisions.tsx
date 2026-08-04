@@ -380,7 +380,7 @@ export function DecisionsPage() {
             return (
               <div className="mb-2 flex flex-wrap items-center gap-1.5 pt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
                 {filterChips.map(ch => (
-                  <button key={ch.key} onClick={ch.onRemove} className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 transition-colors hover:border-[var(--section-accent)]"
+                  <button aria-label="Remove" key={ch.key} onClick={ch.onRemove} className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 transition-colors hover:border-[var(--section-accent)]"
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
                     {ch.label} <XCircle size={10} />
                   </button>

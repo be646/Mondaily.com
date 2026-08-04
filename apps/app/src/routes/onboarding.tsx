@@ -257,7 +257,7 @@ export function OnboardingPage() {
                 Skip
               </button>
             )}
-            <button
+            <button aria-label="Continue"
               onClick={handleNext}
               disabled={loading}
               className="flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-zinc-700 transition-all disabled:opacity-50"

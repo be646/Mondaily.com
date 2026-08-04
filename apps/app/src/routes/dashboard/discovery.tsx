@@ -1157,7 +1157,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
             <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(r.source_url) || r.platform}{r.region ? ` · ${r.region}` : ""}</div>
             <a href={r.source_url} target="_blank" rel="noreferrer" className="truncate text-[15px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</a>
           </div>
-          <button onClick={onClose} className="shrink-0 rounded-sm p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Minus size={16} /></button>
+          <button aria-label="Collapse" onClick={onClose} className="shrink-0 rounded-sm p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Minus size={16} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           <PipelineChips st={{ ...(status ?? {}) }} />
