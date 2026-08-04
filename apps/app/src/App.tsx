@@ -1,4 +1,5 @@
-import { RestoreWorkspacePage } from "./routes/restore-workspace";
+import { GuestCallPage } from "./routes/guest-call";
+import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
@@ -7,15 +8,7 @@ import { RouteThinking } from "./components/ui/page-state";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
-import { ShadowActivatePage } from "./routes/auth/shadow-activate";
 import { ShadowRegisterPage } from "./routes/auth/shadow-register";
-import { ShadowForgotPage } from "./routes/auth/shadow-forgot";
-import { ShadowResetPage } from "./routes/auth/shadow-reset";
-import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
-import { InviteAcceptPage } from "./routes/auth/invite-accept";
-import { GuestCallPage } from "./routes/guest-call";
-import { VerifyEmailPage } from "./routes/auth/verify-email";
-import { TerminalOnboardingPage } from "./routes/onboarding/terminal-console";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
 const StatusPage = lazy(() => import("./routes/dashboard/status").then(m => ({ default: m.StatusPage })));
@@ -120,6 +113,26 @@ function DashboardRoute({ children }: { children: ReactNode }) {
   if (!hasWorkspace) return <WorkspaceDiagnostic />;
   return <>{children}</>;
 }
+
+
+// ── Rarely-loaded routes are lazy ───────────────────────────────────────────────
+// Guest calls, invite acceptance, workspace restore, email verification, activation,
+// forgot/reset password and onboarding are pages most sessions never open. Shipping them
+// in the main chunk made every user download them to reach the dashboard. Login, register,
+// the dashboard layout and Home stay EAGER — they are the hot paths, and a lazy chunk there
+// would add a round-trip to the first impression.
+//
+// GuestCallPage and WorkspaceSelectPage are exempt for a reason that is easy to miss: a guest
+// clicking a call link lands DIRECTLY on GuestCallPage — it is their first paint, and a lazy
+// chunk delays joining a live call — and WorkspaceSelectPage renders immediately after login for
+// multi-workspace users. Both were already pinned static by the calls-readiness tests.
+const RestoreWorkspacePage = lazy(() => import("./routes/restore-workspace").then(m => ({ default: m.RestoreWorkspacePage })));
+const ShadowActivatePage = lazy(() => import("./routes/auth/shadow-activate").then(m => ({ default: m.ShadowActivatePage })));
+const ShadowForgotPage = lazy(() => import("./routes/auth/shadow-forgot").then(m => ({ default: m.ShadowForgotPage })));
+const ShadowResetPage = lazy(() => import("./routes/auth/shadow-reset").then(m => ({ default: m.ShadowResetPage })));
+const InviteAcceptPage = lazy(() => import("./routes/auth/invite-accept").then(m => ({ default: m.InviteAcceptPage })));
+const VerifyEmailPage = lazy(() => import("./routes/auth/verify-email").then(m => ({ default: m.VerifyEmailPage })));
+const TerminalOnboardingPage = lazy(() => import("./routes/onboarding/terminal-console").then(m => ({ default: m.TerminalOnboardingPage })));
 
 export function App() {
   return (
