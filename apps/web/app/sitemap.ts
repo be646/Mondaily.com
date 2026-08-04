@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE = "https://mondaily.com";
+import { SITE_URL as SITE } from "@/lib/site-url";
 
 // Public, indexable marketing routes. Auth pages and the app are intentionally excluded.
 const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [

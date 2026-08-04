@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import "./globals.css";
 
-const SITE = "https://mondaily.com";
+import { SITE_URL as SITE } from "@/lib/site-url";
 
 const orbitron = Orbitron({
   subsets: ["latin"],
