@@ -51,7 +51,7 @@ router.post(
     // pollute another tenant's worklist.
     const workspaceId = c.get("workspaceId") ?? null;
 
-    const { error } = await supabase.rpc("client_error_report", {
+    const { data, error } = await supabase.rpc("client_error_report", {
       p_fingerprint: fp,
       p_message: message,
       p_source: source,
@@ -65,7 +65,14 @@ router.post(
     // migration has not run, the report is dropped and the caller still gets a 202 — an app that
     // breaks harder because its error reporter is missing would be the worst possible outcome.
     if (error) console.error("[telemetry] could not record client error:", error.message);
-    return c.json({ recorded: !error }, 202);
+
+    // Return the running count. Two reasons: a caller can tell a first occurrence from a recurrence
+    // without another round trip, and — the reason it exists — dedup becomes VERIFIABLE from
+    // outside. "recorded: true" twice proves the endpoint accepted twice, not that it collapsed
+    // them into one row; an occurrence count that climbs while the row count does not is evidence.
+    const row = Array.isArray(data) ? data[0] : data;
+    const occurrences = Number((row as { out_occurrences?: number } | null)?.out_occurrences ?? 0) || null;
+    return c.json({ recorded: !error, occurrences }, 202);
   },
 );
 

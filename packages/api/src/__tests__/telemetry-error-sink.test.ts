@@ -40,7 +40,7 @@ describe("the error sink is safe to expose", () => {
 
   it("FAILS SOFT — the reporter must never become the outage", () => {
     expect(src).toMatch(/if \(error\) console\.error\("\[telemetry\]/);
-    expect(src).toMatch(/return c\.json\(\{ recorded: !error \}, 202\)/);
+    expect(src).toMatch(/return c\.json\(\{ recorded: !error, occurrences \}, 202\)/);
   });
 });
 
@@ -76,3 +76,14 @@ describe("stored is not the same as seen", () => {
     expect(sql).toMatch(/returns table \(out_occurrences integer, out_first_seen timestamptz\)/);
   });
 });
+
+describe("dedup is verifiable from outside", () => {
+  it("the response carries the running occurrence count", () => {
+    // "recorded: true" twice proves the endpoint accepted twice, NOT that it collapsed them into
+    // one row. A count that climbs while the row count does not is the actual evidence.
+    const src = read("routes/telemetry.ts");
+    expect(src).toMatch(/out_occurrences/);
+    expect(src).toMatch(/occurrences \}, 202\)/);
+  });
+});
+
