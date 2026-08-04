@@ -20,7 +20,8 @@ import { isOverdue } from "@mondaily/shared/dates";
 import { resolveEntitlement } from "../lib/entitlements";
 import { readMoney, toMinor, fromMinor } from "@mondaily/shared/money";
 import { workspaceBaseCurrency } from "../lib/currency-store";
-import { PIPE_STAGES } from "@mondaily/shared/deal-stage";
+import { PIPE_STAGES, dealStageOf, isOpenStage, isWonStage, isLostStage } from "@mondaily/shared/deal-stage";
+import { dealValueOf } from "@mondaily/shared/deal-fields";
 
 // Naive English pluralization (covers the common custom-object-type names: company/property/box/
 // dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
@@ -205,6 +206,11 @@ const TOOLS = [
       },
       required: ["object_type"]
     }
+  },
+  {
+    name: "pipeline_metrics",
+    description: "EXACT deal pipeline figures computed server-side: open count and value, won/lost counts and value, the per-stage breakdown, and how many deals are unstaged. ALWAYS use this for any question about pipeline, open deals, won/lost totals or deal counts — never count records yourself and never do the arithmetic in your head. The numbers this returns are the same ones the dashboards show; anything you compute separately will contradict them.",
+    input_schema: { type: "object", properties: {}, required: [] }
   },
   {
     name: "list_notifications",
@@ -894,6 +900,36 @@ async function executeTool(
         return `${header}\n${list}${siblingNote}`;
       }
 
+      case "pipeline_metrics": {
+        // Computed HERE, not by the model. Asked live on 2026-08-04, Ask answered "28 open" (its
+        // own definition) and then "20 open, 5 unstaged" (right definition, wrong arithmetic) while
+        // the dashboards said 21 and 4. A model that counts is a model that will sometimes miscount,
+        // and a wrong money figure delivered confidently is worse than no figure.
+        const { data: deals } = await supabase.from("nodes")
+          .select("data").eq("workspace_id", workspaceId).ilike("object_type", "deal%").limit(2000);
+        const rows = (deals ?? []) as { data: Record<string, unknown> }[];
+        const val = (d: Record<string, unknown>) => dealValueOf(d) ?? 0;
+        const byStage: Record<string, number> = {};
+        let openCount = 0, openValue = 0, wonCount = 0, wonValue = 0, lostCount = 0, lostValue = 0, unstaged = 0;
+        for (const r of rows) {
+          const st = dealStageOf(r.data).trim();
+          byStage[st || "(unstaged)"] = (byStage[st || "(unstaged)"] ?? 0) + 1;
+          if (!st) { unstaged++; continue; }
+          if (isWonStage(st))      { wonCount++;  wonValue  += val(r.data); }
+          else if (isLostStage(st)){ lostCount++; lostValue += val(r.data); }
+          else if (isOpenStage(st)){ openCount++; openValue += val(r.data); }
+        }
+        // The dispatcher returns strings to the model.
+        return JSON.stringify({
+          total_deals: rows.length,
+          open: { count: openCount, value: openValue },
+          won:  { count: wonCount,  value: wonValue },
+          lost: { count: lostCount, value: lostValue },
+          unstaged_excluded: unstaged,
+          by_stage: byStage,
+          note: "OPEN counts only deals sitting at a pipeline stage. Stages outside the ladder (e.g. On Hold) and unstaged deals are excluded and reported separately. Report these numbers as given.",
+        });
+      }
       case "list_notifications": {
         const { data, error } = await supabase
           .from("notifications")
