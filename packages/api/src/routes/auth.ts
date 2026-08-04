@@ -482,12 +482,34 @@ router.post("/refresh", async (c) => {
   const raw = getCookie(c, REFRESH_COOKIE);
   if (!raw) return c.json({ error: "Not authenticated." }, 401);
   const { data: row } = await supabase.from("auth_refresh_tokens").select("*").eq("token_hash", sha256(raw)).maybeSingle();
-  if (!row || row.revoked_at || new Date(row.expires_at as string).getTime() < Date.now()) {
+
+  /**
+   * REUSE DETECTION.
+   *
+   * A refresh token is rotated on every use, so presenting one that is ALREADY REVOKED means the
+   * same token was used twice — it was copied. Rotation alone does not help the victim here: if the
+   * thief refreshes first, the session rotates to THEM, and the real user's next attempt simply
+   * fails while the thief keeps rotating indefinitely.
+   *
+   * The `replaced_by` chain was being written "for audit" and never read. Reading it is the point:
+   * a replay revokes every refresh token for that user, so the thief's session dies too and both
+   * parties must re-authenticate with the password. Losing a session is a small price; an attacker
+   * silently holding one forever is not.
+   */
+  if (row && row.revoked_at) {
+    await supabase.from("auth_refresh_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("user_id", row.user_id as string).is("revoked_at", null);
+    clearSessionCookies(c);
+    return c.json({ error: "This session was already used elsewhere. Please sign in again." }, 401);
+  }
+
+  if (!row || new Date(row.expires_at as string).getTime() < Date.now()) {
     clearSessionCookies(c);
     return c.json({ error: "Session expired." }, 401);
   }
   const { data: cred } = await supabase.from("auth_credentials").select("email").eq("user_id", row.user_id as string).maybeSingle();
-  // Rotate: mint new, revoke old (pointing replaced_by at the new row for audit).
+  // Rotate: mint new, revoke old, and record replaced_by — which the reuse check above reads.
   const access = await signAccessToken(row.user_id as string, (cred?.email as string) ?? "");
   const next = newRefreshToken();
   const insertedId = await insertRefreshRow(row.user_id as string, next.hash, c.req.header("user-agent") ?? null, clientIp(c));
