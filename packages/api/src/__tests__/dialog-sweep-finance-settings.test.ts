@@ -14,6 +14,10 @@ const read = (p: string) => readFileSync(join(APP, p), "utf8");
  * Escape and backdrop dismissal — it was just used by one file.
  */
 const CONVERTED = [
+  "routes/dashboard/pipeline.tsx",
+  "routes/dashboard/automations/index.tsx",
+  "routes/dashboard/reports/index.tsx",
+  "routes/dashboard/notes.tsx",
   "routes/dashboard/finance/quotes.tsx",
   "routes/dashboard/finance/expenses.tsx",
   "routes/dashboard/finance/credit-notes.tsx",
@@ -22,7 +26,7 @@ const CONVERTED = [
   "routes/dashboard/settings/integrations.tsx",
 ];
 
-describe("finance + settings dialogs", () => {
+describe("converted dialogs", () => {
   it("use the shared Modal", () => {
     for (const f of CONVERTED) expect(read(f), f).toMatch(/from "@\/components\/ui\/modal"/);
   });

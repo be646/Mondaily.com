@@ -11,6 +11,7 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useRecordAggregate, aggScopeNotes, topGroup, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 interface ObjAttr { name: string; type?: string }
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
@@ -341,12 +342,14 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 p-4">
-      <div className="surface-modal w-full max-w-sm rounded-sm p-5 shadow-[0_24px_64px_rgba(0,0,0,0.35)] dark:">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New dashboard</h2>
-          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={14}/></button>
-        </div>
+    <Modal title="New dashboard" width="sm" onClose={onClose} footer={
+      <ModalActions onCancel={onClose}>
+        <button onClick={() => { if (name.trim()) onCreate(name.trim()); }} disabled={!name.trim()}
+          className="btn-primary h-8 px-3 text-label font-semibold">
+          Create dashboard
+        </button>
+      </ModalActions>
+    }>
         <input
           ref={inputRef}
           autoFocus
@@ -356,15 +359,7 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
           placeholder="e.g. Sales overview, Q2 metrics…"
           className="key-input w-full mb-3"
         />
-        <button
-          onClick={() => { if (name.trim()) onCreate(name.trim()); }}
-          disabled={!name.trim()}
-          className="btn-primary w-full py-2.5 text-sm font-semibold"
-        >
-          Create dashboard
-        </button>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

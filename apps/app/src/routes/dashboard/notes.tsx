@@ -16,6 +16,7 @@ import { SegmentedControl } from "../../components/ui/segmented";
 import { NoteEditor } from "../../components/notes/note-editor";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
+import { Modal } from "@/components/ui/modal";
 
 /* ── types ──────────────────────────────────────────────────── */
 
@@ -431,23 +432,12 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
 
 /* ── Modal shell ────────────────────────────────────────────── */
 
+/**
+ * Delegates to the shared <Modal> — same hairlines, plus Escape and backdrop dismissal it never had.
+ * Kept as a wrapper so the call sites below are untouched.
+ */
 function ModalShell({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] max-h-[90vh]">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{subtitle}</p>}
-          </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
+  return <Modal title={title} subtitle={subtitle} onClose={onClose} width="lg">{children}</Modal>;
 }
 
 /* ── Main page ──────────────────────────────────────────────── */

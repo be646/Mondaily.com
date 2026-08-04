@@ -6,6 +6,7 @@ import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 import { dealStageOf } from "@mondaily/shared/deal-stage";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 interface DealRecord {
   id: string;
@@ -324,20 +325,19 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
   }, [save, onClose]);
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[min(440px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.18)]">
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">New Deal</span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-[var(--border-soft)] bg-stone-900/60 ${textColor(defaultStage)}`}>
-              {defaultStage}
-            </span>
-          </div>
-          <button onClick={onClose} className="btn-icon">
-            <X size={14}/>
+    // The stage badge rides in the subtitle: the dialog names the column it is creating into,
+    // which the old bespoke header carried as a chip beside the title.
+    <Modal title="New Deal" width="sm" onClose={onClose}
+      subtitle={<span className={textColor(defaultStage)}>{defaultStage}</span>}
+      footer={
+        <ModalActions onCancel={onClose}>
+          <button onClick={save} disabled={saving}
+            className="flex h-8 items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+            {saving ? "Creating…" : "Create deal"}
+            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#d1524a]/70">⌘↵</kbd>
           </button>
-        </div>
+        </ModalActions>
+      }>
 
         <div className="max-h-[400px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (
@@ -354,24 +354,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
           {error && <p className="pt-2 text-xs text-[var(--text-faint)]">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-faint)] transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50"
-          >
-            {saving ? "Creating…" : "Create deal"}
-            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#d1524a]/70">⌘↵</kbd>
-          </button>
-        </div>
-      </div>
-    </>
+    </Modal>
   );
 }
 

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { CommandPageHeader, MetricGrid } from "../../../components/ui/controls";
 import { EmptyState } from "../../../components/ui/page-state";
+import { Modal, ModalActions } from "@/components/ui/modal";
 
 // ─── AI Sequence Generator Modal ──────────────────────────────────────────────
 function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
@@ -60,15 +61,24 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
-        <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
-          <div className="flex items-center gap-2">
-            <LogoMark size={15} className="text-[var(--text-faint)]"/>
-            <h2 className="font-semibold text-[var(--text-primary)]">Generate sequence with AI</h2>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16}/></button>
-        </div>
+    <Modal title="Generate sequence with AI" onClose={onClose} width={preview ? "lg" : "md"} footer={
+      <ModalActions onCancel={onClose}>
+        {!preview ? (
+          <button onClick={generate} disabled={loading || !prompt.trim()} className="flex h-8 items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+            {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
+          </button>
+        ) : (
+          <>
+            <button onClick={generate} disabled={loading}
+              className="h-8 rounded-md px-3 text-label transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ color: "var(--text-secondary)" }}>Regenerate</button>
+            <button onClick={createSequence} disabled={creating} className="flex h-8 items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-label font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+              {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : <><Check size={13}/> Create sequence</>}
+            </button>
+          </>
+        )}
+      </ModalActions>
+    }>
 
         <div className="p-5 space-y-4">
           <textarea
@@ -111,25 +121,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
         )}
 
-        <div className="flex items-center justify-between p-5 border-t border-[var(--border-soft)]">
-          <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
-          {!preview ? (
-            <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
-              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Regenerate</button>
-              <button onClick={createSequence} disabled={creating}
-                className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
-                {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : <><Check size={13}/> Create sequence</>}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
