@@ -506,6 +506,10 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
   { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
   { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  // Deal figures are asked constantly and must never be counted by the model, so this group is
+  // deliberately broad — any mention of the pipeline, a stage, or won/lost loads the exact-count
+  // tool. Without a group a tool is UNREACHABLE: selectTools only ever passes CORE plus matches.
+  { tools: ["pipeline_metrics"], keywords: /\b(pipeline|open deals?|deals?|stage|won|win|winning|wins|lost|los(e|ing)|closed|close rate|forecast|funnel|conversion|how many deals|deal value|deal count|unstaged)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
   { tools: ["create_workflow_draft", "set_workflow_enabled", "list_workflows"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
