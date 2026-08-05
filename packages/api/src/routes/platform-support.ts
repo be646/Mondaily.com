@@ -7,6 +7,7 @@ import { verifyAccessToken, ACCESS_COOKIE } from "../lib/auth-tokens";
 import { requirePlatformAdmin, isPlatformAdmin } from "../middleware/platform-admin";
 import { createNotification } from "../lib/notify";
 import { SUPPORT_STATUSES } from "./support";
+import { mailSupportReplied, mailWaitingOnUser, mailResolved } from "../lib/support-mail";
 
 /**
  * MONDAILY PLATFORM SUPPORT DASHBOARD (internal) — where ticket status/review/close actually live.
@@ -26,6 +27,17 @@ interface TicketData {
   category: string; subject: string; message: string; status: (typeof SUPPORT_STATUSES)[number];
   updated_at?: string; comments?: TicketComment[];
   status_history?: { status: string; at: string; by: string }[];
+  metadata?: { requester?: { name?: string; email?: string } } & Record<string, unknown>;
+  /** When we last put the ball in the customer's court — the clock the sweep reads. */
+  waiting_since?: string;
+  reminders_sent?: number[];
+  closed_reason?: string;
+}
+
+/** The requester's mailbox, or null when the ticket has none (older tickets predate the stamp). */
+function requesterOf(t: TicketNode): { email: string; name?: string } | null {
+  const r = t.data.metadata?.requester;
+  return r?.email ? { email: r.email, name: r.name } : null;
 }
 interface TicketNode { id: string; workspace_id: string; created_by: string | null; created_at: string; data: TicketData }
 
@@ -75,8 +87,11 @@ router.get("/tickets", zValidator("query", z.object({ status: z.enum(SUPPORT_STA
     // "Answered" means SUPPORT replied, not that the thread has messages. A requester adding three
     // follow-ups because nobody responded is the opposite of answered, and sorting by last activity
     // pushed exactly those tickets to the top as though they were being handled.
-    // author_role is "admin" for a support reply, "requester" for the customer.
-    const answered = comments.some((cm) => cm.author_role === "admin");
+    // Both non-customer roles count. This router writes "mondaily" (see the reply handler below)
+    // while the workspace router writes "admin", so checking only "admin" meant every ticket
+    // answered from THIS dashboard stayed "unanswered" forever — the SLA number measured the wrong
+    // thing and got worse the more replies we sent. Anything that is not the requester is a reply.
+    const answered = comments.some((cm) => cm.author_role !== "requester");
     // "waiting_on_user" is deliberately NOT counted: the ball is with the customer, so counting it
     // as our unanswered time would inflate the number and hide the tickets we actually owe.
     const open = n.data.status === "open" || n.data.status === "in_review";
@@ -135,6 +150,12 @@ router.patch("/tickets/:id", zValidator("json", z.object({ status: z.enum(SUPPOR
   const updated: TicketData = {
     ...t.data, status: nextStatus, updated_at: now,
     status_history: [...(t.data.status_history ?? []), { status: nextStatus, at: now, by: `platform:${userId}` }],
+    // Moving TO waiting_on_user starts the reminder clock from now, and clears any reminders sent
+    // during an earlier wait — otherwise a ticket that went waiting → answered → waiting again
+    // would skip straight to its closing warning on a question the customer only just received.
+    ...(nextStatus === "waiting_on_user"
+      ? { waiting_since: now, reminders_sent: [] }
+      : { waiting_since: undefined, reminders_sent: undefined }),
   };
   const { error } = await supabase.from("nodes").update({ data: updated })
     .eq("workspace_id", t.workspace_id).eq("id", t.id).eq("object_type", "support_ticket");
@@ -146,6 +167,21 @@ router.patch("/tickets/:id", zValidator("json", z.object({ status: z.enum(SUPPOR
       body: `Mondaily support set your request to ${nextStatus.replace(/_/g, " ")}.`,
       metadata: { support_ticket_id: t.id, status: nextStatus },
     }).catch(() => false);
+  }
+
+  // EMAIL ONLY THE TWO TRANSITIONS THE CUSTOMER MUST ACT ON OR CARE ABOUT. An in-app notification
+  // is enough for in_review; mailing every internal state change trains people to ignore us.
+  const to = requesterOf(t);
+  if (to) {
+    const info = { id: t.id, subject: t.data.subject };
+    if (nextStatus === "waiting_on_user") {
+      const lastReply = [...(t.data.comments ?? [])].reverse().find((cm) => cm.author_role !== "requester");
+      // The ask IS our last reply. Sending "we need something from you" without saying what would
+      // make the email an obstacle rather than a prompt.
+      await mailWaitingOnUser(to, info, lastReply?.body ?? "Could you send us a little more detail so we can carry on?");
+    } else if (nextStatus === "resolved") {
+      await mailResolved(to, info, [...(t.data.comments ?? [])].reverse().find((cm) => cm.author_role !== "requester")?.body);
+    }
   }
   return c.json({ id: t.id, status: nextStatus, last_updated: now });
 });
@@ -169,6 +205,10 @@ router.post("/tickets/:id/comments", zValidator("json", z.object({ body: z.strin
       metadata: { support_ticket_id: t.id },
     }).catch(() => false);
   }
+  // The reply travels IN the email. Making someone log in to read two sentences is the difference
+  // between support that feels answered and support that feels like a ticketing system.
+  const to = requesterOf(t);
+  if (to) await mailSupportReplied(to, { id: t.id, subject: t.data.subject }, { author: "Mondaily support", body: comment.body, at: now });
   return c.json({ ok: true, comment });
 });
 

@@ -20,6 +20,15 @@ export type OutboundMessage = {
   /** HTML body. */
   body: string;
   to: { email: string; name?: string }[];
+  /**
+   * Where a reply should land, when that is not the From address.
+   *
+   * Support uses this to carry the ticket id in a plus-address, which is what makes "just reply to
+   * this email" true rather than decorative: the reply arrives at an address that identifies the
+   * conversation, so /emails/inbound can file it back onto the ticket instead of guessing from a
+   * subject line the customer may have edited.
+   */
+  reply_to?: string;
 };
 
 /** PRIMARY: send from the workspace's connected Gmail inbox (direct Google API). */
@@ -64,6 +73,7 @@ async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
         to: msg.to.map((t) => t.email),
         subject: msg.subject,
         html: msg.body,
+        ...(msg.reply_to ? { reply_to: msg.reply_to } : {}),
       }),
     });
     return res.ok;
@@ -131,7 +141,7 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
     // The address itself must not change (inbound routing keys on it), so we only add the name.
     const address = inboundAddressFor(workspaceId);
     const from = address ? `${quotedDisplayName(await workspaceDisplayName(workspaceId))} <${address}>` : CORPORATE_FROM;
-    const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body });
+    const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body, ...(msg.reply_to ? { reply_to: msg.reply_to } : {}) });
     const res = await fetch(url.replace(/\/$/, "") + "/send", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": createHmac("sha256", secret).update(body).digest("hex") },

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
+import { ticketIdFromRecipient, fileSupportReply } from "../lib/support-mail";
 import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, attachmentPath, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
@@ -116,6 +117,25 @@ router.post("/inbound", async (c) => {
 
   // Route to the owning workspace from the ENVELOPE recipients (falls back to the To/Cc headers).
   const recipients = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean) as string[];
+
+  /**
+   * SUPPORT REPLIES ARE CHECKED FIRST, and never fall through to the inbox.
+   *
+   * Every support email carries Reply-To: support+t.<ticket-id>@… so a reply identifies its
+   * conversation by routing rather than by subject-line guessing. Without this branch the promise
+   * printed at the bottom of every one of those emails — "reply to this email directly" — was
+   * false: the reply landed in an email_thread node nobody triaging tickets ever looks at, so the
+   * customer had answered and the ticket still read as waiting on them, all the way to auto-close.
+   */
+  for (const r of recipients) {
+    const ticketId = ticketIdFromRecipient(r);
+    if (!ticketId) continue;
+    const filed = await fileSupportReply(ticketId, msg);
+    // 200 either way: a reply to a ticket that has since been deleted is not something the mail
+    // receiver can fix by retrying forever.
+    return c.json({ ok: true, support_ticket: filed ? ticketId : null, ignored: filed ? undefined : "unknown ticket" });
+  }
+
   const workspaceId = workspaceIdFromRecipients(recipients);
   if (!workspaceId) return c.json({ ok: true, ignored: "no matching workspace address" });   // not for us — 200 so the receiver doesn't retry forever
   const { data: ws } = await supabase.from("workspaces").select("id").eq("id", workspaceId).maybeSingle();

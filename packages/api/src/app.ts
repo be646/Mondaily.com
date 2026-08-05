@@ -251,6 +251,32 @@ app.get("/api/cron/period-close", async (c) => {
 });
 
 /**
+ * Support reminder sweep — chases tickets that are waiting on the customer, and closes the ones
+ * that stay silent. The policy (day 3, day 7 with warning, close on day 10, reply reopens) and the
+ * reasoning behind those numbers live in lib/support-mail.ts.
+ *
+ * DAILY, not hourly. The milestones are whole days and the sweep is idempotent, so running it more
+ * often would only add chances to double-send; running it less would let a ticket sail past its
+ * warning straight into a close.
+ */
+app.get("/api/cron/support-reminders", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+
+  const { runWaitingOnUserSweep } = await import("./lib/support-mail");
+  try {
+    const r = await runWaitingOnUserSweep();
+    return c.json({ ran: true, at: new Date().toISOString(), ...r });
+  } catch (e) {
+    // Report the failure rather than a cheerful 200 — a sweep that silently stopped running would
+    // look exactly like a queue with nothing due.
+    return c.json({ ran: false, error: String(e) }, 500);
+  }
+});
+
+/**
  * Dedicated Discovery-monitors cron — runs ONLY the "Watch this search" saved searches, so we can
  * refresh them several times a day WITHOUT re-running the heavy daily batch (invoices, scoring…).
  * Same CRON_SECRET auth as /api/cron/daily. Configured in vercel.json.

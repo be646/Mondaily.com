@@ -44,6 +44,11 @@ router.get("/readiness", async (c) => {
   const stripe_prices_configured = has("STRIPE_PRICE_OPERATOR_MONTH") && has("STRIPE_PRICE_COMMAND_MONTH");
   const transactional_mail_configured = has("RESEND_API_KEY") || has("TRANSACTIONAL_MAIL_API_KEY");
   const sovereign_mail_configured = has("SOVEREIGN_MAIL_SEND_URL") && has("SOVEREIGN_MAIL_SECRET");
+  // Can a customer answer a support email by REPLYING to it? Support's whole lifecycle — the
+  // reminders, the auto-close, "reply to reopen" — assumes yes. Without an inbound domain the
+  // replies bounce and every waiting ticket marches to auto-close on people who did answer, so it
+  // is worth its own row rather than being folded into "mail works".
+  const support_email_replies_configured = has("SOVEREIGN_MAIL_DOMAIN");
   const livekit_configured = liveKitEnabled();
   const native_recording_enabled = recordingEnabled();
   const stt_configured = transcriptionEnabled();
@@ -142,6 +147,7 @@ router.get("/readiness", async (c) => {
       // exactly when something is wrong, which is the case worth surfacing.
       sovereign_mail_reachable,
       sovereign_mail_checkable,
+      support_email_replies_configured,
       recordings_storage_bytes: storage.bytes,
       recordings_storage_files: storage.files,
       recordings_storage_partial: storage.partial,

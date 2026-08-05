@@ -14,6 +14,7 @@ import { monthlyCreditsFor } from "@mondaily/shared/pricing";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { resolveDisplayName } from "@mondaily/shared/identity";
 import { pricingFacts } from "@mondaily/shared/pricing";
+import { mailTicketCreated } from "../lib/support-mail";
 
 /**
  * SMART HELP / SUPPORT AGENT (phase 2) — source-backed help + an operational ticket lifecycle.
@@ -41,11 +42,17 @@ type SupportCategory = (typeof SUPPORT_CATEGORIES)[number];
 export const SUPPORT_STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"] as const;
 type SupportStatus = (typeof SUPPORT_STATUSES)[number];
 
-interface TicketComment { author_id: string; author_role: "admin" | "requester"; body: string; at: string }
+// "mondaily" is written by the platform dashboard, which replies on behalf of Mondaily rather than
+// the customer's own workspace admin. It is omitted from what this router WRITES (below) and
+// present only so reads of an existing thread are typed honestly.
+interface TicketComment { author_id: string; author_role: "admin" | "requester" | "mondaily"; body: string; at: string }
 interface TicketData {
   category: SupportCategory; subject: string; message: string; status: SupportStatus;
   metadata?: Record<string, unknown>; created_by_user?: string; updated_at?: string;
   comments?: TicketComment[]; status_history?: { status: SupportStatus; at: string; by: string }[];
+  /** Set while we await the customer; read by the reminder sweep. See lib/support-mail.ts. */
+  waiting_since?: string;
+  reminders_sent?: number[];
 }
 
 // ── Read-only diagnostics context ───────────────────────────────────────────────────────────────
@@ -434,6 +441,15 @@ router.post("/tickets", zValidator("json", z.object({
     metadata: { support_ticket_id: data.id, category: body.category },
   }).catch(() => false)));
 
+  // Confirm receipt by email, immediately. Without it the only proof the form worked is a toast the
+  // user has already navigated away from — and the most common second ticket is "did that send?".
+  if (ctx.identity.email) {
+    await mailTicketCreated(
+      { email: ctx.identity.email, name: ctx.identity.display_name ?? ctx.identity.name },
+      { id: data.id, subject, message, category: body.category },
+    );
+  }
+
   return c.json({ id: data.id, status: "open", created_at: data.created_at }, 201);
 });
 
@@ -503,7 +519,15 @@ router.post("/tickets/:id/comments", zValidator("json", z.object({
 
   const now = new Date().toISOString();
   const comment: TicketComment = { author_id: userId, author_role: isAdmin && !isRequester ? "admin" : "requester", body: c.req.valid("json").body, at: now };
-  const updated: TicketData = { ...t.data, updated_at: now, comments: [...(t.data.comments ?? []), comment] };
+  const updated: TicketData = {
+    ...t.data, updated_at: now, comments: [...(t.data.comments ?? []), comment],
+    // THE CUSTOMER ANSWERING STOPS THE CLOCK. A ticket that stayed "waiting_on_user" after they
+    // replied would keep collecting reminders and eventually auto-close the very conversation they
+    // just continued — the single worst thing an automated deadline can do.
+    ...(comment.author_role === "requester" && t.data.status === "waiting_on_user"
+      ? { status: "open" as const, waiting_since: undefined, reminders_sent: undefined }
+      : {}),
+  };
   const { error } = await supabase.from("nodes").update({ data: updated }).eq("workspace_id", ws).eq("id", t.id).eq("object_type", "support_ticket");
   if (error) return c.json({ error: "Could not add the comment." }, 500);
 

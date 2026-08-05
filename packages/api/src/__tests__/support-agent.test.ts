@@ -108,7 +108,12 @@ describe("the queue is ordered by who is waiting", () => {
   it("'answered' means SUPPORT replied, not that the thread has messages", () => {
     // A requester posting three follow-ups because nobody answered is the opposite of answered,
     // yet sorting by last activity floated exactly those to the top as if handled.
-    expect(plat).toMatch(/comments\.some\(\(cm\) => cm\.author_role === "admin"\)/);
+    //
+    // Asserted as "not the requester" rather than a specific reply role. The original test pinned
+    // `=== "admin"`, which was the BUG rather than the behaviour: this dashboard writes replies as
+    // "mondaily", so tickets answered from it counted as unanswered forever and the SLA number got
+    // worse the more replies we sent. Naming every non-customer role is what the rule actually is.
+    expect(plat).toMatch(/comments\.some\(\(cm\) => cm\.author_role !== "requester"\)/);
   });
 
   it("unanswered and oldest sort FIRST", () => {
