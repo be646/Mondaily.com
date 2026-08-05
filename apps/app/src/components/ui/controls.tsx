@@ -96,6 +96,24 @@ export function SoulCard({ lit, className, children, style }: SoulCardProps) {
   );
 }
 
+/**
+ * THE stacking level for every portalled popover.
+ *
+ * A popover can only be opened FROM whatever surface is already on top, so by construction it must
+ * paint above all of them. This was 60, which is below almost every overlay in the app — twenty of
+ * them sit at 100 or higher — so a MenuSelect inside a drawer rendered perfectly, in the right
+ * place, and was then painted over by the drawer that owned it. The trigger's chevron flipped to
+ * "open" and nothing appeared, which reads as a dead control rather than a hidden one.
+ *
+ * Above the confirm dialog (10000) on purpose: a select inside a dialog has to work too. The sheet
+ * had already discovered this and portals its own menus at 9999 — a fix at one call site is not a
+ * fix, and this is that same rule made general.
+ *
+ * Guarded by a test that re-derives the maximum z-index in the source, so a new overlay added above
+ * this one fails the build instead of silently breaking every dropdown inside it.
+ */
+export const MENU_LAYER_Z = 10050;
+
 // ── MenuSelect — custom dropdown (button + .ui-menu popover) ────────────────────
 // Native <select> option lists can't be themed, so filter bars use this instead:
 // squared trigger, thin border, compact matte rows, dark/light via tokens, no
@@ -175,7 +193,7 @@ export function MenuLayer({
 
   const style: React.CSSProperties = {
     position: "fixed",
-    zIndex: 60,
+    zIndex: MENU_LAYER_Z,
     borderRadius: 4,
     width: matchWidth ? rect.width : "max-content",
     minWidth: minWidth ?? (matchWidth ? undefined : rect.width),
