@@ -44,14 +44,21 @@ export function useAuthTrace(): AuthTrace {
     // The clock starts at the FIRST line rather than at mount, so a form sitting untouched for two
     // minutes does not open its log with "at 121400ms".
     if (!started.current) started.current = performance.now();
-    setLines(prev => [...prev, { id: seq.current++, at: Math.round(performance.now() - started.current), level, text, detail }]);
+    // STAMPED HERE, NOT INSIDE THE UPDATER. React invokes a state updater whenever it next flushes,
+    // which during an 8-second proof-of-work is long after the event: reading the clock in there
+    // dated the "challenge issued" line 8930ms when it really happened at ~200ms, and every line
+    // emitted during the solve collapsed onto the same timestamp. A console whose whole claim is
+    // that its numbers are measured cannot afford to measure the wrong moment.
+    const at = Math.round(performance.now() - started.current);
+    setLines(prev => [...prev, { id: seq.current++, at, level, text, detail }]);
   }, []);
 
   // Replaces the trailing in-flight line instead of appending, so a step reads as one entry that
   // resolves rather than two that look like separate work.
   const settle = useCallback((level: Exclude<TraceLevel, "run">, text: string, detail?: string) => {
+    // Same reason as above: the completion time is now, not whenever React gets round to it.
+    const at = Math.round(performance.now() - (started.current || performance.now()));
     setLines(prev => {
-      const at = Math.round(performance.now() - (started.current || performance.now()));
       const last = prev[prev.length - 1];
       const line = { id: last?.level === "run" ? last.id : seq.current++, at, level, text, detail };
       return last?.level === "run" ? [...prev.slice(0, -1), line] : [...prev, line];

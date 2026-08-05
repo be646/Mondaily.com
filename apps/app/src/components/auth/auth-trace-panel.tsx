@@ -66,7 +66,10 @@ export function AuthTracePanel({ lines }: { lines: TraceLine[] }) {
               <span className="shrink-0" style={{ color: TONE[l.level] }}>{GLYPH[l.level]}</span>
               <span className="min-w-0">
                 <span style={{ color: l.level === "note" ? "var(--text-faint)" : "var(--text-secondary)" }}>{l.text}</span>
-                {l.detail && <span className="ml-1.5 break-all" style={{ color: TONE[l.level] }}>{l.detail}</span>}
+                {/* break-words, NOT break-all: the latter split "8727ms" across two lines as "8727m" / "s".
+                  The digest is already truncated, so there is no token long enough to need character-level
+                  breaking — only word-level wrapping. */}
+              {l.detail && <span className="ml-1.5 break-words" style={{ color: TONE[l.level] }}>{l.detail}</span>}
               </span>
             </motion.div>
           ))}
