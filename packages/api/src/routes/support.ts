@@ -53,7 +53,7 @@ interface TicketData {
 async function buildSupportContext(workspaceId: string, userId: string) {
   const env = gatewayEnv();
   const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes,
-         dealsRes, tasksRes, decisionsRes, agentRunsRes] = await Promise.all([
+         dealsRes, tasksRes, decisionsRes, agentRunsRes, errorsRes] = await Promise.all([
     supabase.from("workspaces").select("name, plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
     ledgerBreakdown(workspaceId),   // server-side aggregate; a JS sum truncates past the row cap
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
@@ -67,6 +67,14 @@ async function buildSupportContext(workspaceId: string, userId: string) {
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).ilike("object_type", "task%"),
     supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("status", "pending"),
     supabase.from("agent_runs").select("agent_name, status, created_at").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(5),
+    // THIS workspace's actual crashes, last 48h. Without it "it's broken" can only be answered with
+    // a question; with it the agent can name the failure the user already hit. The table may not
+    // exist on a deployment where the migration has not run — hence the tolerant read below.
+    supabase.from("client_errors")
+      .select("message, route, occurrences, last_seen_at")
+      .eq("workspace_id", workspaceId).is("resolved_at", null)
+      .gte("last_seen_at", new Date(Date.now() - 48 * 3600_000).toISOString())
+      .order("last_seen_at", { ascending: false }).limit(3),
   ]);
   const settings = (wsRow.data?.settings ?? {}) as Record<string, unknown>;
   const ent = await getEntitlement(workspaceId);
@@ -111,6 +119,13 @@ async function buildSupportContext(workspaceId: string, userId: string) {
       pending_decisions: decisionsRes.count ?? 0,
       // The agents' own recent history, so "is anything running?" is answerable from evidence
       // instead of reassurance.
+      // Tolerant: a missing table yields no rows rather than breaking the whole support answer.
+      recent_errors: (errorsRes.data ?? []).map((e) => ({
+        message: String((e as Record<string, unknown>).message ?? "").slice(0, 200),
+        route: String((e as Record<string, unknown>).route ?? ""),
+        occurrences: Number((e as Record<string, unknown>).occurrences ?? 1),
+        at: String((e as Record<string, unknown>).last_seen_at ?? ""),
+      })),
       recent_agent_runs: (agentRunsRes.data ?? []).map((r) => ({
         agent: String((r as Record<string, unknown>).agent_name ?? "agent"),
         status: String((r as Record<string, unknown>).status ?? "unknown"),
@@ -144,6 +159,9 @@ function contextBlock(ctx: Awaited<ReturnType<typeof buildSupportContext>>): str
     // The work itself. "You have 44 deals and 3 decisions waiting" is a support answer; "I can see
     // your workspace" is not.
     `Workspace contents: ${r.deals} deal(s), ${r.tasks} task(s), ${r.pending_decisions} decision(s) awaiting approval.`,
+    r.recent_errors.length
+      ? `ERRORS THIS WORKSPACE HIT (last 48h, unresolved): ${r.recent_errors.map(e => `"${e.message}" on ${e.route || "unknown page"} ×${e.occurrences}`).join("; ")}. If the user says something is broken, CHECK THESE FIRST and name the one that matches instead of asking which part failed.`
+      : "Errors this workspace hit (last 48h): none recorded.",
     r.recent_agent_runs.length
       ? `Recent agent runs (newest first): ${r.recent_agent_runs.map(a => `${a.agent}=${a.status}`).join("; ")}. Use these to answer "is anything running?" from evidence, never reassurance.`
       : "Recent agent runs: none recorded — say exactly that if asked, do not imply agents are working.",
@@ -379,6 +397,25 @@ router.post("/tickets", zValidator("json", z.object({
       credits_remaining: ctx.wallet.remaining,
       route: body.route ?? null,
       language: ctx.language,
+      // THE INVESTIGATION, attached. The agent runs real diagnostics before escalating and used to
+      // throw them away at exactly the moment they became useful — so a human opened the ticket
+      // knowing the plan and the page but not that the workspace had thrown a render error twenty
+      // minutes earlier, or that its search appliance was unconfigured. Whoever picks this up now
+      // starts where the agent finished instead of re-asking questions the user already answered.
+      diagnostics: {
+        onboarded: ctx.readiness.onboarded,
+        contacts: ctx.readiness.contacts,
+        deals: ctx.readiness.deals,
+        tasks: ctx.readiness.tasks,
+        pending_decisions: ctx.readiness.pending_decisions,
+        email_connected: ctx.readiness.email_connected,
+        ai_gateway: ctx.diagnostics.ai_gateway,
+        sovereign_search: ctx.diagnostics.sovereign_search,
+        sovereign_scrape: ctx.diagnostics.sovereign_scrape,
+        recent_agent_runs: ctx.readiness.recent_agent_runs,
+      },
+      // What actually broke for THIS user, in their own workspace, in the last 48h.
+      recent_errors: ctx.readiness.recent_errors,
     },
     created_by_user: userId, updated_at: now, comments: [],
     status_history: [{ status: "open", at: now, by: userId }],

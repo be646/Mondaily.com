@@ -69,13 +69,46 @@ router.get("/tickets", zValidator("query", z.object({ status: z.enum(SUPPORT_STA
     .map((n) => ({ ...n, data: (n.data ?? {}) as TicketData }))
     .filter((n) => !status || n.data.status === status);
   const wsNames = await workspaceNames([...new Set(rows.map((r) => r.workspace_id))]);
-  const tickets = rows.map((n) => ({
-    id: n.id, workspace_id: n.workspace_id, workspace_name: wsNames.get(n.workspace_id) ?? "Workspace",
-    subject: n.data.subject, category: n.data.category, status: n.data.status,
-    created_at: n.created_at, last_updated: n.data.updated_at ?? n.created_at,
-    comment_count: n.data.comments?.length ?? 0,
-  })).sort((a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime());
-  return c.json({ tickets });
+  const now = Date.now();
+  const tickets = rows.map((n) => {
+    const comments = n.data.comments ?? [];
+    // "Answered" means SUPPORT replied, not that the thread has messages. A requester adding three
+    // follow-ups because nobody responded is the opposite of answered, and sorting by last activity
+    // pushed exactly those tickets to the top as though they were being handled.
+    // author_role is "admin" for a support reply, "requester" for the customer.
+    const answered = comments.some((cm) => cm.author_role === "admin");
+    // "waiting_on_user" is deliberately NOT counted: the ball is with the customer, so counting it
+    // as our unanswered time would inflate the number and hide the tickets we actually owe.
+    const open = n.data.status === "open" || n.data.status === "in_review";
+    return {
+      id: n.id, workspace_id: n.workspace_id, workspace_name: wsNames.get(n.workspace_id) ?? "Workspace",
+      subject: n.data.subject, category: n.data.category, status: n.data.status,
+      created_at: n.created_at, last_updated: n.data.updated_at ?? n.created_at,
+      comment_count: comments.length,
+      answered,
+      // Hours the requester has been waiting with no support reply. The service number.
+      waiting_hours: open && !answered
+        ? Math.floor((now - new Date(n.created_at).getTime()) / 3_600_000)
+        : null,
+    };
+  }).sort((a, b) => {
+    // UNANSWERED AND OLDEST FIRST. Sorting by last activity buried the person nobody has replied
+    // to under every ticket that had recent chatter — the queue looked busy while someone waited.
+    if (a.waiting_hours != null && b.waiting_hours != null) return b.waiting_hours - a.waiting_hours;
+    if (a.waiting_hours != null) return -1;
+    if (b.waiting_hours != null) return 1;
+    return new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime();
+  });
+
+  const waiting = tickets.filter((t) => t.waiting_hours != null);
+  return c.json({
+    tickets,
+    sla: {
+      unanswered: waiting.length,
+      // The oldest unanswered ticket is the one that defines your service, not the average.
+      longest_wait_hours: waiting.length ? waiting[0]!.waiting_hours : 0,
+    },
+  });
 });
 
 // GET /platform/support/tickets/:id — full detail incl. thread + workspace context.

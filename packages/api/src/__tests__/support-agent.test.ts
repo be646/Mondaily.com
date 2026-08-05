@@ -78,3 +78,50 @@ describe("it behaves like a person", () => {
     expect(support).toMatch(/READ-ONLY/);
   });
 });
+
+describe("it can see what actually broke", () => {
+  it("reads this workspace's unresolved errors from the last 48h", () => {
+    // "It's broken" could previously only be answered with a question. Now the agent can name the
+    // failure the user already hit.
+    expect(support).toMatch(/from\("client_errors"\)/);
+    expect(support).toMatch(/gte\("last_seen_at"/);
+    expect(support).toMatch(/CHECK THESE FIRST and name the one that matches/);
+  });
+
+  it("tolerates the table being absent rather than breaking the answer", () => {
+    expect(support).toMatch(/errorsRes\.data \?\? \[\]/);
+  });
+});
+
+describe("escalation carries the investigation", () => {
+  it("a ticket ships the diagnostics the agent already ran", () => {
+    // The agent investigated and then threw the results away at the exact moment they became
+    // useful — the human reopened the same questions the user had already answered.
+    expect(support).toMatch(/diagnostics: \{[\s\S]{0,400}sovereign_search: ctx\.diagnostics\.sovereign_search/);
+    expect(support).toMatch(/recent_errors: ctx\.readiness\.recent_errors/);
+  });
+});
+
+describe("the queue is ordered by who is waiting", () => {
+  const plat = read("routes/platform-support.ts");
+
+  it("'answered' means SUPPORT replied, not that the thread has messages", () => {
+    // A requester posting three follow-ups because nobody answered is the opposite of answered,
+    // yet sorting by last activity floated exactly those to the top as if handled.
+    expect(plat).toMatch(/comments\.some\(\(cm\) => cm\.author_role === "admin"\)/);
+  });
+
+  it("unanswered and oldest sort FIRST", () => {
+    expect(plat).toMatch(/if \(a\.waiting_hours != null && b\.waiting_hours != null\) return b\.waiting_hours - a\.waiting_hours/);
+  });
+
+  it("waiting_on_user is excluded — the ball is with the customer", () => {
+    // Counting it would inflate the number and hide the tickets we actually owe.
+    expect(plat).toMatch(/status === "open" \|\| n\.data\.status === "in_review"/);
+    expect(plat).toMatch(/ball is with the customer/);
+  });
+
+  it("reports the LONGEST wait, not an average", () => {
+    expect(plat).toMatch(/longest_wait_hours/);
+  });
+});
