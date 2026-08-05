@@ -134,7 +134,10 @@ describe("tickets we cannot email", () => {
   const sweep = readFileSync(new URL("../lib/support-mail.ts", import.meta.url), "utf8");
 
   it("skips a ticket with no requester email BEFORE any close decision", () => {
-    const guard = sweep.indexOf("if (!r.email) continue");
+    // Matched on the CHECK, not the variable name: the original pinned `r.email`, and renaming
+    // that shadowed variable (the reminder-day filter also bound `r`) broke the test without
+    // changing the behaviour it exists to protect.
+    const guard = sweep.search(/if \(!\w+\.email\)/);
     const close = sweep.indexOf("days >= WAITING_CLOSE_DAYS");
     expect(guard).toBeGreaterThan(0);
     expect(guard).toBeLessThan(close);
@@ -145,6 +148,36 @@ describe("tickets we cannot email", () => {
     // deadline it never told them about.
     expect(sweep).toMatch(/d\.waiting_since \?\? d\.updated_at/);
     expect(sweep).not.toMatch(/waiting_since \?\? d\.created_at/);
+  });
+});
+
+describe("the sweep cannot spam or clobber", () => {
+  const src = readFileSync(new URL("../lib/support-mail.ts", import.meta.url), "utf8");
+  const sweep = src.slice(src.indexOf("export async function runWaitingOnUserSweep"));
+
+  it("claims the ticket BEFORE sending, not after", () => {
+    // Mailing first and writing second means a failed write re-sends "we've closed your request"
+    // to the same person on every subsequent run, forever.
+    const claim = sweep.indexOf(".select(\"id\")");
+    const mail = sweep.indexOf("mailAutoClosed(requester");
+    expect(claim).toBeGreaterThan(0);
+    expect(claim).toBeLessThan(mail);
+  });
+
+  it("writes only while the ticket is still waiting on the user", () => {
+    // Without this the sweep overwrites a reply that landed mid-run: status back to open plus a new
+    // comment, both deleted by a blind write of data read seconds earlier.
+    const guards = sweep.match(/\.eq\("data->>status", "waiting_on_user"\)/g) ?? [];
+    expect(guards.length).toBeGreaterThanOrEqual(2);   // the close path AND the reminder path
+  });
+
+  it("refuses to close silently when it could not warn", () => {
+    expect(sweep).toMatch(/if \(!who\.email\) \{ skippedNoEmail\+\+; continue; \}/);
+  });
+
+  it("reports its own cap instead of quietly dropping the tail", () => {
+    expect(sweep).toMatch(/capped/);
+    expect(sweep).toMatch(/console\.warn\(`\[support-sweep\] hit the/);
   });
 });
 

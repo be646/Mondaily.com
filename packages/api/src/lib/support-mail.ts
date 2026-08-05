@@ -321,23 +321,30 @@ interface TicketRow { id: string; workspace_id: string; created_by: string | nul
  * `reminders_sent` is the record of intent, not a log of attempts.
  */
 export async function runWaitingOnUserSweep(now = new Date()): Promise<{
-  examined: number; reminded: number; closed: number;
+  examined: number; reminded: number; closed: number; skipped_no_email: number; capped: boolean;
 }> {
+  const LIMIT = 500;
   const { data } = await supabase.from("nodes")
     .select("id, workspace_id, created_by, data")
     .eq("object_type", "support_ticket")
     .eq("data->>status", "waiting_on_user")
-    .limit(500);
+    .limit(LIMIT);
 
-  let reminded = 0, closed = 0;
-  for (const row of (data ?? []) as TicketRow[]) {
+  const rows = (data ?? []) as TicketRow[];
+  // NO SILENT CAPS. At the limit some waiting customers simply would not be chased, and the run
+  // would report success — indistinguishable from a queue with nothing due.
+  const capped = rows.length === LIMIT;
+  if (capped) console.warn(`[support-sweep] hit the ${LIMIT}-ticket cap — some waiting tickets were not examined this run`);
+
+  let reminded = 0, closed = 0, skippedNoEmail = 0;
+  for (const row of rows) {
     const d = (row.data ?? {}) as Record<string, unknown>;
     const meta = (d.metadata ?? {}) as Record<string, unknown>;
-    const r = (meta.requester ?? {}) as { email?: string; name?: string };
+    const who = (meta.requester ?? {}) as { email?: string; name?: string };
     // No mailbox, no clock. A ticket we cannot warn must never be auto-closed for silence — that
     // would close it on someone who was never asked.
-    if (!r.email) continue;
-    const requester: Recipient = { email: r.email, name: r.name };
+    if (!who.email) { skippedNoEmail++; continue; }
+    const requester: Recipient = { email: who.email, name: who.name };
 
     // The clock starts when WE last asked — not when the ticket was created. A ticket that sat in
     // our queue for a week must not arrive at the customer already three days into its deadline.
@@ -347,34 +354,59 @@ export async function runWaitingOnUserSweep(now = new Date()): Promise<{
     const days = Math.floor((now.getTime() - startedAt) / 86_400_000);
 
     const sent = new Set((d.reminders_sent as number[] | undefined) ?? []);
-    const subject = String(d.subject ?? "your request");
-    const t = { id: row.id, subject };
+    const t = { id: row.id, subject: String(d.subject ?? "your request") };
 
     if (days >= WAITING_CLOSE_DAYS) {
-      await mailAutoClosed(requester, t);
-      await supabase.from("nodes").update({
+      // CLAIM BEFORE SENDING, conditionally on the ticket still being waiting_on_user.
+      //
+      // Two bugs live in the obvious order. Mailing first and writing second means a failed write
+      // re-sends "we've closed your request" on every subsequent run — the same person, every day,
+      // about a ticket that never closes. And writing `...d` read at the top of the loop clobbers
+      // anything that landed in between: a reply arriving by email sets status back to open and
+      // appends a comment, and a blind overwrite would delete the customer's message and re-close
+      // the ticket they had just answered.
+      //
+      // The `eq` on status is what makes it safe: if a reply reopened it, the write matches nothing
+      // and no mail goes out. Losing a close to a lost race is free — the next run redoes it.
+      const { data: claimed } = await supabase.from("nodes").update({
         data: {
           ...d, status: "closed", updated_at: now.toISOString(),
           closed_reason: "no_reply",
           status_history: [...((d.status_history as unknown[]) ?? []), { status: "closed", at: now.toISOString(), by: "system:no_reply" }],
         },
-      }).eq("id", row.id).eq("workspace_id", row.workspace_id);
+      })
+        .eq("id", row.id).eq("workspace_id", row.workspace_id)
+        .eq("data->>status", "waiting_on_user")
+        .select("id");
+      if (!claimed?.length) continue;             // reopened or already closed — say nothing
+      if (!await mailAutoClosed(requester, t)) {
+        console.error(`[support-sweep] closed ${row.id} but could not email ${requester.email}`);
+      }
       closed++;
       continue;
     }
 
-    const due = WAITING_REMINDER_DAYS.filter((r) => days >= r && !sent.has(r));
+    const due = WAITING_REMINDER_DAYS.filter((day) => days >= day && !sent.has(day));
     if (due.length === 0) continue;
-    // Only the LATEST milestone is sent: a ticket that slipped past both marks (a paused cron, a
-    // long outage) should produce one reminder, not a burst that reads as spam.
+    // Only the LATEST milestone speaks: a ticket that slipped past both marks (a paused cron, a
+    // long outage) should produce one reminder, not a burst that reads as spam. Every passed
+    // milestone is still stamped, so none of them fire again later.
     const milestone = Math.max(...due);
     const isLast = milestone === WAITING_REMINDER_DAYS[WAITING_REMINDER_DAYS.length - 1];
-    await mailWaitingReminder(requester, t, days, isLast ? WAITING_CLOSE_DAYS - days : null);
-    await supabase.from("nodes").update({
+
+    const { data: stamped } = await supabase.from("nodes").update({
       data: { ...d, reminders_sent: [...sent, ...due] },
-    }).eq("id", row.id).eq("workspace_id", row.workspace_id);
+    })
+      .eq("id", row.id).eq("workspace_id", row.workspace_id)
+      .eq("data->>status", "waiting_on_user")
+      .select("id");
+    if (!stamped?.length) continue;               // answered while we were working — no reminder
+    if (!await mailWaitingReminder(requester, t, days, isLast ? WAITING_CLOSE_DAYS - days : null)) {
+      // One lost reminder is far better than one repeated daily, so the stamp still stands.
+      console.error(`[support-sweep] reminder for ${row.id} was stamped but not delivered to ${requester.email}`);
+    }
     reminded++;
   }
 
-  return { examined: (data ?? []).length, reminded, closed };
+  return { examined: rows.length, reminded, closed, skipped_no_email: skippedNoEmail, capped };
 }
