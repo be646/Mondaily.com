@@ -14,7 +14,7 @@ import { monthlyCreditsFor } from "@mondaily/shared/pricing";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { resolveDisplayName } from "@mondaily/shared/identity";
 import { pricingFacts } from "@mondaily/shared/pricing";
-import { mailTicketCreated } from "../lib/support-mail";
+import { mailTicketCreated, mailPlatformNewTicket } from "../lib/support-mail";
 
 /**
  * SMART HELP / SUPPORT AGENT (phase 2) — source-backed help + an operational ticket lifecycle.
@@ -440,6 +440,17 @@ router.post("/tickets", zValidator("json", z.object({
     body: `A ${body.category.replace(/_/g, " ")} request was opened.`,
     metadata: { support_ticket_id: data.id, category: body.category },
   }).catch(() => false)));
+
+  // Tell the people who actually answer tickets. The in-app notification above goes to the
+  // CUSTOMER'S workspace admins — useful, but they are not support. Without this, answering
+  // depended on someone remembering to open the dashboard, which is how the oldest open ticket in
+  // production reached 762 hours.
+  await mailPlatformNewTicket({
+    id: data.id, subject, message, category: body.category,
+    workspace_name: ctx.identity.workspace_name,
+    requester_email: ctx.identity.email ?? undefined,
+    plan: ctx.entitlement.tier,
+  }).catch(() => 0);
 
   // Confirm receipt by email, immediately. Without it the only proof the form worked is a toast the
   // user has already navigated away from — and the most common second ticket is "did that send?".

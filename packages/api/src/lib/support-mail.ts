@@ -173,6 +173,46 @@ export async function mailResolved(to: Recipient, t: { id: string; subject: stri
   return send(to, t.id, `Resolved: ${t.subject}`, html);
 }
 
+/**
+ * 7 — Tell MONDAILY a ticket arrived.
+ *
+ * The customer-facing half of this file was complete while our own half was not: a new ticket
+ * raised an in-app notification for the *customer's* workspace admins and nothing at all for the
+ * people who actually answer tickets. Whoever is on support would have had to remember to open the
+ * dashboard — which is how the oldest open ticket in production reached 762 hours.
+ *
+ * Goes to PLATFORM_ADMIN_EMAILS, so it is silent (not broken) where that allowlist is unset, the
+ * same fail-closed rule the platform routes use.
+ */
+export async function mailPlatformNewTicket(t: {
+  id: string; subject: string; message: string; category: string;
+  workspace_name?: string; requester_email?: string; plan?: string;
+}): Promise<number> {
+  const { platformAdminEmails } = await import("../middleware/platform-admin");
+  const to = platformAdminEmails();
+  if (to.length === 0) return 0;
+
+  const html = renderEmail({
+    title: "New support request",
+    preheader: `${t.subject} — ${t.workspace_name ?? "a workspace"}`,
+    bodyHtml: `${factRows([
+      { label: "Workspace", value: t.workspace_name ?? "—" },
+      { label: "From", value: t.requester_email ?? "—" },
+      { label: "Plan", value: t.plan ?? "—" },
+      { label: "Topic", value: t.category.replace(/_/g, " ") },
+    ])}${quoteBlock(t.subject, t.message)}`,
+    action: { label: "Open in the support dashboard", url: `${APP()}/platform/support?ticket=${encodeURIComponent(t.id)}` },
+  });
+
+  let sent = 0;
+  for (const email of to) {
+    // One send per operator, not one mail with everyone in To: — an internal alert should not
+    // disclose the rest of the allowlist to each recipient.
+    if (await sendTransactionalEmail({ to: [{ email }], subject: `[support] ${t.subject}`, body: html }).catch(() => false)) sent++;
+  }
+  return sent;
+}
+
 // ── inbound: a reply by email is a reply on the ticket ────────────────────────
 
 /**
