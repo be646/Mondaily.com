@@ -1,11 +1,11 @@
 /**
  * Outbound mail with a two-tier delivery strategy.
  *
- *   1. PRIMARY  — send from the workspace's own connected inbox via the Gmail API
- *                 (direct Google, no middleman — replies land in their box).
- *   2. FALLBACK — Resend (the same RESEND_API_KEY the digest mailer uses), so a
- *                 brand-new workspace that has NOT connected an inbox yet can
- *                 still send invites on day one.
+ * Two audiences, two senders:
+ *   sendWorkspaceEmail  — FROM a workspace (sovereign relay → their connected Gmail → Resend).
+ *   sendTransactionalEmail / sendPlatformEmail — FROM Mondaily (sovereign relay → Resend). It
+ *     deliberately skips the Gmail path: routing a password reset through a customer's own inbox
+ *     would send from an address we cannot authenticate, and get it spoof-flagged.
  *
  * Best-effort: every path returns a boolean and never throws, so callers can
  * surface the invite link as a manual fallback when neither route is configured.
@@ -83,13 +83,22 @@ async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
 }
 
 /**
- * AUTH/TRANSACTIONAL mail (activation, password reset, anything identity-critical).
- * ALWAYS goes through Resend on our verified domain — it deliberately SKIPS the Gmail path,
- * because routing a reset link through the user's own connected inbox would try to "send from"
- * an address Resend can't authenticate, getting the message blocked/spoof-flagged.
+ * Auth, invites, digests, notifications — everything Mondaily sends that is not from a workspace.
+ *
+ * SOVEREIGN RELAY FIRST, transactional only as a fallback. This used to go straight to Resend, and
+ * the cost was measured on 2026-08-05: of thirteen accounts registered in three weeks, ZERO had
+ * ever verified their email, and our own mail server had never relayed a single message to any of
+ * them — its only external recipient in its entire history was the owner. Four of those thirteen
+ * look like real people who signed up, never got a verification mail, and never came back.
+ *
+ * Whether Resend was silently rejecting (an unverified sender domain 403s, and the caller's
+ * `catch {}` swallowed it) barely matters: the relay is the path we have PROVEN end-to-end, with
+ * DKIM aligned and Gmail accepting into the inbox rather than spam. Trying a third party first for
+ * the most important mail in the product, while our own server sat idle, was backwards twice over —
+ * for deliverability and for sovereignty.
  */
 export async function sendTransactionalEmail(msg: OutboundMessage): Promise<boolean> {
-  return sendViaTransactional(msg);
+  return sendPlatformEmail(msg, { localPart: "no-reply", displayName: "Mondaily" });
 }
 
 /**

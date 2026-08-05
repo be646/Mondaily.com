@@ -168,14 +168,20 @@ async function sendVerificationEmail(userId: string, email: string): Promise<voi
     const token = await signVerifyToken(userId, email);
     const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
     const link = `${appUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
-    await sendTransactionalEmail({
+    const sent = await sendTransactionalEmail({
       to: [{ email }],
       subject: "Verify your Mondaily email",
       body: `<p>Welcome to Mondaily. Confirm this is your email to secure your account:</p>
              <p><a href="${link}">Verify my email</a></p>
              <p>This link expires in 72 hours. You can keep using Mondaily in the meantime.</p>`,
     });
-  } catch { /* email not configured / transient — the in-app banner still lets them resend */ }
+    // SAY SO when it fails. A bare `catch {}` here meant thirteen consecutive registrations
+    // produced zero verified emails without a single line anywhere admitting the send had not
+    // happened — the failure looked exactly like users declining to click.
+    if (!sent) console.error(`[auth] verification email NOT sent to ${email} — no mail route accepted it`);
+  } catch (e) {
+    console.error(`[auth] verification email threw for ${email}:`, e instanceof Error ? e.message : String(e));
+  }
 }
 
 // POST /auth/verify-email — confirm ownership via the emailed token. Public (the user may not
