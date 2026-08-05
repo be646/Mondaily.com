@@ -25,10 +25,21 @@ describe("the error sink is safe to expose", () => {
     expect(src).toMatch(/route: z\.string\(\)\.max\(300\)/);
   });
 
-  it("takes the workspace from the SESSION, never the body", () => {
-    // Otherwise a caller could attribute errors to someone else's workspace and pollute their list.
-    expect(src).toMatch(/c\.get\("workspaceId"\) \?\? null/);
-    expect(src).not.toMatch(/body\.workspace|workspace_id: *body/);
+  it("attributes to a workspace only on PROVEN membership", () => {
+    // This route is unauthenticated, so c.get("workspaceId") was never populated — every report
+    // stored a null workspace and the support agent's workspace-scoped lookup matched nothing. The
+    // feature was inert. The session is now resolved optionally, and the caller-supplied header is
+    // only trusted after checking that cookie's user actually belongs to that workspace.
+    expect(src).toMatch(/verifyAccessToken\(at\)/);
+    expect(src).toMatch(/\.eq\("user_id", claims\.sub\)\.eq\("workspace_id", claimedWs\)/);
+    expect(src).toMatch(/proven membership, not a claim/);
+    expect(src).not.toMatch(/workspace_id: *body|p_workspace: *claimedWs[^;]*$/m);
+  });
+
+  it("still records an ANONYMOUS report when there is no session", () => {
+    // An error thrown before auth resolves is the class most worth hearing about.
+    expect(src).toMatch(/anonymous report — still worth recording/);
+    expect(src).toMatch(/let workspaceId: string \| null = null/);
   });
 
   it("dedupes by fingerprint so one throwing component cannot flood the table", () => {

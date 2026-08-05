@@ -3,6 +3,8 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { createHash } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
+import { getCookie } from "hono/cookie";
+import { verifyAccessToken, ACCESS_COOKIE } from "../lib/auth-tokens";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
@@ -48,10 +50,30 @@ router.post(
     const { message, route, source, release } = c.req.valid("json");
     const fp = fingerprint(message, route ?? "", source);
 
-    // The workspace is taken from the SESSION when one exists, never from the body — a public
-    // endpoint that let callers attribute errors to someone else's workspace would be a way to
-    // pollute another tenant's worklist.
-    const workspaceId = c.get("workspaceId") ?? null;
+    /**
+     * Attribute the error to a workspace WHEN we can prove one, and to nobody when we cannot.
+     *
+     * This route is deliberately unauthenticated, so `c.get("workspaceId")` is never populated —
+     * which meant every report was stored with a null workspace and the support agent's
+     * workspace-scoped lookup could never match a single row. The feature was inert.
+     *
+     * So the session is resolved OPTIONALLY here: a valid cookie plus a header that the cookie's
+     * user genuinely belongs to. Both halves matter — the header alone is caller-supplied, and
+     * trusting it would let anyone file errors into another tenant's worklist.
+     */
+    let workspaceId: string | null = null;
+    const claimedWs = c.req.header("X-Workspace-Id") ?? null;
+    if (claimedWs) {
+      try {
+        const at = getCookie(c, ACCESS_COOKIE);
+        const claims = at ? await verifyAccessToken(at) : null;
+        if (claims?.sub) {
+          const { data: member } = await supabase.from("workspace_members")
+            .select("workspace_id").eq("user_id", claims.sub).eq("workspace_id", claimedWs).maybeSingle();
+          if (member) workspaceId = claimedWs;   // proven membership, not a claim
+        }
+      } catch { /* anonymous report — still worth recording */ }
+    }
 
     const { data, error } = await supabase.rpc("client_error_report", {
       p_fingerprint: fp,
