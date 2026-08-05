@@ -228,7 +228,11 @@ router.get("/google/start", rateLimit(), async (c) => {
 });
 
 // GET /auth/google/callback — Google returns here. Ends with a session cookie and a redirect.
-router.get("/google/callback", async (c) => {
+// RATE LIMITED despite being a redirect target. It is public and unauthenticated, and it performs
+// a database lookup plus an outbound token exchange to Google — so an unbounded caller turns this
+// route into an amplifier against both our database and Google's endpoint. The state check below
+// rejects most junk before any of that, but "most" is not a bound.
+router.get("/google/callback", rateLimit(), async (c) => {
   // Errors go back to the sign-in page as a readable reason — never a raw 500, and never the
   // provider's own error text, which leaks nothing useful to the user and plenty to an attacker.
   const bounce = (reason: string) => c.redirect(`${appOrigin()}/auth/shadow-login?sso=${encodeURIComponent(reason)}`, 302);
@@ -253,14 +257,34 @@ router.get("/google/callback", async (c) => {
   let userId: string;
 
   if (existing) {
-    // AUTO-LINK. Safe only because Google asserted email_verified — the same standard the password
-    // reset already trusts, since a reset link is nothing more than proof of mailbox control.
+    /**
+     * AUTO-LINK. Safe only because Google asserted email_verified — the same standard the password
+     * reset already trusts, since a reset link is nothing more than proof of mailbox control.
+     *
+     * REFUSE when the account is already linked to a DIFFERENT Google account. The first version
+     * enforced this with a filter on the UPDATE, which protected the column and nothing else: the
+     * write matched no rows, and the code then issued a session anyway. The guard was decorative.
+     *
+     * It is not a theoretical case. A Workspace address gets reassigned when someone leaves, so
+     * Google will honestly report email_verified for the NEW holder of an OLD address — and this
+     * route would have signed them straight into their predecessor's workspace. Distinguishing the
+     * two is precisely what `sub` is for: the email moved, the Google account did not.
+     */
+    const linkedSub = (existing as { google_sub?: string | null }).google_sub ?? null;
+    if (linkedSub && linkedSub !== who.sub) {
+      console.warn(`[auth/google] refused sign-in: ${who.email} is linked to a different Google account`);
+      return bounce("linked_elsewhere");
+    }
     userId = existing.user_id as string;
-    await supabase.from("auth_credentials")
+    const { error: linkErr } = await supabase.from("auth_credentials")
       .update({ email_verified: true, verified_at: new Date().toISOString(), google_sub: who.sub })
-      .eq("user_id", userId)
-      // Never re-point an existing link at a different Google account.
-      .or(`google_sub.is.null,google_sub.eq.${who.sub}`);
+      .eq("user_id", userId);
+    // A failed link must not silently become an unlinked sign-in — the next attempt would look
+    // identical and the account would never actually carry its Google identity.
+    if (linkErr) {
+      console.error("[auth/google] could not link Google identity:", linkErr.message);
+      return bounce("link");
+    }
   } else {
     // New account. NO password hash is written: this identity is proven by Google, and inventing a
     // random password here would create an unusable credential that "forgot password" would happily

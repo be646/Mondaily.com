@@ -35,6 +35,8 @@ const SSO_REASON: Record<string, string> = {
   unverified: "That Google account hasn't verified its email address, so we can't sign you in with it. Use your email and password instead.",
   create: "We couldn't create your account just now. Please try again.",
   workspace: "Your account was created but the workspace didn't finish setting up. Please try again.",
+  linked_elsewhere: "This email is already linked to a different Google account. Sign in with your email and password, or use the Google account you linked originally.",
+  link: "We couldn't link your Google account just now. Please try again.",
 };
 
 export function ssoErrorMessage(reason: string | null): string | null {

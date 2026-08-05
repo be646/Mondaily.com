@@ -60,8 +60,28 @@ describe("the callback's security properties", () => {
     expect(auth).toMatch(/deleteCookie\(c, GOOGLE_STATE_COOKIE/);   // single use
   });
 
-  it("never re-points an existing link at a different Google account", () => {
-    expect(auth).toMatch(/google_sub\.is\.null,google_sub\.eq\.\$\{who\.sub\}/);
+  it("REFUSES sign-in when the account is linked to a different Google account", () => {
+    // The first version enforced this with a filter on the UPDATE, which protected the column and
+    // nothing else — the write matched no rows and a session was issued anyway. Not theoretical: a
+    // reassigned Workspace address makes Google honestly report email_verified for the NEW holder
+    // of an OLD email, and that would have signed them into their predecessor's workspace.
+    const check = auth.indexOf("if (linkedSub && linkedSub !== who.sub)");
+    const bounce = auth.indexOf('return bounce("linked_elsewhere")');
+    const session = auth.indexOf("await issueSession(c, userId, who.email");
+    expect(check).toBeGreaterThan(0);
+    expect(bounce).toBeGreaterThan(check);
+    expect(bounce).toBeLessThan(session);          // refused BEFORE any session exists
+  });
+
+  it("treats a failed link as a failed sign-in", () => {
+    // Otherwise the account silently never carries its Google identity and every retry looks the same.
+    expect(auth).toMatch(/if \(linkErr\) \{[\s\S]{0,200}return bounce\("link"\)/);
+  });
+
+  it("no longer interpolates the Google sub into a PostgREST filter string", () => {
+    // `sub` is provider-controlled input; splicing it into an .or() filter is an injection surface
+    // for a query language, and the explicit comparison above makes it unnecessary.
+    expect(auth).not.toMatch(/\.or\(`google_sub/);
   });
 
   it("only ever redirects inside the app", () => {
