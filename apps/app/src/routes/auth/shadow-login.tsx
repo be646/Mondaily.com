@@ -40,7 +40,7 @@ export function ShadowLoginPage() {
     challenge: (c: string) => trace.emit("note", "challenge issued", `${c.slice(0, 16)}…`),
     solving: () => trace.emit("run", "solving proof-of-work", "sha256 · 4 leading zeros"),
     solved: (r: { attempts: number; ms: number; digest: string }) =>
-      trace.settle("ok", `nonce found after ${r.attempts.toLocaleString()} hashes`, `${r.digest.slice(0, 12)}… ${r.ms}ms`),
+      trace.settle("ok", `nonce found after ${r.attempts.toLocaleString()} hashes`, `${r.digest.slice(0, 8)}… · ${r.ms}ms`),
     unavailable: () => trace.emit("note", "proof-of-work not required by this deployment"),
   }), [trace]);
 
@@ -50,8 +50,8 @@ export function ShadowLoginPage() {
   useEffect(() => {
     if (armed.current) return;
     armed.current = true;
-    trace.emit("run", "arming anti-bot shield");
-    shield.solve().catch(() => trace.settle("fail", "shield could not arm"));
+    trace.emit("note", "arming anti-bot shield");
+    shield.solve().catch(() => trace.emit("fail", "shield could not arm"));
     // `shield.solve` is stable and `trace` is only used to emit; re-running would re-solve.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
