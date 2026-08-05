@@ -124,6 +124,22 @@ async function workspaceDisplayName(workspaceId: string): Promise<string> {
 }
 
 async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
+  // A DISPLAY NAME on the From. The routing address is `ws-<uuid>@inbound.<domain>`, and sent bare
+  // it reads — to filters and to humans — like machine-generated throwaway mail.
+  const address = inboundAddressFor(workspaceId);
+  const from = address ? `${quotedDisplayName(await workspaceDisplayName(workspaceId))} <${address}>` : CORPORATE_FROM;
+  return relaySend(from, msg);
+}
+
+/**
+ * Relay one message through the sovereign appliance, from an explicit address.
+ *
+ * Split out from the workspace path because not every sovereign send is FROM a workspace. Support
+ * mail comes from Mondaily itself, and routing it through the workspace address would have put a
+ * customer's own `ws-<id>@…` in the From of an email Mondaily wrote — and pointed replies at their
+ * inbox instead of ours.
+ */
+async function relaySend(from: string, msg: OutboundMessage): Promise<boolean> {
   const url = process.env.SOVEREIGN_MAIL_SEND_URL;
   const secret = process.env.SOVEREIGN_MAIL_SECRET;
   if (!url || !secret) return false;
@@ -135,12 +151,6 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5_000);
   try {
-    // A DISPLAY NAME on the From. The routing address is `ws-<uuid>@inbound.<domain>`, and sent bare
-    // it reads — to filters and to humans — like machine-generated throwaway mail: a 36-character
-    // hex local part with no name attached. Gmail put the first sovereign send straight in spam.
-    // The address itself must not change (inbound routing keys on it), so we only add the name.
-    const address = inboundAddressFor(workspaceId);
-    const from = address ? `${quotedDisplayName(await workspaceDisplayName(workspaceId))} <${address}>` : CORPORATE_FROM;
     const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body, ...(msg.reply_to ? { reply_to: msg.reply_to } : {}) });
     const res = await fetch(url.replace(/\/$/, "") + "/send", {
       method: "POST",
@@ -164,6 +174,29 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
  * Send a workspace email: the sovereign self-hosted relay first (when configured), then a connected
  * Gmail inbox, then the transactional fallback. Returns true if any route accepted the message.
  */
+/**
+ * Send AS MONDAILY — support mail, and anything else the platform itself writes.
+ *
+ * Sovereign relay first, transactional only as a fallback. Support's lifecycle originally used
+ * `sendTransactionalEmail`, which is Resend-only: our own self-hosted mail server was never even
+ * tried for the mail we send most of, which is precisely backwards for a product whose rule is that
+ * nothing is outsourced.
+ *
+ * `localPart` also determines what a customer reaches by hitting Reply on the From (rather than the
+ * Reply-To), so it must be an address the receiver forwards — which, since the receiver accepts any
+ * recipient on its domain, any local part on SOVEREIGN_MAIL_DOMAIN is.
+ */
+export async function sendPlatformEmail(
+  msg: OutboundMessage, opts: { localPart: string; displayName: string },
+): Promise<boolean> {
+  const domain = (process.env.SOVEREIGN_MAIL_DOMAIN || "").trim().toLowerCase();
+  if (domain) {
+    const from = `${quotedDisplayName(opts.displayName)} <${opts.localPart}@${domain}>`;
+    if (await relaySend(from, msg)) return true;
+  }
+  return sendViaTransactional(msg);
+}
+
 export async function sendWorkspaceEmail(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
   if (await sendViaSovereignRelay(workspaceId, msg)) return true;
   if (await sendViaGoogle(workspaceId, msg)) return true;

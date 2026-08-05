@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  supportReplyAddress, ticketIdFromRecipient, stripQuotedReply,
+  supportReplyAddress, ticketIdFromRecipient, stripQuotedReply, sentAt,
   WAITING_REMINDER_DAYS, WAITING_CLOSE_DAYS,
 } from "../lib/support-mail";
 import { renderEmail, esc, quoteBlock } from "../lib/email-template";
@@ -78,6 +78,32 @@ describe("stripQuotedReply", () => {
 
   it("reduces HTML mail to readable text", () => {
     expect(stripQuotedReply("<p>Line one</p><p>Line two &amp; more</p>")).toBe("Line one\n\nLine two & more");
+  });
+});
+
+const sentAt2 = (raw?: string) => sentAt(raw, new Date().toISOString());
+
+describe("inbound reply timestamps", () => {
+  // The receiver forwards `parsed.get("Date", "")`, so "no Date header" arrives as an EMPTY STRING
+  // rather than undefined — which `?? now` does not catch. These are the shapes it really sends.
+  const iso = /^\d{4}-\d{2}-\d{2}T/;
+
+  it("accepts an RFC 2822 mail date and stores it as ISO", () => {
+    // Every other `at` on a ticket is ISO; a thread sorted across both formats interleaves wrongly.
+    expect(sentAt2("Tue, 5 Aug 2026 10:12:00 +0000")).toMatch(iso);
+  });
+
+  it("falls back to now on the empty string, not just on undefined", () => {
+    expect(sentAt2("")).toMatch(iso);
+    expect(sentAt2(undefined)).toMatch(iso);
+    expect(sentAt2("not a date at all")).toMatch(iso);
+  });
+
+  it("clamps a future date", () => {
+    // Attacker-controlled header: one forged Date would otherwise pin a reply to the top of the
+    // thread forever.
+    const stamped = new Date(sentAt2("Tue, 5 Aug 2099 10:12:00 +0000")).getTime();
+    expect(stamped).toBeLessThanOrEqual(Date.now() + 1000);
   });
 });
 

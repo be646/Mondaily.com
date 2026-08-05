@@ -86,6 +86,33 @@ def _attachments(parsed) -> list:
 
 
 class Handler:
+    async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
+        """
+        Refuse mail that is not for our domain, at RCPT TO.
+
+        MAIL_DOMAIN used to appear in exactly one place — a startup log line — so this server
+        accepted and 250'd mail addressed to ANY domain and forwarded every byte of it to the API
+        webhook. The API dropped the unroutable ones, so nothing was mis-filed, but that made us a
+        free amplifier: anyone could point a spam run at this MX and turn it into serverless
+        invocations on our own API. Rejecting here costs the sender one SMTP round trip and never
+        reaches the network.
+
+        No local-part check. Recipients are `ws-<id>@` for workspaces and `support+t.<id>@` for
+        ticket replies, and the API is the authority on which of those resolve — duplicating that
+        list here would mean a new address shape silently bounces until someone redeploys the
+        appliance.
+
+        Unset MAIL_DOMAIN accepts everything, deliberately: this is a delivery path, and a missing
+        env should not turn into every inbound message being rejected at the door.
+        """
+        if MAIL_DOMAIN:
+            domain = address.rsplit("@", 1)[-1].strip().strip(">").lower()
+            if domain != MAIL_DOMAIN:
+                print(f"[receiver] rejected RCPT {address} (not {MAIL_DOMAIN})", flush=True)
+                return "550 relay not permitted"
+        envelope.rcpt_tos.append(address)
+        return "250 OK"
+
     async def handle_DATA(self, server, session, envelope):
         try:
             parsed = email.message_from_bytes(envelope.content)

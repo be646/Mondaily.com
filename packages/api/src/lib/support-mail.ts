@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { sendTransactionalEmail } from "./mail";
+import { sendPlatformEmail } from "./mail";
 import { renderEmail, quoteBlock, factRows, esc } from "./email-template";
 
 /**
@@ -76,12 +76,12 @@ function replyLine(text: string): string {
 async function send(to: Recipient, ticketId: string, subject: string, html: string): Promise<boolean> {
   if (!to.email) return false;
   const replyTo = supportReplyAddress(ticketId);
-  return sendTransactionalEmail({
+  return sendPlatformEmail({
     to: [{ email: to.email, name: to.name ?? undefined }],
     subject,
     body: html,
     ...(replyTo ? { reply_to: replyTo } : {}),
-  }).catch(() => false);
+  }, { localPart: "support", displayName: "Mondaily Support" }).catch(() => false);
 }
 
 /** 1 — We received it. Sent immediately, so nobody wonders whether the form worked. */
@@ -208,7 +208,8 @@ export async function mailPlatformNewTicket(t: {
   for (const email of to) {
     // One send per operator, not one mail with everyone in To: — an internal alert should not
     // disclose the rest of the allowlist to each recipient.
-    if (await sendTransactionalEmail({ to: [{ email }], subject: `[support] ${t.subject}`, body: html }).catch(() => false)) sent++;
+    if (await sendPlatformEmail({ to: [{ email }], subject: `[support] ${t.subject}`, body: html },
+      { localPart: "support", displayName: "Mondaily Support" }).catch(() => false)) sent++;
   }
   return sent;
 }
@@ -238,6 +239,23 @@ export function stripQuotedReply(raw: string): string {
   // A reply that is ONLY quoted history (someone hit send on an empty compose) still has to be
   // recorded as activity, so fall back to the untrimmed text rather than storing nothing.
   return body || text.trim();
+}
+
+/**
+ * When the customer actually sent it, as an ISO timestamp — or now, if we cannot tell.
+ *
+ * The receiver forwards `parsed.get("Date", "")`, so a message with no Date header arrives as an
+ * EMPTY STRING, which `?? now` does not catch: the comment would have been stamped "" and rendered
+ * as an invalid date everywhere the thread is shown. Mail dates are also RFC 2822 while every other
+ * `at` in a ticket is ISO, and a thread sorted across both formats interleaves wrongly.
+ *
+ * A date in the future is clamped too: it is attacker-controlled input, and one forged header would
+ * otherwise pin a reply to the top of the thread forever.
+ */
+export function sentAt(raw: string | undefined, now: string): string {
+  const t = raw ? new Date(raw).getTime() : NaN;
+  if (!Number.isFinite(t) || t > Date.now()) return now;
+  return new Date(t).toISOString();
 }
 
 /**
@@ -272,7 +290,7 @@ export async function fileSupportReply(
       ...d,
       updated_at: now,
       comments: [...comments, {
-        author_id: `email:${msg.from}`, author_role: "requester", body, at: msg.date ?? now,
+        author_id: `email:${msg.from}`, author_role: "requester", body, at: sentAt(msg.date, now),
         ...(mid ? { message_id: mid } : {}),
       }],
       // REPLYING REOPENS. Every closing email says so, including the auto-close one, so a reply to
