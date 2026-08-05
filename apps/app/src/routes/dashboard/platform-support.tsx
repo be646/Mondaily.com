@@ -15,7 +15,10 @@ type Status = (typeof STATUSES)[number];
 const label = (s: string) => s.replace(/_/g, " ");
 const STATUS_TONE: Record<Status, string> = { open: "#c6892e", in_review: "#717784", waiting_on_user: "#c6892e", resolved: "#2f9e6b", closed: "#8a8f99" };
 
-interface TicketRow { id: string; workspace_id: string; workspace_name: string; subject: string; category: string; status: Status; created_at: string; last_updated: string; comment_count: number }
+// `answered` and `waiting_hours` come from the API and were being DROPPED here, which is what made
+// the queue look arbitrary: it is ordered by who has waited longest with no reply from us, but
+// nothing on screen said so, so a brand-new ticket sorting last simply looked missing.
+interface TicketRow { id: string; workspace_id: string; workspace_name: string; subject: string; category: string; status: Status; created_at: string; last_updated: string; comment_count: number; answered?: boolean; waiting_hours?: number | null }
 interface Comment { author_id: string; author_role: "admin" | "requester" | "mondaily"; body: string; at: string }
 interface TicketDetail extends TicketRow { message: string; comments: Comment[]; status_history: { status: string; at: string; by: string }[] }
 
@@ -96,7 +99,12 @@ export function PlatformSupportPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const qc = useQueryClient();
 
-  const list = useQuery<{ tickets: TicketRow[] }>({
+  // "Longest waiting" is the right default for service, but it buries a ticket that just arrived —
+  // the one an operator most wants to notice at launch. Both orderings are legitimate, so this is a
+  // choice rather than a fixed rule.
+  const [sort, setSort] = useState<"sla" | "newest">("sla");
+
+  const list = useQuery<{ tickets: TicketRow[]; sla?: { unanswered: number; longest_wait_hours: number } }>({
     queryKey: ["platform-tickets", statusFilter],
     queryFn: () => apiClient.get(`/platform/support/tickets${statusFilter ? `?status=${statusFilter}` : ""}`),
     enabled: probe.data?.platform_admin === true,
@@ -113,7 +121,13 @@ export function PlatformSupportPage() {
     );
   }
 
-  const tickets = list.data?.tickets ?? [];
+  const raw = list.data?.tickets ?? [];
+  // The API already sorts by SLA; "newest" re-sorts client-side rather than adding a server round
+  // trip for what is a view preference.
+  const tickets = sort === "newest"
+    ? [...raw].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    : raw;
+  const sla = list.data?.sla;
   return (
     <div className="mx-auto max-w-5xl px-4 pt-2 pb-8 sm:px-6">
       <CommandPageHeader
@@ -122,10 +136,17 @@ export function PlatformSupportPage() {
         callsign="SUPPORT"
         title="Platform support"
         subtitle="All workspaces' tickets — status changes and Mondaily replies happen here, never inside a customer workspace."
-        rightSummary={`${tickets.length} ticket(s)`}
+        rightSummary={sla && sla.unanswered > 0
+          ? `${sla.unanswered} awaiting a reply · longest ${sla.longest_wait_hours}h`
+          : `${tickets.length} ticket(s)`}
         secondaryActions={
-          <MenuSelect label="Status" value={statusFilter} onChange={setStatusFilter} maxWidth={180}
-            options={STATUSES.map(s => ({ value: s, label: label(s), dot: STATUS_TONE[s] }))} />
+          <>
+            <MenuSelect label="Status" value={statusFilter} onChange={setStatusFilter} maxWidth={180}
+              options={STATUSES.map(s => ({ value: s, label: label(s), dot: STATUS_TONE[s] }))} />
+            <MenuSelect label="Sort" value={sort} allLabel={sort === "sla" ? "Longest waiting" : "Newest first"} maxWidth={190}
+              onChange={(v) => setSort((v as "sla" | "newest") || "sla")}
+              options={[{ value: "sla", label: "Longest waiting" }, { value: "newest", label: "Newest first" }]} />
+          </>
         }
       />
 
@@ -148,6 +169,17 @@ export function PlatformSupportPage() {
                 <span className="block truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{t.subject}</span>
                 <span className="block truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{t.workspace_name} · {t.category} · {t.comment_count} repl{t.comment_count === 1 ? "y" : "ies"}</span>
               </span>
+              {/* THE reason this row is where it is. Without it the ordering is invisible and a new
+                  ticket at the bottom reads as a missing ticket. */}
+              {t.waiting_hours != null && (
+                <span className="shrink-0 rounded-sm px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums"
+                  style={{
+                    background: "color-mix(in srgb, var(--status-warn) 14%, transparent)",
+                    color: "var(--status-warn)",
+                  }}>
+                  {t.waiting_hours < 1 ? "new · no reply yet" : `waiting ${t.waiting_hours}h`}
+                </span>
+              )}
               <span className="shrink-0 text-[11px] capitalize" style={{ color: STATUS_TONE[t.status] ?? "var(--text-muted)" }}>{label(t.status)}</span>
               <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{new Date(t.last_updated).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
             </button>

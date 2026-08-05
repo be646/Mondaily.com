@@ -1794,7 +1794,11 @@ describe("App-wide chrome pass — pages migrated to CommandPageHeader standard 
   it("Platform-support uses CommandPageHeader; status filter + count no longer a loose row", () => {
     expect(support).toMatch(/MenuSelect, CommandPageHeader \} from "\.\.\/\.\.\/components\/ui\/controls"/);
     expect(support).toMatch(/<CommandPageHeader[\s\S]*?callsign="SUPPORT"[\s\S]*?title="Platform support"/);
-    expect(support).toMatch(/rightSummary=\{`\$\{tickets\.length\} ticket\(s\)`\}/);
+    // The COUNT belongs in the header rather than a loose row — that is what this guards. It used
+    // to pin the exact string `${tickets.length} ticket(s)`, which made the assertion about the
+    // wording instead of the placement: the header now leads with the SLA number when anything is
+    // awaiting a reply, and falls back to the count otherwise. Both are rightSummary.
+    expect(support).toMatch(/rightSummary=\{[\s\S]*?tickets\.length\} ticket\(s\)`\}/);
     expect(support).toMatch(/secondaryActions=\{[\s\S]*?<MenuSelect label="Status" value=\{statusFilter\} onChange=\{setStatusFilter\}/);
     // old bespoke h1 header is gone
     expect(support).not.toMatch(/<h1 className="flex items-center gap-2 text-\[19px\] font-semibold"[^>]*> Platform support/);
