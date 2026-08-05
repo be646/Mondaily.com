@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   supportReplyAddress, ticketIdFromRecipient, stripQuotedReply, sentAt,
   WAITING_REMINDER_DAYS, WAITING_CLOSE_DAYS,
@@ -122,6 +123,28 @@ describe("the schedule", () => {
   it("leaves time to act between the final warning and the close", () => {
     const last = WAITING_REMINDER_DAYS[WAITING_REMINDER_DAYS.length - 1]!;
     expect(WAITING_CLOSE_DAYS - last).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("tickets we cannot email", () => {
+  // Two tickets in production carry metadata {source} only — they predate requester stamping
+  // (added 380b2e8e, 2026-07-04). The sweep must SKIP them, never auto-close them: closing a
+  // request for silence when we never had an address to ask at is closing it on someone who was
+  // never asked. Asserted against the source because the sweep needs a live database.
+  const sweep = readFileSync(new URL("../lib/support-mail.ts", import.meta.url), "utf8");
+
+  it("skips a ticket with no requester email BEFORE any close decision", () => {
+    const guard = sweep.indexOf("if (!r.email) continue");
+    const close = sweep.indexOf("days >= WAITING_CLOSE_DAYS");
+    expect(guard).toBeGreaterThan(0);
+    expect(guard).toBeLessThan(close);
+  });
+
+  it("starts the clock from waiting_since, not from ticket creation", () => {
+    // A ticket that sat in OUR queue for a week must not reach the customer already days into a
+    // deadline it never told them about.
+    expect(sweep).toMatch(/d\.waiting_since \?\? d\.updated_at/);
+    expect(sweep).not.toMatch(/waiting_since \?\? d\.created_at/);
   });
 });
 
