@@ -143,6 +143,9 @@ function HelpPanel({ prefill }: { prefill: string }) {
       const r = await apiClient.post<AskResp>("/support/ask", { message: text, history, route: window.location.pathname });
       update(s => ({
         ...s, category: r.category ?? s.category,
+        // KEEP the agent's summary on the session, not just on the message. It was stored per-message
+        // and read nowhere, so the ticket fell back to the user's raw opening paragraph.
+        agentSubject: r.suggested_subject?.trim() ? r.suggested_subject.trim() : s.agentSubject,
         messages: [...s.messages, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject, diagnostics: r.diagnostics, actions: r.suggested_actions }],
         state: "waiting_for_user",
       }));
@@ -154,7 +157,10 @@ function HelpPanel({ prefill }: { prefill: string }) {
   async function createTicket() {
     if (session.ticketCreated) return;   // one request per inquiry — never duplicate silently
     const firstUser = session.messages.find(m => m.role === "user");
-    const subject = (session.subject || firstUser?.content || "Support request").slice(0, 200);
+    // The agent's summary FIRST. It is the only one of the three that is actually a subject: the
+    // other two are the user's opening message, which produced ticket titles — and support email
+    // subject lines — like "Please open a support ticket for me. Subject: Email reply loop verific".
+    const subject = (session.agentSubject || session.subject || firstUser?.content || "Support request").slice(0, 200);
     const message = summarizeHistory(session);
     // Investigate-first: don't open a hollow ticket. If the user escalated before describing anything,
     // ask one clarifying question and keep the chat open instead of sending an empty request.

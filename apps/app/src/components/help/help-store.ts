@@ -24,6 +24,16 @@ export interface HelpSession {
   messages: HelpMsg[];
   category: string | null;
   subject: string | null;         // current inquiry subject (first user message)
+  /**
+   * The agent's own one-line summary of the problem.
+   *
+   * Kept SEPARATE from `subject` because they answer different questions: `subject` is the raw first
+   * message and makes an honest panel title while the user is still typing, whereas this is what the
+   * ticket and every support email should be called. Collapsing them meant `subject` was already set
+   * by the time the agent replied, so its summary lost the `||` and every ticket was titled with the
+   * user's whole opening paragraph, truncated mid-word.
+   */
+  agentSubject: string | null;
   ticketId: string | null;        // set once a support request is created
   ticketCreated: boolean;
   routeHistory: string[];         // routes the user opened FROM Help
@@ -46,7 +56,7 @@ export function newSession(): HelpSession {
   const now = new Date().toISOString();
   return {
     id: `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`,
-    messages: [], category: null, subject: null, ticketId: null, ticketCreated: false,
+    messages: [], category: null, subject: null, agentSubject: null, ticketId: null, ticketCreated: false,
     routeHistory: [], lastRoute: null, state: "active", rating: null, feedback: null,
     createdAt: now, updatedAt: now,
   };
