@@ -126,8 +126,18 @@ async function sessionProfile(userId: string): Promise<{ workspaceId: string | n
   };
 }
 
-// GET /auth/challenge — issue a signed proof-of-work challenge for the anti-bot gate.
-router.get("/challenge", async (c) => c.json(await issuePowChallenge()));
+/**
+ * GET /auth/challenge — issue a signed proof-of-work challenge for the anti-bot gate.
+ *
+ * RATE LIMITED, which it was not: the shield's own issuer was the one unauthenticated auth route
+ * anyone could call without bound, and every call costs a signature. Leaving the anti-bot gate
+ * itself un-gated is a cheap amplifier against our own CPU.
+ *
+ * 30/min rather than the default 5: a legitimate visitor takes one challenge per auth page load,
+ * but a NAT'd office or a user reloading shares a single IP, and locking those people out of the
+ * sign-in page would be a worse failure than the abuse this prevents.
+ */
+router.get("/challenge", rateLimit({ max: 30, windowMs: 60_000 }), async (c) => c.json(await issuePowChallenge()));
 
 // POST /auth/register — brand-new sovereign account. Creates the credential, then natively
 // bootstraps a fresh workspace with the user as owner (no Clerk org).
@@ -625,7 +635,11 @@ router.post("/reset-password", rateLimit(), requirePow, zValidator("json", z.obj
 });
 
 // POST /auth/refresh — rotate the refresh token, mint a new access token.
-router.post("/refresh", async (c) => {
+// RATE LIMITED. Unauthenticated by construction (it is how an expired session recovers), and each
+// call costs a token-hash lookup and a write. The tokens themselves are 256-bit random so guessing
+// is hopeless, but "unguessable" is not "unbounded". 20/min: several tabs in one browser refresh
+// independently when an access token expires, and they share an IP.
+router.post("/refresh", rateLimit({ max: 20, windowMs: 60_000 }), async (c) => {
   const raw = getCookie(c, REFRESH_COOKIE);
   if (!raw) return c.json({ error: "Not authenticated." }, 401);
   const { data: row } = await supabase.from("auth_refresh_tokens").select("*").eq("token_hash", sha256(raw)).maybeSingle();
