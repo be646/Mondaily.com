@@ -198,3 +198,31 @@ export function grantAmountFor(tier: TierId): number {
 export function burstCapFor(tier: TierId): number {
   return PLAN_TIERS[tier]?.burstCap ?? PLAN_TIERS.scout.burstCap;
 }
+
+/**
+ * The plans, packs and bonuses in prose — the ONE description every assistant quotes.
+ *
+ * This lived privately inside the marketing chat, so the public bot could answer "what does Command
+ * cost?" while the in-app support agent talking to a PAYING customer could not. The numbers were
+ * always derived from PLAN_TIERS above; only the wording was stranded. Now both read the same text,
+ * and a price change updates every assistant at once.
+ */
+export function pricingFacts(): string {
+  // monthlyCredits is nullable (Sovereign is custom), so say "custom" rather than crash or
+  // print a confident zero — an assistant quoting "0 credits" would be worse than vague.
+  const fmt = (n: number | null | undefined) => (n == null ? "custom" : n.toLocaleString("en-US"));
+  return [
+    "PLANS (monthly, with included AI credits):",
+    `- Scout: free — ${fmt(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
+    `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo — ${fmt(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
+    `- Command: $${PLAN_TIERS.command.priceMonthly}/mo — ${fmt(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
+    "- Sovereign: custom — custom AI credits, private/self-hosted infrastructure.",
+    "PAY-AS-YOU-GO CREDIT PACKS: " + CREDIT_PACK_ORDER.map((id) => {
+      const p = CREDIT_PACKS[id]!;
+      return `${p.name} $${p.price_usd} → ${fmt(p.base_credits)} credits`;
+    }).join("; ") + ".",
+    `Pack bonuses: Operator +10%, Command +20%, and annual subscriptions add another +${Math.round(ANNUAL_BONUS_PCT * 100)}%.`,
+    "Say 'AI credits', never 'tokens'. Do NOT claim unlimited AI — credits are metered. Manual CRUD (creating/editing records) does not use AI credits; AI chat, agents, enrichment, Discovery deep research, report generation, and workflow drafting do.",
+  ].join("\n");
+}
+

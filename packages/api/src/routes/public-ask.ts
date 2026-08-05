@@ -2,23 +2,16 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { aiGateway } from "../lib/ai-gateway";
-import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, ANNUAL_BONUS_PCT } from "@mondaily/shared/pricing";
+import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, ANNUAL_BONUS_PCT, pricingFacts } from "@mondaily/shared/pricing";
 import { rateLimit } from "../middleware/rate-limit";
 
 const router = new Hono();
 
 // Pricing FACTS from the shared catalog — the hero chat must answer from these, never guess.
 const fmt = (n: number | null) => n === null ? "custom" : n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1_000)}k`;
-const PRICING_FACTS = [
-  "PLANS (monthly, with included AI credits):",
-  `- Scout: free — ${fmt(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
-  `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo — ${fmt(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
-  `- Command: $${PLAN_TIERS.command.priceMonthly}/mo — ${fmt(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
-  `- Sovereign: custom — custom AI credits, private/self-hosted infrastructure.`,
-  "PAY-AS-YOU-GO CREDIT PACKS: " + CREDIT_PACK_ORDER.map((id) => { const p = CREDIT_PACKS[id]!; return `${p.name} $${p.price_usd} → ${fmt(p.base_credits)} credits`; }).join("; ") + ".",
-  `Pack bonuses: Operator +10%, Command +20%, and annual subscriptions add another +${Math.round(ANNUAL_BONUS_PCT * 100)}%.`,
-  "Say 'AI credits', never 'tokens'. Do NOT claim unlimited AI — credits are metered. Manual CRUD (creating/editing records) does not use AI credits; AI chat, agents, enrichment, Discovery deep research, report generation, and workflow drafting do.",
-].join("\n");
+// The one description of plans and payments — shared with the in-app support agent, so a price
+// change updates both. See pricingFacts().
+const PRICING_FACTS = pricingFacts();
 
 const SYSTEM = `You are Mondaily AI — the assistant on Mondaily's marketing site. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 4 sentences.
 

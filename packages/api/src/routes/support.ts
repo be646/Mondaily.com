@@ -13,6 +13,7 @@ import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
 import { monthlyCreditsFor } from "@mondaily/shared/pricing";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { resolveDisplayName } from "@mondaily/shared/identity";
+import { pricingFacts } from "@mondaily/shared/pricing";
 
 /**
  * SMART HELP / SUPPORT AGENT (phase 2) — source-backed help + an operational ticket lifecycle.
@@ -51,13 +52,21 @@ interface TicketData {
 /** Read-only snapshot of everything the agent may ground its answer in. NO writes happen here. */
 async function buildSupportContext(workspaceId: string, userId: string) {
   const env = gatewayEnv();
-  const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes] = await Promise.all([
+  const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes,
+         dealsRes, tasksRes, decisionsRes, agentRunsRes] = await Promise.all([
     supabase.from("workspaces").select("name, plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
     ledgerBreakdown(workspaceId),   // server-side aggregate; a JS sum truncates past the row cap
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
     supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
     supabase.from("nodes").select("data, created_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(5),
     supabase.from("workspace_members").select("name, email, role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle(),
+    // WHAT THE USER ACTUALLY HAS. Without these the agent knew the plan and the credit balance but
+    // nothing about the work: it could not answer "where did my deal go", "why has no agent run",
+    // or "what is waiting on me" — the questions a real support chat is mostly made of.
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).ilike("object_type", "deal%"),
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).ilike("object_type", "task%"),
+    supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("status", "pending"),
+    supabase.from("agent_runs").select("agent_name, status, created_at").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(5),
   ]);
   const settings = (wsRow.data?.settings ?? {}) as Record<string, unknown>;
   const ent = await getEntitlement(workspaceId);
@@ -97,6 +106,16 @@ async function buildSupportContext(workspaceId: string, userId: string) {
       contacts: contactsRes.count ?? 0,
       members: membersRes.count ?? 0,
       email_connected: Boolean(integrations.gmail || integrations.outlook),
+      deals: dealsRes.count ?? 0,
+      tasks: tasksRes.count ?? 0,
+      pending_decisions: decisionsRes.count ?? 0,
+      // The agents' own recent history, so "is anything running?" is answerable from evidence
+      // instead of reassurance.
+      recent_agent_runs: (agentRunsRes.data ?? []).map((r) => ({
+        agent: String((r as Record<string, unknown>).agent_name ?? "agent"),
+        status: String((r as Record<string, unknown>).status ?? "unknown"),
+        at: String((r as Record<string, unknown>).created_at ?? ""),
+      })),
       calendar_connected: Boolean(integrations["google-calendar"]),
       enabled_modules: modules,
     },
@@ -122,6 +141,12 @@ function contextBlock(ctx: Awaited<ReturnType<typeof buildSupportContext>>): str
       ? `AI credit wallet: ${w.remaining.toLocaleString()} remaining of ${(w.included_monthly_credits ?? 0).toLocaleString()} included/mo${w.purchased ? ` + ${w.purchased.toLocaleString()} purchased` : ""}; ${w.used.toLocaleString()} used.`
       : "AI credit wallet: not enrolled yet.",
     `Workspace readiness: onboarded=${r.onboarded}, contacts=${r.contacts}, members=${r.members}, email_connected=${r.email_connected}, calendar_connected=${r.calendar_connected}, modules=[${r.enabled_modules.join(", ") || "none"}].`,
+    // The work itself. "You have 44 deals and 3 decisions waiting" is a support answer; "I can see
+    // your workspace" is not.
+    `Workspace contents: ${r.deals} deal(s), ${r.tasks} task(s), ${r.pending_decisions} decision(s) awaiting approval.`,
+    r.recent_agent_runs.length
+      ? `Recent agent runs (newest first): ${r.recent_agent_runs.map(a => `${a.agent}=${a.status}`).join("; ")}. Use these to answer "is anything running?" from evidence, never reassurance.`
+      : "Recent agent runs: none recorded — say exactly that if asked, do not imply agents are working.",
     `System diagnostics: database=${d.database ? "ok" : "unreachable"}, ai_gateway=${d.ai_gateway ? "configured" : "not configured"}, sovereign_search=${d.sovereign_search ? "configured" : "not configured"}, sovereign_scrape=${d.sovereign_scrape ? "configured" : "not configured"}.`,
     `Training data policy: ${ctx.training_policy.enabled ? `on (retention ${ctx.training_policy.retention_days ?? "?"} days)` : "off (no capture)"}.`,
     ctx.recent_tickets.length ? `Recent support tickets: ${ctx.recent_tickets.map(t => `"${t.subject}" (${t.status})`).join("; ")}.` : "Recent support tickets: none.",
@@ -202,7 +227,17 @@ STRICT RULES:
 - SAFE UPSELL: when usage or needs suggest it, you MAY recommend a higher plan (e.g. "Based on your usage, Operator or Command may fit better") or a credit pack, and tell the user they can do it themselves at Settings → Billing. Frame it as a helpful suggestion, not pressure.
 - You are READ-ONLY and take NO account actions. You CANNOT change plans, grant/refund credits, apply discounts, modify billing, invite members, or connect integrations. NEVER say "I upgraded you", "I refunded you", "I applied a discount/credit", or "it's been fixed/applied" — you can only guide the user to do it or open a ticket.
 - For anything requiring an account change, human review, refund/credit adjustment, or a bug fix: explain the situation, tell the user you'll open a support request, and set needs_ticket=true with a concise suggested_subject. Do not pretend the action is done.
-- Classify the user's issue into exactly one category. Keep answers concise, friendly and actionable. Never mention the underlying AI provider.`;
+- Classify the user's issue into exactly one category. Never mention the underlying AI provider.
+
+TALK LIKE A PERSON WHO KNOWS THIS PRODUCT:
+- ASK WHEN YOU DON'T KNOW ENOUGH. If the request is ambiguous — "it's broken", "it's not working", "I can't see my data" — ask ONE specific question that would actually change your answer ("Which page were you on?", "Does it happen for every record or one?"). One question, not a checklist. Do not ask when the diagnostics already tell you.
+- LEAD WITH THE ANSWER, then the reason. Someone in a support chat is stuck; the first line should be the useful part.
+- GIVE ONE NEXT STEP, not five. Name the exact place ("Settings → Billing"), not a vague direction.
+- Match their register. Short question, short answer. Frustrated user: acknowledge it once, plainly, and move to the fix — no performed sympathy, no "I completely understand your frustration".
+- Say what you cannot do, in one clause, without apologising twice.
+- Never pad. No "Great question!", no restating what they just said back to them.
+
+PLANS & PAYMENTS: the PRICING section below is authoritative — quote it exactly and never improvise a price, credit amount, seat count or discount. If someone asks for something not in it (custom terms, invoicing, refunds, VAT), say it needs a human and open a ticket.`;
 
 // POST /support/ask — the source-backed help answer. Never performs actions; may flag needs_ticket.
 router.post("/ask", zValidator("json", z.object({
@@ -227,7 +262,7 @@ router.post("/ask", zValidator("json", z.object({
   const diagnostics = buildDiagnostics(ctx, topic);   // REAL rows, computed before the LLM
   const priorTurns = (history ?? []).slice(-6).map(h => `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`).join("\n");
   const routeLine = route ? `\n\nThe user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
-  const system = `${SUPPORT_SYSTEM}\n\n${contextBlock(ctx)}${routeLine}\n\n${diagnosticsForPrompt(diagnostics)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
+  const system = `${SUPPORT_SYSTEM}\n\nPRICING (authoritative — quote exactly, never improvise):\n${pricingFacts()}\n\n${contextBlock(ctx)}${routeLine}\n\n${diagnosticsForPrompt(diagnostics)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
 
   // UNMETERED on purpose (no workspaceId) so users with 0 credits can still get help about credits.
