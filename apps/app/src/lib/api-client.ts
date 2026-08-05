@@ -59,21 +59,59 @@ export async function apiFetch(input: string, init?: RequestInit): Promise<Respo
 // instead of leaving a page stuck on skeletons forever. Generous enough for slow AI generation.
 const REQUEST_TIMEOUT_MS = 45_000;
 
+/**
+ * Re-resolve the active workspace from the SESSION when the stored one is rejected.
+ *
+ * The stored id and the signed-in user can drift apart — sign in as someone else in the same
+ * browser, have a workspace removed from under you, restore a stale tab — and when they do, the
+ * API answers 403 ("not in workspace") to EVERY request. Measured live on 2026-08-05: fourteen of
+ * fourteen dashboard calls 403'd, and the app's only response was a yellow "what you see below may
+ * be incomplete" banner. It never self-corrected, so the dashboard stayed broken until someone
+ * manually switched workspace or cleared local storage.
+ *
+ * The session already knows the right answer — /auth/me returns the workspace this user actually
+ * belongs to — so this is the 403 twin of the 401→refresh retry directly below.
+ */
+let realigning: Promise<string | null> | null = null;
+async function realignWorkspace(): Promise<string | null> {
+  // Share one in-flight probe: a dashboard fires a dozen queries at once and they would otherwise
+  // each hit /auth/me on the same 403.
+  realigning ??= (async () => {
+    try {
+      const r = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+      if (!r.ok) return null;
+      const me = (await r.json()) as { workspaceId?: string | null };
+      const next = me.workspaceId ?? null;
+      // Only act on an ACTUAL change. Rewriting the same value and retrying would turn a genuine
+      // permission error into an infinite pair of requests.
+      if (!next || next === localStorage.getItem("mondaily_workspace_id")) return null;
+      localStorage.setItem("mondaily_workspace_id", next);
+      return next;
+    } catch { return null; }
+    finally { setTimeout(() => { realigning = null; }, 0); }
+  })();
+  return realigning;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-  const send = () => fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: "include",
-    signal: controller.signal,
-    headers: {
-      "Content-Type": "application/json",
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-      ...init?.headers,
-    },
-  });
+  // Read the workspace on EVERY send, not once per request: a retry after realignment has to
+  // carry the corrected id, and capturing it above would resend the rejected one.
+  const send = () => {
+    const workspaceId = localStorage.getItem("mondaily_workspace_id");
+    return fetch(`${API_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+        ...init?.headers,
+      },
+    });
+  };
 
   let response = await send();
 
@@ -82,6 +120,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // tasks, and settings working past the access-token lifetime.
   if (response.status === 401 && !path.startsWith("/auth/")) {
     if (await refreshSession()) response = await send();
+  }
+
+  // Stored workspace no longer ours → adopt the session's and retry ONCE. A 403 that survives this
+  // is a real permission error and is surfaced normally.
+  if (response.status === 403 && !path.startsWith("/auth/")) {
+    if (await realignWorkspace()) response = await send();
   }
 
   if (!response.ok) {
