@@ -174,7 +174,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     const tone = meetingTone(pl.e);
                     return (
                       <button key={pl.e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(pl.e.id); }} title={pl.e.title}
-                        className="absolute overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-all"
+                        className="absolute overflow-hidden rounded-sm px-1.5 py-0.5 text-left transition-all"
                         style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
                           background: on ? tone.edge : tone.tint,
                           borderLeft: `3px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)",
@@ -482,7 +482,7 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
                   <button key={e.id} draggable={draggable}
                     onDragStart={draggable ? (ev) => { ev.stopPropagation(); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/mondaily-event", JSON.stringify({ id: e.id, start: e.start_at })); } : undefined}
                     onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }}
-                    className={`flex items-center gap-1 truncate rounded-[3px] px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+                    className={`flex items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
                     style={{ borderLeft: `2px solid ${tone.edge}`, background: e.id === selected ? "var(--surface-selected)" : tone.tint, color: "var(--text-secondary)" }}
                     title={`${fmtTime(e.start_at, lang)} · ${e.title}${draggable && dragHint ? ` — ${dragHint}` : ""}`}>
                     <span className="shrink-0 tabular-nums" style={{ color: "var(--text-faint)" }}>{fmtTime(e.start_at, lang)}</span>

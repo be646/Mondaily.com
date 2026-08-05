@@ -31,10 +31,6 @@ export async function solvePowDetailed(challenge: string): Promise<PowResult> {
   throw new Error("Could not complete the security check. Please try again.");
 }
 
-export async function solvePow(challenge: string): Promise<string> {
-  return (await solvePowDetailed(challenge)).nonce;
-}
-
 /** Real steps, emitted as they happen. Absent when the caller does not want a console. */
 export type PowTrace = {
   challenge?: (challenge: string) => void;
