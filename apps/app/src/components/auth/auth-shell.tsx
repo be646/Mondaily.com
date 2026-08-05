@@ -4,13 +4,20 @@ import { motion } from "framer-motion";
 export const SAGE = "#8fcf7f";
 
 /** Centered dark "Neural Operation Center" auth canvas — font-mono, thin borders, zero jitter. */
-export function AuthShell({ kicker, title, subtitle, children, footer }: {
+export function AuthShell({ kicker, title, subtitle, children, footer, aside }: {
   kicker: string; title: string; subtitle?: string; children: ReactNode; footer?: ReactNode;
+  /**
+   * The live process console. Sits BESIDE the card on a wide screen and BELOW it on a narrow one —
+   * never overlapping, because on a phone the sign-in form must stay the thing in front of you.
+   * Absent by default: pages that do no background work should not grow an empty panel.
+   */
+  aside?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-mono text-[var(--text-secondary)]">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-10 font-mono text-[var(--text-secondary)]">
+      <div className="flex w-full flex-col items-center gap-4 lg:w-auto lg:flex-row lg:items-start lg:justify-center lg:gap-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-[400px] overflow-hidden rounded-sm border border-[var(--border-soft)] bg-zinc-900/40">
+        className="w-full max-w-[400px] shrink-0 overflow-hidden rounded-sm border border-[var(--border-soft)] bg-zinc-900/40 lg:w-[400px]">
         <div className="border-b border-[var(--border-soft)] px-6 py-3.5">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: SAGE, boxShadow: `0 0 8px ${SAGE}` }} />
@@ -24,6 +31,8 @@ export function AuthShell({ kicker, title, subtitle, children, footer }: {
         </div>
         {footer && <div className="border-t border-[var(--border-soft)] px-6 py-3.5 text-[11.5px] text-[var(--text-muted)]">{footer}</div>}
       </motion.div>
+      {aside}
+      </div>
     </div>
   );
 }

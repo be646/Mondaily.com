@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { BASE_URL } from "./api-client";
 
 /**
@@ -11,31 +11,64 @@ const AUTH_URL = `${BASE_URL}/api/v1/auth`;
 
 export type Pow = { pow_challenge: string; pow_nonce: string };
 
-export async function solvePow(challenge: string): Promise<string> {
+/**
+ * What the solve actually cost. Reported rather than discarded so the sign-in console can show the
+ * true attempt count and digest — the numbers are the evidence that the shield is real work and not
+ * a spinner, and they differ on every solve because the challenge does.
+ */
+export interface PowResult { nonce: string; attempts: number; ms: number; digest: string }
+
+export async function solvePowDetailed(challenge: string): Promise<PowResult> {
   const enc = new TextEncoder();
+  const t0 = performance.now();
   for (let nonce = 0; nonce < 8_000_000; nonce++) {
     const buf = await crypto.subtle.digest("SHA-256", enc.encode(`${challenge}:${nonce}`));
     const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-    if (hex.startsWith("0000")) return String(nonce);
+    if (hex.startsWith("0000")) {
+      return { nonce: String(nonce), attempts: nonce + 1, ms: Math.round(performance.now() - t0), digest: hex };
+    }
   }
   throw new Error("Could not complete the security check. Please try again.");
 }
 
-export async function getPow(): Promise<Pow> {
+export async function solvePow(challenge: string): Promise<string> {
+  return (await solvePowDetailed(challenge)).nonce;
+}
+
+/** Real steps, emitted as they happen. Absent when the caller does not want a console. */
+export type PowTrace = {
+  challenge?: (challenge: string) => void;
+  solving?: () => void;
+  solved?: (r: PowResult) => void;
+  unavailable?: () => void;
+};
+
+export async function getPow(trace?: PowTrace): Promise<Pow> {
   const res = await fetch(`${AUTH_URL}/challenge`, { credentials: "include" }).then(r => r.json()).catch(() => ({}));
   const challenge = (res as { challenge?: string }).challenge ?? "";
-  return challenge ? { pow_challenge: challenge, pow_nonce: await solvePow(challenge) } : { pow_challenge: "", pow_nonce: "" };
+  // No challenge means the deployment has PoW off. Say nothing rather than narrate a shield that
+  // is not there — a console that reports work it did not do is worse than no console.
+  if (!challenge) { trace?.unavailable?.(); return { pow_challenge: "", pow_nonce: "" }; }
+  trace?.challenge?.(challenge);
+  trace?.solving?.();
+  const r = await solvePowDetailed(challenge);
+  trace?.solved?.(r);
+  return { pow_challenge: challenge, pow_nonce: r.nonce };
 }
 
 export type ShieldStatus = "armed" | "solving" | "validated";
 
 /** Drives a visible PoW status line: armed → solving → validated. */
-export function usePowShield() {
+export function usePowShield(trace?: PowTrace) {
   const [status, setStatus] = useState<ShieldStatus>("armed");
+  // Held in a ref so a caller can pass a fresh closure each render without re-creating `solve` and
+  // re-firing the mount effect that arms the shield.
+  const traceRef = useRef(trace);
+  traceRef.current = trace;
   const solve = useCallback(async (): Promise<Pow> => {
     setStatus("solving");
     try {
-      const pow = await getPow();
+      const pow = await getPow(traceRef.current);
       setStatus("validated");
       return pow;
     } catch (e) {

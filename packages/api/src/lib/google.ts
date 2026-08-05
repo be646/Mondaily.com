@@ -56,10 +56,72 @@ function decodeJwtEmail(idToken?: string): string | undefined {
   }
 }
 
+/**
+ * The identity claims from an id_token, including the one that matters for sign-in.
+ *
+ * `email_verified` is the difference between "this person typed an address" and "Google has proven
+ * they control that mailbox". Auto-linking a Google sign-in onto an existing password account is
+ * only safe on the second, so the flag is read rather than assumed — `decodeJwtEmail` above drops
+ * it, which is fine for connecting an inbox and completely wrong for authenticating.
+ *
+ * NOT signature-verified, deliberately and safely: this token is only ever read straight from
+ * Google's token endpoint over a server-to-server TLS call we initiated, which OpenID Connect Core
+ * §3.1.3.7 explicitly exempts. It is never accepted from a browser, where verification would be
+ * mandatory.
+ */
+export interface GoogleIdentity {
+  sub: string;
+  email: string;
+  emailVerified: boolean;
+  name?: string;
+  picture?: string;
+}
+
+export function decodeGoogleIdentity(idToken?: string): GoogleIdentity | null {
+  if (!idToken) return null;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return null;
+    const j = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")) as Record<string, unknown>;
+    const email = typeof j.email === "string" ? j.email.trim().toLowerCase() : "";
+    if (!email || typeof j.sub !== "string") return null;
+    return {
+      sub: j.sub,
+      email,
+      // Google sends this as a boolean or the string "true" depending on the flow.
+      emailVerified: j.email_verified === true || j.email_verified === "true",
+      name: typeof j.name === "string" ? j.name : undefined,
+      picture: typeof j.picture === "string" ? j.picture : undefined,
+    };
+  } catch { return null; }
+}
+
+/**
+ * Sign-in consent URL — IDENTITY SCOPES ONLY.
+ *
+ * Deliberately not GOOGLE_SCOPES: asking for gmail.readonly just to log somebody in is alarming on
+ * the consent screen, and drags the whole app into Google's restricted-scope review for a feature
+ * that needs none of it. Connecting a mailbox stays a separate, later, opt-in consent.
+ */
+export const GOOGLE_LOGIN_SCOPES = ["openid", "email", "profile"];
+
+export function googleLoginUrl(redirectUri: string, state: string): string {
+  const u = new URL(AUTH_URL);
+  u.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
+  u.searchParams.set("redirect_uri", redirectUri);
+  u.searchParams.set("response_type", "code");
+  u.searchParams.set("scope", GOOGLE_LOGIN_SCOPES.join(" "));
+  // No access_type=offline and no prompt=consent: sign-in needs one id_token, not a stored refresh
+  // token, and re-prompting a returning user for consent every time is pure friction.
+  u.searchParams.set("state", state);
+  return u.toString();
+}
+
 export interface GoogleTokens {
   refresh_token?: string;
   access_token: string;
   expires_in: number;
+  id_token?: string;
   email?: string;
 }
 
@@ -81,7 +143,7 @@ export async function exchangeCode(code: string, redirectUri: string): Promise<G
     return null;
   }
   const t = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number; id_token?: string };
-  return { access_token: t.access_token, refresh_token: t.refresh_token, expires_in: t.expires_in, email: decodeJwtEmail(t.id_token) };
+  return { access_token: t.access_token, refresh_token: t.refresh_token, expires_in: t.expires_in, email: decodeJwtEmail(t.id_token), id_token: t.id_token };
 }
 
 interface ConnRow {

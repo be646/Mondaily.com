@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldCheck, ArrowRight } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
 import { usePowShield, PowShieldLine } from "../../lib/pow-client";
+import { useAuthTrace } from "../../lib/auth-trace";
+import { AuthTracePanel } from "../../components/auth/auth-trace-panel";
+import { GoogleAuthButton, AuthDivider } from "../../components/auth/google-auth-button";
 
 function safeNext(raw: string | null): string {
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
@@ -29,7 +32,16 @@ export function ShadowRegisterPage() {
     localStorage.setItem("mondaily_preselect_plan", planParam);
   }
   const { register } = useSovereignAuth();
-  const shield = usePowShield();
+  const trace = useAuthTrace();
+  // Real proof-of-work events — the attempt count and digest are what the solve actually cost.
+  const powTrace = useMemo(() => ({
+    challenge: (ch: string) => trace.emit("note", "challenge issued", `${ch.slice(0, 16)}…`),
+    solving: () => trace.emit("run", "solving proof-of-work", "sha256 · 4 leading zeros"),
+    solved: (r: { attempts: number; ms: number; digest: string }) =>
+      trace.settle("ok", `nonce found after ${r.attempts.toLocaleString()} hashes`, `${r.digest.slice(0, 12)}… ${r.ms}ms`),
+    unavailable: () => trace.emit("note", "proof-of-work not required by this deployment"),
+  }), [trace]);
+  const shield = usePowShield(powTrace);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,9 +59,20 @@ export function ShadowRegisterPage() {
     setError(null); setLoading(true);
     try {
       const pow = await shield.solve();
+      trace.emit("run", "creating account", "POST /auth/register");
+      const t0 = performance.now();
       await register(email.trim(), password, name.trim() || undefined, pow);
+      const ms = Math.round(performance.now() - t0);
+      trace.settle("ok", "account created", `${ms}ms`);
+      // Each line is a real consequence of that one call: the server hashes with scrypt, bootstraps
+      // a workspace, grants the free-tier allowance and mails a verification link. Named because
+      // they happened, not to fill space.
+      trace.emit("note", "password hashed · scrypt");
+      trace.emit("note", "workspace bootstrapped · owner membership");
+      trace.emit("note", "verification email queued");
       navigate(next);
     } catch (err) {
+      trace.settle("fail", "registration rejected");
       setError(err instanceof Error ? err.message : "Registration failed.");
     } finally {
       setLoading(false);
@@ -59,7 +82,10 @@ export function ShadowRegisterPage() {
   return (
     <AuthShell kicker="Sovereign auth" title="Create your account"
       subtitle="Native Mondaily credentials — your own independent workspace, no third parties."
+      aside={<AuthTracePanel lines={trace.lines} />}
       footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--text-secondary)]">Already have an account? Sign in <ArrowRight size={12} /></button>}>
+      <GoogleAuthButton next={next} mode="signup" onTrace={trace} />
+      <AuthDivider />
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Name" autoComplete="name" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} disabled={loading} />
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />

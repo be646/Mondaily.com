@@ -15,6 +15,7 @@ import {
   passwordFingerprint,
 } from "../lib/auth-tokens";
 import { sendTransactionalEmail } from "../lib/mail";
+import { googleConfigured, googleLoginUrl, exchangeCode, decodeGoogleIdentity } from "../lib/google";
 import { rateLimit } from "../middleware/rate-limit";
 import { generateTotpSecret, verifyTotp, otpauthUrl, generateRecoveryCodes, hashRecoveryCode, signMfaToken, verifyMfaToken } from "../lib/totp";
 import { TRUST_COOKIE, signTrustToken, verifyTrustToken } from "../lib/totp";
@@ -184,6 +185,114 @@ async function sendVerificationEmail(userId: string, email: string): Promise<voi
   }
 }
 
+
+// ── Sign in with Google ────────────────────────────────────────────────────────
+/**
+ * IDENTITY-ONLY Google sign-in, distinct from "connect your Gmail" in routes/integrations.
+ *
+ * Built because measurement on 2026-08-05 showed the funnel's real shape: thirteen registrations in
+ * three weeks, ZERO email-verified, and nine of them Gmail dot-abuse or SMS gateways. Both problems
+ * dissolve here. Google has already proven mailbox control, so a Google signup is verified the
+ * instant it lands — no link to deliver, nothing to bounce. And you cannot OAuth into an inbox you
+ * do not own, which is exactly what the dot-abuse trick relies on.
+ */
+const GOOGLE_STATE_COOKIE = "md_goa";
+
+function googleLoginRedirectUri(): string {
+  return `${process.env.API_BASE_URL ?? "https://api.mondaily.com"}/api/v1/auth/google/callback`;
+}
+function appOrigin(): string {
+  return process.env.APP_URL ?? "https://app.mondaily.com";
+}
+/** Only ever bounce back INSIDE the app — an open redirect on an auth callback is a phishing gift. */
+function safeNext(raw: string | null | undefined): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
+}
+
+// GET /auth/google/available — can this deployment do Google sign-in? Booleans only, never the
+// client id. The button probes this and hides itself rather than dead-ending in a 503.
+router.get("/google/available", (c) => c.json({ available: googleConfigured() }));
+
+// GET /auth/google/start?next=/home — begin the consent flow.
+router.get("/google/start", rateLimit(), async (c) => {
+  if (!googleConfigured()) return c.json({ error: "Google sign-in isn't configured on this deployment." }, 503);
+
+  // CSRF: a random state echoed by Google and compared against a cookie only this browser holds.
+  // Without it, an attacker can complete a flow in the victim's session with their own code.
+  const nonce = randomBytes(16).toString("hex");
+  const next = safeNext(c.req.query("next"));
+  setCookie(c, GOOGLE_STATE_COOKIE, `${nonce}|${next}`, {
+    httpOnly: true, secure: true, sameSite: "Lax", path: "/", maxAge: 600,
+  });
+  return c.redirect(googleLoginUrl(googleLoginRedirectUri(), nonce), 302);
+});
+
+// GET /auth/google/callback — Google returns here. Ends with a session cookie and a redirect.
+router.get("/google/callback", async (c) => {
+  // Errors go back to the sign-in page as a readable reason — never a raw 500, and never the
+  // provider's own error text, which leaks nothing useful to the user and plenty to an attacker.
+  const bounce = (reason: string) => c.redirect(`${appOrigin()}/auth/shadow-login?sso=${encodeURIComponent(reason)}`, 302);
+
+  const cookie = getCookie(c, GOOGLE_STATE_COOKIE) ?? "";
+  deleteCookie(c, GOOGLE_STATE_COOKIE, { path: "/" });   // single use, whatever happens next
+  const [expected, storedNext] = cookie.split("|");
+  const state = c.req.query("state") ?? "";
+  if (!expected || !state || state !== expected) return bounce("state");
+  if (c.req.query("error")) return bounce("declined");
+  const code = c.req.query("code");
+  if (!code) return bounce("nocode");
+
+  const tokens = await exchangeCode(code, googleLoginRedirectUri());
+  const who = decodeGoogleIdentity(tokens?.id_token);
+  if (!who) return bounce("exchange");
+  // THE GATE the whole auto-link rule rests on. An unverified Google email is just a string
+  // somebody typed, and honouring it would let anyone claim any account by name.
+  if (!who.emailVerified) return bounce("unverified");
+
+  const existing = await credByEmail(who.email);
+  let userId: string;
+
+  if (existing) {
+    // AUTO-LINK. Safe only because Google asserted email_verified — the same standard the password
+    // reset already trusts, since a reset link is nothing more than proof of mailbox control.
+    userId = existing.user_id as string;
+    await supabase.from("auth_credentials")
+      .update({ email_verified: true, verified_at: new Date().toISOString(), google_sub: who.sub })
+      .eq("user_id", userId)
+      // Never re-point an existing link at a different Google account.
+      .or(`google_sub.is.null,google_sub.eq.${who.sub}`);
+  } else {
+    // New account. NO password hash is written: this identity is proven by Google, and inventing a
+    // random password here would create an unusable credential that "forgot password" would happily
+    // reset — turning an OAuth-only account into a password account behind the user's back.
+    userId = `usr_${randomBytes(12).toString("hex")}`;
+    const { error } = await supabase.from("auth_credentials").insert({
+      user_id: userId, email: who.email, password_hash: null,
+      email_verified: true, verified_at: new Date().toISOString(), google_sub: who.sub,
+    });
+    if (error) {
+      console.error("[auth/google] could not create credential:", error.message);
+      return bounce("create");
+    }
+    try {
+      const ws = await ensureWorkspaceForUser(userId, who.name ? `${who.name}'s Workspace` : "My Workspace");
+      await supabase.from("workspace_members")
+        .update({ name: who.name ?? who.email, email: who.email, ...(who.picture ? { avatar_url: who.picture } : {}) })
+        .eq("workspace_id", ws.workspaceId).eq("user_id", userId);
+      if (ws.isNew) await grantCredits(ws.workspaceId, grantAmountFor("scout"), "grant", "Free-tier welcome credits");
+    } catch (e) {
+      // Same rollback the password path uses: a credential with no workspace can never sign in
+      // anywhere useful and blocks the address from being registered again.
+      await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {}, () => {});
+      console.error("[auth/google] workspace bootstrap failed:", e instanceof Error ? e.message : String(e));
+      return bounce("workspace");
+    }
+  }
+
+  await issueSession(c, userId, who.email, c.req.header("user-agent"));
+  return c.redirect(`${appOrigin()}${safeNext(storedNext)}`, 302);
+});
+
 // POST /auth/verify-email — confirm ownership via the emailed token. Public (the user may not
 // have an active session on the device they open the email link from).
 router.post("/verify-email", rateLimit(), zValidator("json", z.object({ token: z.string().min(1) })), async (c) => {
@@ -268,6 +377,14 @@ router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), a
     const member = await memberByEmail(email);
     if (member) return c.json({ requires_activation: true });
     return c.json({ error: "Invalid email or password." }, 401); // generic — no account enumeration
+  }
+  // A Google-only account has NO password hash. Passing null into the verifier and hoping it
+  // returns false is not a security control — it depends on the hash parser's behaviour on garbage.
+  // Refuse explicitly, with the same generic message, so this is not an oracle for "which accounts
+  // use Google".
+  if (!cred.password_hash) {
+    await recordLoginFail(email.toLowerCase());
+    return c.json({ error: "Invalid email or password." }, 401);
   }
   const ok = await verifyPassword(cred.password_hash as string, password);
   if (!ok) {
