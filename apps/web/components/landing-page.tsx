@@ -3055,10 +3055,14 @@ function CookieBanner() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={{ type: "spring", stiffness: 300, damping: 32 }}
+          /* A FIXED pixel slide, not y:"100%". The percentage resolves against the element's own
+             height, which is still settling as the bar mounts and its text wraps — measured live,
+             it left the bar stranded 72px down with its buttons below the fold. A small pixel
+             offset cannot depend on a measurement that has not finished. */
+          initial={{ y: 16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 16, opacity: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
           /* BOTTOM-PINNED, not a floating card. It used to sit in a centred max-w-xl box six
              units off the bottom, which reads as a modal hovering over the middle of the page
              rather than a consent bar — and on a short viewport it genuinely covers the content
