@@ -86914,9 +86914,10 @@ function verifyState(token) {
 }
 var callbackUrl = () => `${(process.env.API_BASE_URL ?? "").replace(/\/$/, "")}/api/v1/integrations/callback`;
 function normalizeProvider(p2) {
+  if (p2 === "google" || p2 === "gmail" || p2 === "google-calendar" || !p2) return "google";
   if (p2 === "outlook" || p2 === "microsoft") return "microsoft";
   if (p2 === "imap") return "imap";
-  return "google";
+  return null;
 }
 function popupHtml(message, ok2) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${ok2 ? "Connected" : "Connection failed"}</title></head>
@@ -86929,6 +86930,9 @@ function popupHtml(message, ok2) {
 router61.post("/connect", requireAuth, async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const provider = normalizeProvider(body.provider);
+  if (!provider) {
+    return c2.json({ error: `"${String(body.provider).slice(0, 40)}" isn't a provider we connect. Supported: google, outlook.` }, 400);
+  }
   if (provider === "imap") {
     return c2.json({ error: "Direct IMAP isn't supported yet \u2014 connect Google or Microsoft." }, 400);
   }
