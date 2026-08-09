@@ -57,10 +57,22 @@ function verifyState(token: string): Record<string, unknown> | null {
 
 const callbackUrl = () => `${(process.env.API_BASE_URL ?? "").replace(/\/$/, "")}/api/v1/integrations/callback`;
 
-function normalizeProvider(p?: string): "google" | "microsoft" | "imap" {
+/**
+ * Resolve the requested provider, or NOTHING.
+ *
+ * This used to fall through to "google" for anything unrecognised, which made the endpoint lie in
+ * the most alarming possible way: a request to connect "mailchimp" or "segment" answered with a
+ * GMAIL consent URL. Nobody in the app hits that today — the catalogue tiles are inert — but the
+ * route is public, and the first person to wire a tile to it would ship a button that says
+ * Mailchimp and shows a screen asking for someone's email.
+ *
+ * An unknown provider is now a 400 that names what IS supported.
+ */
+function normalizeProvider(p?: string): "google" | "microsoft" | "imap" | null {
+  if (p === "google" || p === "gmail" || p === "google-calendar" || !p) return "google";
   if (p === "outlook" || p === "microsoft") return "microsoft";
   if (p === "imap") return "imap";
-  return "google";
+  return null;
 }
 
 function popupHtml(message: string, ok: boolean): string {
@@ -77,6 +89,9 @@ function popupHtml(message: string, ok: boolean): string {
 router.post("/connect", requireAuth, async (c) => {
   const body = await c.req.json<{ provider?: string }>().catch(() => ({} as { provider?: string }));
   const provider = normalizeProvider(body.provider);
+  if (!provider) {
+    return c.json({ error: `"${String(body.provider).slice(0, 40)}" isn't a provider we connect. Supported: google, outlook.` }, 400);
+  }
   if (provider === "imap") {
     return c.json({ error: "Direct IMAP isn't supported yet — connect Google or Microsoft." }, 400);
   }

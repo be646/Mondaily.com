@@ -15,15 +15,24 @@ interface IntegrationData {
   mcp_token?: string;
 }
 
+/**
+ * `built` distinguishes what EXISTS from what is planned.
+ *
+ * Every tile previously read "Not available yet" except Gmail, which understated the product:
+ * Outlook (lib/microsoft.ts, full OAuth + Graph) and Google Calendar (GET /integrations/
+ * calendar/events) are both built and connectable from Settings → Email. Telling a customer a
+ * shipped feature does not exist is the same class of error as the status page claiming Stripe
+ * needed configuring while it probed green — a stale hardcoded string outranking reality.
+ */
 const integrationCatalog = [
-  { id: "gmail", name: "Gmail", description: "Sync inbox conversations and contacts.", icon: "G" },
-  { id: "outlook", name: "Outlook", description: "Sync Microsoft email and calendar.", icon: "O" },
-  { id: "google-calendar", name: "Google Calendar", description: "Import meetings and attendees.", icon: "C" },
-  { id: "slack", name: "Slack", description: "Send alerts and agent updates.", icon: "S" },
-  { id: "zapier", name: "Zapier", description: "Connect thousands of external apps.", icon: "Z" },
-  { id: "typeform", name: "Typeform", description: "Create records from form responses.", icon: "T" },
-  { id: "segment", name: "Segment", description: "Stream customer events into Mondaily.", icon: "Sg" },
-  { id: "mailchimp", name: "Mailchimp", description: "Sync audiences and campaign engagement.", icon: "M" },
+  { id: "gmail", name: "Gmail", description: "Sync inbox conversations and contacts.", icon: "G", built: true },
+  { id: "outlook", name: "Outlook", description: "Sync Microsoft email and calendar.", icon: "O", built: true },
+  { id: "google-calendar", name: "Google Calendar", description: "Import meetings and attendees.", icon: "C", built: true },
+  { id: "slack", name: "Slack", description: "Send alerts and agent updates.", icon: "S", built: false },
+  { id: "zapier", name: "Zapier", description: "Connect thousands of external apps.", icon: "Z", built: false },
+  { id: "typeform", name: "Typeform", description: "Create records from form responses.", icon: "T", built: false },
+  { id: "segment", name: "Segment", description: "Stream customer events into Mondaily.", icon: "Sg", built: false },
+  { id: "mailchimp", name: "Mailchimp", description: "Sync audiences and campaign engagement.", icon: "M", built: false },
 ] as const;
 
 const webhookEvents = [
@@ -129,7 +138,7 @@ export function IntegrationsSettings() {
               {/* Honest state: these don't connect yet (no fake "connected"). Email connect
                   is real and lives in Settings → Email (direct Google OAuth, read-only). */}
               <span className="mt-auto self-start text-xs text-[var(--text-muted)]">
-                {item.id === "gmail" ? "Connect in Settings → Email" : "Not available yet"}
+                {item.built ? "Connect in Settings → Email" : "Not available yet"}
               </span>
             </article>
           ))}

@@ -68272,6 +68272,13 @@ init_dist();
 init_dist6();
 init_zod();
 init_auth();
+
+// src/lib/pgrst-filter.ts
+function orFilterValue(raw2, maxLength = 200) {
+  return String(raw2 ?? "").replace(/[,()%*]/g, " ").trim().slice(0, maxLength);
+}
+
+// src/routes/search.ts
 init_client();
 init_ai_gateway();
 init_embeddings2();
@@ -68286,13 +68293,13 @@ router4.post("/", requireAuth, zValidator("json", external_exports.object({
   const body = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const q2 = body.query;
-  const orQ = q2.replace(/[(),]/g, " ").trim();
+  const orQ = orFilterValue(q2);
   const [nameResults, emailResults, financeResults, taskResults] = await Promise.all([
     supabase.from("nodes").select("id, object_type, vertical, data, updated_at").eq("workspace_id", workspaceId).ilike("data->>name", `%${q2}%`).limit(body.limit),
     supabase.from("nodes").select("id, object_type, vertical, data, updated_at").eq("workspace_id", workspaceId).ilike("data->>email", `%${q2}%`).limit(10),
     // Finance nodes store client_name / invoice number, not "name", so they were invisible to
     // search. Index them by client + number so "Acme invoices" and "INV-0007" both resolve.
-    supabase.from("nodes").select("id, object_type, vertical, data, updated_at").eq("workspace_id", workspaceId).eq("vertical", "finance").or(`data->>client_name.ilike.%${orQ}%,data->>number.ilike.%${orQ}%`).limit(10),
+    supabase.from("nodes").select("id, object_type, vertical, data, updated_at").eq("workspace_id", workspaceId).eq("vertical", "finance").or(`data->>client_name.ilike.%${orFilterValue(orQ)}%,data->>number.ilike.%${orFilterValue(orQ)}%`).limit(10),
     supabase.from("tasks").select("id, title, priority, status, due_date, updated_at").eq("workspace_id", workspaceId).ilike("title", `%${q2}%`).limit(10)
   ]);
   const seen = /* @__PURE__ */ new Set();
@@ -79559,7 +79566,7 @@ router30.get("/threads/:id", async (c2) => {
       });
     }
   }
-  const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${c2.req.param("id")},data->>thread_id.eq.${c2.req.param("id")}`).maybeSingle();
+  const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${orFilterValue(c2.req.param("id"))},data->>thread_id.eq.${orFilterValue(c2.req.param("id"))}`).maybeSingle();
   return data ? c2.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c2.json({ error: "Thread not found" }, 404);
 });
 function injectTracking(html, trackingId) {
@@ -79600,7 +79607,7 @@ router30.post("/threads/:id/reply", zValidator("json", external_exports.object({
     return c2.json({ ok: true, tracking_id: trackNode2?.id }, 201);
   }
   const threadId = c2.req.param("id");
-  const { data: node } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${threadId},data->>thread_id.eq.${threadId}`).maybeSingle();
+  const { data: node } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${orFilterValue(threadId)},data->>thread_id.eq.${orFilterValue(threadId)}`).maybeSingle();
   if (!node) return c2.json({ error: "Connect a Gmail inbox in Settings \u2192 Email, or configure native mail, before replying." }, 400);
   const tdata = node.data;
   const last = (tdata.messages ?? [])[tdata.messages.length - 1];
@@ -87115,13 +87122,13 @@ function summarize(n2) {
   const d2 = n2.data ?? {};
   return { id: n2.id, type: n2.object_type, name: d2.name ?? d2.title ?? d2.full_name ?? d2.company ?? null, updated_at: n2.updated_at };
 }
-var clean = (s2) => s2.replace(/[%,()]/g, " ").trim().slice(0, 200);
+var clean = (s2) => orFilterValue(s2);
 async function runTool(workspaceId, name, args) {
   if (name === "search_records") {
     const q2 = clean(String(args.query ?? ""));
     const limit2 = Math.min(Number(args.limit) || 10, 50);
     if (!q2) return [];
-    const { data } = await supabase.from("nodes").select("id,object_type,vertical,data,updated_at").eq("workspace_id", workspaceId).or(`data->>name.ilike.%${q2}%,data->>title.ilike.%${q2}%,data->>company.ilike.%${q2}%,data->>full_name.ilike.%${q2}%`).order("updated_at", { ascending: false }).limit(limit2);
+    const { data } = await supabase.from("nodes").select("id,object_type,vertical,data,updated_at").eq("workspace_id", workspaceId).or(`data->>name.ilike.%${orFilterValue(q2)}%,data->>title.ilike.%${orFilterValue(q2)}%,data->>company.ilike.%${orFilterValue(q2)}%,data->>full_name.ilike.%${orFilterValue(q2)}%`).order("updated_at", { ascending: false }).limit(limit2);
     return (data ?? []).map((n2) => summarize(n2));
   }
   if (name === "get_record") {
