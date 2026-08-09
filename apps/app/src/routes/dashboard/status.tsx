@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network } from "lucide-react";
 import { LogoMark } from "@/components/logo";
@@ -63,7 +64,19 @@ const FEATURE_STATUS_META: Record<FeatureStatus, { label: string; color: string 
   not_built:              { label: "Not built",            color: "var(--text-faint)" },
 };
 
-interface FeatureRow { feature: string; status: FeatureStatus; inApp: boolean; backendReady: boolean; needsSetup: boolean; notes: string; }
+interface FeatureRow {
+  feature: string; status: FeatureStatus; inApp: boolean; backendReady: boolean; needsSetup: boolean; notes: string;
+  /**
+   * The live check that OVERRULES the hardcoded status above.
+   *
+   * This table used to render its authored value unconditionally, so it went on asserting "Needs
+   * configuration" for Stripe, Google and native mail long after those were configured and probed
+   * green — the page whose job is reporting truth was the one publishing a stale claim. Where a
+   * real probe knows the answer, the probe wins; where none exists, the authored value stands
+   * because it is a statement about what is BUILT, which no probe can measure.
+   */
+  liveCheck?: string;
+}
 const FEATURES: FeatureRow[] = [
   { feature: "Ask Mondaily memory/context", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Thread history + context store, real source-backed answers." },
   { feature: "Source cards", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Every Ask/Decision Queue answer shows the real records or evidence behind it." },
@@ -77,14 +90,14 @@ const FEATURES: FeatureRow[] = [
   { feature: "Finance invoices", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Invoice CRUD + chasing via Decision Queue approval." },
   { feature: "Reports", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Saved reports run real computed data; Ask can build them via the create_report tool." },
   { feature: "Automations", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "AI-built trigger→condition→action workflows execute in real time on record create/update (Inngest event triggers, idempotent), with the daily cron as a backstop sweep." },
-  { feature: "Email (Gmail + Outlook, direct)", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Direct Google (Gmail API) + Microsoft (Graph), no middleman: connect, inbox read, reply, and compose/send are live. Needs GOOGLE_CLIENT_ID/SECRET and/or MICROSOFT_CLIENT_ID/SECRET." },
-  { feature: "Calendar sync (Gmail + Outlook)", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Direct Google Calendar + Microsoft Graph OAuth (read-only) — one 'Connect' grants mail + calendar; real events render on Home. Uses the same GOOGLE_/MICROSOFT_CLIENT_ID/SECRET." },
+  { feature: "Email (Gmail + Outlook, direct)", liveCheck: "email", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Direct Google (Gmail API) + Microsoft (Graph), no middleman: connect, inbox read, reply, and compose/send are live. Needs GOOGLE_CLIENT_ID/SECRET and/or MICROSOFT_CLIENT_ID/SECRET." },
+  { feature: "Calendar sync (Gmail + Outlook)", liveCheck: "email", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Direct Google Calendar + Microsoft Graph OAuth (read-only) — one 'Connect' grants mail + calendar; real events render on Home. Uses the same GOOGLE_/MICROSOFT_CLIENT_ID/SECRET." },
   { feature: "Calls", status: "partial", inApp: true, backendReady: true, needsSetup: true, notes: "Call log + AI transcript summary exist; needs AI_GATEWAY_API_KEY for summaries." },
   { feature: "Voice dictation", status: "partial", inApp: true, backendReady: false, needsSetup: false, notes: "Browser speech-to-text dictation (Web Speech API) fills the Ask input on Home — no backend involved. Full voice COMMANDS (act on speech) not built." },
   { feature: "MCP / API", status: "live", inApp: false, backendReady: true, needsSetup: false, notes: "REST API at /docs + an MCP server at /api/mcp (search_records, get_record, list_recent) for external AI clients, authed by a per-workspace key from Settings → Integrations." },
   { feature: "Workspace isolation & security", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "App-layer workspace_id scoping + Postgres RLS (verified via anon key) + a cross-tenant isolation test; IDOR paths closed, RBAC-gated settings/lists, prompt-injection hardened." },
   { feature: "AI training ledger", status: "live", inApp: false, backendReady: true, needsSetup: false, notes: "Decision-Queue verdicts → ai_training_logs with real generation prompts (prospecting/chat); PII-redacted + injection-filtered JSONL exporter." },
-  { feature: "Billing (embedded Stripe)", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Embedded Payment Element on our own page (no redirect) + subscriptions + webhook tier activation, all built. Needs STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_OPERATOR/COMMAND_MONTH, STRIPE_WEBHOOK_SECRET." },
+  { feature: "Billing (embedded Stripe)", liveCheck: "stripe", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Embedded Payment Element on our own page (no redirect) + subscriptions + webhook tier activation, all built. Needs STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_OPERATOR/COMMAND_MONTH, STRIPE_WEBHOOK_SECRET." },
 ];
 
 // ── Project log — live, DB-backed. Recent updates (kind='update') and
@@ -148,6 +161,11 @@ function useStatus() {
 
 export function StatusPage() {
   const { data, isLoading, isError, error } = useStatus();
+  // Index the live checks by id so the feature table can consult them instead of asserting.
+  const liveByStatusId = useMemo(
+    () => new Map((data?.checks ?? []).map(c => [c.id, c])),
+    [data],
+  );
   const { data: log } = useProjectLog();
   const updates = log?.updates ?? [];
   const logUnavailable = log && !log.available;
@@ -229,7 +247,16 @@ export function StatusPage() {
             </thead>
             <tbody>
               {FEATURES.map(f => {
-                const meta = FEATURE_STATUS_META[f.status];
+                // A live probe overrules the authored status. `needs_setup` from the server is the
+                // same claim as `needs_configuration` here; `operational` means the thing this row
+                // says needs configuring is already configured, and saying otherwise is a lie the
+                // status page of all pages cannot afford.
+                const probe = f.liveCheck ? liveByStatusId.get(f.liveCheck) : undefined;
+                const effective: FeatureStatus =
+                  probe?.state === "operational" ? "live"
+                  : probe?.state === "needs_setup" ? "needs_configuration"
+                  : f.status;
+                const meta = FEATURE_STATUS_META[effective];
                 return (
                   <tr key={f.feature} style={{ borderBottom: "1px solid var(--border-soft)" }}>
                     <td className="whitespace-nowrap px-3.5 py-2.5 font-medium" style={{ color: "var(--text-primary)" }}>{f.feature}</td>
