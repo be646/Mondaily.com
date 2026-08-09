@@ -16,6 +16,7 @@ import { PendingPlanBanner } from "../../components/ui/pending-plan-banner";
 import { BillingAlertBanner } from "../../components/ui/billing-alert-banner";
 import { useLanguage } from "../../hooks/useLanguage";
 import { HelpProvider } from "../../components/help/help-panel";
+import { AlertHost } from "../../components/ui/alert-host";
 import { DialogProvider } from "../../components/ui/dialog-service";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
@@ -260,6 +261,8 @@ export function DashboardLayout() {
         </main>
       </div>
 
+      {/* Failure feedback for every mutation that does not handle its own — see lib/query-client. */}
+      <AlertHost />
       <QuickActions />
       <CommandPalette />
       <GettingStarted />
