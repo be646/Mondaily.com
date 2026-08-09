@@ -3055,24 +3055,30 @@ function CookieBanner() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed inset-x-0 bottom-6 z-50 mx-auto w-full max-w-xl px-4"
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ type: "spring", stiffness: 300, damping: 32 }}
+          /* BOTTOM-PINNED, not a floating card. It used to sit in a centred max-w-xl box six
+             units off the bottom, which reads as a modal hovering over the middle of the page
+             rather than a consent bar — and on a short viewport it genuinely covers the content
+             it is asking you to consent to. Flush to the edge, full width, one top hairline. */
+          className="fixed inset-x-0 bottom-0 z-50 w-full"
         >
           {/* Solid, theme-aware surface (was near-invisible: 7%-black border, no shadow, and
               hardcoded zinc text that went unreadable on the dark surface). Now uses landing
               tokens so it reads in light + dark, with a real elevation shadow. */}
           <div
-            className="overflow-hidden rounded-sm"
             style={{
               background: "var(--landing-surface-raised)",
-              border: "1px solid var(--landing-line-strong)",
-              boxShadow: "0 16px 48px -12px rgba(0,0,0,0.28)",
+              /* A top border only — the other three edges are the viewport. A full box outline on
+                 a flush bar draws lines against the screen edge that nothing sits inside. */
+              borderTop: "1px solid var(--landing-line-strong)",
             }}
           >
-            <div className="flex items-start gap-4 px-5 py-4 sm:px-6 sm:py-5">
+            {/* Content stays measured even though the bar spans the viewport; a consent sentence
+                running the full width of a 27" monitor is unreadable. */}
+            <div className="mx-auto flex max-w-4xl items-start gap-4 px-5 py-4 sm:px-6">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--landing-hover)" }}>
                 <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--landing-muted)" }}>EU</span>
               </div>
@@ -3086,7 +3092,7 @@ function CookieBanner() {
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3 sm:px-6" style={{ borderTop: "1px solid var(--landing-line)" }}>
+            <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-2 px-5 pb-4 sm:px-6" style={{ borderTop: "1px solid var(--landing-line)", paddingTop: "0.75rem" }}>
               <a href="/privacy" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Privacy policy</a>
               <a href="/terms" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Terms</a>
               <div className="ml-auto flex items-center gap-2">
