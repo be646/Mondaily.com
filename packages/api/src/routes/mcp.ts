@@ -4,6 +4,7 @@
 // — NOT Clerk — so this router does its own auth and is mounted outside requireAuth.
 import { Hono } from "hono";
 import { supabase } from "@mondaily/db/client";
+import { orFilterValue } from "../lib/pgrst-filter";
 import { verifyMcpToken } from "../lib/mcp-token";
 
 const router = new Hono();
@@ -33,7 +34,9 @@ function summarize(n: Node) {
   return { id: n.id, type: n.object_type, name: d.name ?? d.title ?? d.full_name ?? d.company ?? null, updated_at: n.updated_at };
 }
 // Defang PostgREST OR-filter metacharacters so a query can't break out of the filter.
-const clean = (s: string) => s.replace(/[%,()]/g, " ").trim().slice(0, 200);
+// Was a local strip of the same PostgREST grammar that search.ts handled differently and
+// emails.ts not at all. One helper now, so the fourth call site cannot get it wrong.
+const clean = (s: string) => orFilterValue(s);
 
 async function runTool(workspaceId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
   if (name === "search_records") {
@@ -43,7 +46,7 @@ async function runTool(workspaceId: string, name: string, args: Record<string, u
     const { data } = await supabase.from("nodes")
       .select("id,object_type,vertical,data,updated_at")
       .eq("workspace_id", workspaceId)
-      .or(`data->>name.ilike.%${q}%,data->>title.ilike.%${q}%,data->>company.ilike.%${q}%,data->>full_name.ilike.%${q}%`)
+      .or(`data->>name.ilike.%${orFilterValue(q)}%,data->>title.ilike.%${orFilterValue(q)}%,data->>company.ilike.%${orFilterValue(q)}%,data->>full_name.ilike.%${orFilterValue(q)}%`)
       .order("updated_at", { ascending: false }).limit(limit);
     return (data ?? []).map((n) => summarize(n as Node));
   }

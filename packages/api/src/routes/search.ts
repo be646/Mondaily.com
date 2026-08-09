@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { orFilterValue } from "../lib/pgrst-filter";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { isEmbeddingsEnabled, embedOne, embedBatch } from "../lib/embeddings";
@@ -20,7 +21,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
   const q = body.query;
 
   // Sanitized copy for the PostgREST .or() filter, whose grammar uses commas/parens as separators.
-  const orQ = q.replace(/[(),]/g, " ").trim();
+  const orQ = orFilterValue(q);
 
   const [nameResults, emailResults, financeResults, taskResults] = await Promise.all([
     supabase.from("nodes")
@@ -39,7 +40,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       .select("id, object_type, vertical, data, updated_at")
       .eq("workspace_id", workspaceId)
       .eq("vertical", "finance")
-      .or(`data->>client_name.ilike.%${orQ}%,data->>number.ilike.%${orQ}%`)
+      .or(`data->>client_name.ilike.%${orFilterValue(orQ)}%,data->>number.ilike.%${orFilterValue(orQ)}%`)
       .limit(10),
     supabase.from("tasks")
       .select("id, title, priority, status, due_date, updated_at")

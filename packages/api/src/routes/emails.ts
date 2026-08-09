@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
+import { orFilterValue } from "../lib/pgrst-filter";
 import { ticketIdFromRecipient, fileSupportReply } from "../lib/support-mail";
 import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, attachmentPath, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
@@ -312,7 +313,7 @@ router.get("/threads/:id", async (c) => {
     }
   }
 
-  const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${c.req.param("id")},data->>thread_id.eq.${c.req.param("id")}`).maybeSingle();
+  const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${orFilterValue(c.req.param("id"))},data->>thread_id.eq.${orFilterValue(c.req.param("id"))}`).maybeSingle();
   return data ? c.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c.json({ error: "Thread not found" }, 404);
 });
 
@@ -368,7 +369,7 @@ router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string()
   const threadId = c.req.param("id");
   const { data: node } = await supabase.from("nodes").select("id,data")
     .eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread")
-    .or(`id.eq.${threadId},data->>thread_id.eq.${threadId}`).maybeSingle();
+    .or(`id.eq.${orFilterValue(threadId)},data->>thread_id.eq.${orFilterValue(threadId)}`).maybeSingle();
   if (!node) return c.json({ error: "Connect a Gmail inbox in Settings → Email, or configure native mail, before replying." }, 400);
   const tdata = node.data as ThreadData;
   const last = (tdata.messages ?? [])[tdata.messages.length - 1];
