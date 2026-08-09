@@ -202,10 +202,16 @@ router.get("/mcp-token", requireAuth, async (c) => {
  *
  * ADMIN-ONLY: this creates records in bulk, which is not a member-level action.
  */
+// requireAuth BEFORE requireAdminRole, always. This router gates per-route rather than with a
+// router.use("*"), so an admin check on its own reads a role that was never set and refuses
+// everyone — and, worse, the commit path would have read an undefined workspaceId and written
+// rows with no tenant. Caught by calling the route as a genuine workspace owner and being told
+// "requires owner or admin role"; no unit test would have noticed, because the middleware chain
+// is the thing under test.
 const SF_MAX_BYTES = 8 * 1024 * 1024;   // a 1,400-row Opportunity export is ~300KB; 8MB is generous
 const SF_MAX_ROWS = 20_000;             // bounded so one paste cannot pin a serverless function
 
-router.post("/salesforce/parse", requireAdminRole, zValidator("json", z.object({
+router.post("/salesforce/parse", requireAuth, requireAdminRole, zValidator("json", z.object({
   raw: z.string().min(1).max(SF_MAX_BYTES),
   object: z.string().max(40).optional(),
 })), async (c) => {
@@ -222,7 +228,7 @@ router.post("/salesforce/parse", requireAdminRole, zValidator("json", z.object({
   }
 });
 
-router.post("/salesforce/migrate", requireAdminRole, zValidator("json", z.object({
+router.post("/salesforce/migrate", requireAuth, requireAdminRole, zValidator("json", z.object({
   raw: z.string().min(1).max(SF_MAX_BYTES),
   object: z.string().max(40).optional(),
   /** Admin re-bindings from the mapping matrix: { "Renewal_Risk__c": "renewal_risk" } or null to drop. */
