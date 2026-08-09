@@ -16,6 +16,10 @@ import { Hono } from "hono";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
+import { requireAdminRole } from "../middleware/rbac";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { parseSalesforceExport, parseAny, buildPlan } from "../services/salesforce-importer";
 import { googleConfigured, googleAuthUrl, exchangeCode } from "../lib/google";
 import { microsoftConfigured, microsoftAuthUrl, exchangeCode as exchangeMicrosoftCode } from "../lib/microsoft";
 
@@ -184,6 +188,107 @@ router.get("/mcp-token", requireAuth, async (c) => {
     transport: "streamable-http",
     note: "Use as Authorization: Bearer <token>. Read-only access to this workspace's records.",
   });
+});
+
+
+// ── Salesforce migration bridge ───────────────────────────────────────────────
+/**
+ * Two routes, one plan. `/parse` shows what an export contains; `/migrate` turns it into the exact
+ * records that would be written and, ONLY with `commit: true`, writes them.
+ *
+ * Dry-run is the default and the commit path consumes the same plan the dry-run returned, so what
+ * an admin approves in the mapping matrix is literally what lands. An importer whose preview is
+ * computed by different code from its write is an importer whose preview is a guess.
+ *
+ * ADMIN-ONLY: this creates records in bulk, which is not a member-level action.
+ */
+const SF_MAX_BYTES = 8 * 1024 * 1024;   // a 1,400-row Opportunity export is ~300KB; 8MB is generous
+const SF_MAX_ROWS = 20_000;             // bounded so one paste cannot pin a serverless function
+
+router.post("/salesforce/parse", requireAdminRole, zValidator("json", z.object({
+  raw: z.string().min(1).max(SF_MAX_BYTES),
+  object: z.string().max(40).optional(),
+})), async (c) => {
+  try {
+    const { raw, object } = c.req.valid("json");
+    const result = parseSalesforceExport(raw, object);
+    if (result.rowCount > SF_MAX_ROWS) {
+      return c.json({ error: `That export has ${result.rowCount.toLocaleString()} rows. Split it into files of ${SF_MAX_ROWS.toLocaleString()} or fewer.` }, 413);
+    }
+    return c.json(result);
+  } catch (e) {
+    // The parser throws only on genuinely unreadable input; say what, not a 500.
+    return c.json({ error: e instanceof Error ? e.message : "Could not read that export." }, 422);
+  }
+});
+
+router.post("/salesforce/migrate", requireAdminRole, zValidator("json", z.object({
+  raw: z.string().min(1).max(SF_MAX_BYTES),
+  object: z.string().max(40).optional(),
+  /** Admin re-bindings from the mapping matrix: { "Renewal_Risk__c": "renewal_risk" } or null to drop. */
+  overrides: z.record(z.string().nullable()).optional(),
+  /** WITHOUT this the route is a validator and touches nothing. */
+  commit: z.boolean().optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const userId = c.get("userId");
+  const { raw, object, overrides, commit } = c.req.valid("json");
+
+  let parsed: ReturnType<typeof parseSalesforceExport>;
+  try { parsed = parseSalesforceExport(raw, object); }
+  catch (e) { return c.json({ error: e instanceof Error ? e.message : "Could not read that export." }, 422); }
+
+  if (parsed.rowCount > SF_MAX_ROWS) {
+    return c.json({ error: `That export has ${parsed.rowCount.toLocaleString()} rows. Split it into files of ${SF_MAX_ROWS.toLocaleString()} or fewer.` }, 413);
+  }
+
+  const { rows } = parseAny(raw);
+  const plan = buildPlan(parsed.object, rows, parsed.mappings, overrides ?? {});
+
+  // The records themselves are only interesting to the writer; the UI needs the shape and the
+  // problems. Returning 20k payloads to draw a summary card is wasted bytes on every dry run.
+  const summary = {
+    object: plan.object, target_type: plan.targetType,
+    scanned: plan.scanned, ready: plan.ready, rejected: plan.rejected,
+    currencies: plan.currencies,
+    unmapped: parsed.unmapped,
+    mappings: parsed.mappings,
+    issues: plan.issues.slice(0, 200),
+    issue_count: plan.issues.length,
+    committed: false as boolean,
+    imported: 0,
+  };
+
+  if (!commit) return c.json({ ...summary, dry_run: true });
+
+  if (plan.ready === 0) return c.json({ ...summary, dry_run: false, error: "Nothing to import — every row was rejected." }, 422);
+
+  // Chunked insert: one 20k-row statement is a timeout and an all-or-nothing failure. Chunks let a
+  // partial import report honestly how far it got instead of claiming zero.
+  const CHUNK = 500;
+  let imported = 0;
+  for (let i = 0; i < plan.records.length; i += CHUNK) {
+    const batch = plan.records.slice(i, i + CHUNK);
+    // workspace_id is stamped INSIDE the insert statement rather than on a batch built above it.
+    // Same rows either way, but the tenant scoping is now visible in the statement itself — which
+    // is what the isolation ratchet reads, and what a reviewer reads. A safety property built two
+    // lines away from the call it protects is a safety property nobody can check at a glance.
+    const { error } = await supabase.from("nodes").insert(
+      batch.map(r => ({
+        workspace_id: ws, vertical: "shared", object_type: plan.targetType,
+        created_by: userId, data: r.data,
+      })),
+    );
+    if (error) {
+      return c.json({
+        ...summary, dry_run: false, committed: imported > 0, imported,
+        error: `Imported ${imported} record(s), then stopped: ${error.message}`,
+      }, 500);
+    }
+    imported += batch.length;
+  }
+
+  return c.json({ ...summary, dry_run: false, committed: true, imported });
 });
 
 export { router as integrationsRouter };
