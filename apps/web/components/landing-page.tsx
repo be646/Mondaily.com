@@ -3073,6 +3073,23 @@ function CookieBanner() {
               hardcoded zinc text that went unreadable on the dark surface). Now uses landing
               tokens so it reads in light + dark, with a real elevation shadow. */}
           <div
+            /**
+             * SCOPED HERE, not inherited. The --landing-* tokens are defined on `.landing-shell`,
+             * and this banner is mounted as a SIBLING of that element (after its closing tag), so
+             * every one of them resolved to nothing: `background: var(--landing-surface-raised)`
+             * computed to transparent and the 1px border rendered at 0px.
+             *
+             * That is the transparent banner that was reported. A previous fix had replaced
+             * hardcoded colours with these tokens — correct in intent, but the tokens were never in
+             * scope here, so it swapped a visible wrong colour for no colour at all. Measured live:
+             * every --landing-* read (EMPTY) on this subtree.
+             *
+             * Carrying the class rather than moving the mount point, because the shell is an
+             * animated motion.div and relocating a position:fixed child underneath it risks the
+             * containing-block rules changing where the bar lands.
+             */
+            className="landing-shell"
+            data-theme="light"
             style={{
               background: "var(--landing-surface-raised)",
               /* A top border only — the other three edges are the viewport. A full box outline on
