@@ -5,6 +5,7 @@ import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { Modal } from "@/components/ui/modal";
+import { SalesforceBridge } from "../../../components/integrations/salesforce-bridge";
 
 interface IntegrationProfile { account: string; connected_at?: string; scopes?: string[] }
 interface IntegrationData {
@@ -324,6 +325,7 @@ export function IntegrationsSettings() {
           </form>
         </ModalShell>
       )}
+      <SalesforceBridge />
     </div>
   );
 }
