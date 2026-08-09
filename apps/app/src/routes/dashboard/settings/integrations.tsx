@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, ExternalLink, KeyRound, Link2, Plug, Plus, Radio, RotateCw, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
@@ -16,23 +17,21 @@ interface IntegrationData {
 }
 
 /**
- * `built` distinguishes what EXISTS from what is planned.
+ * ONLY WHAT EXISTS. Every entry here connects.
  *
- * Every tile previously read "Not available yet" except Gmail, which understated the product:
- * Outlook (lib/microsoft.ts, full OAuth + Graph) and Google Calendar (GET /integrations/
- * calendar/events) are both built and connectable from Settings → Email. Telling a customer a
- * shipped feature does not exist is the same class of error as the status page claiming Stripe
- * needed configuring while it probed green — a stale hardcoded string outranking reality.
+ * This list used to carry Slack, Zapier, Typeform, Segment and Mailchimp, each with a "Coming
+ * soon" badge and no implementation behind it — five adverts for features that do not exist. A
+ * roadmap belongs on the roadmap page, not in a settings screen where every other row is a thing
+ * you can actually use.
+ *
+ * Worse, the badge was rendered UNCONDITIONALLY, so Gmail, Outlook and Google Calendar — all fully
+ * built and connectable — were labelled "Coming soon" too. The page was simultaneously promising
+ * what did not exist and denying what did.
  */
 const integrationCatalog = [
-  { id: "gmail", name: "Gmail", description: "Sync inbox conversations and contacts.", icon: "G", built: true },
-  { id: "outlook", name: "Outlook", description: "Sync Microsoft email and calendar.", icon: "O", built: true },
-  { id: "google-calendar", name: "Google Calendar", description: "Import meetings and attendees.", icon: "C", built: true },
-  { id: "slack", name: "Slack", description: "Send alerts and agent updates.", icon: "S", built: false },
-  { id: "zapier", name: "Zapier", description: "Connect thousands of external apps.", icon: "Z", built: false },
-  { id: "typeform", name: "Typeform", description: "Create records from form responses.", icon: "T", built: false },
-  { id: "segment", name: "Segment", description: "Stream customer events into Mondaily.", icon: "Sg", built: false },
-  { id: "mailchimp", name: "Mailchimp", description: "Sync audiences and campaign engagement.", icon: "M", built: false },
+  { id: "gmail", name: "Gmail", description: "Sync inbox conversations and contacts.", icon: "G" },
+  { id: "outlook", name: "Outlook", description: "Sync Microsoft email and calendar.", icon: "O" },
+  { id: "google-calendar", name: "Google Calendar", description: "Import meetings and attendees.", icon: "C" },
 ] as const;
 
 const webhookEvents = [
@@ -126,20 +125,15 @@ export function IntegrationsSettings() {
                   {item.icon}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{item.name}</p>
-                    <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
-                      Coming soon
-                    </span>
-                  </div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{item.name}</p>
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">{item.description}</p>
                 </div>
               </div>
-              {/* Honest state: these don't connect yet (no fake "connected"). Email connect
-                  is real and lives in Settings → Email (direct Google OAuth, read-only). */}
-              <span className="mt-auto self-start text-xs text-[var(--text-muted)]">
-                {item.built ? "Connect in Settings → Email" : "Not available yet"}
-              </span>
+              {/* Every tile is connectable. The flow lives in Settings → Email because that is the
+                  only surface that can show the real consent scopes before you grant them. */}
+              <Link to="/settings/email" className="mt-auto self-start text-xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline">
+                Connect in Settings → Email
+              </Link>
             </article>
           ))}
         </div>

@@ -16,6 +16,17 @@ import { join } from "node:path";
 const route = readFileSync(join(__dirname, "../routes/integrations.ts"), "utf8");
 const page = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/settings/integrations.tsx"), "utf8");
 
+/**
+ * Source with comments stripped.
+ *
+ * The copy assertions below are about what the page RENDERS, and the comment explaining why the
+ * "Coming soon" badge was removed necessarily contains that phrase. Matching raw source failed on
+ * the prose rather than the behaviour — the third time in this codebase a guard has tripped over
+ * its own explanation (the design ratchet counts a hex in a comment; the auth console needed the
+ * same treatment for enumeration phrasing). When a rule is about output, strip the commentary.
+ */
+const rendered = page.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
 describe("/connect never guesses a provider", () => {
   it("returns null for anything unrecognised instead of defaulting to Google", () => {
     expect(route).toMatch(/function normalizeProvider\([\s\S]{0,600}?return null;\n\}/);
@@ -28,20 +39,29 @@ describe("/connect never guesses a provider", () => {
   });
 });
 
-describe("the catalogue describes reality", () => {
-  it("marks Outlook and Google Calendar as built, because they are", () => {
-    // lib/microsoft.ts is a full OAuth + Graph client; GET /integrations/calendar/events exists.
-    for (const id of ["gmail", "outlook", "google-calendar"]) {
-      expect(page, `${id} should be marked built`).toMatch(new RegExp(`id: "${id}"[^}]*built: true`));
+describe("the catalogue lists ONLY what exists", () => {
+  it("carries no 'coming soon' or 'not available' copy", () => {
+    // The list used to advertise Slack, Zapier, Typeform, Segment and Mailchimp with a "Coming
+    // soon" badge and nothing behind any of them. A settings screen is where you go to use
+    // things; a roadmap belongs on the roadmap page.
+    expect(rendered).not.toMatch(/Coming soon/i);
+    expect(rendered).not.toMatch(/Not available yet/i);
+  });
+
+  it("lists no integration without an implementation", () => {
+    const listed = [...page.matchAll(/\{ id: "([a-z-]+)", name:/g)].map(m => m[1]!);
+    expect(listed.length).toBeGreaterThan(0);
+    for (const id of ["slack", "zapier", "typeform", "segment", "mailchimp"]) {
+      expect(listed, `${id} has no implementation and must not be advertised`).not.toContain(id);
     }
   });
 
-  it("still says so plainly for what is NOT built", () => {
-    expect(page).toMatch(/item\.built \? "Connect in Settings → Email" : "Not available yet"/);
-    // The unbuilt ones must not have acquired a `built` flag by copy-paste.
-    for (const id of ["slack", "zapier", "typeform", "mailchimp"]) {
-      expect(page, `${id} must not claim to be built`).not.toMatch(new RegExp(`id: "${id}"[^}]*built: true`));
-    }
+  it("every listed integration routes somewhere it can actually be connected", () => {
+    // Previously the badge rendered unconditionally, so Gmail, Outlook and Google Calendar — all
+    // fully built — were labelled "Coming soon" too. The page denied what it had and promised
+    // what it did not.
+    expect(page).toMatch(/to="\/settings\/email"/);
+    expect(page).toMatch(/Connect in Settings → Email/);
   });
 
   it("no tile initiates a connection from this page", () => {
