@@ -19,3 +19,6 @@ playwright-report/
 # local pnpm content-addressable store (generated)
 .pnpm-store/
 *.tsbuildinfo
+
+# local tooling shims (pnpm launcher when corepack is not on PATH)
+.bin/
