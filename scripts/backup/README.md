@@ -35,7 +35,35 @@ Run against production 2026-08-10: **18,539 rows across 26 tables, every table m
 server-reported count, 0 corrupt lines**, and the first real customer's workspace, credential and
 records all present and parseable.
 
+## Deployed
+
+Running nightly on the Hetzner box (`178.105.166.138`) — which is genuinely off-host, since the
+database lives at Supabase.
+
+```
+/opt/mondaily-backup/export.mjs   the exporter (this file, copied)
+/opt/mondaily-backup/run.sh       the cron wrapper — see run.sh here
+/opt/mondaily-backup/.env         SUPABASE_URL + SERVICE_KEY, chmod 600 root-only
+/opt/mondaily-backups/<stamp>/    the snapshots, 14-day retention
+/var/log/mondaily-backup.log      cron output
+```
+
+Crontab: `17 3 * * *`. Off-the-hour on purpose — every cron on earth fires at :00 and Supabase is
+shared infrastructure.
+
+**It runs in a throwaway `node:22-alpine` container** rather than installing Node on the host. Every
+other service on that box is containerised, and a backup job should be the last thing to start a
+package-manager dependency chain on a mail server.
+
+**Retention prunes only after a successful run.** `set -e` means a failed export never reaches the
+prune, so a broken backup can never delete the last good one.
+
+Verified on the box under a deliberately cron-like minimal environment (`env -i PATH=/usr/bin:/bin`),
+because a job that works interactively and fails under cron is the standard way this silently stops:
+exit 0, 18,540 rows, 0 corrupt, real customer workspace recoverable.
+
 ## Still to decide
 
-Where these land. An export on the machine that made it is not a backup — it needs somewhere
-durable and off-host, and a schedule. That is an infrastructure choice, not a code one.
+The snapshots sit on one machine. That is off-host from the database, which is the important half,
+but it is not off-site — losing that box loses the backups. Copying snapshots to object storage is
+the next hardening step and needs a destination you choose.
