@@ -8,8 +8,12 @@
  * Deliberately NOT pg_dump: this runs against PostgREST with the service key, so it needs no
  * database password, no network path to port 5432, and no client binaries — it works from a laptop,
  * a CI runner, or a cron box with nothing installed but Node. The trade is that it captures ROWS,
- * not schema; the schema lives in packages/db/migrations, which is already in git. Together those
- * two are a complete restore.
+ * not schema.
+ *
+ * This file used to claim the schema was safe in packages/db/migrations. It was not: ten core
+ * tables, `nodes` among them, were made by hand in the Supabase editor and appear in no migration.
+ * Rows without a schema are not a restore. Run scripts/backup/schema-snapshot.mjs alongside this —
+ * run.sh does — and the pair is restorable by scripts/backup/restore.mjs.
  *
  * Every table is paged, because a `select *` that silently returns only the first 1,000 rows is the
  * worst possible backup: it succeeds, it looks right, and it is missing most of your data. Each
@@ -33,20 +37,36 @@ if (!URL_ || !KEY) {
 }
 
 /**
- * Tables carrying tenant or account data. A table absent from the deployment is skipped with a
- * note rather than failing the run — deployments legitimately differ, and a backup that aborts
- * because one optional feature was never migrated protects nothing.
+ * Which tables to capture — DISCOVERED from the database, never hand-listed.
+ *
+ * The first version carried a literal array of 31 table names. On 2026-08-10 that list was measured
+ * against the live database: it was missing 15,018 rows across 30 tables — about 45% of everything.
+ * Among them `object_definitions` (the definitions of every custom object, without which the Graph
+ * has no shape), `edges` (the relationships between records), `list_entries`, every `task_*` table,
+ * `document_counters` (invoice numbering), `api_keys` and `teams`.
+ *
+ * Nobody removed those. They were added after the list was written, and a hand-maintained list
+ * silently omits everything that comes later — it fails in the direction of quietly protecting less
+ * while still reporting success. So the default is now "back up everything", and anything skipped
+ * must be named here with a reason. A new table is captured the day it is created.
  */
-const TABLES = [
-  "workspaces", "workspace_members", "auth_credentials", "auth_refresh_tokens",
-  "nodes", "lists", "tasks", "activities", "chat_threads", "internal_messages",
-  "notifications", "decision_queue", "ai_credits_ledger", "period_snapshots",
-  "fx_rates", "email_connections", "client_errors",
-  // Optional/feature-gated — absent on some deployments, captured when present.
-  "invoices", "quotes", "credit_notes", "expenses", "workflows", "calendar_events",
-  "chat_groups", "chat_group_members", "call_transcript_lines", "caption_translations",
-  "ai_training_logs", "discovered_leads", "workspace_goals", "rate_limits",
-];
+const EXCLUDE = new Map([
+  ["rate_limits", "ephemeral counters, rebuilt within the minute"],
+  ["discovery_cache", "cache of external search results, re-fetchable"],
+  ["node_embeddings", "derived from nodes.data — regenerate by reindexing, and vectors are bulky"],
+]);
+
+async function discoverTables() {
+  const res = await fetch(`${URL_}/rest/v1/`, {
+    headers: { ...headers, Accept: "application/openapi+json" },
+  });
+  if (!res.ok) throw new Error(`Could not list tables: HTTP ${res.status}`);
+  const spec = await res.json();
+  const defs = spec.definitions ?? spec.components?.schemas ?? {};
+  return Object.keys(defs).filter(t => defs[t].properties && !EXCLUDE.has(t)).sort();
+}
+
+const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 const PAGE = 1000;
 const outRoot = (() => {
@@ -57,8 +77,6 @@ const outRoot = (() => {
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const dir = join(outRoot, stamp);
 mkdirSync(dir, { recursive: true });
-
-const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 /**
  * A DETERMINISTIC sort for paging. Getting this wrong is the quiet way a backup lies.
@@ -131,6 +149,9 @@ async function dump(table, expected, orderBy) {
 
 const manifest = { started_at: new Date().toISOString(), source: new URL(URL_).host, tables: [] };
 let short = 0;
+
+const TABLES = await discoverTables();
+console.log(`${TABLES.length} tables discovered (${EXCLUDE.size} excluded by policy)\n`);
 
 for (const table of TABLES) {
   const expected = await countOf(table);

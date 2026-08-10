@@ -23,7 +23,7 @@ docker run --rm \
   -e SUPABASE_URL="$SUPABASE_URL" \
   -e SUPABASE_SERVICE_KEY="$SUPABASE_SERVICE_KEY" \
   node:22-alpine \
-  node /app/export.mjs --out /out
+  sh -c 'node /app/export.mjs --out /out && node /app/schema-snapshot.mjs --out "$(ls -1d /out/*/ | tail -1)schema.sql"'
 
 # Retention. Pruned only AFTER a successful run — `set -e` means a failed export never reaches
 # this line, so a broken backup can never delete the last good one.
