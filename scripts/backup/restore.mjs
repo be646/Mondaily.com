@@ -51,12 +51,54 @@ function loadOrder() {
 }
 
 /**
+ * Column types, read from the same schema file. The restore needs these because JSON and Postgres
+ * disagree about one thing in particular: an ARRAY.
+ *
+ * The first version was type-blind and rendered every non-scalar as JSON, so a `text[]` column got
+ * `'[]'` and Postgres answered `malformed array literal: "[]"` — `[` does not introduce an array,
+ * `{` does. Three columns are affected (`node_ids uuid[]`, `shared_with text[]`, `labels text[]`)
+ * and the restore aborted on the fourth table. Found by actually replaying into Postgres; no amount
+ * of reading the file would have shown it.
+ */
+function loadTypes() {
+  const sql = readFileSync(schemaPath, "utf8");
+  const types = new Map();
+  for (const m of sql.matchAll(/^create table if not exists ([a-z_]+) \(([\s\S]*?)\n\);/gm)) {
+    const cols = new Map();
+    for (const line of m[2].split("\n")) {
+      const t = line.trim().replace(/,$/, "");
+      if (!t || t.startsWith("constraint")) continue;
+      const [col, ...rest] = t.split(/\s+/);
+      cols.set(col, rest.join(" ").replace(/ not null$/, ""));
+    }
+    types.set(m[1], cols);
+  }
+  return types;
+}
+
+/**
+ * A Postgres array literal: braces, elements double-quoted, with `"` and `\` backslash-escaped.
+ * NULL inside an array is the bare word, which is why it cannot simply go through `literal()`.
+ */
+function arrayLiteral(values) {
+  const items = values.map(v => {
+    if (v === null || v === undefined) return "NULL";
+    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  });
+  return `'{${items.join(",")}}'`;
+}
+
+/**
  * Postgres literals. `jsonb` is the one that bites: a JS object must become a quoted JSON *string*
  * and be cast, and a JSON string containing a quote must survive that round trip. Everything goes
  * through the same quote-doubling so there is a single escaping path rather than one per type.
  */
-function literal(v) {
+function literal(v, type = "") {
   if (v === null || v === undefined) return "NULL";
+  // An array column takes brace syntax; a jsonb column holding an array takes JSON. Same JS value,
+  // different literal, and only the declared type distinguishes them.
+  if (type.endsWith("[]")) return arrayLiteral(Array.isArray(v) ? v : [v]);
   if (typeof v === "boolean") return v ? "true" : "false";
   if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
   const text = typeof v === "object" ? JSON.stringify(v) : String(v);
@@ -64,6 +106,7 @@ function literal(v) {
 }
 
 const order = loadOrder();
+const TYPES = loadTypes();
 const present = new Set(
   readdirSync(dir).filter(f => f.endsWith(".ndjson")).map(f => f.replace(/\.ndjson$/, "")),
 );
@@ -93,12 +136,13 @@ for (const table of tables) {
   // taken across a schema change can legitimately have a column that only later rows carry.
   const cols = [...new Set(rows.flatMap(Object.keys))];
 
+  const colTypes = TYPES.get(table) ?? new Map();
   chunks.push(`-- ${table}: ${rows.length} rows`);
   // Batched so a large table is a handful of statements rather than thousands, while staying well
   // under any statement-size limit.
   for (let i = 0; i < rows.length; i += 500) {
     const batch = rows.slice(i, i + 500);
-    const values = batch.map(r => `(${cols.map(c => literal(r[c])).join(", ")})`).join(",\n  ");
+    const values = batch.map(r => `(${cols.map(c => literal(r[c], colTypes.get(c) ?? "")).join(", ")})`).join(",\n  ");
     chunks.push(`insert into ${table} (${cols.join(", ")}) values\n  ${values};`);
   }
   chunks.push(``);
