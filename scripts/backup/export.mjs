@@ -61,22 +61,42 @@ mkdirSync(dir, { recursive: true });
 const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 /**
- * A column to page by. Paging WITHOUT a stable sort is the subtle way this goes wrong: Postgres is
- * free to return rows in any order between requests, so page 2 can repeat rows from page 1 and skip
- * others entirely — producing a backup with the right row COUNT and the wrong rows.
+ * A DETERMINISTIC sort for paging. Getting this wrong is the quiet way a backup lies.
  *
- * Prefer a real key; otherwise take whichever column the table actually has first.
+ * `LIMIT/OFFSET` over a non-unique `ORDER BY` is not stable in Postgres: rows that tie may come
+ * back in any order per request, so page 2 can repeat rows from page 1 and skip others — leaving a
+ * backup with the right row COUNT and the wrong rows.
+ *
+ * The first version preferred id / user_id / workspace_id / created_at and took the first column
+ * otherwise. That looked careful and was not: `period_snapshots` has no `id` (its key is
+ * `snapshot_id`) so it sorted by `workspace_id` — 13 distinct values across 1,968 rows — and
+ * `fx_rates` sorted by `currency`, 30 across 2,031. Both are paged. Both were unstable.
+ *
+ * So: use a single column ONLY when it is genuinely a unique key. Otherwise sort by the whole row
+ * of scalar columns, which is deterministic by construction — two rows can only tie if they are
+ * identical in every scalar field, and then their order does not matter.
  */
+function orderExpression(sample) {
+  const keys = Object.keys(sample);
+  // A column named `id`, or `<thing>_id` that is the table's own key, is unique by convention here.
+  for (const k of ["id", "snapshot_id", "user_id", "key"]) {
+    if (keys.includes(k)) return k;
+  }
+  // Full-tuple sort. json/jsonb columns are excluded — Postgres cannot order `json`, and the
+  // scalars are already enough to make the tuple unique.
+  const scalars = keys.filter(k => {
+    const v = sample[k];
+    return v === null || ["string", "number", "boolean"].includes(typeof v);
+  });
+  return scalars.length ? scalars.join(",") : keys[0];
+}
+
 async function orderColumn(table) {
   const res = await fetch(`${URL_}/rest/v1/${table}?select=*&limit=1`, { headers });
   if (!res.ok) return null;
   const rows = await res.json();
   if (!Array.isArray(rows) || rows.length === 0) return "__EMPTY__";
-  const keys = Object.keys(rows[0]);
-  for (const preferred of ["id", "user_id", "workspace_id", "created_at"]) {
-    if (keys.includes(preferred)) return preferred;
-  }
-  return keys[0] ?? null;
+  return orderExpression(rows[0]);
 }
 
 async function countOf(table) {
@@ -94,7 +114,7 @@ async function dump(table, expected, orderBy) {
   const out = createWriteStream(file);
   let written = 0;
   for (let from = 0; ; from += PAGE) {
-    const res = await fetch(`${URL_}/rest/v1/${table}?select=*&order=${encodeURIComponent(orderBy)}`, {
+    const res = await fetch(`${URL_}/rest/v1/${table}?select=*&order=${orderBy}`, {
       headers: { ...headers, Range: `${from}-${from + PAGE - 1}` },
     });
     if (!res.ok) throw new Error(`${table} page ${from}: HTTP ${res.status}`);
