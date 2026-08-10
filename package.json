@@ -22,7 +22,8 @@
     "e2e": "playwright test --project=public --project=setup",
     "e2e:auth": "playwright test",
     "eval:ai:dry-run": "node scripts/ai-eval/harness.mjs --dry-run",
-    "eval:ai:offline": "node scripts/ai-eval/harness.mjs --offline"
+    "eval:ai:offline": "node scripts/ai-eval/harness.mjs --offline",
+    "backup": "node scripts/backup/export.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
