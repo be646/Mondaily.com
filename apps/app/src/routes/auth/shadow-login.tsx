@@ -128,7 +128,7 @@ export function ShadowLoginPage() {
         <CapsuleInput label="Password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
         <PowShieldLine status={shield.status} />
         {error && <p className="text-[11px] text-[#d1524a]">{error}</p>}
-        <GlowButton type="submit" disabled={!valid} loading={loading}>
+        <GlowButton type="submit" variant="secondary" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Verifying…</> : "Sign in"}
         </GlowButton>
         <button type="button" onClick={() => navigate("/auth/forgot")} className="w-full text-center text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">Forgot password?</button>

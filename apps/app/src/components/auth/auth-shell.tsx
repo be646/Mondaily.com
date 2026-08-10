@@ -52,14 +52,28 @@ export function CapsuleInput({ label, hint, error, ...props }: { label: string; 
   );
 }
 
-/** Sage-outlined glow button with an inline spinner slot. */
-export function GlowButton({ children, loading, ...props }: { children: ReactNode; loading?: boolean } & ButtonHTMLAttributes<HTMLButtonElement>) {
+/**
+ * The auth action button.
+ *
+ * `variant` exists because the hierarchy is now evidence-based rather than assumed. Measured on
+ * 2026-08-10: of fifteen signups, the two that came through Google were BOTH verified and one
+ * completed onboarding, while all thirteen that came through email-and-password verified zero
+ * times. The path that works should be the one that looks primary.
+ */
+export function GlowButton({ children, loading, variant = "primary", ...props }: {
+  children: ReactNode; loading?: boolean; variant?: "primary" | "secondary";
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const primary = variant === "primary";
   return (
     <button
       {...props}
       disabled={props.disabled || loading}
       className="flex w-full items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[12.5px] font-semibold tracking-wide transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
-      style={{ borderColor: SAGE, color: SAGE, background: `${SAGE}12`, boxShadow: `0 0 18px ${SAGE}22` }}
+      style={primary
+        ? { borderColor: SAGE, color: SAGE, background: `${SAGE}12`, boxShadow: `0 0 18px ${SAGE}22` }
+        // Secondary is still a real, unhindered action — quieter, not disabled-looking. Someone
+        // without a Google account must not feel they are being pushed down a lesser path.
+        : { borderColor: "var(--border-soft)", color: "var(--text-secondary)", background: "transparent" }}
     >
       {children}
     </button>

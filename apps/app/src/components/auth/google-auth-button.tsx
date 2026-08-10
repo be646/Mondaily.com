@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BASE_URL } from "../../lib/api-client";
+import { SAGE } from "./auth-shell";
 import type { AuthTrace } from "../../lib/auth-trace";
 
 /**
@@ -73,7 +74,11 @@ export function GoogleAuthButton({ next, mode, onTrace }: {
         // see and interact with.
         window.location.href = `${BASE_URL}/api/v1/auth/google/start?next=${encodeURIComponent(next)}`;
       }}
-      className="flex w-full items-center justify-center gap-2.5 rounded-sm border border-[var(--border-soft)] bg-zinc-950 px-4 py-2.5 text-body font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--text-faint)]"
+      /* PRIMARY. See GlowButton — the path that actually converts is the one that looks like the
+         way in. Google's own mark stays full-colour, which is both their brand requirement and a
+         useful signal that this button leaves our site. */
+      className="flex w-full items-center justify-center gap-2.5 rounded-sm border px-4 py-2.5 text-body font-semibold tracking-wide transition-all hover:-translate-y-px"
+      style={{ borderColor: SAGE, color: SAGE, background: `${SAGE}12`, boxShadow: `0 0 18px ${SAGE}22` }}
     >
       <GoogleMark />
       {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
@@ -86,7 +91,7 @@ export function AuthDivider() {
   return (
     <div className="my-4 flex items-center gap-3">
       <span className="h-px flex-1 bg-[var(--border-soft)]" />
-      <span className="text-caption uppercase tracking-[0.2em] text-[var(--text-faint)]">or</span>
+      <span className="whitespace-nowrap text-caption uppercase tracking-[0.2em] text-[var(--text-faint)]">or use email</span>
       <span className="h-px flex-1 bg-[var(--border-soft)]" />
     </div>
   );
