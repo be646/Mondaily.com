@@ -62,8 +62,31 @@ Verified on the box under a deliberately cron-like minimal environment (`env -i 
 because a job that works interactively and fails under cron is the standard way this silently stops:
 exit 0, 18,540 rows, 0 corrupt, real customer workspace recoverable.
 
-## Still to decide
+## Off-box replica
 
-The snapshots sit on one machine. That is off-host from the database, which is the important half,
-but it is not off-site — losing that box loses the backups. Copying snapshots to object storage is
-the next hardening step and needs a destination you choose.
+Every run mirrors to the **second Hetzner box** (`178.105.172.237`, the search appliance) at
+`/opt/mondaily-backups-replica`. Same owner, no new account, no new spend — and a genuinely
+different machine, so a dead disk on the mail box no longer takes the backups with it.
+
+The replica key is dedicated and **restricted**: `authorized_keys` pins it to
+`rrsync -wo /opt/mondaily-backups-replica`, plus `no-pty`, `no-port-forwarding`,
+`no-agent-forwarding`, `no-X11-forwarding`. It can write backups into one directory and nothing
+else. Verified adversarially rather than assumed:
+
+- shell attempt → `rrsync error: SSH_ORIGINAL_COMMAND does not run rsync`
+- a write aimed at `/root/` → landed *inside* the confined directory, never at `/root/`
+
+**Replication failure does not fail the run.** By that point the local backup is complete and
+count-verified; losing it to a blip on the mirror would be the wrong trade. It is reported to
+stderr, so a persistently unreachable replica shows up in the log rather than passing silently.
+
+Verified 2026-08-10 under a cron-like environment: both boxes hold identical snapshots, and the
+replica's copy independently re-parsed to 18,542 rows, 0 corrupt, `short_reads: 0`, with the real
+customer's workspace recoverable **from the replica**.
+
+## Remaining exposure, stated plainly
+
+Both copies are Hetzner, and the export reaches Supabase with a service key held on the mail box.
+This survives a lost disk, a bad migration and a dropped table. It does not survive losing the
+Hetzner account itself. A third copy in unrelated object storage would close that, and needs a
+destination to be chosen.
