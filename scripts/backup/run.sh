@@ -25,6 +25,10 @@ docker run --rm \
   node:22-alpine \
   sh -c 'node /app/export.mjs --out /out && node /app/schema-snapshot.mjs --out "$(ls -1d /out/*/ | tail -1)schema.sql"'
 
+# The SCHEMA travels with the rows. Ten core tables — `nodes` among them — exist in no migration,
+# so rows alone are not a restore: they would have no table to go back into. Captured inside the
+# same container run, so a set on disk is always rows + the schema that matches them.
+
 # Retention. Pruned only AFTER a successful run — `set -e` means a failed export never reaches
 # this line, so a broken backup can never delete the last good one.
 find "$OUT" -maxdepth 1 -type d -name '20*' -mtime +$KEEP_DAYS -exec rm -rf {} + 2>/dev/null || true

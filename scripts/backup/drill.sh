@@ -55,7 +55,10 @@ echo
 echo "foreign keys Postgres validated at COMMIT: $(
   docker exec pgdrill psql -U postgres -d drill -tAc \
     "select count(*) from pg_constraint where contype = 'f'")"
-docker exec pgdrill psql -U postgres -d drill <<'SQL'
+# `docker exec` WITHOUT -i does not attach stdin, so the heredoc below never reaches psql: it reads
+# an empty script, prints nothing, exits 0, and the drill looks like it passed while proving nothing.
+# The same shape as every other vacuous check in this codebase — a test that cannot fail.
+docker exec -i pgdrill psql -U postgres -d drill <<'SQL'
 select w.name, count(n.id) as records from workspaces w
   join nodes n on n.workspace_id = w.id group by w.name order by count(n.id) desc limit 3;
 select count(*) filter (where jsonb_typeof(data) = 'object') as queryable_jsonb,
