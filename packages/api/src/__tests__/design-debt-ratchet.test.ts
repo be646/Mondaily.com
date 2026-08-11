@@ -38,6 +38,16 @@ const count = (re: RegExp) => (all.match(re) ?? []).length;
  * needs raising, that is a decision someone should have to make on purpose.
  */
 describe("design debt is capped where it stands", () => {
+  it("the ratchet is actually reading the app", () => {
+    // Every assertion here is a CEILING, and a ceiling is satisfied by finding nothing. If the walk
+    // broke or the app moved, all of these would report zero debt and pass — permanently green
+    // while measuring an empty string. The floors are on what was READ, not on what was found, so
+    // legitimately paying the debt down can never trip them.
+    // Measured 2026-08-11: 196 files, ~3.4M characters.
+    expect(files.length, "no source files walked — this ratchet is measuring nothing").toBeGreaterThan(100);
+    expect(all.length, "source read but empty — the ratchet cannot see any code").toBeGreaterThan(500_000);
+  });
+
   it("arbitrary pixel type sizes do not grow", () => {
     expect(count(/text-\[[0-9.]+px\]/g),
       "new arbitrary text sizes — use the type scale (text-caption/label/body/row/display)")

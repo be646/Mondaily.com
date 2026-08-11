@@ -45,6 +45,23 @@ function unscopedStatements(): { file: string; table: string }[] {
  * has to be looked at deliberately rather than merged unnoticed.
  */
 describe("tenant isolation does not regress", () => {
+  it("the detector still sees the codebase it is meant to police", () => {
+    // WITHOUT this, the ratchet below is vacuous in the one way that matters. It asserts a CEILING
+    // on violations, so a detector that finds nothing passes — and it would find nothing if the
+    // routes moved, or if data access moved behind a helper and `.from("nodes")` stopped appearing.
+    // The guard would stay green forever while policing an empty set.
+    //
+    // The floor is on the POPULATION SCANNED, not on violations found, so genuinely fixing every
+    // unscoped statement can never trip it. Measured 2026-08-11: 63 route files, 454 tenant-table
+    // statements; the floors sit far below that so ordinary refactors do not cause noise.
+    const files = walk(ROUTES);
+    expect(files.length, "no route files scanned — the walk is broken, not the code").toBeGreaterThan(30);
+    const statements = files
+      .map(f => (readFileSync(f, "utf8").match(new RegExp(`\\.from\\("(${TENANT_TABLES.join("|")})"\\)`, "g")) ?? []).length)
+      .reduce((a, b) => a + b, 0);
+    expect(statements, "no tenant-table access found at all — the pattern no longer matches how this codebase reads data, so the ratchet is policing nothing").toBeGreaterThan(200);
+  });
+
   it("no NEW unscoped tenant-table statements", () => {
     const found = unscopedStatements();
     const detail = found.map(f => `${f.file} → ${f.table}`).join("\n");

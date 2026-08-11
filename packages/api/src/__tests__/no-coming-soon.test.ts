@@ -39,7 +39,13 @@ const EXEMPT = /apps[/\\]web[/\\]app[/\\](roadmap|changelog)[/\\]/;
 describe("no feature is advertised before it exists", () => {
   it('nothing renders "coming soon"', () => {
     const offenders: string[] = [];
-    for (const f of [...walk(APP), ...walk(WEB_APP), ...walk(WEB_COMPONENTS)]) {
+    // ANTI-VACUITY: the assertion is `toEqual([])`, so a walk that returns nothing passes. Floors
+    // are on files SCANNED, never on offenders, so removing every "coming soon" cannot trip them.
+    // Measured 2026-08-11: 196 app files + 27 web files.
+    const scanned = [...walk(APP), ...walk(WEB_APP), ...walk(WEB_COMPONENTS)];
+    expect(scanned.length, "no UI files scanned — the walk is broken and this guard checks nothing").toBeGreaterThan(100);
+
+    for (const f of scanned) {
       if (EXEMPT.test(f)) continue;
       if (/coming\s*soon/i.test(rendered(readFileSync(f, "utf8")))) {
         offenders.push(f.split(/[/\\]/).slice(-3).join("/"));

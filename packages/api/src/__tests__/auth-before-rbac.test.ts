@@ -31,9 +31,14 @@ const RBAC = /require(AdminRole|Role|FinanceRole|ModuleAccess|PlatformAdmin)/;
 describe("RBAC gates sit behind authentication", () => {
   it("no route applies an RBAC gate without requireAuth available to it", () => {
     const offenders: string[] = [];
+    // Counted for the anti-vacuity floor below. Declarations are tallied BEFORE the global-auth
+    // skip, so the floor reflects the whole route surface rather than only the files that reach
+    // the inner loop.
+    const scanned = { declarations: 0, rbacGated: 0 };
 
     for (const f of walk(ROUTES)) {
       const src = readFileSync(f, "utf8");
+      scanned.declarations += (src.match(/router\.(?:get|post|patch|put|delete)\(\s*"[^"]+"\s*,/g) ?? []).length;
       // Routers that authenticate globally are fine — the gate always runs after it.
       if (/router\.use\(\s*"\*"\s*,\s*require(Auth|PlatformAdmin)/.test(src)) continue;
 
@@ -48,10 +53,22 @@ describe("RBAC gates sit behind authentication", () => {
         const handlerAt = rest.search(/async\s*\(c\b|\(c\)\s*=>/);
         const chain = handlerAt >= 0 ? rest.slice(0, handlerAt) : rest;
         if (!RBAC.test(chain)) continue;
+        scanned.rbacGated++;
         if (/requireAuth|requirePlatformAdmin/.test(chain)) continue;
         offenders.push(`${f.slice(ROUTES.length + 1)} "${m[1]}"`);
       }
     }
+
+    // ANTI-VACUITY. The assertion below is `toEqual([])`, which a detector that finds nothing
+    // passes. This test's own history is the argument: its first version used a regex that could
+    // not span `zValidator("json", z.object({…}))`, matched no routes at all, and reported success
+    // while the bug it exists to catch was live in production. The comment above records that; this
+    // makes the codebase enforce it.
+    //
+    // The floor is on what was SCANNED, never on offenders, so fixing every offender cannot trip
+    // it. Measured 2026-08-11: 63 route files, 493 route declarations, 38 RBAC-gated.
+    expect(scanned.declarations, "no route declarations matched — the parser no longer understands how routes are written here, so this guard is inspecting nothing").toBeGreaterThan(200);
+    expect(scanned.rbacGated, "no RBAC-gated routes found — either the role helpers were renamed or the chain parser broke; either way nothing is being checked").toBeGreaterThan(10);
 
     expect(offenders,
       `These routes gate on a role that requireAuth never set — they refuse everyone, and their ` +
