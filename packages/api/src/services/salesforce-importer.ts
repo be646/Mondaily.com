@@ -119,26 +119,50 @@ export function parseXml(raw: string): Record<string, string>[] {
   if (/<!DOCTYPE|<!ENTITY/i.test(raw)) {
     throw new Error("This XML declares a DTD or entities, which we don't process. Re-export as CSV or JSON.");
   }
+  // CDATA is lifted out BEFORE any tag matching, and comments with it. Measured against a Salesforce
+  // export, `<Description><![CDATA[quarterly </Description> review]]></Description>` parsed as
+  // `"<![CDATA[quarterly"` — the field regex stopped at the closing tag *inside* the CDATA, which is
+  // exactly what CDATA exists to prevent. Description and Notes routinely carry markup, so this
+  // silently truncated real text and left literal `<![CDATA[` in the imported record.
+  // The placeholder is wrapped in NUL — not legal in XML text, so it cannot collide with real
+  // content. A plainer marker like " 3 " would be indistinguishable from the sentence "we sold 3
+  // units" and would splice unrelated CDATA into it. Written as an escape rather than a literal
+  // NUL byte, which would make the file binary to grep and to most editors.
+  const cdata: string[] = [];
+  const prepared = raw
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_m, body: string) => `\u0000${cdata.push(body) - 1}\u0000`);
+
   const out: Record<string, string>[] = [];
   // Records are the repeated element that itself contains leaf elements.
   const recordRe = /<(records?|sObject|row|Opportunity|Lead|Contact|Account)\b[^>]*>([\s\S]*?)<\/\1>/gi;
-  for (const m of raw.matchAll(recordRe)) {
+  for (const m of prepared.matchAll(recordRe)) {
     const body = m[2] ?? "";
     const rec: Record<string, string> = {};
     for (const f of body.matchAll(/<([A-Za-z_][\w.:-]*)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
       const key = (f[1] ?? "").split(":").pop() ?? "";
+      const value = f[2] ?? "";
       if (!key) continue;
-      rec[key] = decodeXmlText(f[2] ?? "");
+      // A value still holding a tag is a nested sub-object, not a leaf — Salesforce nests the
+      // related Owner/Account this way. Storing it produced fields whose value was literally
+      // `<Name>Jane</Name>`: markup imported as data, which no downstream surface can read. Left
+      // out entirely, so the record is honestly missing a field rather than carrying nonsense.
+      // Checked BEFORE restoring CDATA, so text that merely contains "<" is not mistaken for markup.
+      if (/<[A-Za-z_/]/.test(value)) continue;
+      rec[key] = decodeXmlText(value, cdata);
     }
     if (Object.keys(rec).length) out.push(rec);
   }
   return out;
 }
 
-function decodeXmlText(s: string): string {
-  return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+function decodeXmlText(s: string, cdata: string[] = []): string {
+  // CDATA is literal by definition: its content is restored AFTER entity decoding, so a `&amp;`
+  // written inside a CDATA block stays the five characters the author wrote.
+  return s
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'").replace(/&amp;/g, "&")
+    .replace(/\u0000(\d+)\u0000/g, (_m, i: string) => cdata[Number(i)] ?? "")
     .trim();
 }
 

@@ -43,6 +43,52 @@ describe("format detection and parsing", () => {
     expect(rows[0]).toEqual({ Name: "Acme & Co", Amount: "50" });
   });
 
+  it("keeps CDATA text whole when it contains what looks like the closing tag", () => {
+    // Measured against the real parser: this returned `"<![CDATA[quarterly"` — the field regex
+    // stopped at the `</Description>` INSIDE the CDATA, which is the one thing CDATA exists to
+    // prevent. Description and Notes routinely carry markup, so real text was silently truncated
+    // and literal `<![CDATA[` was imported as data.
+    const rows = parseXml(
+      "<records><Name>X</Name><Description><![CDATA[quarterly </Description> review]]></Description><Amount>100</Amount></records>",
+    );
+    expect(rows[0]).toEqual({ Name: "X", Description: "quarterly </Description> review", Amount: "100" });
+  });
+
+  it("does not import a nested sub-object as markup in a field", () => {
+    // Salesforce nests the related Owner/Account. This used to yield Owner: "<Name>Jane</Name>" —
+    // markup stored as data, unreadable by every downstream surface. Omitted instead, so the record
+    // is honestly missing the field rather than carrying nonsense.
+    const rows = parseXml("<records><Name>V</Name><Owner><Name>Jane</Name></Owner><Amount>7</Amount></records>");
+    expect(rows[0]).toEqual({ Name: "V", Amount: "7" });
+  });
+
+  it("does not mistake a bare number in prose for a CDATA placeholder", () => {
+    // The placeholder is NUL-wrapped precisely so it cannot collide with ordinary text; a plainer
+    // marker would let "we sold 3 units" absorb an unrelated CDATA block.
+    const rows = parseXml(
+      "<records><Name><![CDATA[first]]></Name><Note>we sold 3 units</Note><Other><![CDATA[second]]></Other></records>",
+    );
+    expect(rows[0]).toEqual({ Name: "first", Note: "we sold 3 units", Other: "second" });
+  });
+
+  it("reads a real Salesforce SOAP export, stripping namespace prefixes", () => {
+    const rows = parseXml(`<soapenv:Envelope xmlns:sf="urn:sobject.partner.soap.sforce.com">
+      <soapenv:Body><queryResponse><result>
+        <records xsi:type="sf:sObject"><sf:Name>Acme renewal</sf:Name><sf:Amount>50000.0</sf:Amount>
+          <sf:CloseDate>2024-03-31</sf:CloseDate><sf:StageName>Closed Won</sf:StageName></records>
+        <records xsi:type="sf:sObject"><sf:Name>Globex</sf:Name><sf:Amount>1200.5</sf:Amount>
+          <sf:CloseDate>2024-06-30</sf:CloseDate><sf:StageName>Negotiation</sf:StageName></records>
+      </result></queryResponse></soapenv:Body></soapenv:Envelope>`);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ Name: "Acme renewal", Amount: "50000.0", StageName: "Closed Won" });
+    expect(rows[1]).toMatchObject({ Name: "Globex", CloseDate: "2024-06-30" });
+  });
+
+  it("ignores a field hidden inside an XML comment", () => {
+    const rows = parseXml("<records><Name>W</Name><!-- <Amount>999</Amount> --><Amount>5</Amount></records>");
+    expect(rows[0]).toEqual({ Name: "W", Amount: "5" });
+  });
+
   it("detects the format from the payload", () => {
     expect(detectFormat("  {\"a\":1}")).toBe("json");
     expect(detectFormat("<records/>")).toBe("xml");
