@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import { randomBytes } from "node:crypto";
 import { supabase } from "@mondaily/db/client";

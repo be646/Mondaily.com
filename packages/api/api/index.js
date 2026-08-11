@@ -57022,6 +57022,28 @@ var init_dist6 = __esm({
   }
 });
 
+// src/lib/validate.ts
+function describeZodError(error) {
+  const parts = error.issues.map((issue) => {
+    const field = issue.path.filter((p2) => p2 !== void 0).join(".");
+    return field ? `${field}: ${issue.message}` : issue.message;
+  }).filter(Boolean);
+  return parts.length ? parts.slice(0, 3).join("; ") : "Invalid request body.";
+}
+var zValidator2;
+var init_validate = __esm({
+  "src/lib/validate.ts"() {
+    "use strict";
+    init_dist6();
+    zValidator2 = ((target, schema) => zValidator(target, schema, (result, c2) => {
+      if (!result.success) {
+        return c2.json({ error: describeZodError(result.error) }, 400);
+      }
+      return void 0;
+    }));
+  }
+});
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/encode.js
 var decodeBase64Url, encodeBase64Url, encodeBase64, decodeBase64;
 var init_encode = __esm({
@@ -58312,7 +58334,7 @@ var init_prospecting = __esm({
   "src/routes/prospecting.ts"() {
     "use strict";
     init_dist();
-    init_dist6();
+    init_validate();
     init_zod();
     init_auth();
     init_client();
@@ -58331,7 +58353,7 @@ var init_prospecting = __esm({
       destination_list_id: external_exports.string().uuid().optional(),
       require_approval: external_exports.boolean().default(true)
     });
-    router.post("/run", zValidator("json", runSchema), async (c2) => {
+    router.post("/run", zValidator2("json", runSchema), async (c2) => {
       const input = c2.req.valid("json");
       try {
         const result = await runProspecting(c2.get("workspaceId"), c2.get("userId"), input);
@@ -58655,7 +58677,7 @@ var init_decisions = __esm({
   "src/routes/decisions.ts"() {
     "use strict";
     init_dist();
-    init_dist6();
+    init_validate();
     init_zod();
     init_auth();
     init_rbac();
@@ -58724,7 +58746,7 @@ var init_decisions = __esm({
       const enabled2 = data?.settings?.agent_reasoning !== false;
       return c2.json({ enabled: enabled2 });
     });
-    router2.patch("/reasoning", zValidator("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
+    router2.patch("/reasoning", zValidator2("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
       const workspaceId = c2.get("workspaceId");
       const { enabled: enabled2 } = c2.req.valid("json");
       const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
@@ -58733,7 +58755,7 @@ var init_decisions = __esm({
       if (error) return c2.json({ error: error.message }, 400);
       return c2.json({ enabled: enabled2 });
     });
-    router2.patch("/autonomy", requireAdminRole, zValidator("json", external_exports.object({ level: external_exports.enum(["manual", "assisted", "autonomous"]) })), async (c2) => {
+    router2.patch("/autonomy", requireAdminRole, zValidator2("json", external_exports.object({ level: external_exports.enum(["manual", "assisted", "autonomous"]) })), async (c2) => {
       const workspaceId = c2.get("workspaceId");
       const { level } = c2.req.valid("json");
       const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
@@ -58803,7 +58825,7 @@ Return the 3 highest-priority items (fewer if there are fewer).`,
         return c2.json({ priorities: [], count: pending.length, error: "unavailable" });
       }
     });
-    router2.post("/plan-goal", zValidator("json", external_exports.object({ goal: external_exports.string().min(1).max(500), agent_name: external_exports.string().max(60).optional() })), async (c2) => {
+    router2.post("/plan-goal", zValidator2("json", external_exports.object({ goal: external_exports.string().min(1).max(500), agent_name: external_exports.string().max(60).optional() })), async (c2) => {
       const { goal, agent_name } = c2.req.valid("json");
       try {
         const guidance = await learnedGuidanceFor(c2.get("workspaceId"));
@@ -58863,7 +58885,7 @@ ${guidance}` : ""),
         risk_level: external_exports.enum(["low", "medium", "high"]).default("medium")
       })).min(1).max(10)
     });
-    router2.post("/dispatch-plan", zValidator("json", dispatchPlanSchema), async (c2) => {
+    router2.post("/dispatch-plan", zValidator2("json", dispatchPlanSchema), async (c2) => {
       const { goal, agent_name, steps } = c2.req.valid("json");
       const workspaceId = c2.get("workspaceId");
       const userId = c2.get("userId");
@@ -58939,7 +58961,7 @@ ${guidance}` : ""),
       if (!data) return c2.json({ error: "Decision not found" }, 404);
       return c2.json(data);
     });
-    router2.post("/", zValidator("json", createSchema), async (c2) => {
+    router2.post("/", zValidator2("json", createSchema), async (c2) => {
       const body = c2.req.valid("json");
       const workspaceId = c2.get("workspaceId");
       const { data, error } = await supabase.from("decision_queue").insert({ ...body, workspace_id: workspaceId }).select().single();
@@ -58950,7 +58972,7 @@ ${guidance}` : ""),
       }
       return c2.json(data, 201);
     });
-    router2.patch("/:id", zValidator("json", createSchema.partial()), async (c2) => {
+    router2.patch("/:id", zValidator2("json", createSchema.partial()), async (c2) => {
       const body = c2.req.valid("json");
       const { data, error } = await supabase.from("decision_queue").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).in("status", ["pending", "snoozed"]).select().single();
       if (error) return c2.json({ error: error.message }, 400);
@@ -58967,12 +58989,12 @@ ${guidance}` : ""),
       return resolve(c2, "approved", {}, "APPROVED");
     });
     router2.post("/:id/reject", async (c2) => resolve(c2, "rejected", {}, "REJECTED"));
-    router2.post("/:id/snooze", zValidator("json", external_exports.object({ until: external_exports.string().optional() }).optional()), async (c2) => {
+    router2.post("/:id/snooze", zValidator2("json", external_exports.object({ until: external_exports.string().optional() }).optional()), async (c2) => {
       const body = c2.req.valid("json") ?? {};
       const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString();
       return resolve(c2, "snoozed", { snoozed_until: until });
     });
-    router2.post("/bulk", zValidator("json", external_exports.object({
+    router2.post("/bulk", zValidator2("json", external_exports.object({
       ids: external_exports.array(external_exports.string().uuid()).min(1).max(500),
       action: external_exports.enum(["approve", "reject", "snooze"])
     })), async (c2) => {
@@ -59154,7 +59176,7 @@ ${lines.join("\n")}`,
       if (error) return c2.json({ error: error.message }, 500);
       return c2.json(data ?? []);
     });
-    router2.post("/:id/comments", zValidator("json", external_exports.object({ body: external_exports.string().min(1).max(5e3) })), async (c2) => {
+    router2.post("/:id/comments", zValidator2("json", external_exports.object({ body: external_exports.string().min(1).max(5e3) })), async (c2) => {
       const workspaceId = c2.get("workspaceId");
       const userId = c2.get("userId");
       const id = c2.req.param("id");
@@ -59184,7 +59206,7 @@ ${lines.join("\n")}`,
       }
       return c2.json(data, 201);
     });
-    router2.post("/:id/assign", zValidator("json", external_exports.object({
+    router2.post("/:id/assign", zValidator2("json", external_exports.object({
       assignee_id: external_exports.string().nullable(),
       assignee_email: external_exports.string().email().optional().nullable()
     })), async (c2) => {
@@ -68056,7 +68078,7 @@ async function runAllVertical() {
 
 // src/routes/nodes.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -68087,7 +68109,7 @@ router3.get("/:id/related", requireAuth, async (c2) => {
   const related = await getRelated(id, c2.get("workspaceId"));
   return c2.json(related);
 });
-router3.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
+router3.post("/:id/relate", requireAuth, denyViewerWrites, zValidator2("json", external_exports.object({
   target_id: external_exports.string(),
   relationship: external_exports.string().default("related")
 })), async (c2) => {
@@ -68101,7 +68123,7 @@ router3.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", ex
   await createEdge(workspaceId, target_id, id, relationship);
   return c2.json({ ok: true }, 201);
 });
-router3.get("/similar", requireAuth, zValidator("query", external_exports.object({
+router3.get("/similar", requireAuth, zValidator2("query", external_exports.object({
   q: external_exports.string().min(2).max(200),
   object_type: external_exports.string().optional(),
   limit: external_exports.coerce.number().min(1).max(10).default(5)
@@ -68142,7 +68164,7 @@ router3.get("/:id", requireAuth, async (c2) => {
   return c2.json(node);
 });
 var FILTER_OPS = ["is", "is_not", "contains", "empty", "not_empty", "before", "after"];
-router3.get("/", requireAuth, zValidator("query", external_exports.object({
+router3.get("/", requireAuth, zValidator2("query", external_exports.object({
   vertical: external_exports.string().optional(),
   object_type: external_exports.string().optional(),
   parent_id: external_exports.string().optional(),
@@ -68197,7 +68219,7 @@ router3.get("/", requireAuth, zValidator("query", external_exports.object({
   const nodes = await listNodes(c2.get("workspaceId"), query);
   return c2.json(nodes);
 });
-router3.post("/", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
+router3.post("/", requireAuth, denyViewerWrites, zValidator2("json", external_exports.object({
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]),
   object_type: external_exports.string().min(1),
   data: external_exports.record(external_exports.unknown())
@@ -68218,7 +68240,7 @@ router3.post("/", requireAuth, denyViewerWrites, zValidator("json", external_exp
   });
   return c2.json(node, 201);
 });
-router3.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
+router3.patch("/:id", requireAuth, denyViewerWrites, zValidator2("json", external_exports.object({
   data: external_exports.record(external_exports.unknown()).optional(),
   ai_summary: external_exports.string().optional()
 })), async (c2) => {
@@ -68269,7 +68291,7 @@ router3.delete("/:id", requireAuth, denyViewerWrites, async (c2) => {
 
 // src/routes/search.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 
@@ -68284,7 +68306,7 @@ init_ai_gateway();
 init_embeddings2();
 init_embed_index();
 var router4 = new Hono2();
-router4.post("/", requireAuth, zValidator("json", external_exports.object({
+router4.post("/", requireAuth, zValidator2("json", external_exports.object({
   query: external_exports.string().min(1),
   verticals: external_exports.array(external_exports.string()).optional(),
   object_types: external_exports.array(external_exports.string()).optional(),
@@ -68325,7 +68347,7 @@ router4.post("/", requireAuth, zValidator("json", external_exports.object({
   }));
   return c2.json([...nodeItems, ...financeItems, ...taskItems]);
 });
-router4.post("/semantic", requireAuth, zValidator("json", external_exports.object({
+router4.post("/semantic", requireAuth, zValidator2("json", external_exports.object({
   query: external_exports.string().min(1).max(300),
   limit: external_exports.number().max(30).default(12)
 })), async (c2) => {
@@ -68900,7 +68922,7 @@ var streamSSE = (c2, cb, onError) => {
 init_context();
 
 // src/routes/ask.ts
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_credits();
@@ -69776,7 +69798,7 @@ ${lines.map((l2) => `- ${l2}`).join("\n")}`;
 init_ubc();
 
 // src/routes/reports.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -69794,7 +69816,7 @@ router7.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_by,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "report").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((node) => unpack(node)));
 });
-router7.post("/", zValidator("json", reportInput), async (c2) => {
+router7.post("/", zValidator2("json", reportInput), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "report", data: body, created_by: c2.get("userId") }).select("id,data,created_by,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
@@ -69805,7 +69827,7 @@ router7.get("/:id", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,created_by,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "report").eq("id", c2.req.param("id")).maybeSingle();
   return data ? c2.json(unpack(data)) : c2.json({ error: "Report not found" }, 404);
 });
-router7.post("/:id", zValidator("json", reportInput.extend({ id: external_exports.string().optional() })), async (c2) => {
+router7.post("/:id", zValidator2("json", reportInput.extend({ id: external_exports.string().optional() })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").update({ data: { name: body.name, type: body.type, config: body.config } }).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "report").eq("id", c2.req.param("id")).select("id,data,created_by,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
@@ -71757,7 +71779,7 @@ ${lines}`;
   }
   return contextNote;
 }
-router8.post("/", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router8.post("/", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
   model: external_exports.enum(["auto", "fast", "smart"]).optional(),
@@ -71886,7 +71908,7 @@ router8.get("/credits", requireAuth, async (c2) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c2.json({ used, limit: limit2, period_end: periodEnd2 });
 });
-router8.post("/stream", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router8.post("/stream", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
   model: external_exports.enum(["auto", "fast", "smart"]).optional(),
@@ -72010,7 +72032,7 @@ router8.get("/health/chat", async (c2) => {
 
 // src/routes/public-ask.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_ai_gateway();
 init_pricing();
@@ -72145,7 +72167,7 @@ If asked which plan fits: solo/trying it \u2192 Scout; a growing team running on
 router9.post(
   "/",
   rateLimit({ max: 12, windowMs: 6e4 }),
-  zValidator("json", external_exports.object({
+  zValidator2("json", external_exports.object({
     messages: external_exports.array(external_exports.object({
       role: external_exports.enum(["user", "assistant"]),
       content: external_exports.string().max(1e3)
@@ -72171,7 +72193,7 @@ User: ${lastMsg.content}` : lastMsg.content;
 init_dist();
 var import_node_crypto9 = require("crypto");
 init_jwt4();
-init_dist6();
+init_validate();
 init_zod();
 init_client();
 
@@ -72326,7 +72348,7 @@ async function workspaceDisplayName2(ws) {
   const { data } = await supabase.from("workspaces").select("name").eq("id", ws).maybeSingle();
   return data?.name?.trim() || "Mondaily workspace";
 }
-router10.post("/meta", rateLimit({ max: 20, windowMs: 6e4 }), zValidator("json", external_exports.object({ token: external_exports.string().min(1).max(4e3) })), async (c2) => {
+router10.post("/meta", rateLimit({ max: 20, windowMs: 6e4 }), zValidator2("json", external_exports.object({ token: external_exports.string().min(1).max(4e3) })), async (c2) => {
   const { token } = c2.req.valid("json");
   const r2 = await resolveGuest(token);
   const calls_enabled = callsEnabled();
@@ -72358,7 +72380,7 @@ router10.post("/meta", rateLimit({ max: 20, windowMs: 6e4 }), zValidator("json",
     meeting_type_label: guestSafeMeetingLabel(normalizeMeetingType(r2.data.meeting_type))
   });
 });
-router10.post("/request", rateLimit({ max: 15, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router10.post("/request", rateLimit({ max: 15, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   token: external_exports.string().min(1).max(4e3),
   name: external_exports.string().max(60).optional(),
   consent: external_exports.boolean().optional()
@@ -72382,7 +72404,7 @@ router10.post("/request", rateLimit({ max: 15, windowMs: 6e4 }), zValidator("jso
   if (error) return c2.json({ error: "Couldn't request entry \u2014 please try again." }, 500);
   return c2.json({ waiting: true, request_id, status: "waiting" });
 });
-router10.post("/wait-status", rateLimit({ max: 60, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router10.post("/wait-status", rateLimit({ max: 60, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   token: external_exports.string().min(1).max(4e3),
   request_id: external_exports.string().uuid()
 })), async (c2) => {
@@ -72392,7 +72414,7 @@ router10.post("/wait-status", rateLimit({ max: 60, windowMs: 6e4 }), zValidator(
   const node = await readWaitingNode(r2.claims.ws, r2.claims.ev, request_id);
   return c2.json({ status: node ? node.d.status : "expired" });
 });
-router10.post("/token", rateLimit({ max: 15, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router10.post("/token", rateLimit({ max: 15, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   token: external_exports.string().min(1).max(4e3),
   name: external_exports.string().max(60).optional(),
   consent: external_exports.boolean().optional(),
@@ -72458,7 +72480,7 @@ router10.post("/caption-chunk", rateLimit({ max: 300, windowMs: 6e4 }), async (c
   if (!out.ok) return c2.json({ text: "", no_speech: false, error: out.status === 413 ? "payload_too_large" : "stt_unavailable" }, out.status === 413 ? 413 : 502);
   return c2.json({ text: out.text, no_speech: out.no_speech, language: out.language, confidence: out.confidence });
 });
-router10.post("/transcript", rateLimit({ max: 120, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router10.post("/transcript", rateLimit({ max: 120, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   lines: external_exports.array(external_exports.object({
     id: external_exports.string().min(1),
     participantId: external_exports.string().optional(),
@@ -72498,7 +72520,7 @@ router10.post("/transcript", rateLimit({ max: 120, windowMs: 6e4 }), zValidator(
   if (error) return c2.json({ error: "save_failed" }, 500);
   return c2.json({ ok: true, saved: clean2.length });
 });
-router10.post("/translate", rateLimit({ max: 120, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router10.post("/translate", rateLimit({ max: 120, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   target: external_exports.string().min(2).max(16),
   lines: external_exports.array(external_exports.object({
     text: external_exports.string(),
@@ -73118,7 +73140,7 @@ init_activities();
 
 // src/routes/messages.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_client();
 init_auth();
@@ -73208,7 +73230,7 @@ async function assertGroupMember(ws, groupId, me2) {
   const { data: group } = await supabase.from("chat_groups").select("id, name, created_by").eq("workspace_id", ws).eq("id", groupId).maybeSingle();
   return group ?? null;
 }
-router13.post("/groups", zValidator("json", external_exports.object({
+router13.post("/groups", zValidator2("json", external_exports.object({
   name: external_exports.string().min(1).max(80),
   member_ids: external_exports.array(external_exports.string().min(1)).min(1).max(50)
 })), async (c2) => {
@@ -73253,7 +73275,7 @@ router13.get("/group/:id", async (c2) => {
   });
 });
 var GROUP_MAX_MEMBERS = 100;
-router13.post("/group/:id/members", zValidator("json", external_exports.object({ user_ids: external_exports.array(external_exports.string().min(1)).min(1).max(50) })), async (c2) => {
+router13.post("/group/:id/members", zValidator2("json", external_exports.object({ user_ids: external_exports.array(external_exports.string().min(1)).min(1).max(50) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const groupId = c2.req.param("id");
@@ -73341,7 +73363,7 @@ var attachmentMeta = external_exports.object({
   content_type: external_exports.string().max(120),
   size: external_exports.number().int().positive()
 });
-router13.post("/attachments/upload-url", zValidator("json", external_exports.object({
+router13.post("/attachments/upload-url", zValidator2("json", external_exports.object({
   files: external_exports.array(external_exports.object({
     name: external_exports.string().min(1).max(200),
     content_type: external_exports.string().max(120).default("application/octet-stream"),
@@ -73377,7 +73399,7 @@ async function verifiedAttachments(atts) {
   }
   return { error: null, atts: out };
 }
-router13.post("/attachments", zValidator("json", external_exports.object({
+router13.post("/attachments", zValidator2("json", external_exports.object({
   files: external_exports.array(external_exports.object({
     name: external_exports.string().min(1).max(200),
     content_type: external_exports.string().max(120).default("application/octet-stream"),
@@ -73400,7 +73422,7 @@ router13.post("/attachments", zValidator("json", external_exports.object({
   if (!out.length) return c2.json({ error: "No valid files." }, 400);
   return c2.json({ attachments: out }, 201);
 });
-router13.get("/attachment", zValidator("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
+router13.get("/attachment", zValidator2("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const path = c2.req.valid("query").path;
@@ -73414,7 +73436,7 @@ router13.get("/attachment", zValidator("query", external_exports.object({ path: 
   if (error || !data?.signedUrl) return c2.json({ error: "Attachment not found." }, 404);
   return c2.json({ url: data.signedUrl });
 });
-router13.post("/", zValidator("json", external_exports.object({
+router13.post("/", zValidator2("json", external_exports.object({
   recipient_id: external_exports.string().min(1).optional(),
   group_id: external_exports.string().uuid().optional(),
   body: external_exports.string().min(1).max(5e3),
@@ -73497,7 +73519,7 @@ router13.patch("/thread/:otherId/archive", async (c2) => {
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ ok: true });
 });
-router13.post("/draft", zValidator("json", external_exports.object({
+router13.post("/draft", zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1).max(1e3),
   existing: external_exports.string().max(5e3).optional()
   // an existing draft to rewrite/improve
@@ -73537,7 +73559,7 @@ router13.delete("/:id", async (c2) => {
 var import_node_crypto11 = require("crypto");
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_jwt4();
 init_client();
 init_auth();
@@ -73755,7 +73777,7 @@ router14.get("/events/:id", async (c2) => {
   const dir = await members2(ws);
   return c2.json({ ...shape(ev.id, ev.data, dir, ev.created_at), calls_enabled: callsEnabled2(), live_captions_available: liveCaptionsAllowed(ws) });
 });
-router14.post("/events", zValidator("json", EventCreate), async (c2) => {
+router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const b2 = c2.req.valid("json");
@@ -73792,7 +73814,7 @@ router14.post("/events", zValidator("json", EventCreate), async (c2) => {
   const dir = await members2(ws);
   return c2.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled2() }, 201);
 });
-router14.patch("/events/:id", zValidator("json", EventInput.partial().extend({ status: external_exports.enum(EVENT_STATUSES).optional() })), async (c2) => {
+router14.patch("/events/:id", zValidator2("json", EventInput.partial().extend({ status: external_exports.enum(EVENT_STATUSES).optional() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const ev = await getEvent(ws, c2.req.param("id"));
@@ -73845,7 +73867,7 @@ router14.delete("/events/:id", async (c2) => {
   await notifyAttendees(ws, ev.id, next, me2, "cancelled");
   return c2.json({ ok: true, status: "cancelled" });
 });
-router14.post("/events/:id/reschedule", zValidator("json", external_exports.object({ start_at: external_exports.string().min(1) })), async (c2) => {
+router14.post("/events/:id/reschedule", zValidator2("json", external_exports.object({ start_at: external_exports.string().min(1) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   if (c2.req.param("id").includes("::")) return c2.json({ error: "Reschedule a recurring meeting from its series, not a single occurrence." }, 400);
@@ -73860,7 +73882,7 @@ router14.post("/events/:id/reschedule", zValidator("json", external_exports.obje
   const dir = await members2(ws);
   return c2.json(shape(ev.id, next, dir, ev.created_at));
 });
-router14.post("/events/:id/respond", zValidator("json", external_exports.object({ response: external_exports.enum(RSVP_RESPONSES) })), async (c2) => {
+router14.post("/events/:id/respond", zValidator2("json", external_exports.object({ response: external_exports.enum(RSVP_RESPONSES) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const ev = await getEvent(ws, c2.req.param("id"));
@@ -73923,7 +73945,7 @@ router14.post("/events/:id/end-call", async (c2) => {
   const ended = await endRoom(room);
   return c2.json({ ended });
 });
-router14.post("/events/:id/remove-guest", zValidator("json", external_exports.object({ identity: external_exports.string().min(1).max(120) })), async (c2) => {
+router14.post("/events/:id/remove-guest", zValidator2("json", external_exports.object({ identity: external_exports.string().min(1).max(120) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const ev = await getEvent(ws, c2.req.param("id"));
@@ -73966,7 +73988,7 @@ router14.post("/events/:id/revoke-guest-links", async (c2) => {
 });
 var WAITING_OBJECT2 = "call_waiting_request";
 var WAITING_TTL_MS2 = 30 * 6e4;
-router14.post("/events/:id/waiting-room", zValidator("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
+router14.post("/events/:id/waiting-room", zValidator2("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const ev = await getEvent(ws, c2.req.param("id"));
@@ -74005,7 +74027,7 @@ async function decideWaiting(c2, decision) {
 }
 router14.post("/events/:id/waiting/:rid/admit", (c2) => decideWaiting(c2, "admitted"));
 router14.post("/events/:id/waiting/:rid/deny", (c2) => decideWaiting(c2, "denied"));
-router14.post("/draft-agenda", zValidator("json", external_exports.object({ title: external_exports.string().max(200).optional(), prompt: external_exports.string().min(1).max(1e3) })), async (c2) => {
+router14.post("/draft-agenda", zValidator2("json", external_exports.object({ title: external_exports.string().max(200).optional(), prompt: external_exports.string().min(1).max(1e3) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const env3 = gatewayEnv();
@@ -74287,7 +74309,7 @@ router14.get("/events/:id/followups", async (c2) => {
 // src/routes/currency.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_client();
 
 // src/lib/rebase-currency.ts
@@ -74432,7 +74454,7 @@ router15.get("/", async (c2) => {
     // null until the daily cron has run against a configured source
   });
 });
-router15.post("/base", requireAdminRole, zValidator("json", external_exports.object({ currency: CURRENCY })), async (c2) => {
+router15.post("/base", requireAdminRole, zValidator2("json", external_exports.object({ currency: CURRENCY })), async (c2) => {
   const ws = c2.get("workspaceId");
   const { data: row } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = { ...row?.settings ?? {}, base_currency: c2.req.valid("json").currency };
@@ -74440,7 +74462,7 @@ router15.post("/base", requireAdminRole, zValidator("json", external_exports.obj
   if (error) return c2.json({ error: "Could not update the base currency." }, 500);
   return c2.json({ ok: true, base: settings.base_currency });
 });
-router15.post("/display", zValidator("json", external_exports.object({ currency: CURRENCY })), async (c2) => {
+router15.post("/display", zValidator2("json", external_exports.object({ currency: CURRENCY })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const { data: row } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
@@ -74451,7 +74473,7 @@ router15.post("/display", zValidator("json", external_exports.object({ currency:
   if (error) return c2.json({ error: "Could not update your display currency." }, 500);
   return c2.json({ ok: true, display: c2.req.valid("json").currency });
 });
-router15.post("/rebase", zValidator("json", external_exports.object({
+router15.post("/rebase", zValidator2("json", external_exports.object({
   to_currency: external_exports.string().length(3),
   dry_run: external_exports.boolean().default(true)
 })), async (c2) => {
@@ -74478,7 +74500,7 @@ router15.post("/rebase", zValidator("json", external_exports.object({
 
 // src/routes/training.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_client();
 init_auth();
@@ -74511,7 +74533,7 @@ async function stampPolicy(ws, patch) {
   }, () => {
   });
 }
-router16.post("/policy", requireAdminRole, zValidator("json", external_exports.object({ enabled: external_exports.boolean(), retention_days: external_exports.number().int().min(7).max(3650).optional() })), async (c2) => {
+router16.post("/policy", requireAdminRole, zValidator2("json", external_exports.object({ enabled: external_exports.boolean(), retention_days: external_exports.number().int().min(7).max(3650).optional() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const body = c2.req.valid("json");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
@@ -74541,7 +74563,7 @@ router16.delete("/", requireAdminRole, async (c2) => {
 
 // src/routes/live-calls.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_jwt4();
 init_client();
@@ -74601,7 +74623,7 @@ router17.get("/capability", (c2) => c2.json({
   recording: recordingEnabled(),
   transcription: transcriptionEnabled()
 }));
-router17.post("/rooms", zValidator("json", external_exports.object({ invitee_id: external_exports.string().min(1), kind: external_exports.enum(["audio", "video"]).default("audio"), record: external_exports.boolean().default(false) })), async (c2) => {
+router17.post("/rooms", zValidator2("json", external_exports.object({ invitee_id: external_exports.string().min(1), kind: external_exports.enum(["audio", "video"]).default("audio"), record: external_exports.boolean().default(false) })), async (c2) => {
   if (!isEnabled()) return c2.json({ error: "Calling isn't configured on this workspace." }, 503);
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
@@ -74647,7 +74669,7 @@ router17.post("/rooms/:id/join", async (c2) => {
   const token = await mintToken(me2, meM?.name || meM?.email || "Member", session.room, true);
   return c2.json({ room: session.room, token, url: liveKitEnv().url });
 });
-router17.post("/rooms/:id/end", zValidator("json", external_exports.object({ status: external_exports.enum(["ended", "declined", "missed"]).default("ended") })), async (c2) => {
+router17.post("/rooms/:id/end", zValidator2("json", external_exports.object({ status: external_exports.enum(["ended", "declined", "missed"]).default("ended") })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const { data: session } = await supabase.from("call_sessions").select("id, initiator_id, invitee_id, status, egress_id, recording_status").eq("workspace_id", ws).eq("id", c2.req.param("id")).maybeSingle();
@@ -74727,7 +74749,7 @@ router17.post("/caption-chunk", rateLimit({ max: 300, windowMs: 6e4 }), async (c
   if (!r2.ok) return c2.json({ text: "", no_speech: false, error: r2.status === 413 ? "payload_too_large" : "stt_unavailable" }, r2.status === 413 ? 413 : 502);
   return c2.json({ text: r2.text, no_speech: r2.no_speech, language: r2.language, confidence: r2.confidence });
 });
-router17.post("/transcript", rateLimit({ max: 120, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router17.post("/transcript", rateLimit({ max: 120, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   event_id: external_exports.string().min(1).max(200).optional(),
   session_id: external_exports.string().uuid().optional(),
   lines: external_exports.array(external_exports.object({
@@ -74808,7 +74830,7 @@ router17.get("/transcript", async (c2) => {
     source: LIVE_TRANSCRIPT_SOURCE
   });
 });
-router17.post("/translate", rateLimit({ max: 120, windowMs: 6e4 }), zValidator("json", external_exports.object({
+router17.post("/translate", rateLimit({ max: 120, windowMs: 6e4 }), zValidator2("json", external_exports.object({
   target: external_exports.string().min(2).max(16),
   lines: external_exports.array(external_exports.object({
     text: external_exports.string(),
@@ -74879,7 +74901,7 @@ router18.get("/token", async (c2) => {
 // src/routes/auth.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_cookie2();
 var import_node_crypto15 = require("crypto");
 init_client();
@@ -75171,7 +75193,7 @@ async function sessionProfile(userId) {
   };
 }
 router19.get("/challenge", rateLimit({ max: 30, windowMs: 6e4 }), async (c2) => c2.json(await issuePowChallenge()));
-router19.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
+router19.post("/register", rateLimit(), requirePow, zValidator2("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
   const userId = `usr_${(0, import_node_crypto15.randomBytes)(12).toString("hex")}`;
@@ -75295,7 +75317,7 @@ router19.get("/google/callback", rateLimit(), async (c2) => {
   await issueSession(c2, userId, who.email, c2.req.header("user-agent"));
   return c2.redirect(`${appOrigin()}${safeNext(storedNext)}`, 302);
 });
-router19.post("/verify-email", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1) })), async (c2) => {
+router19.post("/verify-email", rateLimit(), zValidator2("json", external_exports.object({ token: external_exports.string().min(1) })), async (c2) => {
   const { token } = c2.req.valid("json");
   const claims = await verifyVerifyToken(token);
   if (!claims) return c2.json({ error: "This verification link is invalid or has expired." }, 400);
@@ -75344,7 +75366,7 @@ async function clearLoginFails(email) {
   await clear(`login-lock|${email}`);
   failedLogins.delete(email);
 }
-router19.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), async (c2) => {
+router19.post("/login", rateLimit(), requirePow, zValidator2("json", credSchema), async (c2) => {
   const { email, password } = c2.req.valid("json");
   const lock2 = await loginLockedSecs(email.toLowerCase());
   if (lock2 > 0) {
@@ -75379,7 +75401,7 @@ router19.post("/login", rateLimit(), requirePow, zValidator("json", credSchema),
   await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
   return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
 });
-router19.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator("json", external_exports.object({ mfa_token: external_exports.string().min(1), code: external_exports.string().min(6).max(64), trust_device: external_exports.boolean().optional() })), async (c2) => {
+router19.post("/2fa/login", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator2("json", external_exports.object({ mfa_token: external_exports.string().min(1), code: external_exports.string().min(6).max(64), trust_device: external_exports.boolean().optional() })), async (c2) => {
   const { mfa_token, code, trust_device } = c2.req.valid("json");
   const claims = await verifyMfaToken(mfa_token);
   if (!claims) return c2.json({ error: "This sign-in attempt expired \u2014 enter your password again." }, 401);
@@ -75423,7 +75445,7 @@ router19.post("/2fa/setup", rateLimit({ max: 5, windowMs: 10 * 6e4 }), async (c2
   if (error) return c2.json({ error: /totp_secret/i.test(error.message) ? "2FA isn't enabled yet \u2014 the migration hasn't been applied." : "Could not start enrollment." }, 503);
   return c2.json({ secret: secret4, otpauth: otpauthUrl(secret4, String(cred.email)) });
 });
-router19.post("/2fa/enable", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator("json", external_exports.object({ code: external_exports.string().min(6).max(8) })), async (c2) => {
+router19.post("/2fa/enable", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator2("json", external_exports.object({ code: external_exports.string().min(6).max(8) })), async (c2) => {
   const userId = await sessionUserId(c2);
   if (!userId) return c2.json({ error: "Not authenticated." }, 401);
   const { data: cred } = await supabase.from("auth_credentials").select("totp_secret, totp_enabled_at").eq("user_id", userId).maybeSingle();
@@ -75436,7 +75458,7 @@ router19.post("/2fa/enable", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidato
   if (error) return c2.json({ error: "Could not enable two-factor." }, 500);
   return c2.json({ ok: true, recovery_codes: plain });
 });
-router19.post("/2fa/disable", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator("json", external_exports.object({ code: external_exports.string().min(6).max(16) })), async (c2) => {
+router19.post("/2fa/disable", rateLimit({ max: 8, windowMs: 5 * 6e4 }), zValidator2("json", external_exports.object({ code: external_exports.string().min(6).max(16) })), async (c2) => {
   const userId = await sessionUserId(c2);
   if (!userId) return c2.json({ error: "Not authenticated." }, 401);
   const { data: cred } = await supabase.from("auth_credentials").select("totp_secret, totp_enabled_at, recovery_codes").eq("user_id", userId).maybeSingle();
@@ -75456,7 +75478,7 @@ router19.get("/2fa/status", async (c2) => {
   if (error) return c2.json({ available: false, enabled: false });
   return c2.json({ available: true, enabled: !!cred?.totp_enabled_at, recovery_codes_left: (cred?.recovery_codes ?? []).length });
 });
-router19.post("/request-activation", rateLimit(), requirePow, zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+router19.post("/request-activation", rateLimit(), requirePow, zValidator2("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
   if (await credByEmail(email)) return c2.json(generic);
@@ -75477,7 +75499,7 @@ router19.post("/request-activation", rateLimit(), requirePow, zValidator("json",
   }
   return c2.json(generic);
 });
-router19.post("/activate", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router19.post("/activate", rateLimit(), zValidator2("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const { token, password } = c2.req.valid("json");
   const claims = await verifyActivationToken(token);
   if (!claims) return c2.json({ error: "This activation link is invalid or has expired. Request a new one." }, 400);
@@ -75488,7 +75510,7 @@ router19.post("/activate", rateLimit(), zValidator("json", external_exports.obje
   await issueSession(c2, claims.sub, claims.email, c2.req.header("user-agent"));
   return c2.json({ userId: claims.sub, email: claims.email, activated: true, ...await sessionProfile(claims.sub) }, 201);
 });
-router19.post("/request-password-reset", rateLimit(), requirePow, zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+router19.post("/request-password-reset", rateLimit(), requirePow, zValidator2("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
   const cred = await credByEmail(email);
@@ -75512,7 +75534,7 @@ router19.post("/request-password-reset", rateLimit(), requirePow, zValidator("js
   }
   return c2.json(generic);
 });
-router19.post("/reset-password", rateLimit(), requirePow, zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router19.post("/reset-password", rateLimit(), requirePow, zValidator2("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const { token, password } = c2.req.valid("json");
   const claims = await verifyResetToken(token);
   if (!claims) return c2.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);
@@ -75575,7 +75597,7 @@ async function sessionUserId(c2) {
   const claims = at2 ? await verifyAccessToken(at2) : null;
   return claims?.sub ?? null;
 }
-router19.post("/change-password", rateLimit(), zValidator("json", external_exports.object({ currentPassword: external_exports.string().min(1), newPassword: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router19.post("/change-password", rateLimit(), zValidator2("json", external_exports.object({ currentPassword: external_exports.string().min(1), newPassword: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const userId = await sessionUserId(c2);
   if (!userId) return c2.json({ error: "Not authenticated." }, 401);
   const { currentPassword, newPassword } = c2.req.valid("json");
@@ -75911,7 +75933,7 @@ router20.post("/checkout-session", requireAdminRole, async (c2) => {
 // src/routes/clean.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_auth();
 init_client();
 init_embeddings2();
@@ -76085,7 +76107,7 @@ router21.get("/types", async (c2) => {
     note: "Counts are exact. Pairs are name-similarity only \u2014 run an overlap scan to see whether they actually share records."
   });
 });
-router21.post("/overlap", zValidator("json", external_exports.object({
+router21.post("/overlap", zValidator2("json", external_exports.object({
   type_a: external_exports.string().min(1),
   type_b: external_exports.string().min(1),
   min_similarity: external_exports.number().min(0.5).max(1).optional(),
@@ -76165,7 +76187,7 @@ router21.post("/overlap", zValidator("json", external_exports.object({
     read_only: true
   });
 });
-router21.post("/duplicates", zValidator("json", external_exports.object({
+router21.post("/duplicates", zValidator2("json", external_exports.object({
   object_type: external_exports.string().min(1),
   max_groups: external_exports.number().int().min(1).max(500).optional()
 })), async (c2) => {
@@ -76199,7 +76221,7 @@ router21.post("/duplicates", zValidator("json", external_exports.object({
     read_only: true
   });
 });
-router21.post("/merge-types", requireAdminRole, zValidator("json", external_exports.object({
+router21.post("/merge-types", requireAdminRole, zValidator2("json", external_exports.object({
   from: external_exports.string().min(1),
   to: external_exports.string().min(1),
   dry_run: external_exports.boolean().optional()
@@ -76287,7 +76309,7 @@ function isSchemaDescriptionKey(key) {
   if (!k2) return false;
   return SCHEMA_DESCRIPTIONS.some((d2) => d2 === k2 || k2.length >= 20 && d2.startsWith(k2));
 }
-router21.post("/repair-keys", requireAdminRole, zValidator("json", external_exports.object({
+router21.post("/repair-keys", requireAdminRole, zValidator2("json", external_exports.object({
   object_type: external_exports.string().min(1).optional(),
   // omit to sweep every type
   dry_run: external_exports.boolean().optional()
@@ -76401,7 +76423,7 @@ function richness(n2) {
 function pickSurvivor(group) {
   return group.slice().sort((a2, b2) => richness(b2) - richness(a2) || Number(!!b2.enriched_at) - Number(!!a2.enriched_at) || Number(!!b2.ai_summary) - Number(!!a2.ai_summary) || a2.created_at.localeCompare(b2.created_at) || a2.id.localeCompare(b2.id))[0];
 }
-router21.post("/dedupe-records", requireAdminRole, zValidator("json", external_exports.object({
+router21.post("/dedupe-records", requireAdminRole, zValidator2("json", external_exports.object({
   object_type: external_exports.string().min(1),
   dry_run: external_exports.boolean().optional(),
   max_delete: external_exports.number().int().min(1).max(5e3).optional()
@@ -76547,7 +76569,7 @@ router21.post("/dedupe-records", requireAdminRole, zValidator("json", external_e
     recovery: "The deleted payloads are in the audit activity for this operation (diff.deleted_records)."
   });
 });
-router21.post("/recover-field", requireAdminRole, zValidator("json", external_exports.object({
+router21.post("/recover-field", requireAdminRole, zValidator2("json", external_exports.object({
   object_type: external_exports.string().min(1).max(64),
   field: external_exports.string().min(1).max(64),
   dry_run: external_exports.boolean().default(true)
@@ -76572,7 +76594,7 @@ router21.post("/recover-field", requireAdminRole, zValidator("json", external_ex
 // src/routes/support.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_client();
 init_auth();
 init_rbac();
@@ -76863,7 +76885,7 @@ TALK LIKE A PERSON WHO KNOWS THIS PRODUCT:
 - Never pad. No "Great question!", no restating what they just said back to them.
 
 PLANS & PAYMENTS: the PRICING section below is authoritative \u2014 quote it exactly and never improvise a price, credit amount, seat count or discount. If someone asks for something not in it (custom terms, invoicing, refunds, VAT), say it needs a human and open a ticket.`;
-router22.post("/ask", zValidator("json", external_exports.object({
+router22.post("/ask", zValidator2("json", external_exports.object({
   message: external_exports.string().min(1).max(4e3),
   history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional(),
   route: external_exports.string().max(200).optional()
@@ -76992,7 +77014,7 @@ function ticketContentIssue(subject, message) {
   }
   return null;
 }
-router22.post("/tickets", zValidator("json", external_exports.object({
+router22.post("/tickets", zValidator2("json", external_exports.object({
   category: external_exports.enum(SUPPORT_CATEGORIES),
   subject: external_exports.string().min(1).max(200),
   message: external_exports.string().min(1).max(8e3),
@@ -77120,12 +77142,12 @@ router22.get("/tickets/:id", async (c2) => {
     status_history: t3.data.status_history ?? []
   });
 });
-router22.patch("/tickets/:id", requireAdminRole, zValidator("json", external_exports.object({
+router22.patch("/tickets/:id", requireAdminRole, zValidator2("json", external_exports.object({
   status: external_exports.enum(SUPPORT_STATUSES)
 })), async (c2) => {
   return c2.json({ error: "Ticket status is managed by Mondaily support \u2014 it can't be changed from a workspace." }, 403);
 });
-router22.post("/tickets/:id/comments", zValidator("json", external_exports.object({
+router22.post("/tickets/:id/comments", zValidator2("json", external_exports.object({
   body: external_exports.string().min(1).max(8e3)
 })), async (c2) => {
   const ws = c2.get("workspaceId");
@@ -77175,7 +77197,7 @@ router22.post("/tickets/:id/comments", zValidator("json", external_exports.objec
 // src/routes/platform-support.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_client();
 init_cookie2();
 init_auth_tokens();
@@ -77208,7 +77230,7 @@ async function workspaceNames(ids) {
   const { data } = await supabase.from("workspaces").select("id, name").in("id", ids);
   return new Map((data ?? []).map((w2) => [String(w2.id), String(w2.name ?? "Workspace")]));
 }
-router23.get("/tickets", zValidator("query", external_exports.object({ status: external_exports.enum(SUPPORT_STATUSES).optional() })), async (c2) => {
+router23.get("/tickets", zValidator2("query", external_exports.object({ status: external_exports.enum(SUPPORT_STATUSES).optional() })), async (c2) => {
   const { data } = await supabase.from("nodes").select("id, workspace_id, created_by, created_at, data").eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(500);
   const status = c2.req.valid("query").status;
   const rows2 = (data ?? []).map((n2) => ({ ...n2, data: n2.data ?? {} })).filter((n2) => !status || n2.data.status === status);
@@ -77266,7 +77288,7 @@ router23.get("/tickets/:id", async (c2) => {
     status_history: t3.data.status_history ?? []
   });
 });
-router23.patch("/tickets/:id", zValidator("json", external_exports.object({ status: external_exports.enum(SUPPORT_STATUSES) })), async (c2) => {
+router23.patch("/tickets/:id", zValidator2("json", external_exports.object({ status: external_exports.enum(SUPPORT_STATUSES) })), async (c2) => {
   const userId = c2.get("userId");
   const t3 = await getTicketAnywhere(c2.req.param("id"));
   if (!t3) return c2.json({ error: "Ticket not found." }, 404);
@@ -77306,7 +77328,7 @@ router23.patch("/tickets/:id", zValidator("json", external_exports.object({ stat
   }
   return c2.json({ id: t3.id, status: nextStatus, last_updated: now });
 });
-router23.post("/tickets/:id/comments", zValidator("json", external_exports.object({ body: external_exports.string().min(1).max(8e3) })), async (c2) => {
+router23.post("/tickets/:id/comments", zValidator2("json", external_exports.object({ body: external_exports.string().min(1).max(8e3) })), async (c2) => {
   const userId = c2.get("userId");
   const t3 = await getTicketAnywhere(c2.req.param("id"));
   if (!t3) return c2.json({ error: "Ticket not found." }, 404);
@@ -77329,7 +77351,7 @@ router23.post("/tickets/:id/comments", zValidator("json", external_exports.objec
   if (to) await mailSupportReplied(to, { id: t3.id, subject: t3.data.subject }, { author: "Mondaily support", body: comment.body, at: now });
   return c2.json({ ok: true, comment });
 });
-router23.get("/signups", zValidator("query", external_exports.object({
+router23.get("/signups", zValidator2("query", external_exports.object({
   days: external_exports.coerce.number().min(1).max(90).default(14),
   limit: external_exports.coerce.number().min(1).max(200).default(100)
 })), async (c2) => {
@@ -77632,7 +77654,7 @@ router24.post("/livekit", async (c2) => {
 // src/routes/telemetry.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 var import_node_crypto17 = require("crypto");
 init_client();
 init_cookie2();
@@ -77647,7 +77669,7 @@ function fingerprint(message, route, source) {
 router25.post(
   "/error",
   rateLimit({ max: 30, windowMs: 6e4 }),
-  zValidator("json", external_exports.object({
+  zValidator2("json", external_exports.object({
     message: external_exports.string().min(1).max(2e3),
     route: external_exports.string().max(300).optional(),
     source: external_exports.enum(["client", "api"]).default("client"),
@@ -77684,7 +77706,7 @@ router25.post(
     return c2.json({ recorded: !error, occurrences }, 202);
   }
 );
-router25.get("/errors", requireAuth, requireAdminRole, zValidator("query", external_exports.object({
+router25.get("/errors", requireAuth, requireAdminRole, zValidator2("query", external_exports.object({
   include_resolved: external_exports.enum(["true", "false"]).default("false"),
   limit: external_exports.coerce.number().min(1).max(200).default(50)
 })), async (c2) => {
@@ -77922,7 +77944,7 @@ router26.post("/confirm-subscription", async (c2) => {
 // src/routes/app-data.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_cookie2();
 init_auth();
 init_client();
@@ -78242,7 +78264,7 @@ router27.get("/meetings/today", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "calendar_event").gte("data->>start_at", `${today}T00:00:00`).lte("data->>start_at", `${today}T23:59:59`).order("data->>start_at", { ascending: true }).limit(100);
   return c2.json((data ?? []).map((node) => ({ id: node.id, ...node.data ?? {} })));
 });
-router27.post("/tasks", zValidator("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
+router27.post("/tasks", zValidator2("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "tasks", object_type: "task", data: { ...body, completed: false }, created_by: c2.get("userId") }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
@@ -78257,7 +78279,7 @@ router27.patch("/tasks/:id", async (c2) => {
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "updated", diff: updates });
   return c2.json({ id: data.id, ...data.data });
 });
-router27.post("/emails/send", zValidator("json", external_exports.object({
+router27.post("/emails/send", zValidator2("json", external_exports.object({
   to: external_exports.string().email(),
   subject: external_exports.string().min(1),
   body: external_exports.string().min(1)
@@ -78569,7 +78591,7 @@ router27.delete("/settings/members/:id", async (c2) => {
   await supabase.from("workspace_members").delete().eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router27.post("/settings/teams", zValidator("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
+router27.post("/settings/teams", zValidator2("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("teams").insert({ workspace_id: c2.get("workspaceId"), name: body.name }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
@@ -78610,7 +78632,7 @@ var ATTR_TYPES = [
   "finance_outstanding",
   "formula"
 ];
-router27.post("/settings/objects", zValidator("json", external_exports.object({
+router27.post("/settings/objects", zValidator2("json", external_exports.object({
   name: external_exports.string().min(1),
   // singular (kept for back-compat with older callers)
   singular: external_exports.string().min(1).optional(),
@@ -78639,7 +78661,7 @@ router27.post("/settings/objects", zValidator("json", external_exports.object({
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router27.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
+router27.post("/settings/objects/:id/attributes", zValidator2("json", external_exports.object({
   name: external_exports.string().min(1),
   // Full type set — previously capped at 5 types, so AI-generated currency/percentage/date-time/
   // multi-select columns silently 400'd and were dropped (e.g. a finance schema lost every money field).
@@ -78904,7 +78926,7 @@ router27.get("/settings/email", async (c2) => {
     ...typeof prefs.default_from === "string" ? { default_from: prefs.default_from } : {}
   });
 });
-router27.patch("/settings/email", zValidator("json", external_exports.object({
+router27.patch("/settings/email", zValidator2("json", external_exports.object({
   providers: external_exports.array(external_exports.object({
     id: external_exports.string(),
     sync_scope: external_exports.enum(["all", "inbox", "starred"]).optional(),
@@ -79079,7 +79101,7 @@ router27.patch("/settings/general", requireAuth, async (c2) => {
 
 // src/routes/invites.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 var import_node_crypto20 = require("crypto");
 init_auth();
@@ -79123,7 +79145,7 @@ router28.get("/", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router28.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
+router28.post("/", requireAuth, zValidator2("json", inviteSchema), async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = c2.req.valid("json");
@@ -79233,7 +79255,7 @@ router28.post("/accept", requireJwt, async (c2) => {
 });
 
 // src/routes/notes.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -79250,7 +79272,7 @@ async function getRootNote(workspaceId, id) {
   const { data } = await supabase.from("activities").select("*").eq("workspace_id", workspaceId).eq("id", id).eq("action", "note").maybeSingle();
   return data;
 }
-router29.get("/", zValidator("query", external_exports.object({
+router29.get("/", zValidator2("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "following"]).default("all"),
   sort: external_exports.enum(["newest", "oldest", "updated"]).default("newest"),
   search: external_exports.string().default(""),
@@ -79302,7 +79324,7 @@ router29.get("/", zValidator("query", external_exports.object({
   });
   return c2.json(result);
 });
-router29.post("/", zValidator("json", noteBody), async (c2) => {
+router29.post("/", zValidator2("json", noteBody), async (c2) => {
   const body = c2.req.valid("json");
   const { data: node } = await supabase.from("nodes").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", body.node_id).maybeSingle();
   if (!node) return c2.json({ error: "Linked record not found" }, 404);
@@ -79317,7 +79339,7 @@ router29.post("/", zValidator("json", noteBody), async (c2) => {
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router29.patch("/:id", zValidator("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
+router29.patch("/:id", zValidator2("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
   const root = await getRootNote(c2.get("workspaceId"), c2.req.param("id"));
   if (!root) return c2.json({ error: "Note not found" }, 404);
   if (root.actor_id !== c2.get("userId") && !["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Forbidden" }, 403);
@@ -79348,7 +79370,7 @@ router29.delete("/:id", async (c2) => {
 });
 
 // src/routes/emails.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -79456,7 +79478,7 @@ router30.get("/inbound-address", (c2) => c2.json({
   address: inboundAddressFor(c2.get("workspaceId")),
   enabled: mailDomainConfigured()
 }));
-router30.get("/attachment", zValidator("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
+router30.get("/attachment", zValidator2("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
   const path = c2.req.valid("query").path;
   if (!path.startsWith(`${c2.get("workspaceId")}/`)) return c2.json({ error: "Not allowed." }, 403);
   const { data, error } = await supabase.storage.from(ATTACH_BUCKET).createSignedUrl(path, 120);
@@ -79504,7 +79526,7 @@ function toUnixSeconds2(dateStr) {
   const t3 = Date.parse(dateStr ?? "");
   return Number.isNaN(t3) ? Math.floor(Date.now() / 1e3) : Math.floor(t3 / 1e3);
 }
-router30.get("/threads", zValidator("query", external_exports.object({
+router30.get("/threads", zValidator2("query", external_exports.object({
   search: external_exports.string().default(""),
   filter: external_exports.enum(["all", "inbox", "sent", "unread"]).default("all"),
   page_token: external_exports.string().optional()
@@ -79581,7 +79603,7 @@ function injectTracking(html, trackingId) {
   const pixel = `<img src="${API_BASE}/api/v1/emails/track/${trackingId}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   return withLinks.includes("</body>") ? withLinks.replace("</body>", `${pixel}</body>`) : withLinks + pixel;
 }
-router30.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
+router30.post("/threads/:id/reply", zValidator2("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
   const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -79630,7 +79652,7 @@ router30.post("/threads/:id/reply", zValidator("json", external_exports.object({
   await supabase.from("nodes").update({ data: merged }).eq("id", node.id).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread");
   return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
-router30.post("/compose", zValidator("json", external_exports.object({
+router30.post("/compose", zValidator2("json", external_exports.object({
   to: external_exports.string().email(),
   subject: external_exports.string().min(1).max(300),
   body: external_exports.string().min(1),
@@ -79658,7 +79680,7 @@ router30.post("/compose", zValidator("json", external_exports.object({
   }
   return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
-router30.post("/improve-draft", zValidator("json", external_exports.object({ body: external_exports.string().min(1).max(2e4), instruction: external_exports.string().max(400).optional() })), async (c2) => {
+router30.post("/improve-draft", zValidator2("json", external_exports.object({ body: external_exports.string().min(1).max(2e4), instruction: external_exports.string().max(400).optional() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const env3 = gatewayEnv();
@@ -79690,7 +79712,7 @@ router30.get("/outbox", async (c2) => {
     click_count: Array.isArray(n2.data.clicks) ? n2.data.clicks.length : 0
   })));
 });
-router30.post("/threads/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router30.post("/threads/:id/link", zValidator2("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const threadId = c2.req.param("id");
   const { data: target } = await supabase.from("nodes").select("id").eq("workspace_id", workspaceId).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -79713,7 +79735,7 @@ router30.post("/threads/:id/link", zValidator("json", external_exports.object({ 
 });
 
 // src/routes/calls.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -79775,7 +79797,7 @@ async function getCall(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", workspaceId).eq("vertical", "sales").eq("object_type", "call").eq("id", id).maybeSingle();
   return data;
 }
-router31.get("/", zValidator("query", external_exports.object({
+router31.get("/", zValidator2("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "week", "month"]).default("all"),
   search: external_exports.string().default("")
 })), async (c2) => {
@@ -79835,7 +79857,7 @@ function isPastEvent(d2, now) {
   const end = new Date(d2.end_at || d2.start_at || 0);
   return !Number.isNaN(end.getTime()) && end < now;
 }
-router31.get("/memory", zValidator("query", external_exports.object({ search: external_exports.string().default("") })), async (c2) => {
+router31.get("/memory", zValidator2("query", external_exports.object({ search: external_exports.string().default("") })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const [callsRes, eventsRes] = await Promise.all([
@@ -79971,7 +79993,7 @@ router31.get("/:id", async (c2) => {
     recording_processing: false
   });
 });
-router31.post("/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router31.post("/:id/link", zValidator2("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const call = await getCall(workspaceId, c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
@@ -79982,7 +80004,7 @@ router31.post("/:id/link", zValidator("json", external_exports.object({ node_id:
   await supabase.from("activities").insert({ node_id: target.id, workspace_id: workspaceId, actor_type: "human", actor_id: c2.get("userId"), action: "call_linked", diff: { call_id: call.id } });
   return c2.json({ ok: true });
 });
-router31.post("/:id/analyze", zValidator("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
+router31.post("/:id/analyze", zValidator2("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
   const call = await getCall(c2.get("workspaceId"), c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
   const normalized = normalizeCall(call);
@@ -80042,7 +80064,7 @@ function enqueueIngest(sessionId) {
   });
   else void ingestRecording(sessionId);
 }
-router31.post("/upload/init", zValidator("json", external_exports.object({
+router31.post("/upload/init", zValidator2("json", external_exports.object({
   filename: external_exports.string().min(1).max(200),
   content_type: external_exports.string().min(1).max(120),
   size: external_exports.number().int().positive(),
@@ -80080,7 +80102,7 @@ router31.post("/upload/init", zValidator("json", external_exports.object({
   if (upErr || !signed) return c2.json({ error: "storage_unavailable", message: "Recording storage isn't configured. Create the private 'meeting-recordings' bucket." }, 503);
   return c2.json({ id: session.id, upload_url: signed.signedUrl, token: signed.token, path, content_type: b2.content_type }, 201);
 });
-router31.post("/upload/complete", zValidator("json", external_exports.object({ id: external_exports.string().uuid() })), async (c2) => {
+router31.post("/upload/complete", zValidator2("json", external_exports.object({ id: external_exports.string().uuid() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const { data: s2 } = await supabase.from("call_sessions").select("id, workspace_id, recording_url, source").eq("id", c2.req.valid("json").id).eq("workspace_id", ws).eq("source", "upload").maybeSingle();
   if (!s2?.recording_url) return c2.json({ error: "session_not_found" }, 404);
@@ -80124,7 +80146,7 @@ router31.post("/:id/reprocess", async (c2) => {
   enqueueIngest(sess.id);
   return c2.json({ ok: true, status: "queued" }, 202);
 });
-router31.post("/:id/action-items/:index/promote", zValidator("json", external_exports.object({ target: external_exports.enum(["task", "decision"]) })), async (c2) => {
+router31.post("/:id/action-items/:index/promote", zValidator2("json", external_exports.object({ target: external_exports.enum(["task", "decision"]) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const node = await getCall(ws, c2.req.param("id"));
@@ -80361,7 +80383,7 @@ router32.get("/readiness/inference-shadow", async (c2) => {
 });
 
 // src/routes/records.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -80833,7 +80855,7 @@ var aggInput = external_exports.object({
     to: external_exports.string().refine((s2) => !Number.isNaN(Date.parse(s2)), "invalid to date").optional()
   }).refine((d2) => d2.from != null || d2.to != null, "date_filter needs from or to").optional()
 });
-router33.post("/aggregate", zValidator("json", aggInput), async (c2) => {
+router33.post("/aggregate", zValidator2("json", aggInput), async (c2) => {
   const ws = c2.get("workspaceId");
   const { object_type, column, op, group_by, group_exact, currency, filters, date_filter, limit: limit2, bucket } = c2.req.valid("json");
   const hasFilters = !!filters?.length;
@@ -80899,7 +80921,7 @@ router33.post("/aggregate", zValidator("json", aggInput), async (c2) => {
     currency: currencyCode
   });
 });
-router33.post("/schema-unify", denyViewerWrites, zValidator("json", external_exports.object({
+router33.post("/schema-unify", denyViewerWrites, zValidator2("json", external_exports.object({
   dry_run: external_exports.boolean().default(true)
 })), async (c2) => {
   const ws = c2.get("workspaceId");
@@ -81191,7 +81213,7 @@ router33.get("/schema-audit/:objectType", async (c2) => {
     dead
   });
 });
-router33.post("/schema-adopt/:objectType", denyViewerWrites, zValidator("json", external_exports.object({
+router33.post("/schema-adopt/:objectType", denyViewerWrites, zValidator2("json", external_exports.object({
   keys: external_exports.array(external_exports.object({ key: external_exports.string().max(120), type: external_exports.string().max(40) })).max(60),
   dry_run: external_exports.boolean().default(true)
 })), async (c2) => {
@@ -81213,7 +81235,7 @@ router33.post("/schema-adopt/:objectType", denyViewerWrites, zValidator("json", 
   return c2.json({ ok: true, added, attributes_total: attrs.length + added.length });
 });
 var PRUNE_SCAN_CAP = 5e3;
-router33.post("/schema-prune/:objectType", denyViewerWrites, zValidator("json", external_exports.object({
+router33.post("/schema-prune/:objectType", denyViewerWrites, zValidator2("json", external_exports.object({
   keys: external_exports.array(external_exports.string().max(120)).min(1).max(60),
   dry_run: external_exports.boolean().default(true)
 })), async (c2) => {
@@ -81294,7 +81316,7 @@ var recordsRouter = router33;
 // src/routes/periods.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_client();
 init_auth();
 init_period();
@@ -81561,7 +81583,7 @@ router34.get("/current", async (c2) => {
   }));
   return c2.json({ now: now.toISOString(), time_zone: cfg.timeZone, week_start: cfg.weekStart, periods: periods2 });
 });
-router34.get("/bounds", zValidator("query", external_exports.object({
+router34.get("/bounds", zValidator2("query", external_exports.object({
   timeframe: TIMEFRAME,
   // How many whole periods back. 0 = the current, in-progress period; -1 = last month IN FULL.
   // Bounded so a caller cannot ask the server to walk a million boundaries.
@@ -81602,7 +81624,7 @@ router34.get("/bounds", zValidator("query", external_exports.object({
     previous
   });
 });
-router34.get("/snapshots", zValidator("query", external_exports.object({
+router34.get("/snapshots", zValidator2("query", external_exports.object({
   period_type: TYPE2.optional(),
   limit: external_exports.coerce.number().min(1).max(200).default(50)
 })), async (c2) => {
@@ -81613,16 +81635,16 @@ router34.get("/snapshots", zValidator("query", external_exports.object({
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ snapshots: data ?? [], metrics_version: METRICS_VERSION });
 });
-router34.get("/drift", zValidator("query", external_exports.object({ period_type: TYPE2, period_key: external_exports.string().max(32) })), async (c2) => {
+router34.get("/drift", zValidator2("query", external_exports.object({ period_type: TYPE2, period_key: external_exports.string().max(32) })), async (c2) => {
   const { period_type, period_key } = c2.req.valid("query");
   const d2 = await driftFor(c2.get("workspaceId"), period_type, period_key);
   if (!d2) return c2.json({ error: "No snapshot on file for that period." }, 404);
   return c2.json(d2);
 });
-router34.get("/verify", zValidator("query", external_exports.object({ period_type: TYPE2 })), async (c2) => {
+router34.get("/verify", zValidator2("query", external_exports.object({ period_type: TYPE2 })), async (c2) => {
   return c2.json(await verifyChain(c2.get("workspaceId"), c2.req.valid("query").period_type));
 });
-router34.post("/close", zValidator("json", external_exports.object({
+router34.post("/close", zValidator2("json", external_exports.object({
   period_type: TYPE2.optional(),
   dry_run: external_exports.boolean().default(true)
 })), async (c2) => {
@@ -81661,7 +81683,7 @@ router34.post("/close", zValidator("json", external_exports.object({
   const results = await closeDuePeriods(ws, wsRow, now, { types, closedBy: "manual" });
   return c2.json({ dry_run: false, results });
 });
-router34.post("/backfill-wins", zValidator("json", external_exports.object({
+router34.post("/backfill-wins", zValidator2("json", external_exports.object({
   dry_run: external_exports.boolean().default(true),
   supplied: external_exports.record(external_exports.string(), external_exports.string()).default({})
 })), async (c2) => {
@@ -81683,7 +81705,7 @@ router34.post("/backfill-wins", zValidator("json", external_exports.object({
   const result = await applyWinDates(ws, proposals);
   return c2.json({ dry_run: false, ...result, still_undated: proposals.length - result.updated });
 });
-router34.post("/reconcile-stage", zValidator("json", external_exports.object({
+router34.post("/reconcile-stage", zValidator2("json", external_exports.object({
   dry_run: external_exports.boolean().default(true),
   // "evidence" resolves only what history can justify (7 of 28); "canonical" settles all of them on
   // the value the app already computes, which moves no figure anyone is reading.
@@ -81715,7 +81737,7 @@ router34.post("/reconcile-stage", zValidator("json", external_exports.object({
 
 // src/routes/money.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -81731,7 +81753,7 @@ var SHAPES = {
   expense: { amount: (d2) => (Number(d2.amount_cents ?? 0) || 0) / 100, dateKeys: ["date", "created_at"] }
 };
 var day2 = (v2) => String(v2 ?? "").slice(0, 10);
-router35.post("/backfill", denyViewerWrites, zValidator("json", external_exports.object({
+router35.post("/backfill", denyViewerWrites, zValidator2("json", external_exports.object({
   dry_run: external_exports.boolean().default(true),
   object_types: external_exports.array(external_exports.enum(["invoice", "quote", "credit_note", "expense"])).optional(),
   seed_history: external_exports.boolean().default(false)
@@ -81851,7 +81873,7 @@ router35.get("/coverage", async (c2) => {
 var moneyRouter = router35;
 
 // src/routes/dashboards.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -81867,7 +81889,7 @@ router36.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((node) => unpack2(node)));
 });
-router36.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
+router36.post("/", zValidator2("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "dashboard", data: { name: c2.req.valid("json").name, access: "private", widgets: [] }, created_by: c2.get("userId") }).select("id,data,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "created", diff: { object_type: "dashboard" } });
@@ -81890,7 +81912,7 @@ router36.delete("/:id", async (c2) => {
 });
 
 // src/routes/sequences.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -81954,7 +81976,7 @@ router37.get("/:id/steps", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json((node.data.steps ?? []).sort((a2, b2) => Number(a2.position) - Number(b2.position))) : c2.json({ error: "Sequence not found" }, 404);
 });
-router37.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), async (c2) => {
+router37.post("/:id/steps", zValidator2("json", stepSchema.omit({ id: true })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -81962,7 +81984,7 @@ router37.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), a
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step3] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(step3, 201);
 });
-router37.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
+router37.patch("/:id/steps/:sid", zValidator2("json", stepSchema.partial()), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -81986,7 +82008,7 @@ router37.get("/:id/enrollments", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(node.data.enrollments ?? []) : c2.json({ error: "Sequence not found" }, 404);
 });
-router37.post("/:id/enroll", zValidator("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
+router37.post("/:id/enroll", zValidator2("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const { data: contacts } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).in("id", c2.req.valid("json").node_ids);
@@ -81996,7 +82018,7 @@ router37.post("/:id/enroll", zValidator("json", external_exports.object({ node_i
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, enrollments: [...current.enrollments ?? [], ...additions] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(additions, 201);
 });
-router37.patch("/:id/enrollments/:eid", zValidator("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
+router37.patch("/:id/enrollments/:eid", zValidator2("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -82007,7 +82029,7 @@ router37.patch("/:id/enrollments/:eid", zValidator("json", external_exports.obje
 });
 
 // src/routes/lists.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -82032,7 +82054,7 @@ router38.get("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
-router38.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
+router38.post("/", zValidator2("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("lists").insert({
     ...body,
@@ -82080,7 +82102,7 @@ router38.get("/:id/entries", async (c2) => {
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((entries ?? []).flatMap((entry) => entry.nodes ? [entry.nodes] : []));
 });
-router38.post("/:id/entries", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router38.post("/:id/entries", zValidator2("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { data: node } = await supabase.from("nodes").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -82348,13 +82370,13 @@ router39.delete("/:id", async (c2) => {
 
 // src/routes/feedback.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_client();
 var router40 = new Hono2();
 router40.use("*", requireAuth);
-router40.post("/", zValidator("json", external_exports.object({
+router40.post("/", zValidator2("json", external_exports.object({
   message: external_exports.string(),
   response: external_exports.string(),
   rating: external_exports.union([external_exports.literal(1), external_exports.literal(-1)]),
@@ -82974,7 +82996,7 @@ router44.post("/:id/activity", async (c2) => {
 
 // src/routes/import.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -82993,7 +83015,7 @@ var importBodySchema = external_exports.object({
   object_type: external_exports.string().min(1),
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]).default("shared")
 });
-router45.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySchema), async (c2) => {
+router45.post("/", requireAuth, denyViewerWrites, zValidator2("json", importBodySchema), async (c2) => {
   const { headers: headers2, samples, rows: rows2, object_type, vertical } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -83068,7 +83090,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
 
 // src/routes/generate.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_credits();
@@ -83094,7 +83116,7 @@ async function callGatewayTool(body, ctx) {
   });
   return { content: [{ type: "tool_use", name: tool.name, input }] };
 }
-router46.post("/schema", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
+router46.post("/schema", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
   const { prompt } = c2.req.valid("json");
   try {
     const data = await callGatewayTool({
@@ -83158,7 +83180,7 @@ router46.post("/schema", requireAuth, verifyAiCredits, zValidator("json", extern
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/nlp", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/nlp", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   query: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -83216,7 +83238,7 @@ Only include fields that are clearly requested. Prefer STRUCTURED conditions ove
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/enrich/company", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
+router46.post("/enrich/company", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
   const { name } = c2.req.valid("json");
   const webContext = await sovereignWebContext(`${name} company funding employees ARR revenue headquarters`);
   try {
@@ -83249,7 +83271,7 @@ ${webContext}` : "No web context was available."}`,
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/enrich/person", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
+router46.post("/enrich/person", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const domain = email.split("@")[1] ?? "";
   const webContext = domain ? await sovereignWebContext(`${email} ${domain} linkedin job title company`) : "";
@@ -83281,7 +83303,7 @@ ${webContext}` : "No web context was available."}`,
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/records", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/records", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   objectType: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string()).min(1),
   prompt: external_exports.string().min(1),
@@ -83330,7 +83352,7 @@ ${webContext.slice(0, 12e3)}`,
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/tasks", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/tasks", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1),
   count: external_exports.number().int().min(1).max(20).default(5),
   members: external_exports.array(external_exports.object({ email: external_exports.string(), name: external_exports.string() })).optional(),
@@ -83387,7 +83409,7 @@ Make tasks specific, actionable, and realistic. Set priority based on urgency. S
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/insights", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/insights", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.record(external_exports.unknown()))
 })), async (c2) => {
@@ -83446,7 +83468,7 @@ For each insight, also provide a concrete, specific action the user should take 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/sequence", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/sequence", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1),
   steps: external_exports.number().int().min(2).max(8).default(4)
 })), async (c2) => {
@@ -83502,7 +83524,7 @@ Guidelines:
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/list-name", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/list-name", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectTypes: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -83536,7 +83558,7 @@ Available object types: ${objectTypes.join(", ")}`
     return c2.json({ name: "New List", object_type: objectTypes[0] ?? "companies" });
   }
 });
-router46.post("/list-entries", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/list-entries", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.object({ id: external_exports.string(), data: external_exports.record(external_exports.unknown()) }))
@@ -83580,7 +83602,7 @@ Select the IDs that best match. If none match, return an empty array. Be generou
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/workflow", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/workflow", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   prompt: external_exports.string().min(1)
 })), async (c2) => {
   const { prompt } = c2.req.valid("json");
@@ -83692,7 +83714,7 @@ Example: Deal stage changed \u2192 Field equals "Won" \u2192 Send email, Create 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router46.post("/forecast", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
+router46.post("/forecast", requireAuth, verifyAiCredits, zValidator2("json", external_exports.object({
   objectType: external_exports.string().min(1),
   valueCol: external_exports.string().nullable(),
   stageCol: external_exports.string().nullable(),
@@ -83891,7 +83913,7 @@ Focus on: overdue tasks, stale high-value deals, urgent items piling up, or patt
 });
 
 // src/routes/digests.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -83916,7 +83938,7 @@ router47.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack3(n2)));
 });
-router47.post("/", zValidator("json", DigestSchema), async (c2) => {
+router47.post("/", zValidator2("json", DigestSchema), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: c2.get("workspaceId"),
@@ -84030,7 +84052,7 @@ router47.post("/:id/send", async (c2) => {
 });
 
 // src/routes/annotations.ts
-init_dist6();
+init_validate();
 init_client();
 init_dist();
 init_zod();
@@ -84042,14 +84064,14 @@ router48.use("*", denyViewerWrites);
 function unpack4(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
-router48.get("/", zValidator("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
+router48.get("/", zValidator2("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
   let q2 = supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "chart_annotation").order("updated_at", { ascending: false });
   const { object_type } = c2.req.valid("query");
   if (object_type) q2 = q2.eq("data->>source_object", object_type);
   const { data, error } = await q2;
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack4(n2)));
 });
-router48.post("/", zValidator("json", external_exports.object({
+router48.post("/", zValidator2("json", external_exports.object({
   source_object: external_exports.string().min(1),
   bucket_label: external_exports.string().min(1),
   text: external_exports.string().min(1),
@@ -84164,7 +84186,7 @@ router49.delete("/:id", denyViewerWrites, async (c2) => {
 
 // src/routes/invoices.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -84329,7 +84351,7 @@ router50.get("/:id", async (c2) => {
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router50.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
+router50.post("/", zValidator2("json", invoiceBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   let number;
   try {
@@ -84382,7 +84404,7 @@ router50.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router50.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c2) => {
+router50.patch("/:id", zValidator2("json", invoiceBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -84460,7 +84482,7 @@ router50.delete("/:id", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router50.post("/:id/payments", zValidator("json", external_exports.object({
+router50.post("/:id/payments", zValidator2("json", external_exports.object({
   amount: external_exports.number().positive(),
   method: external_exports.enum(["bank_transfer", "card", "cash", "cheque", "other"]).default("bank_transfer"),
   reference: external_exports.string().optional(),
@@ -84508,7 +84530,7 @@ router50.get("/:id/credit-notes", async (c2) => {
 
 // src/routes/credit-notes.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_http_exception();
 init_auth();
@@ -84616,7 +84638,7 @@ router51.get("/:id", async (c2) => {
   for (const e2 of edges ?? []) edgeMap[e2.relationship] = e2.to_node_id;
   return c2.json({ id: node.id, ...node.data, created_at: node.created_at, updated_at: node.updated_at, created_by: node.created_by, edges: edgeMap });
 });
-router51.post("/", zValidator("json", creditNoteSchema), async (c2) => {
+router51.post("/", zValidator2("json", creditNoteSchema), async (c2) => {
   const body = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const issuedOn = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
@@ -84656,7 +84678,7 @@ router51.post("/", zValidator("json", creditNoteSchema), async (c2) => {
   }).catch((e2) => console.error("[bg-task] swallowed error:", e2));
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router51.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2) => {
+router51.patch("/:id", zValidator2("json", creditNoteSchema.partial()), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const node = await getCreditNote(workspaceId, c2.req.param("id"));
   const current = node.data;
@@ -84717,7 +84739,7 @@ router51.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2
   }
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router51.post("/:id/apply-to-invoice", zValidator("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
+router51.post("/:id/apply-to-invoice", zValidator2("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const note = await getCreditNote(workspaceId, c2.req.param("id"));
   if (String(note.data.status) === "void") return c2.json({ error: "This credit note is void." }, 422);
@@ -84762,7 +84784,7 @@ ${facts}`;
     return c2.json({ error: "Couldn't generate a summary \u2014 please try again." }, 200);
   }
 });
-router51.post("/:id/assign-reviewer", zValidator("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
+router51.post("/:id/assign-reviewer", zValidator2("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   await getCreditNote(workspaceId, c2.req.param("id"));
   const { user_id } = c2.req.valid("json");
@@ -84791,7 +84813,7 @@ router51.delete("/:id", async (c2) => {
 
 // src/routes/quotes.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -84855,7 +84877,7 @@ router52.get("/:id", async (c2) => {
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router52.post("/", zValidator("json", quoteBodySchema), async (c2) => {
+router52.post("/", zValidator2("json", quoteBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   let number;
   try {
@@ -84902,7 +84924,7 @@ router52.post("/", zValidator("json", quoteBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router52.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2) => {
+router52.patch("/:id", zValidator2("json", quoteBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -84973,7 +84995,7 @@ router52.post("/:id/convert", async (c2) => {
   await supabase.from("nodes").update({ data: { ...qd, status: "accepted", converted_to_invoice_id: newInvoice.id }, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", quote.id).eq("workspace_id", workspaceId).eq("object_type", "quote");
   return c2.json({ id: newInvoice.id, ...newInvoice.data, created_at: newInvoice.created_at, created_by: newInvoice.created_by }, 201);
 });
-router52.post("/draft", zValidator("json", external_exports.object({ brief: external_exports.string().min(1).max(1e3), currency: external_exports.string().max(8).optional() })), async (c2) => {
+router52.post("/draft", zValidator2("json", external_exports.object({ brief: external_exports.string().min(1).max(1e3), currency: external_exports.string().max(8).optional() })), async (c2) => {
   const env3 = gatewayEnv();
   if (!env3.baseURL || !env3.apiKey) return c2.json({ error: "AI isn't available right now." }, 503);
   const { brief, currency } = c2.req.valid("json");
@@ -84999,7 +85021,7 @@ router52.post("/draft", zValidator("json", external_exports.object({ brief: exte
 
 // src/routes/expenses.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -85046,7 +85068,7 @@ router53.get("/:id", async (c2) => {
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router53.post("/", zValidator("json", expenseBodySchema), async (c2) => {
+router53.post("/", zValidator2("json", expenseBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const incurredOn = String(body.date ?? (/* @__PURE__ */ new Date()).toISOString().split("T")[0]).slice(0, 10);
   const money = await moneyAt(c2.get("workspaceId"), body.amount_cents / 100, body.currency, incurredOn);
@@ -85072,7 +85094,7 @@ router53.post("/", zValidator("json", expenseBodySchema), async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router53.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c2) => {
+router53.patch("/:id", zValidator2("json", expenseBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -85092,7 +85114,7 @@ router53.delete("/:id", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router53.post("/categorize", zValidator("json", external_exports.object({
+router53.post("/categorize", zValidator2("json", external_exports.object({
   description: external_exports.string().min(1).max(500),
   vendor: external_exports.string().max(200).optional(),
   amount_cents: external_exports.number().int().min(0).optional()
@@ -85124,7 +85146,7 @@ Amount: ${(amount_cents / 100).toFixed(2)}` : ""}`;
 
 // src/routes/tags.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_auth();
 init_rbac();
@@ -85136,7 +85158,7 @@ router54.get("/", async (c2) => {
   const { data } = await supabase.from("tags").select("*").eq("workspace_id", c2.get("workspaceId")).order("name");
   return c2.json(data ?? []);
 });
-router54.post("/", requireAuth, zValidator("json", external_exports.object({
+router54.post("/", requireAuth, zValidator2("json", external_exports.object({
   name: external_exports.string().min(1),
   color: external_exports.string().default("#6366f1")
 })), async (c2) => {
@@ -85157,7 +85179,7 @@ router54.get("/node/:nodeId", requireAuth, async (c2) => {
   const { data } = await supabase.from("node_tags").select("tag_id, tags(id, name, color)").eq("node_id", c2.req.param("nodeId")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json((data ?? []).map((r2) => r2.tags));
 });
-router54.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
+router54.post("/node/:nodeId", requireAuth, zValidator2("json", external_exports.object({
   tag_id: external_exports.string().uuid()
 })), async (c2) => {
   const { tag_id } = c2.req.valid("json");
@@ -85746,7 +85768,7 @@ router57.get("/summary", async (c2) => {
 // src/routes/memory.ts
 init_dist();
 init_zod();
-init_dist6();
+init_validate();
 init_client();
 init_auth();
 init_rbac();
@@ -85759,7 +85781,7 @@ router58.get("/recall", requireAdminRole, async (c2) => {
   return c2.json(result);
 });
 router58.get("/settings", async (c2) => c2.json({ enabled: await memoryEnabled(c2.get("workspaceId")) }));
-router58.post("/settings", requireAdminRole, zValidator("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
+router58.post("/settings", requireAdminRole, zValidator2("json", external_exports.object({ enabled: external_exports.boolean() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const { data: row } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = { ...row?.settings ?? {}, memory_enabled: c2.req.valid("json").enabled };
@@ -85770,7 +85792,7 @@ router58.post("/settings", requireAdminRole, zValidator("json", external_exports
 
 // src/routes/discovery.ts
 init_dist();
-init_dist6();
+init_validate();
 init_zod();
 init_client();
 init_auth();
@@ -85967,8 +85989,8 @@ async function triggerSweep(c2) {
     return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
   }
 }
-router59.post("/trigger", zValidator("json", runSchema2), triggerSweep);
-router59.post("/run", zValidator("json", runSchema2), triggerSweep);
+router59.post("/trigger", zValidator2("json", runSchema2), triggerSweep);
+router59.post("/run", zValidator2("json", runSchema2), triggerSweep);
 var searchSchema = external_exports.object({ query: external_exports.string().min(2).max(300), deep: external_exports.boolean().optional(), exhaustive: external_exports.boolean().optional() });
 async function classifyQuery(workspaceId, query, deep, exhaustive) {
   let classified = {};
@@ -86008,7 +86030,7 @@ async function classifyQuery(workspaceId, query, deep, exhaustive) {
     exhaustive
   };
 }
-router59.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
+router59.post("/coach", zValidator2("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
   const { query } = c2.req.valid("json");
   try {
     const icp = await loadIcp(c2.get("workspaceId"));
@@ -86048,7 +86070,7 @@ router59.post("/coach", zValidator("json", external_exports.object({ query: exte
     return c2.json({ specific: true, coach_message: "", suggestions: [], refined_query: query });
   }
 });
-router59.post("/search", zValidator("json", searchSchema), async (c2) => {
+router59.post("/search", zValidator2("json", searchSchema), async (c2) => {
   const { query, deep, exhaustive } = c2.req.valid("json");
   const params = await classifyQuery(c2.get("workspaceId"), query, deep, exhaustive);
   inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {
@@ -86061,7 +86083,7 @@ router59.post("/search", zValidator("json", searchSchema), async (c2) => {
     return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
   }
 });
-router59.post("/search/stream", zValidator("json", searchSchema), async (c2) => {
+router59.post("/search/stream", zValidator2("json", searchSchema), async (c2) => {
   const { query, deep, exhaustive } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   return streamSSE(c2, async (stream2) => {
@@ -86138,7 +86160,7 @@ var saveSchema = external_exports.object({
   list_id: external_exports.string().uuid().optional()
   // atomically add the new record to a list
 });
-router59.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c2) => {
+router59.post("/save", denyViewerWrites, zValidator2("json", saveSchema), async (c2) => {
   const b2 = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -86198,7 +86220,7 @@ router59.get("/icp", async (c2) => {
   const icp = data?.settings?.discovery_icp ?? null;
   return c2.json({ description: icp?.description ?? "" });
 });
-router59.post("/icp", denyViewerWrites, zValidator("json", external_exports.object({ description: external_exports.string().max(1e3) })), async (c2) => {
+router59.post("/icp", denyViewerWrites, zValidator2("json", external_exports.object({ description: external_exports.string().max(1e3) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = { ...data?.settings ?? {}, discovery_icp: { description: c2.req.valid("json").description.trim(), updated_at: (/* @__PURE__ */ new Date()).toISOString() } };
@@ -86210,7 +86232,7 @@ async function loadIcp(workspaceId) {
   const d2 = data?.settings?.discovery_icp?.description;
   return d2 && d2.trim() ? d2.trim() : void 0;
 }
-router59.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/enrich", denyViewerWrites, zValidator2("json", external_exports.object({
   url: external_exports.string().max(600),
   name: external_exports.string().max(200).optional(),
   region: external_exports.string().max(160).optional(),
@@ -86285,7 +86307,7 @@ router59.post("/enrich", denyViewerWrites, zValidator("json", external_exports.o
   const dossier = buildDossier({ name: name ?? domain ?? "Lead", domain, pages, emails, phones, ai, places, graphMatch });
   return c2.json({ dossier, emails, phones, people: ai.people ?? [], company: ai.company ?? null, scanned: pages.length });
 });
-router59.post("/outreach", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/outreach", denyViewerWrites, zValidator2("json", external_exports.object({
   name: external_exports.string().max(200),
   context: external_exports.string().max(1500).optional(),
   sector: external_exports.string().max(160).optional(),
@@ -86308,7 +86330,7 @@ router59.post("/outreach", denyViewerWrites, zValidator("json", external_exports
     return c2.json({ subject: null, message: "" });
   }
 });
-router59.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/save-batch", denyViewerWrites, zValidator2("json", external_exports.object({
   leads: external_exports.array(saveSchema).min(1).max(200),
   owner_id: external_exports.string().max(120).optional(),
   list_id: external_exports.string().uuid().optional()
@@ -86356,7 +86378,7 @@ router59.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });
   return c2.json((data ?? []).map((n2) => ({ id: n2.id, ...n2.data, created_at: n2.created_at })));
 });
-router59.post("/monitors", zValidator("json", external_exports.object({ query: external_exports.string().min(2).max(300) })), async (c2) => {
+router59.post("/monitors", zValidator2("json", external_exports.object({ query: external_exports.string().min(2).max(300) })), async (c2) => {
   const { query } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const params = await classifyQuery(workspaceId, query);
@@ -86436,7 +86458,7 @@ router59.get("/status", async (c2) => {
     diagnostic: engine_diag || diagnostic
   });
 });
-router59.post("/lead-task", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/lead-task", denyViewerWrites, zValidator2("json", external_exports.object({
   name: external_exports.string().min(1).max(200),
   node_id: external_exports.string().uuid().optional(),
   title: external_exports.string().max(200).optional(),
@@ -86451,7 +86473,7 @@ router59.post("/lead-task", denyViewerWrites, zValidator("json", external_export
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router59.post("/lead-decision", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/lead-decision", denyViewerWrites, zValidator2("json", external_exports.object({
   name: external_exports.string().min(1).max(200),
   node_id: external_exports.string().uuid().optional(),
   title: external_exports.string().max(200).optional(),
@@ -86468,7 +86490,7 @@ router59.post("/lead-decision", denyViewerWrites, zValidator("json", external_ex
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router59.post("/assign-owner", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/assign-owner", denyViewerWrites, zValidator2("json", external_exports.object({
   node_id: external_exports.string().uuid(),
   owner_id: external_exports.string().max(120).nullable()
 })), async (c2) => {
@@ -86488,7 +86510,7 @@ var bulkLeadSchema = external_exports.object({
   phone: external_exports.string().max(60).optional(),
   summary: external_exports.string().max(1e3).optional()
 });
-router59.post("/bulk-task", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/bulk-task", denyViewerWrites, zValidator2("json", external_exports.object({
   leads: external_exports.array(bulkLeadSchema).min(1).max(200),
   assignee_id: external_exports.string().max(120).optional()
 })), async (c2) => {
@@ -86502,7 +86524,7 @@ router59.post("/bulk-task", denyViewerWrites, zValidator("json", external_export
   }));
   return c2.json({ ...bulkOutcome(results), results });
 });
-router59.post("/bulk-decision", denyViewerWrites, zValidator("json", external_exports.object({
+router59.post("/bulk-decision", denyViewerWrites, zValidator2("json", external_exports.object({
   leads: external_exports.array(bulkLeadSchema).min(1).max(200)
 })), async (c2) => {
   const { leads } = c2.req.valid("json");
@@ -86583,7 +86605,7 @@ init_client();
 init_auth();
 init_rbac();
 init_zod();
-init_dist6();
+init_validate();
 
 // src/services/salesforce-importer.ts
 init_deal_stage();
@@ -86640,22 +86662,26 @@ function parseXml(raw2) {
   if (/<!DOCTYPE|<!ENTITY/i.test(raw2)) {
     throw new Error("This XML declares a DTD or entities, which we don't process. Re-export as CSV or JSON.");
   }
+  const cdata = [];
+  const prepared = raw2.replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_m, body) => `\0${cdata.push(body) - 1}\0`);
   const out = [];
   const recordRe = /<(records?|sObject|row|Opportunity|Lead|Contact|Account)\b[^>]*>([\s\S]*?)<\/\1>/gi;
-  for (const m2 of raw2.matchAll(recordRe)) {
+  for (const m2 of prepared.matchAll(recordRe)) {
     const body = m2[2] ?? "";
     const rec = {};
     for (const f2 of body.matchAll(/<([A-Za-z_][\w.:-]*)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
       const key = (f2[1] ?? "").split(":").pop() ?? "";
+      const value = f2[2] ?? "";
       if (!key) continue;
-      rec[key] = decodeXmlText(f2[2] ?? "");
+      if (/<[A-Za-z_/]/.test(value)) continue;
+      rec[key] = decodeXmlText(value, cdata);
     }
     if (Object.keys(rec).length) out.push(rec);
   }
   return out;
 }
-function decodeXmlText(s2) {
-  return s2.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&").trim();
+function decodeXmlText(s2, cdata = []) {
+  return s2.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&").replace(/\u0000(\d+)\u0000/g, (_m, i2) => cdata[Number(i2)] ?? "").trim();
 }
 function parseJson(raw2) {
   const j2 = JSON.parse(raw2);
@@ -87020,7 +87046,7 @@ router61.get("/mcp-token", requireAuth, async (c2) => {
 });
 var SF_MAX_BYTES = 8 * 1024 * 1024;
 var SF_MAX_ROWS = 2e4;
-router61.post("/salesforce/parse", requireAuth, requireAdminRole, zValidator("json", external_exports.object({
+router61.post("/salesforce/parse", requireAuth, requireAdminRole, zValidator2("json", external_exports.object({
   raw: external_exports.string().min(1).max(SF_MAX_BYTES),
   object: external_exports.string().max(40).optional()
 })), async (c2) => {
@@ -87035,7 +87061,7 @@ router61.post("/salesforce/parse", requireAuth, requireAdminRole, zValidator("js
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not read that export." }, 422);
   }
 });
-router61.post("/salesforce/migrate", requireAuth, requireAdminRole, zValidator("json", external_exports.object({
+router61.post("/salesforce/migrate", requireAuth, requireAdminRole, zValidator2("json", external_exports.object({
   raw: external_exports.string().min(1).max(SF_MAX_BYTES),
   object: external_exports.string().max(40).optional(),
   /** Admin re-bindings from the mapping matrix: { "Renewal_Risk__c": "renewal_risk" } or null to drop. */

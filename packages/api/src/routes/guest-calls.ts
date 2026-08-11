@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { randomUUID } from "node:crypto";
 import { sign, verify } from "hono/jwt";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { recordingEnabled, liveCaptionsAllowed, captionChunk, CAPTION_CHUNK_MAX_BYTES } from "../lib/livekit";

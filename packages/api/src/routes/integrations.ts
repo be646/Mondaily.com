@@ -18,7 +18,7 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { parseSalesforceExport, parseAny, buildPlan } from "../services/salesforce-importer";
 import { googleConfigured, googleAuthUrl, exchangeCode } from "../lib/google";
 import { microsoftConfigured, microsoftAuthUrl, exchangeCode as exchangeMicrosoftCode } from "../lib/microsoft";

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import {

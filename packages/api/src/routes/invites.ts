@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { requireAuth, requireJwt } from "../middleware/auth";

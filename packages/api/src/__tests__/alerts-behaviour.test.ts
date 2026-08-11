@@ -95,6 +95,73 @@ describe("the alert store behaves the way the silent-failure fix depends on", ()
     it("does not mangle JSON that is not an error envelope", () => {
       expect(describeError(new Error('{"unexpected":true}'))).toBe('{"unexpected":true}');
     });
+
+    /**
+     * THE PRODUCTION CRASH, 2026-08-11. Reported as "calendar shows react error and many pages show
+     * react error"; client_errors recorded 5 occurrences of minified React error #31 on /calendar,
+     * naming an "object with keys {issues, name}" — a ZodError.
+     *
+     * @hono/zod-validator answers a failed body validation with
+     * {"success":false,"error":{"issues":[…],"name":"ZodError"}}, so `error` is an OBJECT. This
+     * function returned it under a `string` annotation, the banner rendered it as a React child,
+     * and React unmounted the tree. MANY pages because the MutationCache default routes every
+     * failed mutation through here — one bad shape broke all of them at once.
+     */
+    it("turns a ZodError body into a sentence instead of returning an object", () => {
+      const body = JSON.stringify({
+        success: false,
+        error: { name: "ZodError", issues: [{ path: ["title"], message: "Required" }] },
+      });
+      const out = describeError(new Error(body));
+      expect(typeof out).toBe("string");
+      expect(out).toBe("title: Required");
+    });
+
+    it("reports several invalid fields, bounded", () => {
+      const issues = ["title", "starts_at", "ends_at", "owner"].map(f => ({ path: [f], message: "Required" }));
+      const out = describeError(new Error(JSON.stringify({ error: { name: "ZodError", issues } })));
+      expect(typeof out).toBe("string");
+      expect(out).toBe("title: Required; starts_at: Required; ends_at: Required");
+    });
+
+    it("handles a nested { error: { message } } envelope", () => {
+      expect(describeError(new Error('{"error":{"message":"Upstream refused"}}'))).toBe("Upstream refused");
+    });
+
+    it("never returns a non-string, whatever the body holds", () => {
+      for (const body of ['{"error":{}}', '{"error":[]}', '{"error":null}', '{"error":123}', '{"error":{"issues":[]}}']) {
+        expect(typeof describeError(new Error(body)), body).toBe("string");
+      }
+    });
+  });
+
+  /**
+   * Defence in depth at the chokepoint. describeError is one caller; a later one will not remember,
+   * and TypeScript cannot help when the value came out of JSON.parse. Rendering a non-string throws
+   * React #31 and unmounts the page — a banner reporting a failure must never take the screen down.
+   */
+  describe("no object can reach the DOM through an alert", () => {
+    it("coerces an object passed as detail", () => {
+      pushAlert("error", "That didn't save", { issues: [{ path: ["title"], message: "Required" }] } as unknown as string);
+      expect(typeof seen[0]!.detail).toBe("string");
+      expect(seen[0]!.detail).toBe("title: Required");
+    });
+
+    it("coerces an object passed as the headline", () => {
+      pushAlert("error", { name: "ZodError", issues: [{ path: ["x"], message: "Bad" }] } as unknown as string);
+      expect(typeof seen[0]!.text).toBe("string");
+      expect(seen[0]!.text).toBe("x: Bad");
+    });
+
+    it("falls back to JSON rather than rendering [object Object]", () => {
+      pushAlert("error", "Failed", { code: 500, hint: "retry" } as unknown as string);
+      expect(seen[0]!.detail).toBe('{"code":500,"hint":"retry"}');
+    });
+
+    it("never leaves an empty headline", () => {
+      pushAlert("error", "" as unknown as string);
+      expect(seen[0]!.text).toBe("Something went wrong.");
+    });
   });
 
   it("pushAlert returns the id the caller needs to dismiss it", () => {

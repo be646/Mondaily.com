@@ -38,9 +38,15 @@ describe("unhandled mutation failures are visible", () => {
   it("shows the server's message, not a JSON envelope", () => {
     // apiClient rejects with the raw response body, and the API answers {"error":"..."} — showing
     // that verbatim is barely better than showing nothing.
+    //
+    // This used to pin the exact expression `parsed.error ?? parsed.message ?? raw`, and that
+    // assertion FAILED on the fix for the production crash of 2026-08-11 — a correct change broke a
+    // test that was describing syntax rather than behaviour. What matters is that the envelope is
+    // unwrapped, which alerts-behaviour.test.ts now proves by running the function against the real
+    // payloads. Here we only check the envelope is parsed at all.
     const alerts = readFileSync(join(APP, "lib/alerts.ts"), "utf8");
     expect(alerts).toMatch(/JSON\.parse\(raw\)/);
-    expect(alerts).toMatch(/parsed\.error \?\? parsed\.message \?\? raw/);
+    expect(alerts).toMatch(/parsed\.error/);
   });
 
   it("caps the stack so a failing loop cannot bury the page", () => {

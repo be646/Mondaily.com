@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator } from "../lib/validate";
 import { sign } from "hono/jwt";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
