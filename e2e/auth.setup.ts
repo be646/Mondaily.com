@@ -21,7 +21,11 @@ setup("authenticate", async ({ page }) => {
   await page.goto("/auth/shadow-login");
   await page.locator('input[type="email"], input[name="email"]').first().fill(EMAIL!);
   await page.locator('input[type="password"]').first().fill(PASSWORD!);
-  await page.getByRole("button", { name: /sign in|log in|continue/i }).first().click();
+  // The form's own submit button, NOT `getByRole("button", {name: /sign in/i}).first()` — that
+  // matched "Sign in with Google", which sits ABOVE the password form, so the setup filled in the
+  // credentials and then navigated to Google's consent screen and timed out waiting for the app.
+  // The failure looked like broken authentication; it was a selector picking the wrong button.
+  await page.locator('form button[type="submit"]').first().click();
 
   // Either we land in the app, or the 2FA screen appears.
   const mfaHeading = page.getByRole("heading", { name: /two-factor code/i });
