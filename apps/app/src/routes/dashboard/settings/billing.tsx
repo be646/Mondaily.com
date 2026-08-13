@@ -158,7 +158,8 @@ export function BillingSettings() {
     // A 409 means the trial is already active/used — that's not a hard error; refresh so the UI
     // reflects the real state (banner flips to the active trial) instead of leaving the button.
     onError: (e) => {
-      let parsed: { error?: string; trial_used?: boolean } = {};
+      // Only trial_used is read here now — the message goes through errorText.
+      let parsed: { trial_used?: boolean } = {};
       try { parsed = JSON.parse((e as Error).message); } catch { /* non-JSON */ }
       if (parsed.trial_used) { refreshEntitlementSurfaces(); return; }
       setBillingMsg(errorText(e, "Could not start the trial."));

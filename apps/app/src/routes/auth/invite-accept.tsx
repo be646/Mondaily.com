@@ -30,11 +30,12 @@ export function InviteAcceptPage() {
       window.setTimeout(() => navigate("/home"), 1200);
     } catch (e) {
       // Surface the real reason — especially "this invite was sent to X, you're signed in as Y".
-      let msg = e instanceof Error ? e.message : "";
+      const msg = e instanceof Error ? e.message : "";
       let isMismatch = false;
       try { const p = JSON.parse(msg) as { email_mismatch?: boolean }; isMismatch = !!p.email_mismatch; } catch { /* raw */ }
-      msg = errorText(e, msg);
-      setErrorMsg(msg || "This invitation is invalid or expired.");
+      // Empty fallback, not `msg`: msg holds the RAW body, so falling back to it would print our
+      // wire format at a user who just clicked an invite link.
+      setErrorMsg(errorText(e, "") || "This invitation is invalid or expired.");
       setMismatch(isMismatch);
       setStatus("error");
     }

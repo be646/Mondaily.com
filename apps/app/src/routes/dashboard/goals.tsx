@@ -36,9 +36,7 @@ export function GoalsPage() {
     } catch (e) {
       // apiClient throws with the raw response body on non-2xx — surface the honest
       // server message (e.g. "AI service unavailable") rather than a generic line.
-      let msg = "Couldn't plan that goal — please try again.";
-      msg = errorText(e, msg);
-      setError(msg);
+      setError(errorText(e, "Couldn't plan that goal — please try again."));
     }
     finally { setPlanning(false); }
   }
