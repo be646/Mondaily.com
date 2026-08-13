@@ -37,7 +37,9 @@ function asText(v: unknown): string {
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   const described = readable(v);
   if (described) return described;
-  try { return JSON.stringify(v).slice(0, 300); } catch { return String(v); }
+  // Both JSON.stringify (circular structures) and String (a throwing toString) can throw here.
+  try { return JSON.stringify(v).slice(0, 300); } catch { /* fall through */ }
+  try { return String(v); } catch { return "Something went wrong."; }
 }
 
 export function subscribeAlerts(l: Listener): () => void {
@@ -79,7 +81,13 @@ export const alertError = (text: string, detail?: string) => pushAlert("error", 
  * better than showing nothing.
  */
 export function describeError(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e ?? "");
+  // `String(e)` can THROW — a value whose toString throws, a revoked Proxy. This function runs
+  // inside MutationCache.onError, so throwing here means throwing from the error handler itself,
+  // which is the same shape of failure as the crash this whole path exists to prevent: the surface
+  // that reports a problem must never become the problem. Found by fuzzing, not by reasoning.
+  let raw: string;
+  try { raw = e instanceof Error ? e.message : String(e ?? ""); }
+  catch { return "Something went wrong. Please try again."; }
   if (!raw) return "Something went wrong. Please try again.";
   try {
     const parsed = JSON.parse(raw) as { error?: unknown; message?: unknown };

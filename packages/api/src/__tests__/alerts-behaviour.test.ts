@@ -128,6 +128,22 @@ describe("the alert store behaves the way the silent-failure fix depends on", ()
       expect(describeError(new Error('{"error":{"message":"Upstream refused"}}'))).toBe("Upstream refused");
     });
 
+    it("survives a value whose toString throws", () => {
+      // Found by fuzzing. describeError runs inside MutationCache.onError, so throwing here throws
+      // from the error handler — the surface that reports a problem becoming the problem, which is
+      // the same failure as the crash this path exists to prevent.
+      const hostile = { toString() { throw new Error("nope"); } };
+      expect(() => describeError(hostile)).not.toThrow();
+      expect(typeof describeError(hostile)).toBe("string");
+    });
+
+    it("survives a circular object passed as detail", () => {
+      const circular: Record<string, unknown> = { a: 1 };
+      circular.self = circular;
+      expect(() => pushAlert("error", "Failed", circular as unknown as string)).not.toThrow();
+      expect(typeof seen[0]!.detail).toBe("string");
+    });
+
     it("never returns a non-string, whatever the body holds", () => {
       for (const body of ['{"error":{}}', '{"error":[]}', '{"error":null}', '{"error":123}', '{"error":{"issues":[]}}']) {
         expect(typeof describeError(new Error(body)), body).toBe("string");
