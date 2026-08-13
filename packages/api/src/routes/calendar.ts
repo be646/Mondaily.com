@@ -517,6 +517,59 @@ router.post("/events/:id/call-link", async (c) => {
 // POST /calendar/events/:id/call-token — mint a join token for THIS meeting's room. Access =
 // organizer / attendee / admin only. Fails closed (503, no fake token) when the engine isn't
 // configured. The room is the internal, workspace-namespaced id — the public URL stays /calls/:id.
+
+/**
+ * Record that a live call HAPPENED.
+ *
+ * Until now nothing did. `call_sessions` had exactly one writer — the audio-UPLOAD path — so a
+ * native Mondaily call created no row anywhere: it never appeared under Calls, and Meeting Memory,
+ * which works from `call_sessions`, could never run for a meeting held in the product's own call
+ * room. Reported as "I tried to make a test call ... it didn't even save in calls", and the table
+ * confirmed it: zero rows, ever.
+ *
+ * One row per ROOM, created by whoever arrives first and left open while people come and go — a
+ * row per participant would turn a three-person meeting into three "calls". `status: "active"` is
+ * closed out by /end-call.
+ *
+ * Fail-soft: this is bookkeeping. If it throws, the token is still issued and the call still
+ * connects — refusing to let someone into a meeting because we could not file a record would be
+ * the wrong trade. It is logged, so a persistent failure is visible rather than assumed fine.
+ */
+async function ensureCallSession(ws: string, room: string, userId: string): Promise<void> {
+  try {
+    const { data: existing } = await supabase.from("call_sessions")
+      .select("id").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+    if (existing?.length) return;
+
+    await supabase.from("call_sessions").insert({
+      workspace_id: ws, room, initiator_id: userId, invitee_id: userId,
+      kind: "video", status: "active", source: "call_room",
+      // Recording is a separate, consented opt-in (Meeting Memory). Attendance is not recording.
+      record: false, started_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error(`[calendar] could not record call session for room ${room}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** Close the row when the host ends the meeting, so duration is real rather than open-ended. */
+async function closeCallSession(ws: string, room: string): Promise<void> {
+  try {
+    const endedAt = new Date();
+    const { data: open } = await supabase.from("call_sessions")
+      .select("id, started_at").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+    const row = open?.[0];
+    if (!row) return;
+    const startedMs = row.started_at ? new Date(String(row.started_at)).getTime() : NaN;
+    await supabase.from("call_sessions").update({
+      status: "ended", ended_at: endedAt.toISOString(),
+      ...(Number.isFinite(startedMs) ? { duration_sec: Math.max(0, Math.round((endedAt.getTime() - startedMs) / 1000)) } : {}),
+    }).eq("id", row.id).eq("workspace_id", ws);
+  } catch (e) {
+    console.error(`[calendar] could not close call session for room ${room}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 router.post("/events/:id/call-token", async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
   const ev = await getEvent(ws, c.req.param("id"));
@@ -526,6 +579,8 @@ router.post("/events/:id/call-token", async (c) => {
   const room = ev.data.call_room_id || internalRoom(ws, ev.id);   // internal room id, never shown to users
   const dir = await members(ws); const meRow = dir.get(me);
   const token = await mintCallToken(me, meRow?.name || meRow?.email || "Member", room);
+  // Bookkeeping only — never blocks joining. See ensureCallSession.
+  void ensureCallSession(ws, room, me);
   return c.json({ token, url: process.env.LIVEKIT_URL, room });
 });
 
@@ -540,6 +595,7 @@ router.post("/events/:id/end-call", async (c) => {
   if (!callsEnabled()) return c.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
   const room = ev.data.call_room_id || internalRoom(ws, ev.id);
   const ended = await endRoom(room);
+  await closeCallSession(ws, room);
   return c.json({ ended });
 });
 

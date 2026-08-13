@@ -107,3 +107,43 @@ describe("people outside the workspace can be invited", () => {
     }
   });
 });
+
+/**
+ * "I tried to make a test call — it kicked me out and it didn't even save in calls."
+ *
+ * The second half was exactly true and measurable: `call_sessions` had ZERO rows and exactly one
+ * writer — the audio-UPLOAD path. A native call held in the product's own room created no record
+ * anywhere, so it could never appear under Calls, and Meeting Memory (which works from
+ * call_sessions) could never run for it.
+ */
+describe("a live call is actually recorded as having happened", () => {
+  it("joining a room opens a session row", () => {
+    expect(CAL_API).toMatch(/async function ensureCallSession\(/);
+    expect(CAL_API).toMatch(/void ensureCallSession\(ws, room, me\)/);
+    expect(CAL_API).toMatch(/source: "call_room"/);
+  });
+
+  it("one row per ROOM, not per participant", () => {
+    // A row per joiner would turn a three-person meeting into three separate "calls".
+    expect(CAL_API).toMatch(/\.eq\("room", room\)\.eq\("status", "active"\)/);
+  });
+
+  it("bookkeeping NEVER blocks joining a call", () => {
+    // Refusing entry to a meeting because we could not file a record is the wrong trade.
+    expect(CAL_API).toMatch(/void ensureCallSession/);
+    expect(CAL_API).toMatch(/could not record call session/);
+  });
+
+  it("attendance is not recording — consent stays separate", () => {
+    // `record: true` would start capturing audio because someone joined. Meeting Memory is a
+    // separate, consented opt-in and must remain one.
+    const fn = CAL_API.slice(CAL_API.indexOf("async function ensureCallSession("), CAL_API.indexOf("async function closeCallSession("));
+    expect(fn).toMatch(/record: false/);
+  });
+
+  it("ending the meeting closes the row with a real duration", () => {
+    expect(CAL_API).toMatch(/async function closeCallSession\(/);
+    expect(CAL_API).toMatch(/await closeCallSession\(ws, room\)/);
+    expect(CAL_API).toMatch(/duration_sec: Math\.max\(0, Math\.round/);
+  });
+});

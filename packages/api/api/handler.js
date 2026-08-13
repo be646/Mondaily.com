@@ -72973,6 +72973,42 @@ router14.post("/events/:id/call-link", async (c2) => {
   await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   return c2.json({ call_url: link.call_url, call_room_id: link.call_room_id });
 });
+async function ensureCallSession(ws, room, userId) {
+  try {
+    const { data: existing } = await supabase.from("call_sessions").select("id").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+    if (existing?.length) return;
+    await supabase.from("call_sessions").insert({
+      workspace_id: ws,
+      room,
+      initiator_id: userId,
+      invitee_id: userId,
+      kind: "video",
+      status: "active",
+      source: "call_room",
+      // Recording is a separate, consented opt-in (Meeting Memory). Attendance is not recording.
+      record: false,
+      started_at: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  } catch (e2) {
+    console.error(`[calendar] could not record call session for room ${room}: ${e2 instanceof Error ? e2.message : String(e2)}`);
+  }
+}
+async function closeCallSession(ws, room) {
+  try {
+    const endedAt = /* @__PURE__ */ new Date();
+    const { data: open } = await supabase.from("call_sessions").select("id, started_at").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+    const row = open?.[0];
+    if (!row) return;
+    const startedMs = row.started_at ? new Date(String(row.started_at)).getTime() : NaN;
+    await supabase.from("call_sessions").update({
+      status: "ended",
+      ended_at: endedAt.toISOString(),
+      ...Number.isFinite(startedMs) ? { duration_sec: Math.max(0, Math.round((endedAt.getTime() - startedMs) / 1e3)) } : {}
+    }).eq("id", row.id).eq("workspace_id", ws);
+  } catch (e2) {
+    console.error(`[calendar] could not close call session for room ${room}: ${e2 instanceof Error ? e2.message : String(e2)}`);
+  }
+}
 router14.post("/events/:id/call-token", async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
@@ -72985,6 +73021,7 @@ router14.post("/events/:id/call-token", async (c2) => {
   const dir = await members2(ws);
   const meRow = dir.get(me2);
   const token = await mintCallToken(me2, meRow?.name || meRow?.email || "Member", room);
+  void ensureCallSession(ws, room, me2);
   return c2.json({ token, url: process.env.LIVEKIT_URL, room });
 });
 router14.post("/events/:id/end-call", async (c2) => {
@@ -72996,6 +73033,7 @@ router14.post("/events/:id/end-call", async (c2) => {
   if (!callsEnabled2()) return c2.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
   const room = ev.data.call_room_id || internalRoom(ws, ev.id);
   const ended = await endRoom(room);
+  await closeCallSession(ws, room);
   return c2.json({ ended });
 });
 router14.post("/events/:id/remove-guest", zValidator2("json", external_exports.object({ identity: external_exports.string().min(1).max(120) })), async (c2) => {
