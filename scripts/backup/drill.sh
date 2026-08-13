@@ -19,7 +19,19 @@
 #
 set -euo pipefail
 
+# Where backups live differs BY BOX, and hardcoding one path made this script work only on the
+# replica machine. Deployed to the cron box it died on `ls: /opt/mondaily-backups-replica: No such
+# file or directory` — a drill that cannot run is worth exactly as much as a backup nobody restored.
+#   .166.138 (cron box)  → /opt/mondaily-backups
+#   .172.237 (replica)   → /opt/mondaily-backups-replica
+# First existing directory wins; override with REPLICA=… or pass a set explicitly.
+if [ -z "${REPLICA:-}" ]; then
+  for candidate in /opt/mondaily-backups-replica /opt/mondaily-backups; do
+    [ -d "$candidate" ] && ls -1d "$candidate"/20*/ >/dev/null 2>&1 && { REPLICA="$candidate"; break; }
+  done
+fi
 REPLICA="${REPLICA:-/opt/mondaily-backups-replica}"
+[ -d "$REPLICA" ] || { echo "no backup directory found (looked for /opt/mondaily-backups{,-replica}); set REPLICA=…"; exit 1; }
 SET="${1:-$(ls -1d "$REPLICA"/20*/ | tail -1)}"
 WORK="$(mktemp -d)"
 trap 'docker rm -f pgdrill >/dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
