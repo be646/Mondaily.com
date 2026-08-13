@@ -831,7 +831,10 @@ describe("dashboard/calendar remaining uppercase eyebrows use text-caption (Pass
     expect((C.match(/text-caption font-semibold uppercase tracking-wide" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/g) ?? []).length).toBeGreaterThanOrEqual(3); // 903/922/967
   });
   it("deferred non-uppercase zones unchanged — form labels, day-column grid header", () => {
-    expect((C.match(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/g) ?? []).length).toBeGreaterThanOrEqual(2); // start/ends form labels
+    // RESOLVED 2026-08-13 by the New-meeting redesign: the start/end form labels were replaced by
+    // one grouped section heading on the type scale, so this deferred debt is gone rather than
+    // deferred. Inverted, so the arbitrary size cannot return here.
+    expect((C.match(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/g) ?? []).length).toBe(0);
     expect(C).toMatch(/border-b text-\[11px\] font-medium/);   // day-column grid header
   });
   it("mutations + slot/open handlers untouched", () => {
@@ -859,7 +862,11 @@ describe("dashboard/calendar read-only 11px info/meta uses text-label (Pass 8F)"
     expect(C).not.toMatch(/<input[^>]*\btext-label\b/);
   });
   it("deferred text-[11px] remain — form labels, day-column header, deferred ai_unavailable (1032)", () => {
-    expect((C.match(/<label className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal\.(starts|ends)"\)/g) ?? []).length).toBe(2);
+    // RESOLVED 2026-08-13 by the New-meeting redesign: the start/end form labels were replaced by
+    // one grouped section heading on the type scale, so this deferred debt is gone rather than
+    // deferred. Inverted, so the arbitrary size cannot return here.
+    expect((C.match(/<label className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal\.(starts|ends)"\)/g) ?? []).length).toBe(0);
+    expect(C, "the section heading that replaced them uses the type scale").toMatch(/text-caption font-medium" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal\.when"\)\}/);
     expect(C).toMatch(/border-b text-\[11px\] font-medium/);
     expect((C.match(/text-\[11px\][^>]*>\{t\("cal\.ai_unavailable"\)/g) ?? []).length).toBeGreaterThanOrEqual(1);   // 1032 still deferred
   });
@@ -954,7 +961,10 @@ describe("dashboard/calendar exact-10px eyebrow labels use text-caption (Pass 8B
   });
   it("deferred zones remain — day header + EventDrawer form labels (other eyebrows finished in Pass 8D)", () => {
     expect(C).toMatch(/h-7 items-center justify-center gap-1 border-b text-\[11px\] font-medium/);   // day-column header
-    expect((C.match(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/g) ?? []).length).toBeGreaterThanOrEqual(2); // start/ends form labels
+    // RESOLVED 2026-08-13 by the New-meeting redesign: the start/end form labels were replaced by
+    // one grouped section heading on the type scale, so this deferred debt is gone rather than
+    // deferred. Inverted, so the arbitrary size cannot return here.
+    expect((C.match(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/g) ?? []).length).toBe(0);
   });
   it("mutations + slot/open handlers untouched", () => {
     expect(C).toMatch(/useMutation/);

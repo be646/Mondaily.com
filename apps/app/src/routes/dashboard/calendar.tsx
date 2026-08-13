@@ -1222,28 +1222,74 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   };
 
   const valid = Boolean(title.trim() && start && end && !timeError);
+
+  /**
+   * The chosen duration, said back to the user.
+   *
+   * Two datetime fields make you do arithmetic to answer "how long is this?". Showing the result is
+   * also the cheapest possible guard against the bug this form used to have — a meeting of zero
+   * minutes is now impossible to create AND impossible to miss.
+   */
+  const durationLabel = Number.isFinite(startMs) && Number.isFinite(endMs) && endMs > startMs
+    ? (() => {
+        const mins = Math.round((endMs - startMs) / 60_000);
+        if (mins < 60) return `${mins} min`;
+        const h = Math.floor(mins / 60); const m = mins % 60;
+        return m ? `${h} h ${m} min` : `${h} h`;
+      })()
+    : "";
   const field = "w-full rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none";
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
 
   return (
       <Modal title={t("cal.new_meeting")} width="sm" onClose={onClose}>
-        <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
-          <input autoFocus className={field} style={style} placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" className="mt-1"/></label>
-            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.ends")}<DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" className="mt-1"/></label>
+        {/*
+          * Grouped, not stacked. This was eight unrelated controls in one column at four different
+          * type sizes, so "when" sat between "where" and "who" with nothing to say they were
+          * different questions. Sections are separated by a hairline — the same language as the
+          * meeting tickets — and every label now uses the type scale.
+          */}
+        <div className="max-h-[70vh] overflow-y-auto">
+          {/* The title is the one thing you always type, so it leads and carries no box. */}
+          <div className="px-5 pt-4 pb-3">
+            <input autoFocus
+              className="w-full bg-transparent text-[15px] font-medium outline-none placeholder:font-normal"
+              style={{ color: "var(--text-primary)" }}
+              placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           </div>
-          {timeError && <p className="text-caption" style={{ color: "var(--status-danger)" }}>{timeError}</p>}
-          <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
-              <button onClick={draftAgenda} disabled={aiBusy} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.draft_agenda")}</button>
+
+          <div className="space-y-3 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.when")}</span>
+              {durationLabel && <span className="text-caption tabular-nums" style={{ color: "var(--text-faint)" }}>{durationLabel}</span>}
             </div>
-            <textarea className={`${field} min-h-[70px] resize-none`} style={style} placeholder={t("cal.agenda")} value={desc} onChange={e => setDesc(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" />
+              <DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" />
+            </div>
+            {timeError && <p className="text-caption" style={{ color: "var(--status-danger)" }}>{timeError}</p>}
           </div>
-          <div>
-            <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
+
+          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+            <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.where")}</span>
+            <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
+            {/* A Mondaily call IS a location — the same question, so it belongs in the same group. */}
+            <label className="flex items-center gap-2 text-body" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
+              <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
+              <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-caption">— {t("cal.calls_off")}</span>}
+            </label>
+          </div>
+
+          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
+              <button onClick={draftAgenda} disabled={aiBusy} className="flex items-center gap-1 text-caption font-medium" style={{ color: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.draft_agenda")}</button>
+            </div>
+            <textarea className={`${field} min-h-[64px] resize-none`} style={style} placeholder={t("cal.agenda")} value={desc} onChange={e => setDesc(e.target.value)} />
+          </div>
+
+          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+            <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</span>
             <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
               {others.map(m => {
                 const on = attendees.includes(m.id);
@@ -1257,9 +1303,9 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
               })}
               {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
             </div>
-          </div>
-          <div>
-            <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.guests")}</p>
+            <div className="pt-1">
+              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.guests")}</span>
+            </div>
             <div className="flex gap-1.5">
               <input
                 className={field} style={style} type="email" placeholder={t("cal.guest_placeholder")}
@@ -1286,26 +1332,23 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
             )}
             <p className="mt-1 text-caption" style={{ color: "var(--text-faint)" }}>{t("cal.guest_hint")}</p>
           </div>
+
           {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
+          <div className="space-y-2.5 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--text-primary)" }}>Meeting type</span>
+            <span className="flex items-center gap-1.5 text-body" style={{ color: "var(--text-secondary)" }}>Meeting type</span>
             <FieldSelect
               value={meetingType}
               onChange={v => setMeetingType(v as MeetingType)}
               ariaLabel="Meeting type"
               options={MEETING_TYPES.map(id => ({ value: id, label: MEETING_TYPE_META[id].label }))}
             />
-            <span className="w-full text-[11px]" style={{ color: "var(--text-faint)" }}>{MEETING_TYPE_META[meetingType].description}</span>
+            <span className="w-full text-caption" style={{ color: "var(--text-faint)" }}>{MEETING_TYPE_META[meetingType].description}</span>
           </div>
-
-          <label className="flex items-center gap-2 text-[12.5px]" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
-            <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
-            <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-[11px]">— {t("cal.calls_off")}</span>}
-          </label>
 
           {/* Recurrence — optional. Repeats from the start time; an end date is optional (open-ended otherwise). */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--text-primary)" }}><Repeat size={13} /> {t("cal.repeat")}</span>
+            <span className="flex items-center gap-1.5 text-body" style={{ color: "var(--text-secondary)" }}><Repeat size={13} /> {t("cal.repeat")}</span>
             <FieldSelect
               value={repeat}
               onChange={v => setRepeat(v as typeof repeat)}
@@ -1323,6 +1366,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
                 <DateField value={repeatUntil} onChange={setRepeatUntil} ariaLabel="Repeat until" placeholder="No end" className="!h-7 !text-[12px]"/>
               </label>
             )}
+          </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>

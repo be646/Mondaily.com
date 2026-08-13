@@ -147,3 +147,54 @@ describe("a live call is actually recorded as having happened", () => {
     expect(CAL_API).toMatch(/duration_sec: Math\.max\(0, Math\.round/);
   });
 });
+
+/**
+ * The New-meeting window itself. It was eight unrelated controls stacked in one column at four
+ * different type sizes, so "when" sat between "where" and "who" with nothing to say they were
+ * different questions.
+ */
+describe("the New meeting window is grouped, not stacked", () => {
+  it("asks its questions in named sections separated by a hairline", () => {
+    const sections = (CAL_UI.match(/border-t px-5 py-3\.5/g) ?? []).length;
+    expect(sections, "when / where / agenda / who / options").toBeGreaterThanOrEqual(4);
+    for (const key of ["cal.when", "cal.where", "cal.agenda", "cal.attendees"]) {
+      expect(CAL_UI, `${key} should head a section`).toContain(`t("${key}")`);
+    }
+  });
+
+  it("heads the time group with WHEN, not with the first field's label", () => {
+    // A group spanning start AND end cannot be called "Starts".
+    expect(CAL_UI).toMatch(/font-medium" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal\.when"\)\}/);
+    expect(I18N).toContain('"cal.when"');
+    expect(I18N).toContain('"cal.where"');
+  });
+
+  it("says the duration back to the user", () => {
+    // Two datetime fields make you do arithmetic to answer "how long is this?" — and it is the
+    // cheapest possible guard against the zero-minute meeting this form used to create by default.
+    expect(CAL_UI).toMatch(/const durationLabel =/);
+    expect(CAL_UI).toMatch(/\{durationLabel &&/);
+  });
+
+  it("puts the call toggle with the location, because they answer the same question", () => {
+    // Scope to CreateModal, and take the NEXT agenda marker AFTER the where marker — cal.agenda
+    // also appears earlier in the file, so an unscoped indexOf sliced backwards and produced "".
+    const modal = CAL_UI.slice(CAL_UI.indexOf("function CreateModal"));
+    const from = modal.indexOf('t("cal.where")');
+    expect(from, "the Where section must exist").toBeGreaterThan(-1);
+    const to = modal.indexOf('t("cal.agenda")', from);
+    const where = modal.slice(from, to > from ? to : undefined);
+    expect(where.length, "empty slice means the assertion below proves nothing").toBeGreaterThan(50);
+    expect(where, "the Mondaily-call checkbox belongs in the Where group").toMatch(/t\("cal\.add_call"\)/);
+  });
+
+  it("the title leads and carries no box", () => {
+    expect(CAL_UI).toMatch(/w-full bg-transparent text-\[15px\] font-medium outline-none/);
+  });
+
+  it("form labels use the type scale, not arbitrary pixels", () => {
+    const modal = CAL_UI.slice(CAL_UI.indexOf("function CreateModal"));
+    expect(modal, "the 11px/12.5px form labels were the debt this redesign cleared")
+      .not.toMatch(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/);
+  });
+});
