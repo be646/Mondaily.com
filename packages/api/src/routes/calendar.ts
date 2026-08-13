@@ -7,6 +7,8 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { createNotification } from "../lib/notify";
+import { sendTransactionalEmail } from "../lib/mail";
+import { renderEmail, factRows, esc } from "../lib/email-template";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
@@ -46,6 +48,7 @@ interface EventData {
   title: string; description: string; start_at: string; end_at: string; timezone: string;
   meeting_type?: string;   // classification (Phase 1) — absent = general; drives type-specific AI later
   organizer_id: string; attendee_ids: string[]; location: string;
+  guest_emails?: string[];   // external invitees — NOT workspace members, no access rights
   call_room_id: string | null; call_url: string | null; status: EventStatus;
   recurrence?: RecurrenceRule | null;   // set only on the SERIES MASTER
   exdates?: string[];                   // occurrence dates (YYYY-MM-DD) cancelled individually
@@ -201,6 +204,9 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
     meeting_type: normalizeMeetingType(d.meeting_type),   // absent/legacy → general
     guest_waiting_room: (d as { guest_waiting_room?: boolean }).guest_waiting_room ?? false,
     organizer: person(d.organizer_id), attendees: (d.attendee_ids ?? []).map(person),
+    // External guests are returned as plain emails — they have no member record to resolve, and
+    // inventing a Person shape for them would let the UI treat them as colleagues.
+    guest_emails: d.guest_emails ?? [],
     recurrence: d.recurrence ?? null,
     recurrence_summary: d.recurrence ? recurrenceSummary(d.recurrence) : null,
     responses, response_counts: responseCounts(d),
@@ -212,6 +218,55 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
  *  Attributed to the Meeting Agent (canonical source_agent="meeting") — this is real calendar work,
  *  not a fabricated agent run: the notification only exists because a user actually created/changed
  *  a meeting. No agent_job_id is set (there is no scheduled job), so nothing implies a "running" agent. */
+
+/**
+ * Email the EXTERNAL guests — the people with no Mondaily account and therefore no in-app
+ * notification to receive.
+ *
+ * Everything they need has to be IN the message: they cannot open the app to look it up. So the
+ * mail carries the time in the meeting's own timezone, the location or join link, and the agenda.
+ *
+ * FAIL-SOFT and never blocking: a guest invite that throws must not fail the meeting the organiser
+ * just created. Failures are logged, because a silently unsent invitation is indistinguishable
+ * from a guest who ignored it — the same trap the auth mail sat in for three weeks.
+ */
+async function inviteGuests(d: EventData, organiserName: string, verb: "created" | "updated" | "cancelled"): Promise<void> {
+  const guests = d.guest_emails ?? [];
+  if (!guests.length) return;
+
+  const when = new Date(d.start_at).toLocaleString("en-GB", {
+    dateStyle: "full", timeStyle: "short", timeZone: d.timezone || "UTC",
+  });
+  const cancelled = verb === "cancelled";
+  const rows = factRows([
+    { label: "When", value: `${when} (${d.timezone || "UTC"})` },
+    ...(d.location ? [{ label: "Where", value: d.location }] : []),
+    { label: "Organiser", value: organiserName },
+  ]);
+  const html = renderEmail({
+    title: cancelled ? `Cancelled: ${d.title}` : d.title,
+    preheader: cancelled ? "This meeting has been cancelled." : `${when} — invitation from ${organiserName}`,
+    bodyHtml:
+      `<p>${cancelled ? "This meeting has been cancelled." : `${esc(organiserName)} invited you to a meeting.`}</p>` +
+      rows +
+      (d.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc(d.description)}</p>` : ""),
+    ...(d.call_url && !cancelled ? { action: { label: "Join the call", url: d.call_url } } : {}),
+    footnote: cancelled ? undefined : "You do not need a Mondaily account to join.",
+  });
+
+  await Promise.all(guests.map(async (to) => {
+    try {
+      await sendTransactionalEmail({
+        to: [{ email: to }],
+        subject: cancelled ? `Cancelled: ${d.title}` : `Invitation: ${d.title}`,
+        body: html,
+      });
+    } catch (e) {
+      console.error(`[calendar] guest invite failed for ${to}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }));
+}
+
 async function notifyAttendees(ws: string, eventId: string, d: EventData, actor: string, verb: "created" | "updated" | "cancelled") {
   const targets = [...new Set([d.organizer_id, ...(d.attendee_ids ?? [])])].filter((u) => u && u !== actor);
   await Promise.all(targets.map((uid) => createNotification({
@@ -231,6 +286,15 @@ const EventInput = z.object({
   end_at: z.string().min(1),
   timezone: z.string().max(60).optional(),
   attendee_ids: z.array(z.string()).max(50).optional(),
+  /**
+   * EXTERNAL guests, by email. Workspace members are named by id in attendee_ids; anyone else has
+   * no id to name, and until now there was simply no way to invite them — a meeting tool that can
+   * only invite colleagues is not a meeting tool.
+   *
+   * Lowercased and de-duplicated on write. These grant NO workspace access: they are recipients of
+   * an invitation, not members, and `canView` still keys on attendee_ids alone.
+   */
+  guest_emails: z.array(z.string().email()).max(50).optional(),
   location: z.string().max(300).optional(),
   generate_call_link: z.boolean().optional(),
   recurrence: z.object({
@@ -303,11 +367,14 @@ router.post("/events", zValidator("json", EventCreate), async (c) => {
   // foreign user named as an attendee would gain event-read + call-join access (canView) in this tenant.
   const memberSet = new Set((await members(ws)).keys());
   const attendees = [...new Set((b.attendee_ids ?? []).filter((a) => a && a !== me && memberSet.has(a)))];
+  // External guests carry no workspace rights — normalised only, never resolved to members.
+  const guestEmails = [...new Set((b.guest_emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))];
   const now = new Date().toISOString();
   const data: EventData = {
     title: b.title, description: b.description ?? "", start_at: b.start_at, end_at: b.end_at,
     timezone: b.timezone ?? "UTC", organizer_id: me, attendee_ids: attendees, location: b.location ?? "",
     meeting_type: normalizeMeetingType(b.meeting_type),   // default general
+    ...(guestEmails.length ? { guest_emails: guestEmails } : {}),
     call_room_id: null, call_url: null, status: "scheduled",
     ...(b.recurrence ? { recurrence: normalizeRule(b.recurrence), exdates: [] } : {}),
   };
@@ -324,6 +391,8 @@ router.post("/events", zValidator("json", EventCreate), async (c) => {
   }
   await notifyAttendees(ws, node.id, data, me, "created");
   const dir = await members(ws);
+  // External guests get an email, not an in-app notification — they have no account to receive one.
+  void inviteGuests(data, dir.get(me)?.name || dir.get(me)?.email || "Your host", "created");
   return c.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled() }, 201);
 });
 

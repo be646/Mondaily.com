@@ -212,7 +212,21 @@ export function CalendarPage() {
   const [view, setView] = useState<ViewMode>("today");
   // Click an empty grid slot → open New Meeting prefilled with that time + a 30-minute default end.
   const openSlot = (start: Date) => { setCreateInit({ start: toLocalInput(start), end: toLocalInput(new Date(start.getTime() + 30 * 60_000)) }); setCreateOpen(true); };
-  const openCreate = () => { setCreateInit(null); setCreateOpen(true); };
+  /**
+   * "New meeting" opens on the NEXT HALF HOUR, not on an empty form.
+   *
+   * It used to pass null, so both fields opened blank — and a blank datetime field emits 00:00 the
+   * moment a date is picked, which produced meetings at midnight with a zero-minute duration. The
+   * grid-slot path always prefilled both; only the button, which is the most obvious way in, did
+   * not. Reported as "no possibility to set time properly", and it was right.
+   */
+  const openCreate = () => {
+    const s = new Date();
+    s.setSeconds(0, 0);
+    s.setMinutes(s.getMinutes() > 30 ? 60 : 30);   // round up to :30 or the next hour
+    setCreateInit({ start: toLocalInput(s), end: toLocalInput(new Date(s.getTime() + 30 * 60_000)) });
+    setCreateOpen(true);
+  };
   // The date the Day/Week grid is centered on — moved by the Today / ‹ / › controls.
   const [anchor, setAnchor] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
 
@@ -1106,6 +1120,10 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   const [end, setEnd] = useState(initialEnd ?? "");
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState<string[]>([]);
+  // External guests, by email. Workspace members are picked by id below; anyone else had no way in
+  // at all — a meeting tool that can only invite colleagues is not a meeting tool.
+  const [guests, setGuests] = useState<string[]>([]);
+  const [guestDraft, setGuestDraft] = useState("");
   const [withCall, setWithCall] = useState(false);
   const [meetingType, setMeetingType] = useState<MeetingType>("general");
   const [repeat, setRepeat] = useState<"none" | "daily" | "weekly" | "monthly">("none");
@@ -1118,8 +1136,8 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
 
   const create = useMutation({
     mutationFn: () => apiClient.post<{ id: string }>("/calendar/events", {
-      title, meeting_type: meetingType, description: desc || undefined, start_at: new Date(start).toISOString(), end_at: new Date(end || start).toISOString(),
-      timezone: tz, attendee_ids: attendees, location: location || undefined, generate_call_link: withCall && callsEnabled,
+      title, meeting_type: meetingType, description: desc || undefined, start_at: new Date(start).toISOString(), end_at: new Date(end).toISOString(),
+      timezone: tz, attendee_ids: attendees, guest_emails: guests, location: location || undefined, generate_call_link: withCall && callsEnabled,
       recurrence: repeat === "none" ? undefined : { freq: repeat, interval: 1, ...(repeatUntil ? { until: repeatUntil } : {}) },
     }),
     onSuccess: (r) => onCreated(r.id),
@@ -1132,7 +1150,40 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
     catch { /* leave as-is */ } finally { setAiBusy(false); }
   }
 
-  const valid = title.trim() && start;
+  /**
+   * Moving the start carries the end with it, keeping the duration the user already chose.
+   *
+   * Without this, changing the start to a time AFTER the end silently produced a meeting that ends
+   * before it begins. The API refuses that (endAfterStart), so it answered 400 with a ZodError —
+   * the object that crashed this very page with React #31.
+   */
+  const changeStart = (v: string) => {
+    const prevStart = start ? new Date(start).getTime() : NaN;
+    const prevEnd = end ? new Date(end).getTime() : NaN;
+    const duration = Number.isFinite(prevStart) && Number.isFinite(prevEnd) && prevEnd > prevStart
+      ? prevEnd - prevStart
+      : 30 * 60_000;
+    setStart(v);
+    const next = new Date(v).getTime();
+    if (Number.isFinite(next)) setEnd(toLocalInput(new Date(next + duration)));
+  };
+
+  // A meeting must END AFTER IT STARTS. `end` used to be optional and fell back to `start`, so a
+  // zero-minute meeting was not just possible but the DEFAULT whenever the end was left blank.
+  const startMs = start ? new Date(start).getTime() : NaN;
+  const endMs = end ? new Date(end).getTime() : NaN;
+  const timeError = Number.isFinite(startMs) && Number.isFinite(endMs) && endMs <= startMs
+    ? t("cal.end_before_start")
+    : "";
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const guestDraftValid = EMAIL_RE.test(guestDraft.trim());
+  const addGuest = () => {
+    const e = guestDraft.trim().toLowerCase();
+    if (!EMAIL_RE.test(e) || guests.includes(e)) { setGuestDraft(""); return; }
+    setGuests(g => [...g, e]); setGuestDraft("");
+  };
+
+  const valid = Boolean(title.trim() && start && end && !timeError);
   const field = "w-full rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none";
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
 
@@ -1141,9 +1192,10 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
         <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
           <input autoFocus className={field} style={style} placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<DateField withTime value={start} onChange={setStart} ariaLabel="Starts" className="mt-1"/></label>
+            <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" className="mt-1"/></label>
             <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.ends")}<DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" className="mt-1"/></label>
           </div>
+          {timeError && <p className="text-caption" style={{ color: "var(--status-danger)" }}>{timeError}</p>}
           <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
           <div>
             <div className="mb-1 flex items-center justify-between">
@@ -1167,6 +1219,34 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
               })}
               {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
             </div>
+          </div>
+          <div>
+            <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.guests")}</p>
+            <div className="flex gap-1.5">
+              <input
+                className={field} style={style} type="email" placeholder={t("cal.guest_placeholder")}
+                value={guestDraft}
+                onChange={e => setGuestDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addGuest(); } }}
+                onBlur={addGuest}
+              />
+              <button onClick={addGuest} disabled={!guestDraftValid}
+                className="shrink-0 rounded-sm border px-3 text-caption font-medium disabled:opacity-40"
+                style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{t("common.add")}</button>
+            </div>
+            {guests.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {guests.map(g => (
+                  <span key={g} className="flex items-center gap-1 rounded-sm border px-2 py-0.5 text-caption"
+                    style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                    {g}
+                    <button onClick={() => setGuests(list => list.filter(x => x !== g))}
+                      aria-label={`Remove ${g}`} style={{ color: "var(--text-faint)" }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-1 text-caption" style={{ color: "var(--text-faint)" }}>{t("cal.guest_hint")}</p>
           </div>
           {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
           <div className="flex flex-wrap items-center gap-2">

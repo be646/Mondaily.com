@@ -68378,6 +68378,10 @@ var TRANSLATIONS = {
   "cal.tomorrow": { en: "Tomorrow", pl: "Jutro", ru: "\u0417\u0430\u0432\u0442\u0440\u0430", uk: "\u0417\u0430\u0432\u0442\u0440\u0430", ar: "\u063A\u062F\u064B\u0627", fr: "Demain", de: "Morgen", es: "Ma\xF1ana", pt: "Amanh\xE3", it: "Domani", tr: "Yar\u0131n", nl: "Morgen" },
   "cal.title_field": { en: "Title", pl: "Tytu\u0142", ru: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435", uk: "\u041D\u0430\u0437\u0432\u0430", ar: "\u0627\u0644\u0639\u0646\u0648\u0627\u0646", fr: "Titre", de: "Titel", es: "T\xEDtulo", pt: "T\xEDtulo", it: "Titolo", tr: "Ba\u015Fl\u0131k", nl: "Titel" },
   "cal.agenda": { en: "Agenda", pl: "Agenda", ru: "\u041F\u043E\u0432\u0435\u0441\u0442\u043A\u0430", uk: "\u041F\u043E\u0440\u044F\u0434\u043E\u043A \u0434\u0435\u043D\u043D\u0438\u0439", ar: "\u062C\u062F\u0648\u0644 \u0627\u0644\u0623\u0639\u0645\u0627\u0644", fr: "Ordre du jour", de: "Agenda", es: "Agenda", pt: "Pauta", it: "Agenda", tr: "G\xFCndem", nl: "Agenda" },
+  "cal.end_before_start": { en: "The end time must be after the start time.", pl: "Czas zako\u0144czenia musi by\u0107 p\xF3\u017Aniejszy ni\u017C pocz\u0105tek.", ru: "\u0412\u0440\u0435\u043C\u044F \u043E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u044F \u0434\u043E\u043B\u0436\u043D\u043E \u0431\u044B\u0442\u044C \u043F\u043E\u0437\u0436\u0435 \u043D\u0430\u0447\u0430\u043B\u0430.", uk: "\u0427\u0430\u0441 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043D\u044F \u043C\u0430\u0454 \u0431\u0443\u0442\u0438 \u043F\u0456\u0437\u043D\u0456\u0448\u0435 \u043F\u043E\u0447\u0430\u0442\u043A\u0443.", ar: "\u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0648\u0642\u062A \u0627\u0644\u0627\u0646\u062A\u0647\u0627\u0621 \u0628\u0639\u062F \u0648\u0642\u062A \u0627\u0644\u0628\u062F\u0621.", fr: "L'heure de fin doit \xEAtre post\xE9rieure \xE0 l'heure de d\xE9but.", de: "Die Endzeit muss nach der Startzeit liegen.", es: "La hora de fin debe ser posterior a la de inicio.", pt: "A hora de t\xE9rmino deve ser posterior \xE0 de in\xEDcio.", it: "L'ora di fine deve essere successiva a quella di inizio.", tr: "Biti\u015F saati ba\u015Flang\u0131\xE7tan sonra olmal\u0131d\u0131r.", nl: "De eindtijd moet na de starttijd liggen." },
+  "cal.guests": { en: "Guests (outside your workspace)", pl: "Go\u015Bcie (spoza obszaru roboczego)", ru: "\u0413\u043E\u0441\u0442\u0438 (\u0432\u043D\u0435 \u0440\u0430\u0431\u043E\u0447\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430)", uk: "\u0413\u043E\u0441\u0442\u0456 (\u043F\u043E\u0437\u0430 \u0440\u043E\u0431\u043E\u0447\u0438\u043C \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u043E\u043C)", ar: "\u0636\u064A\u0648\u0641 (\u0645\u0646 \u062E\u0627\u0631\u062C \u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0639\u0645\u0644)", fr: "Invit\xE9s (hors de votre espace)", de: "G\xE4ste (au\xDFerhalb Ihres Workspace)", es: "Invitados (fuera de tu espacio)", pt: "Convidados (fora do seu espa\xE7o)", it: "Ospiti (fuori dal tuo spazio)", tr: "Konuklar (\xE7al\u0131\u015Fma alan\u0131 d\u0131\u015F\u0131)", nl: "Gasten (buiten je workspace)" },
+  "cal.guest_placeholder": { en: "name@company.com", pl: "imie@firma.pl", ru: "name@company.com", uk: "name@company.com", ar: "name@company.com", fr: "nom@societe.com", de: "name@firma.de", es: "nombre@empresa.com", pt: "nome@empresa.com", it: "nome@azienda.com", tr: "ad@sirket.com", nl: "naam@bedrijf.nl" },
+  "cal.guest_hint": { en: "They get an email invitation. No Mondaily account needed.", pl: "Otrzymaj\u0105 zaproszenie e-mailem. Konto Mondaily nie jest wymagane.", ru: "\u041E\u043D\u0438 \u043F\u043E\u043B\u0443\u0447\u0430\u0442 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u0438\u0435 \u043F\u043E \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u0435. \u0410\u043A\u043A\u0430\u0443\u043D\u0442 Mondaily \u043D\u0435 \u043D\u0443\u0436\u0435\u043D.", uk: "\u0412\u043E\u043D\u0438 \u043E\u0442\u0440\u0438\u043C\u0430\u044E\u0442\u044C \u0437\u0430\u043F\u0440\u043E\u0448\u0435\u043D\u043D\u044F \u0435\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u044E \u043F\u043E\u0448\u0442\u043E\u044E. \u041E\u0431\u043B\u0456\u043A\u043E\u0432\u0438\u0439 \u0437\u0430\u043F\u0438\u0441 Mondaily \u043D\u0435 \u043F\u043E\u0442\u0440\u0456\u0431\u0435\u043D.", ar: "\u0633\u064A\u062A\u0644\u0642\u0648\u0646 \u062F\u0639\u0648\u0629 \u0628\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A. \u0644\u0627 \u062D\u0627\u062C\u0629 \u0644\u062D\u0633\u0627\u0628 Mondaily.", fr: "Ils recevront une invitation par e-mail. Aucun compte Mondaily requis.", de: "Sie erhalten eine E-Mail-Einladung. Kein Mondaily-Konto n\xF6tig.", es: "Recibir\xE1n una invitaci\xF3n por correo. No necesitan cuenta de Mondaily.", pt: "Receber\xE3o um convite por e-mail. Sem necessidade de conta Mondaily.", it: "Riceveranno un invito via e-mail. Nessun account Mondaily necessario.", tr: "E-posta ile davet al\u0131rlar. Mondaily hesab\u0131 gerekmez.", nl: "Ze krijgen een e-mailuitnodiging. Geen Mondaily-account nodig." },
   "cal.starts": { en: "Starts", pl: "Pocz\u0105tek", ru: "\u041D\u0430\u0447\u0430\u043B\u043E", uk: "\u041F\u043E\u0447\u0430\u0442\u043E\u043A", ar: "\u064A\u0628\u062F\u0623", fr: "D\xE9but", de: "Beginn", es: "Inicio", pt: "In\xEDcio", it: "Inizio", tr: "Ba\u015Flang\u0131\xE7", nl: "Begint" },
   "cal.ends": { en: "Ends", pl: "Koniec", ru: "\u041A\u043E\u043D\u0435\u0446", uk: "\u041A\u0456\u043D\u0435\u0446\u044C", ar: "\u064A\u0646\u062A\u0647\u064A", fr: "Fin", de: "Ende", es: "Fin", pt: "Fim", it: "Fine", tr: "Biti\u015F", nl: "Eindigt" },
   "cal.location": { en: "Location", pl: "Lokalizacja", ru: "\u041C\u0435\u0441\u0442\u043E", uk: "\u041C\u0456\u0441\u0446\u0435", ar: "\u0627\u0644\u0645\u0643\u0627\u0646", fr: "Lieu", de: "Ort", es: "Ubicaci\xF3n", pt: "Local", it: "Luogo", tr: "Konum", nl: "Locatie" },
@@ -72564,6 +72568,8 @@ init_client();
 init_auth();
 init_rbac();
 init_notify();
+init_mail();
+init_email_template();
 init_ai_gateway();
 init_dates();
 
@@ -72702,12 +72708,48 @@ function shape(id, d2, dir, createdAt) {
     guest_waiting_room: d2.guest_waiting_room ?? false,
     organizer: person(d2.organizer_id),
     attendees: (d2.attendee_ids ?? []).map(person),
+    // External guests are returned as plain emails — they have no member record to resolve, and
+    // inventing a Person shape for them would let the UI treat them as colleagues.
+    guest_emails: d2.guest_emails ?? [],
     recurrence: d2.recurrence ?? null,
     recurrence_summary: d2.recurrence ? recurrenceSummary(d2.recurrence) : null,
     responses,
     response_counts: responseCounts(d2),
     created_at: createdAt
   };
+}
+async function inviteGuests(d2, organiserName, verb) {
+  const guests = d2.guest_emails ?? [];
+  if (!guests.length) return;
+  const when = new Date(d2.start_at).toLocaleString("en-GB", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: d2.timezone || "UTC"
+  });
+  const cancelled = verb === "cancelled";
+  const rows2 = factRows([
+    { label: "When", value: `${when} (${d2.timezone || "UTC"})` },
+    ...d2.location ? [{ label: "Where", value: d2.location }] : [],
+    { label: "Organiser", value: organiserName }
+  ]);
+  const html = renderEmail({
+    title: cancelled ? `Cancelled: ${d2.title}` : d2.title,
+    preheader: cancelled ? "This meeting has been cancelled." : `${when} \u2014 invitation from ${organiserName}`,
+    bodyHtml: `<p>${cancelled ? "This meeting has been cancelled." : `${esc(organiserName)} invited you to a meeting.`}</p>` + rows2 + (d2.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc(d2.description)}</p>` : ""),
+    ...d2.call_url && !cancelled ? { action: { label: "Join the call", url: d2.call_url } } : {},
+    footnote: cancelled ? void 0 : "You do not need a Mondaily account to join."
+  });
+  await Promise.all(guests.map(async (to) => {
+    try {
+      await sendTransactionalEmail({
+        to: [{ email: to }],
+        subject: cancelled ? `Cancelled: ${d2.title}` : `Invitation: ${d2.title}`,
+        body: html
+      });
+    } catch (e2) {
+      console.error(`[calendar] guest invite failed for ${to}: ${e2 instanceof Error ? e2.message : String(e2)}`);
+    }
+  }));
 }
 async function notifyAttendees(ws, eventId, d2, actor, verb) {
   const targets = [.../* @__PURE__ */ new Set([d2.organizer_id, ...d2.attendee_ids ?? []])].filter((u2) => u2 && u2 !== actor);
@@ -72729,6 +72771,15 @@ var EventInput = external_exports.object({
   end_at: external_exports.string().min(1),
   timezone: external_exports.string().max(60).optional(),
   attendee_ids: external_exports.array(external_exports.string()).max(50).optional(),
+  /**
+   * EXTERNAL guests, by email. Workspace members are named by id in attendee_ids; anyone else has
+   * no id to name, and until now there was simply no way to invite them — a meeting tool that can
+   * only invite colleagues is not a meeting tool.
+   *
+   * Lowercased and de-duplicated on write. These grant NO workspace access: they are recipients of
+   * an invitation, not members, and `canView` still keys on attendee_ids alone.
+   */
+  guest_emails: external_exports.array(external_exports.string().email()).max(50).optional(),
   location: external_exports.string().max(300).optional(),
   generate_call_link: external_exports.boolean().optional(),
   recurrence: external_exports.object({
@@ -72782,6 +72833,7 @@ router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
   const b2 = c2.req.valid("json");
   const memberSet = new Set((await members2(ws)).keys());
   const attendees = [...new Set((b2.attendee_ids ?? []).filter((a2) => a2 && a2 !== me2 && memberSet.has(a2)))];
+  const guestEmails = [...new Set((b2.guest_emails ?? []).map((e2) => e2.trim().toLowerCase()).filter(Boolean))];
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const data = {
     title: b2.title,
@@ -72794,6 +72846,7 @@ router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
     location: b2.location ?? "",
     meeting_type: normalizeMeetingType(b2.meeting_type),
     // default general
+    ...guestEmails.length ? { guest_emails: guestEmails } : {},
     call_room_id: null,
     call_url: null,
     status: "scheduled",
@@ -72811,6 +72864,7 @@ router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
   }
   await notifyAttendees(ws, node.id, data, me2, "created");
   const dir = await members2(ws);
+  void inviteGuests(data, dir.get(me2)?.name || dir.get(me2)?.email || "Your host", "created");
   return c2.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled2() }, 201);
 });
 router14.patch("/events/:id", zValidator2("json", EventInput.partial().extend({ status: external_exports.enum(EVENT_STATUSES).optional() })), async (c2) => {
