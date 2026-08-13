@@ -55999,6 +55999,27 @@ function resolveModel(spec) {
   const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
+function boundToolResult(raw2, spent, toolName) {
+  const text = String(raw2 ?? "");
+  const remaining = Math.max(0, TOOL_BUDGET_CHAR_CAP - spent);
+  if (remaining === 0) {
+    return {
+      text: `[${toolName}: omitted \u2014 this turn has already gathered its maximum amount of data. Answer from what you have, and say plainly that the results were incomplete.]`,
+      used: 0
+    };
+  }
+  const limit2 = Math.min(TOOL_RESULT_CHAR_CAP, remaining);
+  if (text.length <= limit2) return { text, used: text.length };
+  const clipped = text.slice(0, limit2);
+  const lastNewline = clipped.lastIndexOf("\n");
+  const body = lastNewline > limit2 * 0.5 ? clipped.slice(0, lastNewline) : clipped;
+  console.log(`[gateway] tool result truncated: ${toolName} ${text.length} \u2192 ${body.length} chars`);
+  return {
+    text: `${body}
+[truncated: ${toolName} returned ${text.length.toLocaleString()} characters and was cut to fit. This list is INCOMPLETE \u2014 say so, or narrow the query with a filter and call it again.]`,
+    used: body.length
+  };
+}
 function retryAfterMs(err2) {
   const MAX_WAIT_MS = 3500;
   const e2 = err2;
@@ -56277,6 +56298,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     usage2.total_tokens += u2.total_tokens ?? 0;
     if (u2.completion_tokens_details?.reasoning_tokens) usage2.reasoning_tokens = (usage2.reasoning_tokens ?? 0) + u2.completion_tokens_details.reasoning_tokens;
   };
+  let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     console.log(`[gateway:openai-compat] round=${round + 1} model=${activeModel} baseURL=${baseURL}`);
@@ -56321,7 +56343,9 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       }
       console.log(`[gateway:openai-compat] tool_call name=${toolCall.function.name}`);
       const result = await req.onToolCall(toolCall.function.name, args);
-      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(result) });
+      const bounded = boundToolResult(result, toolCharsSpent, toolCall.function.name);
+      toolCharsSpent += bounded.used;
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(bounded.text) });
     }
   }
   if (!reply) {
@@ -56456,6 +56480,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   let rounds = 0;
   const t0 = Date.now();
   const usage2 = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
     if (round > 0 && budgetLeft() < 12e3) {
       console.warn(`[gateway] stopping after round ${round}: ${Math.round(budgetLeft() / 1e3)}s left of the client's window`);
@@ -56539,10 +56564,12 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       } catch {
       }
       const result = await req.onToolCall(t3.name, args);
-      return { id: t3.id, result };
+      return { id: t3.id, result, name: t3.name };
     }));
     for (const r2 of settled) {
-      messages.push({ role: "tool", tool_call_id: r2.id, content: redactSecrets(r2.result) });
+      const bounded = boundToolResult(r2.result, toolCharsSpent, r2.name ?? "tool");
+      toolCharsSpent += bounded.used;
+      messages.push({ role: "tool", tool_call_id: r2.id, content: redactSecrets(bounded.text) });
     }
   }
   if (!reply.trim()) {
@@ -56566,7 +56593,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel2(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
-var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
+var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, TOOL_RESULT_CHAR_CAP, TOOL_BUDGET_CHAR_CAP, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
 var init_ai_gateway = __esm({
   "src/lib/ai-gateway.ts"() {
     "use strict";
@@ -56578,6 +56605,8 @@ var init_ai_gateway = __esm({
     init_inference_shadow();
     DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
     FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
+    TOOL_RESULT_CHAR_CAP = 6e3;
+    TOOL_BUDGET_CHAR_CAP = 24e3;
     lastGatewayError = null;
     CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
     DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;

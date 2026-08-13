@@ -145,6 +145,63 @@ function resolveModel(spec?: string): ResolvedModel {
 const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
 
 /**
+ * BOUND WHAT A TOOL CAN PUT INTO THE PROMPT.
+ *
+ * Every tool result is appended to the conversation and RE-SENT on every subsequent round, so an
+ * oversized one is not paid once — it is paid again for each remaining round, and it stays in the
+ * prompt for the rest of the turn.
+ *
+ * MEASURED against production on 2026-08-13, which is what prompted this:
+ *
+ *   fixed floor (system prompt + tool schemas)   ~4,400 tokens
+ *   observed chat prompts                        median 8,514, MAX 30,783
+ *   largest prompts                              60-122 SECONDS to answer
+ *
+ * The floor is small, so essentially all of that 30k is tool output. It is also why Ask hits a
+ * tokens-per-minute ceiling at only 7 requests/minute: a couple of large questions spend the
+ * whole budget. Slow and rate-limited are the same bug wearing two hats.
+ *
+ * Individual tools already cap their ROW counts, but rows vary hugely in width and nothing bounded
+ * the total — a per-tool cap cannot, because the cost is the SUM across tools and rounds. So the
+ * limit lives here, at the one place every result passes through, and it is a character budget
+ * rather than a row count because characters are what actually cost.
+ *
+ * Truncation is ANNOUNCED to the model, never silent: a quietly cut list reads as a complete answer
+ * and the model will confidently report "3 invoices" when there were 40. Telling it the result was
+ * cut lets it say so, or narrow the query and ask again.
+ */
+const TOOL_RESULT_CHAR_CAP = 6_000;      // ≈1,600 tokens — comfortably fits a 20-row list
+const TOOL_BUDGET_CHAR_CAP = 24_000;     // ≈6,500 tokens for ALL tool output in one turn
+
+export function boundToolResult(raw: string, spent: number, toolName: string): { text: string; used: number } {
+  const text = String(raw ?? "");
+  const remaining = Math.max(0, TOOL_BUDGET_CHAR_CAP - spent);
+
+  if (remaining === 0) {
+    return {
+      text: `[${toolName}: omitted — this turn has already gathered its maximum amount of data. ` +
+            `Answer from what you have, and say plainly that the results were incomplete.]`,
+      used: 0,
+    };
+  }
+
+  const limit = Math.min(TOOL_RESULT_CHAR_CAP, remaining);
+  if (text.length <= limit) return { text, used: text.length };
+
+  // Cut on a line boundary so a row is never left half-written, which reads as corrupt data.
+  const clipped = text.slice(0, limit);
+  const lastNewline = clipped.lastIndexOf("\n");
+  const body = lastNewline > limit * 0.5 ? clipped.slice(0, lastNewline) : clipped;
+
+  console.log(`[gateway] tool result truncated: ${toolName} ${text.length} → ${body.length} chars`);
+  return {
+    text: `${body}\n[truncated: ${toolName} returned ${text.length.toLocaleString()} characters and was cut to fit. ` +
+          `This list is INCOMPLETE — say so, or narrow the query with a filter and call it again.]`,
+    used: body.length,
+  };
+}
+
+/**
  * How long to wait before retrying a rate-limited call — the provider's own `Retry-After` when it
  * sends one, capped hard.
  *
@@ -597,6 +654,9 @@ async function runOpenAICompatAgent(
     if (u.completion_tokens_details?.reasoning_tokens) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + u.completion_tokens_details.reasoning_tokens;
   };
 
+  // Tool output is re-sent on every later round, so it is budgeted across the WHOLE turn, not
+  // per call. See boundToolResult.
+  let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     console.log(`[gateway:openai-compat] round=${round + 1} model=${activeModel} baseURL=${baseURL}`);
@@ -649,7 +709,9 @@ async function runOpenAICompatAgent(
       try { args = JSON.parse(toolCall.function.arguments) as Record<string, unknown>; } catch {}
       console.log(`[gateway:openai-compat] tool_call name=${toolCall.function.name}`);
       const result = await req.onToolCall(toolCall.function.name, args);
-      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(result) });
+      const bounded = boundToolResult(result, toolCharsSpent, toolCall.function.name);
+      toolCharsSpent += bounded.used;
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(bounded.text) });
     }
   }
 
@@ -888,6 +950,9 @@ async function runOpenAICompatAgentStream(
   const t0 = Date.now();
   const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
+  // Tool output is re-sent on every later round, so it is budgeted across the WHOLE turn, not
+  // per call. See boundToolResult.
+  let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
     // Another round needs a realistic chance of completing within what the caller will still wait.
     if (round > 0 && budgetLeft() < 12_000) {
@@ -992,13 +1057,16 @@ async function runOpenAICompatAgentStream(
       let args: Record<string, unknown> = {};
       try { args = JSON.parse(t.args || "{}") as Record<string, unknown>; } catch {}
       const result = await req.onToolCall(t.name, args);
-      return { id: t.id, result };
+      // name carried through so a truncation log names the tool that overflowed, not "tool".
+      return { id: t.id, result, name: t.name };
     }));
     // Map results back into the message array in the SAME order the model
     // requested them, so the next reasoning turn stays coherent. Promise.all
     // preserves input order, so settled[i] aligns with calls[i].
     for (const r of settled) {
-      messages.push({ role: "tool", tool_call_id: r.id, content: redactSecrets(r.result) });
+      const bounded = boundToolResult(r.result, toolCharsSpent, r.name ?? "tool");
+      toolCharsSpent += bounded.used;
+      messages.push({ role: "tool", tool_call_id: r.id, content: redactSecrets(bounded.text) });
     }
   }
 
