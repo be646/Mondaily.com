@@ -55999,6 +55999,14 @@ function resolveModel(spec) {
   const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
+function retryAfterMs(err2) {
+  const MAX_WAIT_MS = 3500;
+  const e2 = err2;
+  const raw2 = e2?.headers?.["retry-after"] ?? e2?.response?.headers?.get?.("retry-after") ?? null;
+  const seconds = Number(raw2);
+  if (Number.isFinite(seconds) && seconds > 0) return Math.min(seconds * 1e3, MAX_WAIT_MS);
+  return 1200;
+}
 function getLastGatewayError() {
   return lastGatewayError;
 }
@@ -56360,9 +56368,16 @@ async function aiGatewayAgent(req) {
   } catch (primaryErr) {
     lastGatewayError = { at: `agent-primary/${resolved.modelId}`, message: primaryErr?.message ?? String(primaryErr), status: primaryErr?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
-    console.error(`[gateway:agent] Cerebras gateway exhausted \u2014 returning graceful reply`);
+    const rateLimited = primaryErr?.status === 429 || /\b429\b|rate limit/i.test(String(primaryErr?.message ?? ""));
+    if (rateLimited) {
+      await new Promise((res) => setTimeout(res, retryAfterMs(primaryErr)));
+      const fb = resolveModel(FAST_MODEL_SPEC);
+      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [] }, 1).catch(() => null);
+      if (recovered?.reply?.trim()) return recovered;
+    }
+    console.error(`[gateway:agent] gateway exhausted \u2014 returning graceful reply (rateLimited=${rateLimited})`);
     return {
-      reply: "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
+      reply: rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
       provider: "none",
       model: "none",
       rounds: 0
@@ -56407,9 +56422,13 @@ async function aiGatewayAgentStream(req, onEvent) {
   } catch (err2) {
     lastGatewayError = { at: "agent-stream", message: err2?.message ?? String(err2), status: err2?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
     console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 recovering on default model`);
-    const fb = resolveModel(DEFAULT_MODEL_SPEC);
-    const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     const rateLimited = err2?.status === 429 || /\b429\b|rate limit/i.test(String(err2?.message ?? ""));
+    if (rateLimited) {
+      const waitMs = retryAfterMs(err2);
+      if (waitMs > 0) await new Promise((res) => setTimeout(res, waitMs));
+    }
+    const fb = resolveModel(rateLimited ? FAST_MODEL_SPEC : DEFAULT_MODEL_SPEC);
+    const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     const reply = r2?.reply || (rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };

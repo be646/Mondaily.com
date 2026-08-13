@@ -144,6 +144,25 @@ function resolveModel(spec?: string): ResolvedModel {
 // model (e.g. llama3.1-8b) if you want a lighter conversational tier.
 const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
 
+/**
+ * How long to wait before retrying a rate-limited call — the provider's own `Retry-After` when it
+ * sends one, capped hard.
+ *
+ * The cap is the point. Obeying a 60-second Retry-After literally is what made chat "load forever"
+ * once already, so this waits only long enough to clear a short burst window and otherwise gives up
+ * and tells the user. Without any wait at all the retry lands inside the same spent quota and fails
+ * in milliseconds, which is the bug this exists to fix.
+ */
+function retryAfterMs(err: unknown): number {
+  const MAX_WAIT_MS = 3500;
+  const e = err as { headers?: Record<string, string>; response?: { headers?: { get?: (k: string) => string | null } } };
+  const raw = e?.headers?.["retry-after"] ?? e?.response?.headers?.get?.("retry-after") ?? null;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds > 0) return Math.min(seconds * 1000, MAX_WAIT_MS);
+  // No header: a brief pause still beats an instant retry into the quota that just rejected us.
+  return 1200;
+}
+
 // Captures the most recent REAL gateway failure (normally swallowed by the graceful
 // "trouble connecting" fallback) so GET /api/v1/ask/health can surface it. Purely
 // diagnostic — does not alter any chat behavior.
@@ -699,11 +718,35 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     lastGatewayError = { at: `agent-primary/${resolved.modelId}`, message: primaryErr?.message ?? String(primaryErr), status: primaryErr?.status, when: new Date().toISOString() };
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
 
+    /**
+     * THE SAME RATE-LIMIT RECOVERY AS THE STREAMING PATH.
+     *
+     * This is the non-streaming agent, and it is what HOME calls (`POST /ask`), while /ask/new goes
+     * through the streaming one. It had no retry at all: one 429 and the user was told "trouble
+     * connecting to the AI service" — which is not what happened. The quota was spent; the service
+     * was fine. Two entry points to the same feature, two different behaviours, and the one on the
+     * landing screen gave the least accurate answer.
+     *
+     * A rule at one call site is not a rule — so the recovery lives in both, and says the same
+     * thing.
+     */
+    const rateLimited = primaryErr?.status === 429 || /\b429\b|rate limit/i.test(String(primaryErr?.message ?? ""));
+    if (rateLimited) {
+      await new Promise(res => setTimeout(res, retryAfterMs(primaryErr)));
+      const fb = resolveModel(FAST_MODEL_SPEC);
+      // Tools dropped: the retry exists to get a reply out, and tool rounds multiply the token
+      // spend that caused the limit in the first place.
+      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [] }, 1).catch(() => null);
+      if (recovered?.reply?.trim()) return recovered;
+    }
+
     // No proprietary-provider fallback — the gateway is Cerebras-only. A failure
     // here returns a graceful reply rather than routing to Anthropic/OpenAI.
-    console.error(`[gateway:agent] Cerebras gateway exhausted — returning graceful reply`);
+    console.error(`[gateway:agent] gateway exhausted — returning graceful reply (rateLimited=${rateLimited})`);
     return {
-      reply: "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
+      reply: rateLimited
+        ? "⏳ Mondaily AI is at its current throughput limit — give it about a minute and try again. High-volume plans get higher limits."
+        : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
       provider: "none",
       model: "none",
       rounds: 0,
@@ -773,12 +816,31 @@ export async function aiGatewayAgentStream(
     // Recover on the PROVEN default model directly (bypass routeAgentModel, which
     // would re-pick the same failing fast model). This makes a broken/Preview
     // AI_FAST_MODEL — e.g. one that 400s — non-fatal instead of breaking chat.
-    const fb = resolveModel(DEFAULT_MODEL_SPEC);
-    const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
-    // Rate-limit-aware message: a 429 means the per-minute AI quota is spent, not that the service
-    // is down. Tell the user plainly so they wait, not retry-spam. NEVER name the AI provider — the
-    // system is our own; infrastructure suppliers are not surfaced to users.
     const rateLimited = err?.status === 429 || /\b429\b|rate limit/i.test(String(err?.message ?? ""));
+
+    /**
+     * A RATE LIMIT NEEDS A DIFFERENT RECOVERY THAN A BROKEN MODEL.
+     *
+     * The recovery below used to fire immediately against the same account, which cannot work for
+     * the failure it most often meets: if the per-minute quota is spent, the retry is spent too, so
+     * it 429s in milliseconds and the user gets an apology instead of an answer. MEASURED
+     * 2026-08-13 — this is what produced "⏳ throughput limit" on a real question that had already
+     * run its tools successfully; the work was done and then thrown away.
+     *
+     * So for a rate limit specifically: wait out the window the provider names (bounded, because a
+     * long Retry-After hanging the request was a previous bug), and retry on the FAST model, which
+     * is a different model and usually a different bucket. A broken-model failure keeps the old
+     * immediate path — waiting there would just be latency for nothing.
+     */
+    if (rateLimited) {
+      const waitMs = retryAfterMs(err);
+      if (waitMs > 0) await new Promise(res => setTimeout(res, waitMs));
+    }
+    const fb = resolveModel(rateLimited ? FAST_MODEL_SPEC : DEFAULT_MODEL_SPEC);
+    const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
+    // Rate-limit message: a 429 means the per-minute AI quota is spent, not that the service is
+    // down. Tell the user plainly so they wait, not retry-spam. NEVER name the AI provider — the
+    // system is our own; infrastructure suppliers are not surfaced to users.
     const reply = r?.reply || (rateLimited
       ? "⏳ Mondaily AI is at its current throughput limit — give it about a minute and try again. High-volume plans get higher limits."
       : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
