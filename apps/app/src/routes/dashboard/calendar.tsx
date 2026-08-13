@@ -174,21 +174,41 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     const tone = meetingTone(pl.e);
                     return (
                       <button key={pl.e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(pl.e.id); }} title={pl.e.title}
-                        className="absolute overflow-hidden rounded-sm px-1.5 py-0.5 text-left transition-all"
+                        className="absolute overflow-hidden rounded-sm px-1.5 py-[3px] text-left transition-all"
+                        /**
+                         * HAIRLINE BLOCK. This was a solid tone fill with a 3px bar and, when
+                         * selected, a 3px ring plus a drop shadow — three separate ways of saying
+                         * the same thing, and at a week's density the grid read as blocks of colour
+                         * rather than a schedule.
+                         *
+                         * Now: a 1px border in the meeting's own tone over a barely-there wash, so
+                         * type still reads at a glance but the text stays the loudest thing in the
+                         * cell. Selection is the same hairline turned solid — no shadow, no ring.
+                         */
                         style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
-                          background: on ? tone.edge : tone.tint,
-                          borderLeft: `3px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)",
-                          // Selected: a haloed ring (gap in the page colour, then the tone) + a soft lift, so the
-                          // active meeting is unmistakable against neighbouring blocks.
-                          boxShadow: on ? `0 0 0 1.5px var(--surface-page), 0 0 0 3px ${tone.edge}, 0 2px 8px rgba(0,0,0,0.18)` : undefined,
+                          background: on
+                            ? `color-mix(in srgb, ${tone.edge} 12%, var(--surface-page))`
+                            : `color-mix(in srgb, ${tone.edge} 5%, var(--surface-page))`,
+                          border: `1px solid ${on ? tone.edge : `color-mix(in srgb, ${tone.edge} 38%, transparent)`}`,
+                          // Selection stays UNMISTAKABLE without leaving the hairline vocabulary: the
+                          // border goes solid and is doubled by a 1px inset ring. The old treatment
+                          // said the same thing three times (3px bar + 3px ring + drop shadow).
+                          boxShadow: on ? `inset 0 0 0 1px ${tone.edge}` : undefined,
+                          color: "var(--text-primary)",
                           zIndex: on ? 20 : 10 }}>
-                        <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">
+                        <div className="flex items-center gap-1 truncate text-caption font-medium leading-tight">
                           {/* small semantic icons: missing agenda, call link */}
                           {!(pl.e.description ?? "").trim() && <FileText size={9} className="shrink-0" style={{ opacity: 0.55 }} />}
                           {pl.e.call_url && <Video size={9} className="shrink-0" style={{ opacity: 0.6 }} />}
                           <span className="truncate">{pl.e.title}</span>
                         </div>
-                        {pl.height > 30 && <div className="flex items-center gap-1 truncate text-[10px] leading-tight opacity-70">{fmtTime(pl.e.start_at, lang)}{pl.e.call_url && <span className="h-1 w-1 rounded-full" style={{ background: "#5f8a6a" }} />}</div>}
+                        {/* The time only earns its line once the block is tall enough to hold both
+                            without crowding — below that the title alone is the useful thing. */}
+                        {pl.height > 34 && (
+                          <div className="flex items-center gap-1 truncate text-caption leading-tight tabular-nums" style={{ color: "var(--text-muted)" }}>
+                            {fmtTime(pl.e.start_at, lang)}
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -298,9 +318,14 @@ export function CalendarPage() {
   const openEvent = (id: string) => setParams({ event: id }, { replace: true });
   const Row = ({ e, active }: { e: CalEvent; active?: boolean }) => (
     <button onClick={() => openEvent(e.id)}
-      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-      style={{ borderLeft: `3px solid ${meetingTone(e).edge}`, background: active ? "var(--surface-selected)" : "transparent" }}>
-      <div className="w-14 shrink-0 text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</div>
+      className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]"
+      /**
+       * The 3px tone bar became a hairline plus a dot. At a full day's list the bars stacked into a
+       * ragged colour column down the left edge, which read as decoration rather than information.
+       */
+      style={{ borderLeft: "1px solid var(--border-soft)", background: active ? "var(--surface-selected)" : "transparent" }}>
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meetingTone(e).edge }} aria-hidden />
+      <div className="w-12 shrink-0 text-caption tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</div>
         <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
@@ -496,9 +521,22 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
                   <button key={e.id} draggable={draggable}
                     onDragStart={draggable ? (ev) => { ev.stopPropagation(); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/mondaily-event", JSON.stringify({ id: e.id, start: e.start_at })); } : undefined}
                     onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }}
-                    className={`flex items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
-                    style={{ borderLeft: `2px solid ${tone.edge}`, background: e.id === selected ? "var(--surface-selected)" : tone.tint, color: "var(--text-secondary)" }}
+                    className={`flex items-center gap-1.5 truncate rounded-sm px-1.5 py-[3px] text-left text-caption leading-none transition-colors hover:bg-[var(--surface-hover)] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+                    /**
+                     * HAIRLINE, not a filled block. A tinted background with a 2px bar per meeting
+                     * turned a busy month into stripes of colour competing with the dates, and the
+                     * fill left no room for the title in a narrow cell. A 1px border carries the
+                     * same separation at a fraction of the visual weight, and the meeting's type
+                     * reads from one small dot instead of the whole surface.
+                     */
+                    style={{
+                      border: "1px solid var(--border-soft)",
+                      background: e.id === selected ? "var(--surface-selected)" : "transparent",
+                      color: "var(--text-secondary)",
+                    }}
                     title={`${fmtTime(e.start_at, lang)} · ${e.title}${draggable && dragHint ? ` — ${dragHint}` : ""}`}>
+                    {/* The meeting type, reduced to a 4px dot — the only colour the chip carries. */}
+                    <span className="h-1 w-1 shrink-0 rounded-full" style={{ background: tone.edge }} aria-hidden />
                     <span className="shrink-0 tabular-nums" style={{ color: "var(--text-faint)" }}>{fmtTime(e.start_at, lang)}</span>
                     <span className="truncate" style={{ color: "var(--text-primary)" }}>{e.title}</span>
                   </button>

@@ -9,8 +9,22 @@ import { fileURLToPath } from "node:url";
 const cal = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
 
 describe("premium identity improvements present", () => {
-  it("selected event gets a haloed ring + lift (clear active state)", () => {
-    expect(cal).toMatch(/boxShadow: on \? `0 0 0 1\.5px var\(--surface-page\), 0 0 0 3px \$\{tone\.edge\}/);
+  it("the selected event is unmistakable — now in hairline vocabulary", () => {
+    /**
+     * SUPERSEDES the haloed-ring + drop-shadow treatment (2026-08-13).
+     *
+     * The requirement has not changed: the active meeting must be obvious against its neighbours.
+     * Its EXPRESSION has. The old version said it three times over — a 3px tone bar, a 3px ring in
+     * the page colour, and a drop shadow — which at a week's density made the grid read as blocks
+     * of colour rather than a schedule.
+     *
+     * Selection is now the same hairline turned solid and doubled with a 1px inset ring, over a
+     * slightly stronger wash. Still instantly readable; no longer the loudest thing on the page.
+     */
+    expect(cal).toMatch(/boxShadow: on \? `inset 0 0 0 1px \$\{tone\.edge\}` : undefined/);
+    expect(cal, "the unselected block must stay lighter than the selected one")
+      .toMatch(/color-mix\(in srgb, \$\{tone\.edge\} 38%, transparent\)/);
+    expect(cal, "a lift/drop-shadow is no longer part of the language").not.toMatch(/0 2px 8px rgba\(0,0,0,0\.18\)/);
     expect(cal).toMatch(/zIndex: on \? 20 : 10/);
   });
   it("Meeting Agent panel (CoPilot) carries the Wand2 identity glyph", () => {

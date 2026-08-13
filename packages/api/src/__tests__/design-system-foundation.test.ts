@@ -887,7 +887,11 @@ describe("dashboard/calendar read-only 12px empty/meta uses text-body (Pass 8H)"
     expect(C).not.toMatch(/<input[^>]*\btext-body\b/);
   });
   it("deferred text-[12px] remain — event times/title, Cancel/Create buttons (drawer input resolved)", () => {
-    expect(C).toMatch(/w-14 shrink-0 text-\[12px\] tabular-nums/);                       // 284 event time
+    // RESOLVED 2026-08-13 by the hairline pass: the event time moved to the type scale
+    // (text-caption) and narrowed w-14 → w-12, so this deferred item is gone rather than deferred.
+    // Inverted to keep the arbitrary size from coming back.
+    expect(C).not.toMatch(/w-14 shrink-0 text-\[12px\] tabular-nums/);
+    expect(C).toMatch(/w-12 shrink-0 text-caption tabular-nums/);                        // event time
     expect(C).toMatch(/truncate text-\[12px\]" style=\{\{ color: "var\(--text-primary\)" \}\}>\{s\.title\}/); // 1046 event-list title
     // RESOLVED 2026-08-03: this deferred item was the repeat-until <input type="date">, which the
     // browser painted with its own calendar. It is now a DateField, so the debt it tracked is gone
@@ -2201,10 +2205,19 @@ describe("Calendar Upcoming list density unification — hairline-divider rows (
 
   it("Row is de-boxed but keeps tone edge, active state, hover, and navigation", () => {
     // Row className no longer carries the per-row rounded bordered card
-    expect(C).toMatch(/className="flex w-full items-center gap-3 px-4 py-2\.5 text-left transition-colors hover:bg-\[var\(--surface-hover\)\]"/);
+    // Density tightened py-2.5 → py-2 with the hairline pass (2026-08-13).
+    expect(C).toMatch(/className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-\[var\(--surface-hover\)\]"/);
     expect(C).not.toMatch(/flex w-full items-center gap-3 rounded-sm border px-4 py-2\.5/);
     // Left meeting-tone accent retained; default bg transparent, active → surface-selected
-    expect(C).toMatch(/borderLeft: `3px solid \$\{meetingTone\(e\)\.edge\}`, background: active \? "var\(--surface-selected\)" : "transparent"/);
+    /**
+     * SUPERSEDES the 3px tone bar (2026-08-13). The INTENT is unchanged — the row carries its
+     * meeting's tone, is de-boxed, and shows an active state — but stacked down a full day's list
+     * those bars formed a ragged colour column that read as decoration. The tone now arrives as a
+     * dot, and the edge is a hairline.
+     */
+    expect(C).toMatch(/borderLeft: "1px solid var\(--border-soft\)", background: active \? "var\(--surface-selected\)" : "transparent"/);
+    expect(C, "the meeting tone must still be present, just not as a bar")
+      .toMatch(/background: meetingTone\(e\)\.edge/);
     // Navigation retained
     expect(C).toMatch(/onClick=\{\(\) => openEvent\(e\.id\)\}/);
     expect(C).toMatch(/setParams\(\{ event: id \}/);
