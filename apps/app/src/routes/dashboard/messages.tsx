@@ -9,6 +9,7 @@ import { CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState, ErrorState } from "../../components/ui/page-state";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { Modal } from "@/components/ui/modal";
+import { errorText } from "../../lib/alerts";
 
 
 
@@ -327,7 +328,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
       const uploaded = await uploadAttachments(files);
       setPending((p) => [...p, ...uploaded]);
     } catch (e) {
-      try { setAttachError(JSON.parse((e as Error).message)?.error ?? "Upload failed — try again."); }
+      try { setAttachError(errorText(e, "Upload failed — try again.")); }
       catch { setAttachError("Upload failed — try again."); }
     } finally {
       setUploading(false);
@@ -559,7 +560,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
       const uploaded = await uploadAttachments(files);
       setPending((p) => [...p, ...uploaded]);
     } catch (e) {
-      try { setAttachError(JSON.parse((e as Error).message)?.error ?? "Upload failed — try again."); }
+      try { setAttachError(errorText(e, "Upload failed — try again.")); }
       catch { setAttachError("Upload failed — try again."); }
     } finally {
       setUploading(false);
@@ -692,7 +693,7 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
       const r = await apiClient.post<{ id: string }>("/messages/groups", { name, member_ids: [...selected] });
       onGroupCreated?.(r.id);
     } catch (e) {
-      try { setCreateError(JSON.parse((e as Error).message)?.error ?? "Couldn't create the group."); }
+      try { setCreateError(errorText(e, "Couldn't create the group.")); }
       catch { setCreateError("Couldn't create the group."); }
       setCreating(false);
     }

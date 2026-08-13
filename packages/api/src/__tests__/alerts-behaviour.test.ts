@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
-  subscribeAlerts, pushAlert, dismissAlert, alertError, alertOk, describeError,
+  subscribeAlerts, pushAlert, dismissAlert, alertError, alertOk, describeError, errorText,
   type AppAlert,
 } from "../../../../apps/app/src/lib/alerts";
 
@@ -148,6 +148,43 @@ describe("the alert store behaves the way the silent-failure fix depends on", ()
       for (const body of ['{"error":{}}', '{"error":[]}', '{"error":null}', '{"error":123}', '{"error":{"issues":[]}}']) {
         expect(typeof describeError(new Error(body)), body).toBe("string");
       }
+    });
+  });
+
+  /**
+   * errorText replaced nine hand-rolled `JSON.parse(err.message)?.error ?? "…"` sites, every one of
+   * which put a possibly-OBJECT value straight into React state — the /calendar crash waiting for a
+   * different endpoint to reject a body.
+   */
+  describe("errorText prefers the server's words but never shows wire format", () => {
+    it("returns the server's message when there is one", () => {
+      expect(errorText(new Error('{"error":"Seat limit reached"}'), "Could not invite.")).toBe("Seat limit reached");
+    });
+
+    it("turns a ZodError into a sentence rather than an object", () => {
+      const body = JSON.stringify({ error: { name: "ZodError", issues: [{ path: ["email"], message: "Invalid email" }] } });
+      const out = errorText(new Error(body), "Could not invite.");
+      expect(typeof out).toBe("string");
+      expect(out).toBe("email: Invalid email");
+    });
+
+    it("falls back rather than showing raw JSON to a person", () => {
+      expect(errorText(new Error('{"unexpected":true}'), "Could not invite.")).toBe("Could not invite.");
+      expect(errorText(new Error("[1,2,3]"), "Could not invite.")).toBe("Could not invite.");
+    });
+
+    it("falls back on an empty or generic failure", () => {
+      expect(errorText(new Error(""), "Could not invite.")).toBe("Could not invite.");
+      expect(errorText(undefined, "Could not invite.")).toBe("Could not invite.");
+    });
+
+    it("passes a plain non-JSON message through", () => {
+      expect(errorText(new Error("Network request failed"), "Could not invite.")).toBe("Network request failed");
+    });
+
+    it("always returns a string, for any input", () => {
+      const inputs: unknown[] = [null, undefined, 0, false, [], {}, { toString() { throw new Error("x"); } }];
+      for (const i of inputs) expect(typeof errorText(i, "fallback")).toBe("string");
     });
   });
 

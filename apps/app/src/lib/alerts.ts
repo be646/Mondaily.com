@@ -30,6 +30,28 @@ const listeners = new Set<Listener>();
 
 function emit() { for (const l of listeners) l(alerts); }
 
+/**
+ * The server's message when it is usable, otherwise the caller's own wording. ALWAYS a string.
+ *
+ * Nine places hand-rolled `JSON.parse((e as Error).message)?.error ?? "…"` and put the result
+ * straight into React state. `error` is not always a string — a zod validation failure makes it an
+ * OBJECT — so every one of those was the /calendar crash waiting for a different endpoint to reject
+ * a body. They were written before that was known, each one reasonable on its own, which is exactly
+ * how this class of bug spreads.
+ *
+ * The raw body is never shown: if all that came back is JSON with no readable message, the caller's
+ * fallback is better than showing a user our wire format.
+ */
+export function errorText(e: unknown, fallback: string): string {
+  const described = describeError(e).trim();
+  if (!described) return fallback;
+  // describeError returns the raw text when it finds no envelope it understands. Raw JSON is not
+  // something to show a person.
+  if (described.startsWith("{") || described.startsWith("[")) return fallback;
+  if (described === "Something went wrong. Please try again.") return fallback;
+  return described;
+}
+
 /** Anything renderable as text, or "" — never an object, which React refuses to render. */
 function asText(v: unknown): string {
   if (typeof v === "string") return v.trim();

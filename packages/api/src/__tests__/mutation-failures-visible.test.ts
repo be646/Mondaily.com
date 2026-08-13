@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { scanFiles } from "./_scan";
 
 /**
  * A save that quietly did not save is worse than an error.
@@ -52,5 +53,30 @@ describe("unhandled mutation failures are visible", () => {
   it("caps the stack so a failing loop cannot bury the page", () => {
     const alerts = readFileSync(join(APP, "lib/alerts.ts"), "utf8");
     expect(alerts).toMatch(/\.slice\(0, 3\)/);
+  });
+
+  /**
+   * No component may hand-roll the error envelope again.
+   *
+   * NINE places had written `JSON.parse((e as Error).message)?.error ?? "…"` and put the result
+   * straight into React state. `error` is not always a string — a zod validation failure makes it an
+   * OBJECT — so every one of them was the /calendar React #31 crash waiting for a different endpoint
+   * to reject a body. Each looked reasonable in isolation, which is precisely how the class spread.
+   *
+   * `errorText(e, fallback)` from lib/alerts is the one way to do this, and it is tested against the
+   * real payloads. This keeps it the only way.
+   */
+  it("nothing parses the error envelope by hand", () => {
+    const files = scanFiles(APP, [".ts", ".tsx"], 100);   // throws if the walk collapses
+    const offenders = files
+      .filter(f => !f.endsWith("lib/alerts.ts"))          // the helper itself is allowed to parse
+      .filter(f => /JSON\.parse\([^)]*\)[\s?.]*\.\s*error\b|\.error \?\? (msg|s\b)/.test(readFileSync(f, "utf8")))
+      .map(f => f.slice(APP.length + 1));
+
+    expect(offenders,
+      `These pull .error out of a parsed body themselves. It can be a ZodError OBJECT, and rendering ` +
+      `an object throws React #31 and unmounts the page. Use errorText(e, "fallback") from lib/alerts:\n` +
+      offenders.join("\n"),
+    ).toEqual([]);
   });
 });

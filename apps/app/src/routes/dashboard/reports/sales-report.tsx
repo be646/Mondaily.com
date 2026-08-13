@@ -17,6 +17,7 @@ import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "..
 import { useRecordAggregate, type AggDateFilter, type AggFilter } from "../../../hooks/useRecordAggregate";
 import { DateField } from "@/components/ui/date-picker";
 import { Modal } from "@/components/ui/modal";
+import { errorText } from "../../../lib/alerts";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -394,9 +395,7 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
       });
       setResult(res); qc.setQueryData(cacheKey, res);
     } catch (e: any) {
-      let msg = e?.message ?? "Forecast unavailable.";
-      try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
-      setError(msg); setModalOpen(false);
+      setError(errorText(e, "Forecast unavailable.")); setModalOpen(false);
     } finally { setLoading(false); }
   }
 
@@ -592,9 +591,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
       const list = res.insights ?? [];
       setInsights(list); qc.setQueryData(cacheKey, list);
     } catch (e: any) {
-      let msg = e?.message ?? "Could not load AI insights.";
-      try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
-      setError(msg);
+      setError(errorText(e, "Could not load AI insights."));
     } finally { setLoading(false); }
   }
 

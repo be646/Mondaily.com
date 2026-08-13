@@ -3,6 +3,7 @@ import { CheckCircle, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
+import { errorText } from "../../lib/alerts";
 
 export function InviteAcceptPage() {
   const { token } = useParams();
@@ -31,7 +32,8 @@ export function InviteAcceptPage() {
       // Surface the real reason — especially "this invite was sent to X, you're signed in as Y".
       let msg = e instanceof Error ? e.message : "";
       let isMismatch = false;
-      try { const p = JSON.parse(msg) as { error?: string; email_mismatch?: boolean }; msg = p.error ?? msg; isMismatch = !!p.email_mismatch; } catch { /* raw */ }
+      try { const p = JSON.parse(msg) as { email_mismatch?: boolean }; isMismatch = !!p.email_mismatch; } catch { /* raw */ }
+      msg = errorText(e, msg);
       setErrorMsg(msg || "This invitation is invalid or expired.");
       setMismatch(isMismatch);
       setStatus("error");

@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
 import { CommandPageHeader } from "../../../components/ui/controls";
+import { errorText } from "../../../lib/alerts";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -87,9 +88,7 @@ export function MembersSettings() {
           return { email, link: r.invite_link ?? null, sent: !!r.email_sent, error: null as string | null };
         } catch (e) {
           // The API returns { error: "..." } as the body — surface it instead of a blank failure.
-          let msg = e instanceof Error ? e.message : "could not create invite";
-          try { msg = (JSON.parse(msg) as { error?: string }).error ?? msg; } catch { /* keep raw */ }
-          return { email, link: null, sent: false, error: msg };
+          return { email, link: null, sent: false, error: errorText(e, "could not create invite") };
         }
       }));
       return results;

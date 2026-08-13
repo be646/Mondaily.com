@@ -5,6 +5,7 @@ import { Target, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { AIButton, SuggestionHints } from "../../components/ui/ai-button";
+import { errorText } from "../../lib/alerts";
 
 interface Step { order: number; title: string; detail: string; risk_level: string }
 interface GoalProgress { id: string; title: string; agent_name: string; created_at: string; total: number; done: number; rejected: number; pending: number; progress: number; status: "active" | "complete" }
@@ -36,7 +37,7 @@ export function GoalsPage() {
       // apiClient throws with the raw response body on non-2xx — surface the honest
       // server message (e.g. "AI service unavailable") rather than a generic line.
       let msg = "Couldn't plan that goal — please try again.";
-      try { const p = JSON.parse((e as Error).message); if (p?.error) msg = p.error; } catch { /* keep generic */ }
+      msg = errorText(e, msg);
       setError(msg);
     }
     finally { setPlanning(false); }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, Play, ShieldCheck, AlertTriangle } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { errorText } from "../../lib/alerts";
 
 /**
  * SALESFORCE DATA BRIDGE — dropzone, live log, mapping matrix, guarded commit.
@@ -289,5 +290,5 @@ export function SalesforceBridge() {
 function msg(e: unknown): string {
   const s = e instanceof Error ? e.message : String(e);
   // The API returns a JSON error body; show its message, not the raw envelope.
-  try { return (JSON.parse(s) as { error?: string }).error ?? s; } catch { return s; }
+  return errorText(s, s);
 }

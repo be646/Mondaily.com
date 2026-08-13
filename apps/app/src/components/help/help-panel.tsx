@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { HelpCircle, X, Send, Loader2, Check, Terminal, RotateCcw, Star, ChevronRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
+import { errorText } from "../../lib/alerts";
 import {
   sessionKey, loadSession, saveSession, newSession, isSessionActive, summarizeHistory, latestDiagnostics,
   type HelpSession, type HelpMsg, type HelpDiagnostic, type HelpAction,
@@ -189,8 +190,11 @@ function HelpPanel({ prefill }: { prefill: string }) {
       // returns { error, needs_more_info, questions } as the response body; apiClient throws it as text.
       let ask = "I couldn't open the request just now. Add a little more detail about the issue and try again.";
       try {
-        const parsed = JSON.parse((e as Error)?.message ?? "{}") as { error?: string; questions?: string[] };
-        if (parsed.error) ask = [parsed.error, ...(parsed.questions ?? [])].join(" ");
+        const parsed = JSON.parse((e as Error)?.message ?? "{}") as { questions?: string[] };
+        // errorText, not parsed.error — joining an object into a string yields "[object Object]",
+        // which would be fed to the support agent as the user's own words.
+        const detail = errorText(e, "");
+        if (detail) ask = [detail, ...(parsed.questions ?? [])].join(" ");
       } catch { /* non-JSON error — keep the generic ask */ }
       update(s => ({ ...s, state: "waiting_for_user", messages: [...s.messages, { role: "assistant", content: ask, needsTicket: true, category: s.category ?? "bug_report" }] }));
     }

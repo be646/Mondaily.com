@@ -9,6 +9,7 @@ import {
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
 import { Modal, ModalActions } from "@/components/ui/modal";
+import { errorText } from "../../../lib/alerts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type NodeKind = "trigger" | "condition" | "action";
@@ -436,9 +437,7 @@ export function WorkflowBuilderPage() {
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       // Surface plan-cap and other errors instead of silently failing.
-      let msg = e instanceof Error ? e.message : "Couldn't save the workflow.";
-      try { msg = (JSON.parse(msg) as { error?: string }).error ?? msg; } catch { /* raw */ }
-      setSaveError(msg);
+      setSaveError(errorText(e, "Couldn't save the workflow."));
     }
     finally { setSaving(false); }
   }

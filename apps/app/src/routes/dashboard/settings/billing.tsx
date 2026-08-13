@@ -9,6 +9,7 @@ import { PLANS, PLAN_BY_ID, normalizePlan } from "../../../lib/plans";
 import { BILLING_CURRENCIES, PRICING_SYMBOL, priceInCurrency, billingCurrencyForLocale, showsCurrencySwitcher, type BillingCurrency } from "@mondaily/shared/pricing";
 import { Check } from "lucide-react";
 import { StripePaymentModal } from "../../../components/billing/stripe-payment-form";
+import { errorText } from "../../../lib/alerts";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
 interface CreditBalance {
@@ -44,10 +45,7 @@ function prettyEngine(model: string): string {
   return model.replace(/^.*\//, "").replace(/[-_]/g, " ");
 }
 
-const errFrom = (e: unknown): string => {
-  try { return JSON.parse((e as Error).message)?.error ?? "Something went wrong."; }
-  catch { return (e as Error)?.message || "Something went wrong."; }
-};
+const errFrom = (e: unknown): string => errorText(e, "Something went wrong.");
 
 /** Open the Stripe customer portal to manage an existing subscription (cancel, view invoices,
  *  update card). This is Stripe's own hosted portal — the intentional exception to "our own
@@ -163,7 +161,7 @@ export function BillingSettings() {
       let parsed: { error?: string; trial_used?: boolean } = {};
       try { parsed = JSON.parse((e as Error).message); } catch { /* non-JSON */ }
       if (parsed.trial_used) { refreshEntitlementSurfaces(); return; }
-      setBillingMsg(parsed.error ?? "Could not start the trial.");
+      setBillingMsg(errorText(e, "Could not start the trial."));
     },
   });
   async function handleBuyCredits(packId = "standard") {
@@ -173,8 +171,7 @@ export function BillingSettings() {
       if (session.url) { window.location.assign(session.url); return; } // redirecting away — keep loading
       if (session.error) { alert(session.error); setCharging(false); }
     } catch (e) {
-      try { alert(JSON.parse((e as Error).message)?.error ?? "Could not start the credit purchase."); }
-      catch { alert("Could not start the credit purchase."); }
+      alert(errorText(e, "Could not start the credit purchase."));
       setCharging(false);
     }
   }
