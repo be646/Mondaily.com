@@ -309,3 +309,42 @@ describe("a guest invitation links somewhere a guest can actually go", () => {
     expect(CALL_UI).toMatch(/keepalive: true/);
   });
 });
+
+/**
+ * "It kicked me out." Diagnosed by elimination against the LIVE system rather than guessed:
+ *
+ *   - the token endpoint answers 200 with the correct room
+ *   - the engine's signal socket ACCEPTS that token (opened cleanly)
+ *   - a call_sessions row exists, so the room WAS reached
+ *
+ * So connect() was never the failure. The throw came from the two lines AFTER it.
+ */
+describe("a missing microphone does not end the meeting", () => {
+  const CALL_UI = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/call-room.tsx"), "utf8");
+
+  it("attempts each device on its own, outside the connect try", () => {
+    // Both used to sit inside the same try as connect(), so a denied mic threw and the catch
+    // ejected the user from a call that had already connected successfully.
+    expect(CALL_UI).toMatch(/try \{ await room\.localParticipant\.setMicrophoneEnabled\(micOn\); \}/);
+    expect(CALL_UI).toMatch(/try \{ await room\.localParticipant\.setCameraEnabled\(camOn\); \}/);
+  });
+
+  it("stays in the call and turns the device off in the UI", () => {
+    expect(CALL_UI).toMatch(/setMicOn\(false\); denied\.push\("microphone"\)/);
+    expect(CALL_UI).toMatch(/setCamOn\(false\); denied\.push\("camera"\)/);
+    // setPhase("live") must still be reached when a device fails.
+    const after = CALL_UI.slice(CALL_UI.indexOf("await room.connect(url, token)"));
+    expect(after.indexOf('setPhase("live")')).toBeGreaterThan(after.indexOf("denied.push"));
+  });
+
+  it("tells the user which device it could not get", () => {
+    // Otherwise they wonder why nobody can hear them — a working call reading as a broken one.
+    expect(CALL_UI).toMatch(/You joined without your \$\{denied\.join\(" or "\)\}/);
+    expect(CALL_UI).toMatch(/\{mediaNote && \(/);
+  });
+
+  it("records the real reason for a device failure", () => {
+    expect(CALL_UI).toMatch(/microphone unavailable: /);
+    expect(CALL_UI).toMatch(/camera unavailable: /);
+  });
+});

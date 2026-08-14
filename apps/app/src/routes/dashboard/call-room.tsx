@@ -412,6 +412,8 @@ function CallRoom({ event }: { event: CalEvent }) {
   const [phase, setPhase] = useState<"lobby" | "connecting" | "live" | "ended" | "error">("lobby");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
+  // Set when joining succeeded but a device did not — shown in-call, never fatal.
+  const [mediaNote, setMediaNote] = useState("");
   const [sharing, setSharing] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
@@ -601,8 +603,36 @@ function CallRoom({ event }: { event: CalEvent }) {
           setPhase("ended");
         });
       await room.connect(url, token);
-      await room.localParticipant.setMicrophoneEnabled(micOn);
-      await room.localParticipant.setCameraEnabled(camOn);
+
+      /**
+       * A DENIED MICROPHONE MUST NOT END THE MEETING.
+       *
+       * These two lines used to sit inside the same try as connect(), so if the browser refused the
+       * mic or camera — permission denied, no device, or another app holding it — the throw was
+       * caught below and the user was thrown OUT of a call that had already connected successfully.
+       * That is the "it kicked me out" report: the room was fine, the hardware was not, and the
+       * code treated the two as the same failure.
+       *
+       * Verified before changing anything: the token endpoint answers 200 with the right room, and
+       * the engine's signal socket ACCEPTS that token — so connect() was never the thing failing.
+       *
+       * Each device is now attempted on its own. Failing to get one leaves you in the meeting with
+       * that device off and the UI showing it off, which is what every other call product does.
+       */
+      const denied: string[] = [];
+      try { await room.localParticipant.setMicrophoneEnabled(micOn); }
+      catch (e) {
+        setMicOn(false); denied.push("microphone");
+        reportCallFailure(`microphone unavailable: ${e instanceof Error ? e.message : String(e)}`, event.id);
+      }
+      try { await room.localParticipant.setCameraEnabled(camOn); }
+      catch (e) {
+        setCamOn(false); denied.push("camera");
+        reportCallFailure(`camera unavailable: ${e instanceof Error ? e.message : String(e)}`, event.id);
+      }
+      // Say it plainly rather than leaving the user to wonder why nobody can hear them.
+      setMediaNote(denied.length ? `You joined without your ${denied.join(" or ")}. Check the browser's site permissions to enable it.` : "");
+
       setPhase("live");
       refreshDevices();
     } catch (e) {
@@ -656,6 +686,14 @@ function CallRoom({ event }: { event: CalEvent }) {
           </div>
           <div className="flex items-center gap-2">
             {(phase === "connecting" || reconnecting) && <span className="flex items-center gap-2 text-[12px] text-white/70"><Loader2 size={13} className="animate-spin" /> {reconnecting ? t("cal.reconnecting") : t("cal.connecting")}</span>}
+            {/* Joined, but without a device. Stated plainly — otherwise the user wonders why nobody
+                can hear them, which is exactly how a working call reads as a broken one. */}
+            {mediaNote && (
+              <span className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px]"
+                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.78)" }}>
+                <MicOff size={12} /> {mediaNote}
+              </span>
+            )}
             <button onClick={copyLink} title="Copy invite link" className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/20">
               {copied ? <Check size={13} className="text-[#6fd08a]" /> : <Link2 size={13} />} {copied ? "Copied" : "Link"}
             </button>
