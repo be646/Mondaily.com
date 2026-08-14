@@ -67,14 +67,19 @@ def _attachments(parsed) -> list:
     for part in parsed.walk():
         disp = str(part.get("Content-Disposition") or "")
         filename = part.get_filename()
-        if "attachment" not in disp and not filename:
+        # A calendar part is forwarded even when it is INLINE and unnamed. An RSVP reply from Gmail
+        # or Outlook arrives as an inline text/calendar alternative with no Content-Disposition and
+        # often no filename, so the attachment-only rule dropped exactly the part that carries the
+        # answer — and the reply looked like an ordinary email with nothing in it.
+        is_calendar = part.get_content_type() == "text/calendar"
+        if "attachment" not in disp and not filename and not is_calendar:
             continue
         try:
             payload = part.get_payload(decode=True)
             if not payload or len(payload) > MAX_ATTACH_BYTES:
                 continue
             out.append({
-                "filename": filename or "attachment",
+                "filename": filename or ("invite.ics" if is_calendar else "attachment"),
                 "content_type": part.get_content_type(),
                 "content_base64": base64.b64encode(payload).decode("ascii"),
             })

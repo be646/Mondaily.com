@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { buildIcs, icsUid } from "../lib/ics";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { buildIcs, icsUid, parseIcsReply, eventIdFromUid } from "../lib/ics";
 
 /**
  * Unfold the way a client does: a CRLF followed by a single space is a line continuation, and the
@@ -100,5 +102,81 @@ describe("a guest invitation is a real calendar invite", () => {
   it("refuses an unusable date rather than emitting a broken calendar", () => {
     // Emitting DTSTART:Invalid would make the whole invite fail silently in the client.
     expect(() => buildIcs({ ...base, startAt: "not a date" })).toThrow(/unusable date/);
+  });
+});
+
+/**
+ * RSVP REPLIES. Verified arriving at our inbound server before this existed — the receiver log
+ * showed `calendar-…@google.com` forwarded → 200 — and nothing read them. So a guest could accept
+ * an invitation and the meeting still showed them as not having answered.
+ */
+describe("an RSVP that comes back by email is read", () => {
+  const reply = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "METHOD:REPLY", "BEGIN:VEVENT",
+    "UID:bbf11d89-f4e5-462f-8929-2231d1fafc92@mondaily.com",
+    "ATTENDEE;CUTYPE=INDIVIDUAL;PARTSTAT=ACCEPTED;CN=Mina:mailto:Mina@Example.com",
+    "ORGANIZER:mailto:be@mondaily.com",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+
+  it("reads who replied and what they said", () => {
+    const r = parseIcsReply(reply);
+    expect(r).toEqual({
+      uid: "bbf11d89-f4e5-462f-8929-2231d1fafc92@mondaily.com",
+      attendeeEmail: "mina@example.com",   // lowercased so it matches the stored guest list
+      response: "accepted",
+    });
+  });
+
+  it("handles declined and tentative", () => {
+    expect(parseIcsReply(reply.replace("ACCEPTED", "DECLINED"))?.response).toBe("declined");
+    expect(parseIcsReply(reply.replace("ACCEPTED", "TENTATIVE"))?.response).toBe("tentative");
+  });
+
+  it("refuses to treat NEEDS-ACTION as an answer", () => {
+    // Recording it would invent a decision the guest never made.
+    expect(parseIcsReply(reply.replace("ACCEPTED", "NEEDS-ACTION"))).toBeNull();
+  });
+
+  it("ignores a REQUEST — an invitation is not a reply", () => {
+    expect(parseIcsReply(reply.replace("METHOD:REPLY", "METHOD:REQUEST"))).toBeNull();
+  });
+
+  it("reads a FOLDED attendee line, as a real client sends it", () => {
+    const folded = reply.replace(
+      "ATTENDEE;CUTYPE=INDIVIDUAL;PARTSTAT=ACCEPTED;CN=Mina:mailto:Mina@Example.com",
+      "ATTENDEE;CUTYPE=INDIVIDUAL;PARTSTAT=ACCEPTED;CN=Mi\r\n na:mailto:Mina@Example.com",
+    );
+    expect(parseIcsReply(folded)?.attendeeEmail).toBe("mina@example.com");
+  });
+
+  it("recovers our event id from a UID we issued, and only ours", () => {
+    expect(eventIdFromUid("bbf11d89-f4e5-462f-8929-2231d1fafc92@mondaily.com")).toBe("bbf11d89-f4e5-462f-8929-2231d1fafc92");
+    // A meeting created in someone else's system must not be mistaken for one of ours.
+    expect(eventIdFromUid("040000008200E00074C5B7101A82E008@microsoft.com")).toBeTruthy();
+    expect(eventIdFromUid("short@google.com")).toBeNull();
+    expect(eventIdFromUid("")).toBeNull();
+  });
+});
+
+describe("an RSVP is only accepted from an invited guest", () => {
+  const EMAILS = readFileSync(join(__dirname, "../routes/emails.ts"), "utf8");
+
+  it("matches the reply against the event's own guest list", () => {
+    // The UID is not a secret. Accepting on someone else's behalf is not something an email
+    // should be able to do.
+    expect(EMAILS).toMatch(/if \(!guests\.includes\(reply\.attendeeEmail\)\)/);
+    expect(EMAILS).toMatch(/not an invited guest/);
+  });
+
+  it("checks RSVP before falling through to ordinary mail handling", () => {
+    // Filed as a normal message it would sit in a thread nobody reads — the same failure the
+    // support-reply branch exists to prevent.
+    const inbound = EMAILS.slice(EMAILS.indexOf('router.post("/inbound"'));
+    expect(inbound.indexOf("recordRsvpFromInbound")).toBeLessThan(inbound.indexOf("workspaceIdFromRecipients"));
+  });
+
+  it("also reads a calendar payload sent in the body, not just as a part", () => {
+    expect(EMAILS).toMatch(/BEGIN:VCALENDAR\/i\.test\(msg\.text\)/);
   });
 });

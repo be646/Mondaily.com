@@ -73682,6 +73682,25 @@ function buildIcs(ev) {
 function icsUid(eventId, domain) {
   return `${eventId}@${(domain || "mondaily.com").replace(/^.*@/, "")}`;
 }
+var unfold = (ics) => ics.replace(/\r?\n[ \t]/g, "");
+function parseIcsReply(raw2) {
+  const text = unfold(String(raw2 ?? ""));
+  if (!/METHOD:REPLY/i.test(text)) return null;
+  const uid = /^UID:(.+)$/im.exec(text)?.[1]?.trim();
+  if (!uid) return null;
+  const line = text.split(/\r?\n/).find((l2) => /^ATTENDEE/i.test(l2) && /PARTSTAT=/i.test(l2));
+  if (!line) return null;
+  const partstat = /PARTSTAT=([A-Z-]+)/i.exec(line)?.[1]?.toUpperCase();
+  const email = /mailto:([^\s;:>]+)/i.exec(line)?.[1]?.trim().toLowerCase();
+  if (!email) return null;
+  const response3 = partstat === "ACCEPTED" ? "accepted" : partstat === "DECLINED" ? "declined" : partstat === "TENTATIVE" ? "tentative" : null;
+  if (!response3) return null;
+  return { uid, attendeeEmail: email, response: response3 };
+}
+function eventIdFromUid(uid) {
+  const local = String(uid ?? "").split("@")[0]?.trim();
+  return local && /^[0-9a-f-]{16,}$/i.test(local) ? local : null;
+}
 
 // src/routes/calendar.ts
 init_ai_gateway();
@@ -79712,6 +79731,33 @@ async function storeAttachments(workspaceId, msg) {
   }
   return out;
 }
+async function recordRsvpFromInbound(msg) {
+  const parts = (msg.attachments ?? []).filter((a2) => (a2.content_type ?? "").toLowerCase().includes("calendar") && a2.content_base64).map((a2) => Buffer.from(a2.content_base64, "base64").toString("utf8"));
+  if (typeof msg.text === "string" && /BEGIN:VCALENDAR/i.test(msg.text)) parts.push(msg.text);
+  for (const raw2 of parts) {
+    const reply = parseIcsReply(raw2);
+    if (!reply) continue;
+    const eventId = eventIdFromUid(reply.uid);
+    if (!eventId) continue;
+    const { data: node } = await supabase.from("nodes").select("id, workspace_id, data").eq("id", eventId).eq("object_type", "calendar_event").maybeSingle();
+    if (!node) continue;
+    const data = node.data ?? {};
+    const guests = (data.guest_emails ?? []).map((e2) => e2.toLowerCase());
+    if (!guests.includes(reply.attendeeEmail)) {
+      console.warn(`[rsvp] ignored a reply from ${reply.attendeeEmail} \u2014 not an invited guest of ${eventId}`);
+      continue;
+    }
+    const responses = { ...data.guest_responses ?? {}, [reply.attendeeEmail]: reply.response };
+    const { error } = await supabase.from("nodes").update({ data: { ...data, guest_responses: responses } }).eq("id", node.id).eq("workspace_id", node.workspace_id).eq("object_type", "calendar_event");
+    if (error) {
+      console.error(`[rsvp] could not record: ${error.message}`);
+      continue;
+    }
+    console.log(`[rsvp] ${reply.attendeeEmail} ${reply.response} for ${eventId}`);
+    return { event_id: eventId, email: reply.attendeeEmail, response: reply.response };
+  }
+  return null;
+}
 router30.post("/inbound", async (c2) => {
   const raw2 = await c2.req.text();
   const secret4 = process.env.SOVEREIGN_MAIL_SECRET;
@@ -79735,6 +79781,8 @@ router30.post("/inbound", async (c2) => {
     const filed = await fileSupportReply(ticketId, msg);
     return c2.json({ ok: true, support_ticket: filed ? ticketId : null, ignored: filed ? void 0 : "unknown ticket" });
   }
+  const rsvp = await recordRsvpFromInbound(msg);
+  if (rsvp) return c2.json({ ok: true, rsvp });
   const workspaceId = workspaceIdFromRecipients(recipients);
   if (!workspaceId) return c2.json({ ok: true, ignored: "no matching workspace address" });
   const { data: ws } = await supabase.from("workspaces").select("id").eq("id", workspaceId).maybeSingle();

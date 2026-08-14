@@ -112,3 +112,55 @@ export function buildIcs(ev: IcsEvent): string {
 export function icsUid(eventId: string, domain: string): string {
   return `${eventId}@${(domain || "mondaily.com").replace(/^.*@/, "")}`;
 }
+
+/**
+ * Read an RSVP that came back by email.
+ *
+ * When a guest clicks Accept in Gmail or Outlook, their client mails a `text/calendar;
+ * method=REPLY` part back to the ORGANIZER. Those replies were already arriving at our inbound
+ * server — verified in the receiver log — and nothing read them, so a guest could accept an
+ * invitation and the meeting in Mondaily still showed them as not having answered.
+ *
+ * Parsing is deliberately narrow: the UID identifies the meeting, and the single ATTENDEE line
+ * carries who replied and what they said. Anything else in the payload is ignored.
+ */
+export interface IcsReply {
+  uid: string;
+  attendeeEmail: string;
+  response: "accepted" | "declined" | "tentative";
+}
+
+/** Undo RFC 5545 line folding — a CRLF followed by one space is a continuation, not a new line. */
+const unfold = (ics: string): string => ics.replace(/\r?\n[ \t]/g, "");
+
+export function parseIcsReply(raw: string): IcsReply | null {
+  const text = unfold(String(raw ?? ""));
+  if (!/METHOD:REPLY/i.test(text)) return null;
+
+  const uid = /^UID:(.+)$/im.exec(text)?.[1]?.trim();
+  if (!uid) return null;
+
+  // The replying attendee is the one carrying PARTSTAT — the organiser line has none.
+  const line = text.split(/\r?\n/).find(l => /^ATTENDEE/i.test(l) && /PARTSTAT=/i.test(l));
+  if (!line) return null;
+
+  const partstat = /PARTSTAT=([A-Z-]+)/i.exec(line)?.[1]?.toUpperCase();
+  const email = /mailto:([^\s;:>]+)/i.exec(line)?.[1]?.trim().toLowerCase();
+  if (!email) return null;
+
+  const response =
+    partstat === "ACCEPTED" ? "accepted" :
+    partstat === "DECLINED" ? "declined" :
+    partstat === "TENTATIVE" ? "tentative" : null;
+  // NEEDS-ACTION and DELEGATED are not answers — recording them as one would invent a decision.
+  if (!response) return null;
+
+  return { uid, attendeeEmail: email, response };
+}
+
+/** The Mondaily event id encoded in a UID we issued, or null when the UID is not ours. */
+export function eventIdFromUid(uid: string): string | null {
+  const local = String(uid ?? "").split("@")[0]?.trim();
+  // Our UIDs are `<event uuid>@<domain>`; anything else came from another system.
+  return local && /^[0-9a-f-]{16,}$/i.test(local) ? local : null;
+}

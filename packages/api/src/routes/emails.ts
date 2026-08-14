@@ -2,6 +2,7 @@ import { zValidator } from "../lib/validate";
 import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
+import { parseIcsReply, eventIdFromUid } from "../lib/ics";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
@@ -103,6 +104,53 @@ async function storeAttachments(workspaceId: string, msg: InboundMessage) {
 // A self-hosted receiver parses incoming SMTP into JSON and POSTs it here, HMAC-signed. We fold it
 // into the workspace's email_thread nodes (the same model the inbox UI renders) — no Gmail, no
 // third-party provider. FAIL-CLOSED: without SOVEREIGN_MAIL_SECRET every call is 401.
+
+/**
+ * Find a calendar REPLY in an inbound message and record it against the meeting.
+ *
+ * Returns null when there is nothing to record, so the caller falls through to normal handling —
+ * an ordinary email that merely mentions a meeting must not be treated as an answer.
+ *
+ * The attendee is matched against the event's OWN guest list. A reply from an address nobody
+ * invited is ignored rather than trusted: the UID is not a secret, and accepting on someone else's
+ * behalf is not something an email should be able to do.
+ */
+async function recordRsvpFromInbound(msg: InboundMessage & { attachments?: { content_type?: string; content_base64?: string }[] }): Promise<{ event_id: string; email: string; response: string } | null> {
+  const parts = (msg.attachments ?? [])
+    .filter(a => (a.content_type ?? "").toLowerCase().includes("calendar") && a.content_base64)
+    .map(a => Buffer.from(a.content_base64 as string, "base64").toString("utf8"));
+  // Some clients put the calendar payload straight in the body rather than as a part.
+  if (typeof msg.text === "string" && /BEGIN:VCALENDAR/i.test(msg.text)) parts.push(msg.text);
+
+  for (const raw of parts) {
+    const reply = parseIcsReply(raw);
+    if (!reply) continue;
+    const eventId = eventIdFromUid(reply.uid);
+    if (!eventId) continue;
+
+    const { data: node } = await supabase.from("nodes")
+      .select("id, workspace_id, data").eq("id", eventId).eq("object_type", "calendar_event").maybeSingle();
+    if (!node) continue;
+
+    const data = (node.data ?? {}) as Record<string, unknown>;
+    const guests = ((data.guest_emails as string[] | undefined) ?? []).map(e => e.toLowerCase());
+    if (!guests.includes(reply.attendeeEmail)) {
+      console.warn(`[rsvp] ignored a reply from ${reply.attendeeEmail} — not an invited guest of ${eventId}`);
+      continue;
+    }
+
+    const responses = { ...((data.guest_responses as Record<string, string> | undefined) ?? {}), [reply.attendeeEmail]: reply.response };
+    const { error } = await supabase.from("nodes")
+      .update({ data: { ...data, guest_responses: responses } })
+      .eq("id", node.id).eq("workspace_id", node.workspace_id).eq("object_type", "calendar_event");
+    if (error) { console.error(`[rsvp] could not record: ${error.message}`); continue; }
+
+    console.log(`[rsvp] ${reply.attendeeEmail} ${reply.response} for ${eventId}`);
+    return { event_id: eventId, email: reply.attendeeEmail, response: reply.response };
+  }
+  return null;
+}
+
 router.post("/inbound", async (c) => {
   const raw = await c.req.text();
   const secret = process.env.SOVEREIGN_MAIL_SECRET;
@@ -136,6 +184,21 @@ router.post("/inbound", async (c) => {
     // receiver can fix by retrying forever.
     return c.json({ ok: true, support_ticket: filed ? ticketId : null, ignored: filed ? undefined : "unknown ticket" });
   }
+
+  /**
+   * AN RSVP IS AN ANSWER, NOT AN EMAIL.
+   *
+   * When a guest clicks Accept, their client mails back a `text/calendar; method=REPLY` part. Those
+   * were already arriving here — confirmed in the receiver log — and nothing read them, so a guest
+   * could accept an invitation while the meeting still showed them as not having answered. Filed as
+   * an ordinary message it would sit in a thread nobody reads, which is the same failure the
+   * support branch above exists to prevent.
+   *
+   * Checked BEFORE workspace routing because the UID identifies the meeting directly; a reply does
+   * not need to be addressed to a workspace mailbox to be meaningful.
+   */
+  const rsvp = await recordRsvpFromInbound(msg);
+  if (rsvp) return c.json({ ok: true, rsvp });
 
   const workspaceId = workspaceIdFromRecipients(recipients);
   if (!workspaceId) return c.json({ ok: true, ignored: "no matching workspace address" });   // not for us — 200 so the receiver doesn't retry forever
