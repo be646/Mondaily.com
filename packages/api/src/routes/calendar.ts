@@ -9,6 +9,7 @@ import { isWorkspaceAdmin } from "../middleware/rbac";
 import { createNotification } from "../lib/notify";
 import { sendTransactionalEmail } from "../lib/mail";
 import { renderEmail, factRows, esc } from "../lib/email-template";
+import { buildIcs, icsUid } from "../lib/ics";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
@@ -230,7 +231,12 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
  * just created. Failures are logged, because a silently unsent invitation is indistinguishable
  * from a guest who ignored it — the same trap the auth mail sat in for three weeks.
  */
-async function inviteGuests(d: EventData, organiserName: string, verb: "created" | "updated" | "cancelled"): Promise<void> {
+async function inviteGuests(
+  d: EventData,
+  organiserName: string,
+  verb: "created" | "updated" | "cancelled",
+  opts?: { eventId?: string; organiserEmail?: string; sequence?: number },
+): Promise<void> {
   const guests = d.guest_emails ?? [];
   if (!guests.length) return;
 
@@ -254,12 +260,42 @@ async function inviteGuests(d: EventData, organiserName: string, verb: "created"
     footnote: cancelled ? undefined : "You do not need a Mondaily account to join.",
   });
 
+  /**
+   * The CALENDAR part — what turns an email about a meeting into an invitation.
+   *
+   * Built once and sent to every guest, with each guest named as an ATTENDEE so their client shows
+   * Accept / Decline. Built defensively: an invite that throws must not stop the email, because a
+   * guest who receives the details is still better off than one who receives nothing.
+   */
+  let ics: string | undefined;
+  try {
+    const organiserEmail = opts?.organiserEmail;
+    if (opts?.eventId && organiserEmail) {
+      ics = buildIcs({
+        uid: icsUid(opts.eventId, organiserEmail),
+        title: d.title,
+        description: d.description || undefined,
+        location: d.call_url || d.location || undefined,
+        startAt: d.start_at,
+        endAt: d.end_at,
+        organizer: { name: organiserName, email: organiserEmail },
+        attendees: guests.map((email) => ({ email })),
+        sequence: opts.sequence ?? 0,
+        method: cancelled ? "CANCEL" : "REQUEST",
+        url: d.call_url || undefined,
+      });
+    }
+  } catch (e) {
+    console.error(`[calendar] could not build the calendar invite: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
   await Promise.all(guests.map(async (to) => {
     try {
       await sendTransactionalEmail({
         to: [{ email: to }],
         subject: cancelled ? `Cancelled: ${d.title}` : `Invitation: ${d.title}`,
         body: html,
+        ...(ics ? { ics } : {}),
       });
     } catch (e) {
       console.error(`[calendar] guest invite failed for ${to}: ${e instanceof Error ? e.message : String(e)}`);
@@ -392,7 +428,12 @@ router.post("/events", zValidator("json", EventCreate), async (c) => {
   await notifyAttendees(ws, node.id, data, me, "created");
   const dir = await members(ws);
   // External guests get an email, not an in-app notification — they have no account to receive one.
-  void inviteGuests(data, dir.get(me)?.name || dir.get(me)?.email || "Your host", "created");
+  void inviteGuests(
+    data,
+    dir.get(me)?.name || dir.get(me)?.email || "Your host",
+    "created",
+    { eventId: node.id, organiserEmail: dir.get(me)?.email, sequence: 0 },
+  );
   return c.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled() }, 201);
 });
 

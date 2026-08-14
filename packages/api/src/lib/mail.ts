@@ -29,6 +29,15 @@ export type OutboundMessage = {
    * subject line the customer may have edited.
    */
   reply_to?: string;
+  /**
+   * A calendar invitation, as raw iCalendar text.
+   *
+   * Sent as a `text/calendar; method=REQUEST` part, which is what makes Gmail and Outlook render
+   * Accept / Decline in the message itself — so a guest with no Mondaily account can still answer,
+   * using the client they already have. Without it the recipient gets an email ABOUT a meeting and
+   * has to retype the time into their own calendar.
+   */
+  ics?: string;
 };
 
 /** PRIMARY: send from the workspace's connected Gmail inbox (direct Google API). */
@@ -160,7 +169,7 @@ async function relaySend(from: string, msg: OutboundMessage): Promise<boolean> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5_000);
   try {
-    const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body, ...(msg.reply_to ? { reply_to: msg.reply_to } : {}) });
+    const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body, ...(msg.reply_to ? { reply_to: msg.reply_to } : {}), ...(msg.ics ? { ics: msg.ics } : {}) });
     const res = await fetch(url.replace(/\/$/, "") + "/send", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": createHmac("sha256", secret).update(body).digest("hex") },

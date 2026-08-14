@@ -201,3 +201,41 @@ describe("the New meeting window is grouped, not stacked", () => {
       .not.toMatch(/className="text-\[11px\]" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal/);
   });
 });
+
+/**
+ * A guest invitation must be an INVITATION, not an email about a meeting.
+ */
+describe("guests receive a real calendar invite", () => {
+  it("attaches an iCalendar part built from the meeting", () => {
+    expect(CAL_API).toMatch(/import \{ buildIcs, icsUid \}/);
+    expect(CAL_API).toMatch(/method: cancelled \? "CANCEL" : "REQUEST"/);
+    expect(CAL_API).toMatch(/attendees: guests\.map\(\(email\) => \(\{ email \}\)\)/);
+  });
+
+  it("uses a STABLE uid so an update replaces the entry", () => {
+    // A random uid per send leaves duplicate meetings in the guest's calendar.
+    expect(CAL_API).toMatch(/uid: icsUid\(opts\.eventId, organiserEmail\)/);
+  });
+
+  it("prefers the join link as the location when there is a call", () => {
+    expect(CAL_API).toMatch(/location: d\.call_url \|\| d\.location \|\| undefined/);
+  });
+
+  it("a broken invite never stops the email going out", () => {
+    // A guest who receives the details is better off than one who receives nothing.
+    expect(CAL_API).toMatch(/could not build the calendar invite/);
+    expect(CAL_API).toMatch(/\.\.\.\(ics \? \{ ics \} : \{\}\)/);
+  });
+
+  it("the mail layer carries it, and the relay sends it as text/calendar", () => {
+    const mail = readFileSync(join(__dirname, "../lib/mail.ts"), "utf8");
+    expect(mail).toMatch(/ics\?: string/);
+    expect(mail).toMatch(/\.\.\.\(msg\.ics \? \{ ics: msg\.ics \} : \{\}\)/);
+
+    const sender = readFileSync(join(__dirname, "../../../../deploy/mail-appliance/mail/sender.py"), "utf8");
+    // As an ALTERNATIVE, not only an attachment — most clients ignore a bare .ics for RSVP.
+    expect(sender).toMatch(/add_alternative\(ics, subtype="calendar"\)/);
+    expect(sender).toMatch(/set_param\("method", "REQUEST"\)/);
+    expect(sender).toMatch(/filename="invite\.ics"/);
+  });
+});

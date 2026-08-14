@@ -41376,7 +41376,7 @@ async function relaySend(from, msg) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5e3);
   try {
-    const body = JSON.stringify({ from, to: msg.to.map((t3) => t3.email), subject: msg.subject, html: msg.body, ...msg.reply_to ? { reply_to: msg.reply_to } : {} });
+    const body = JSON.stringify({ from, to: msg.to.map((t3) => t3.email), subject: msg.subject, html: msg.body, ...msg.reply_to ? { reply_to: msg.reply_to } : {}, ...msg.ics ? { ics: msg.ics } : {} });
     const res = await fetch(url.replace(/\/$/, "") + "/send", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": (0, import_node_crypto3.createHmac)("sha256", secret4).update(body).digest("hex") },
@@ -62807,21 +62807,21 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
         if (candidate && groundingViolations(candidate, digest).length === 0) insight = candidate;
       } catch {
       }
-      const esc2 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const esc3 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const bars = (rows2) => {
         const max = Math.max(1, ...rows2.map((r2) => r2.value));
         return `<table role="presentation" style="width:100%;border-collapse:collapse">${rows2.map((r2) => `
-      <tr><td style="padding:3px 10px 3px 0;font:11px -apple-system,sans-serif;color:#555;white-space:nowrap">${esc2(r2.label)}</td>
+      <tr><td style="padding:3px 10px 3px 0;font:11px -apple-system,sans-serif;color:#555;white-space:nowrap">${esc3(r2.label)}</td>
       <td style="width:70%"><div style="height:10px;border-radius:3px;background:${r2.color};width:${Math.max(2, Math.round(r2.value / max * 100))}%"></div></td>
       <td style="padding-left:8px;font:600 11px -apple-system,sans-serif;color:#222">${r2.value}</td></tr>`).join("")}</table>`;
       };
-      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 20px/1.2 ui-monospace,monospace;color:#111">${value}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc2(label)}${sub ? ` \xB7 ${esc2(sub)}` : ""}</div></td>`;
+      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 20px/1.2 ui-monospace,monospace;color:#111">${value}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc3(label)}${sub ? ` \xB7 ${esc3(sub)}` : ""}</div></td>`;
       const periodLabel = `last ${days} days`;
       const html = `<!doctype html><html><body style="margin:0;background:#fafafa;padding:24px">
   <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e8e8e4;border-radius:8px;overflow:hidden">
     <div style="padding:20px 24px;border-bottom:1px solid #e8e8e4">
-      <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc2(String(member.name ?? member.email))} \u2014 team report</div>
-      <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc2(String(member.role ?? ""))} \xB7 ${periodLabel} \xB7 generated ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)} \xB7 Mondaily</div>
+      <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc3(String(member.name ?? member.email))} \u2014 team report</div>
+      <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc3(String(member.role ?? ""))} \xB7 ${periodLabel} \xB7 generated ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)} \xB7 Mondaily</div>
     </div>
     <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
       ${kpi("Tasks completed", t3.completed)}${kpi("Open", t3.open)}${kpi("Overdue", t3.overdue)}${kpi("Decisions", decisionsResolved)}
@@ -62840,7 +62840,7 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
     <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
       ${kpi("AI credits", credits.toLocaleString(), periodLabel)}${kpi("Messages sent", messagesSent, periodLabel)}
     </tr></table>
-    ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc2(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above \u2014 validated, nothing invented.</p></div>` : ""}
+    ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc3(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above \u2014 validated, nothing invented.</p></div>` : ""}
     <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for the ${periodLabel}. Nothing is estimated.</p></div>
   </div></body></html>`;
       let emailed = false;
@@ -63758,13 +63758,13 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
       }
       const dwl = t3.deltas?.value_won;
       const deltaLine = dwl && dwl.kind === "pct" ? ` (${(dwl.direction ?? 0) >= 0 ? "\u25B2" : "\u25BC"} ${dwl.label} vs prior month)` : dwl && dwl.kind === "new" ? " (first wins on record for a month)" : dwl && dwl.kind === "raw" ? ` (${dwl.detail})` : "";
-      const esc2 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 18px/1.2 ui-monospace,monospace;color:#111">${esc2(value)}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc2(label)}${sub ? ` \xB7 ${esc2(sub)}` : ""}</div></td>`;
+      const esc3 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 18px/1.2 ui-monospace,monospace;color:#111">${esc3(value)}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc3(label)}${sub ? ` \xB7 ${esc3(sub)}` : ""}</div></td>`;
       const html = `<!doctype html><html><body style="margin:0;background:#fafafa;padding:24px">
 <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e8e8e4;border-radius:8px;overflow:hidden">
   <div style="padding:20px 24px;border-bottom:1px solid #e8e8e4">
-    <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc2(String(w2.name ?? "Workspace"))} \u2014 executive brief</div>
-    <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc2(monthName)} \xB7 sent automatically on the 1st \xB7 Mondaily</div>
+    <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc3(String(w2.name ?? "Workspace"))} \u2014 executive brief</div>
+    <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc3(monthName)} \xB7 sent automatically on the 1st \xB7 Mondaily</div>
   </div>
   <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
     ${kpi("Value won", money(t3.value_won) + deltaLine, `${t3.deals_won} deals`)}${kpi("Value lost", money(t3.value_lost), `${t3.deals_lost} deals`)}
@@ -63776,9 +63776,9 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
     ${kpi("Tasks completed", String(tasksDone))}${kpi("Decisions resolved", String(decisionsDone))}
   </tr></table>
   ${goals.length > 0 ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Goals</div>${goals.map((g2) => `
-    <div style="display:flex;justify-content:space-between;font:12px -apple-system,sans-serif;color:#333;padding:3px 0"><span>${esc2(g2.label)}</span><span style="font-variant-numeric:tabular-nums;color:${g2.pct >= 100 ? "#2f9e6b" : g2.pct >= 70 ? "#555" : "#c6892e"}">${g2.actual.toLocaleString()}/${g2.target.toLocaleString()} \xB7 ${g2.pct}%</span></div>`).join("")}</div>` : ""}
-  ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc2(insight)}</p></div>` : ""}
-  <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc2(monthName)}, in ${esc2(cur)}.${t3.unconverted > 0 ? ` ${t3.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
+    <div style="display:flex;justify-content:space-between;font:12px -apple-system,sans-serif;color:#333;padding:3px 0"><span>${esc3(g2.label)}</span><span style="font-variant-numeric:tabular-nums;color:${g2.pct >= 100 ? "#2f9e6b" : g2.pct >= 70 ? "#555" : "#c6892e"}">${g2.actual.toLocaleString()}/${g2.target.toLocaleString()} \xB7 ${g2.pct}%</span></div>`).join("")}</div>` : ""}
+  ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc3(insight)}</p></div>` : ""}
+  <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc3(monthName)}, in ${esc3(cur)}.${t3.unconverted > 0 ? ` ${t3.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
 </div></body></html>`;
       const ok2 = await sendTransactionalEmail({ subject: `${w2.name ?? "Workspace"} \u2014 executive brief \xB7 ${monthName}`, to: recipients, body: html });
       if (ok2) sent++;
@@ -65636,7 +65636,7 @@ function pendingReminderDecision(input) {
 async function runPendingPlanReminders(nowMs = Date.now()) {
   const { data } = await supabase.from("workspaces").select("id, settings");
   let scanned = 0, backfilled = 0, sent = 0;
-  const stamp = new Date(nowMs).toISOString();
+  const stamp2 = new Date(nowMs).toISOString();
   for (const w2 of data ?? []) {
     const settings = { ...w2.settings ?? {} };
     const plan = settings.pending_plan;
@@ -65645,15 +65645,15 @@ async function runPendingPlanReminders(nowMs = Date.now()) {
     const reminders = { ...settings.pending_plan_reminders ?? {} };
     const d2 = pendingReminderDecision({ plan, setAt: settings.pending_plan_set_at, reminders, nowMs });
     if (d2.action === "backfill_anchor") {
-      await supabase.from("workspaces").update({ settings: { ...settings, pending_plan_set_at: stamp } }).eq("id", w2.id);
+      await supabase.from("workspaces").update({ settings: { ...settings, pending_plan_set_at: stamp2 } }).eq("id", w2.id);
       backfilled++;
       continue;
     }
     if (d2.action !== "send") continue;
     const ok2 = await sendPendingPlanReminderEmail(w2.id, plan, d2.phase);
     if (!ok2) continue;
-    reminders[d2.sentKey] = stamp;
-    if (d2.alsoStampKey) reminders[d2.alsoStampKey] = stamp;
+    reminders[d2.sentKey] = stamp2;
+    if (d2.alsoStampKey) reminders[d2.alsoStampKey] = stamp2;
     await supabase.from("workspaces").update({ settings: { ...settings, pending_plan_reminders: reminders } }).eq("id", w2.id);
     sent++;
   }
@@ -73625,6 +73625,65 @@ init_rbac();
 init_notify();
 init_mail();
 init_email_template();
+
+// src/lib/ics.ts
+function esc2(v2) {
+  return String(v2 ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+function stamp(iso) {
+  const d2 = new Date(iso);
+  if (!Number.isFinite(d2.getTime())) throw new Error(`ics: unusable date ${iso}`);
+  return d2.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+function fold(line) {
+  if (line.length <= 73) return line;
+  const parts = [];
+  let rest = line;
+  parts.push(rest.slice(0, 73));
+  rest = rest.slice(73);
+  while (rest.length > 72) {
+    parts.push(" " + rest.slice(0, 72));
+    rest = rest.slice(72);
+  }
+  if (rest.length) parts.push(" " + rest);
+  return parts.join("\r\n");
+}
+function buildIcs(ev) {
+  const method = ev.method ?? "REQUEST";
+  const now = stamp((/* @__PURE__ */ new Date()).toISOString());
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Mondaily//Calendar//EN",
+    "CALSCALE:GREGORIAN",
+    `METHOD:${method}`,
+    "BEGIN:VEVENT",
+    `UID:${esc2(ev.uid)}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${stamp(ev.startAt)}`,
+    `DTEND:${stamp(ev.endAt)}`,
+    `SEQUENCE:${Number.isFinite(ev.sequence) ? ev.sequence : 0}`,
+    `SUMMARY:${esc2(ev.title)}`,
+    // CANCEL must say so in the event itself, not only in METHOD — some clients read only this.
+    `STATUS:${method === "CANCEL" ? "CANCELLED" : "CONFIRMED"}`,
+    `ORGANIZER;CN=${esc2(ev.organizer.name || ev.organizer.email)}:mailto:${ev.organizer.email}`
+  ];
+  if (ev.description) lines.push(`DESCRIPTION:${esc2(ev.description)}`);
+  if (ev.location) lines.push(`LOCATION:${esc2(ev.location)}`);
+  if (ev.url) lines.push(`URL:${esc2(ev.url)}`);
+  for (const a2 of ev.attendees ?? []) {
+    lines.push(
+      `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${esc2(a2.name || a2.email)}:mailto:${a2.email}`
+    );
+  }
+  lines.push("END:VEVENT", "END:VCALENDAR");
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+function icsUid(eventId, domain) {
+  return `${eventId}@${(domain || "mondaily.com").replace(/^.*@/, "")}`;
+}
+
+// src/routes/calendar.ts
 init_ai_gateway();
 init_dates();
 
@@ -73773,7 +73832,7 @@ function shape(id, d2, dir, createdAt) {
     created_at: createdAt
   };
 }
-async function inviteGuests(d2, organiserName, verb) {
+async function inviteGuests(d2, organiserName, verb, opts) {
   const guests = d2.guest_emails ?? [];
   if (!guests.length) return;
   const when = new Date(d2.start_at).toLocaleString("en-GB", {
@@ -73794,12 +73853,34 @@ async function inviteGuests(d2, organiserName, verb) {
     ...d2.call_url && !cancelled ? { action: { label: "Join the call", url: d2.call_url } } : {},
     footnote: cancelled ? void 0 : "You do not need a Mondaily account to join."
   });
+  let ics;
+  try {
+    const organiserEmail = opts?.organiserEmail;
+    if (opts?.eventId && organiserEmail) {
+      ics = buildIcs({
+        uid: icsUid(opts.eventId, organiserEmail),
+        title: d2.title,
+        description: d2.description || void 0,
+        location: d2.call_url || d2.location || void 0,
+        startAt: d2.start_at,
+        endAt: d2.end_at,
+        organizer: { name: organiserName, email: organiserEmail },
+        attendees: guests.map((email) => ({ email })),
+        sequence: opts.sequence ?? 0,
+        method: cancelled ? "CANCEL" : "REQUEST",
+        url: d2.call_url || void 0
+      });
+    }
+  } catch (e2) {
+    console.error(`[calendar] could not build the calendar invite: ${e2 instanceof Error ? e2.message : String(e2)}`);
+  }
   await Promise.all(guests.map(async (to) => {
     try {
       await sendTransactionalEmail({
         to: [{ email: to }],
         subject: cancelled ? `Cancelled: ${d2.title}` : `Invitation: ${d2.title}`,
-        body: html
+        body: html,
+        ...ics ? { ics } : {}
       });
     } catch (e2) {
       console.error(`[calendar] guest invite failed for ${to}: ${e2 instanceof Error ? e2.message : String(e2)}`);
@@ -73919,7 +74000,12 @@ router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
   }
   await notifyAttendees(ws, node.id, data, me2, "created");
   const dir = await members2(ws);
-  void inviteGuests(data, dir.get(me2)?.name || dir.get(me2)?.email || "Your host", "created");
+  void inviteGuests(
+    data,
+    dir.get(me2)?.name || dir.get(me2)?.email || "Your host",
+    "created",
+    { eventId: node.id, organiserEmail: dir.get(me2)?.email, sequence: 0 }
+  );
   return c2.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled2() }, 201);
 });
 router14.patch("/events/:id", zValidator2("json", EventInput.partial().extend({ status: external_exports.enum(EVENT_STATUSES).optional() })), async (c2) => {
@@ -81181,13 +81267,13 @@ router33.get("/export/:objectType", async (c2) => {
   const cols = [...new Set(rows2.flatMap((r2) => Object.keys(r2.data)))].filter((k2) => {
     return !rows2.some((r2) => r2.data[k2] && typeof r2.data[k2] === "object");
   }).slice(0, 60);
-  const esc2 = (v2) => {
+  const esc3 = (v2) => {
     const s2 = String(v2 ?? "");
     return /[",\n]/.test(s2) ? `"${s2.replace(/"/g, '""')}"` : s2;
   };
   const lines = [
-    [...cols, "updated_at"].map(esc2).join(","),
-    ...rows2.map((r2) => [...cols.map((k2) => esc2(r2.data[k2])), esc2(r2.updated_at ?? "")].join(",")),
+    [...cols, "updated_at"].map(esc3).join(","),
+    ...rows2.map((r2) => [...cols.map((k2) => esc3(r2.data[k2])), esc3(r2.updated_at ?? "")].join(",")),
     ...truncated ? [`# TRUNCATED: first ${EXPORT_CAP} rows only`] : []
   ];
   c2.header("Content-Type", "text/csv; charset=utf-8");

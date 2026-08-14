@@ -109,6 +109,26 @@ async def send(request: Request, x_mondaily_mail_signature: str = Header(default
     if html:
         msg.add_alternative(html, subtype="html")
 
+    # A CALENDAR INVITATION, when the caller supplies one.
+    #
+    # `text/calendar; method=REQUEST` as an ALTERNATIVE is what makes Gmail and Outlook render
+    # Accept / Decline inside the message — that is how a guest with no Mondaily account answers an
+    # invitation, using the client they already have. Sent as an alternative rather than only an
+    # attachment because most clients ignore a bare .ics attachment for RSVP purposes.
+    #
+    # The same bytes are ALSO attached as invite.ics, for the clients (and humans) that want a file.
+    ics = p.get("ics")
+    if ics:
+        msg.add_alternative(ics, subtype="calendar")
+        part = msg.get_payload()[-1]
+        part.set_param("method", "REQUEST")
+        part.set_param("charset", "UTF-8")
+        part.set_param("name", "invite.ics")
+        msg.add_attachment(
+            ics.encode("utf-8"),
+            maintype="text", subtype="calendar", filename="invite.ics",
+        )
+
     try:
         with smtplib.SMTP(RELAY_HOST, RELAY_PORT, timeout=30) as s:
             if STARTTLS:
