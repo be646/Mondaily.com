@@ -291,12 +291,26 @@ async function inviteGuests(
 
   await Promise.all(guests.map(async (to) => {
     try {
+      /**
+       * SENT AS THE HOST, AND REPLYABLE.
+       *
+       * A bare `no-reply@` From with no Reply-To is one of the strongest bulk-mail signals there
+       * is, and for an INVITATION it is also simply wrong: the first thing a guest wants to do is
+       * answer the person who invited them. The first live send landed in spam with authentication
+       * fully correct (SPF, DKIM, DMARC, rDNS all verified) — so what remains is reputation and
+       * content, and this is the content half.
+       *
+       * The From stays on our authenticated domain — sending AS the organiser's own address would
+       * fail their domain's SPF and make things worse — but it carries their NAME, and replies go
+       * to them.
+       */
       await sendTransactionalEmail({
         to: [{ email: to }],
         subject: cancelled ? `Cancelled: ${d.title}` : `Invitation: ${d.title}`,
         body: html,
         ...(ics ? { ics } : {}),
-      });
+        ...(opts?.organiserEmail ? { reply_to: opts.organiserEmail } : {}),
+      }, { displayName: `${organiserName} via Mondaily` });
     } catch (e) {
       console.error(`[calendar] guest invite failed for ${to}: ${e instanceof Error ? e.message : String(e)}`);
     }

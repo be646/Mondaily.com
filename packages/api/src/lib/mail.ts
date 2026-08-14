@@ -106,8 +106,16 @@ async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
  * the most important mail in the product, while our own server sat idle, was backwards twice over —
  * for deliverability and for sovereignty.
  */
-export async function sendTransactionalEmail(msg: OutboundMessage): Promise<boolean> {
-  return sendPlatformEmail(msg, { localPart: "no-reply", displayName: "Mondaily" });
+export async function sendTransactionalEmail(
+  msg: OutboundMessage,
+  /**
+   * Override the From display name — used by meeting invitations, which are sent on a person's
+   * behalf. "Bassem via Mondaily" is both truer and a far weaker bulk-mail signal than a bare
+   * "Mondaily" no-reply. The ADDRESS never changes: it stays on the domain we can authenticate.
+   */
+  opts?: { displayName?: string },
+): Promise<boolean> {
+  return sendPlatformEmail(msg, { localPart: "no-reply", displayName: opts?.displayName || "Mondaily" });
 }
 
 /**

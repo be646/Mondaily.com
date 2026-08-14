@@ -239,3 +239,28 @@ describe("guests receive a real calendar invite", () => {
     expect(sender).toMatch(/filename="invite\.ics"/);
   });
 });
+
+/**
+ * DELIVERABILITY. The first live invite landed in spam with authentication fully correct — SPF
+ * (ip4 -all), DKIM signed by an active opendkim milter, DMARC published, rDNS matching. So what is
+ * left is reputation and content, and these are the content half.
+ */
+describe("a guest invitation does not look like bulk mail", () => {
+  it("replies reach the HOST, not a void", () => {
+    // A no-reply From with no Reply-To is a strong bulk signal — and for an invitation it is simply
+    // wrong: the first thing a guest wants to do is answer the person who invited them.
+    expect(CAL_API).toMatch(/reply_to: opts\.organiserEmail/);
+  });
+
+  it("is sent under the host's name", () => {
+    expect(CAL_API).toMatch(/displayName: `\$\{organiserName\} via Mondaily`/);
+  });
+
+  it("but keeps the FROM on the domain we can authenticate", () => {
+    // Sending as the organiser's own address would fail THEIR domain's SPF and make placement worse.
+    const mail = readFileSync(join(__dirname, "../lib/mail.ts"), "utf8");
+    expect(mail).toMatch(/localPart: "no-reply"/);
+    expect(mail, "only the display name is overridable, never the address")
+      .toMatch(/displayName: opts\?\.displayName \|\| "Mondaily"/);
+  });
+});

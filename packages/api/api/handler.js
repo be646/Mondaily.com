@@ -41345,8 +41345,8 @@ async function sendViaTransactional(msg) {
     return false;
   }
 }
-async function sendTransactionalEmail(msg) {
-  return sendPlatformEmail(msg, { localPart: "no-reply", displayName: "Mondaily" });
+async function sendTransactionalEmail(msg, opts) {
+  return sendPlatformEmail(msg, { localPart: "no-reply", displayName: opts?.displayName || "Mondaily" });
 }
 function quotedDisplayName(name) {
   return `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -72831,8 +72831,9 @@ async function inviteGuests(d2, organiserName, verb, opts) {
         to: [{ email: to }],
         subject: cancelled ? `Cancelled: ${d2.title}` : `Invitation: ${d2.title}`,
         body: html,
-        ...ics ? { ics } : {}
-      });
+        ...ics ? { ics } : {},
+        ...opts?.organiserEmail ? { reply_to: opts.organiserEmail } : {}
+      }, { displayName: `${organiserName} via Mondaily` });
     } catch (e2) {
       console.error(`[calendar] guest invite failed for ${to}: ${e2 instanceof Error ? e2.message : String(e2)}`);
     }
