@@ -185,6 +185,24 @@ html[data-theme="daylight"], [data-theme="light"] {
 }
 
 /* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
+
+/*
+ * NATIVE CONTROLS MUST FOLLOW THE THEME.
+ *
+ * `color-scheme` is the only thing that tells a browser how to paint the UI it owns — the
+ * <input type="time"> dropdown, date pickers, scrollbars, select popups. Without it Chrome paints
+ * them LIGHT regardless of the page, so opening the time picker on the console theme dropped a
+ * white panel over a dark dialog. Reported with a screenshot; nothing in our CSS could have styled
+ * it, because that panel is not ours to style.
+ *
+ * Declared per theme rather than globally: paper and daylight are light, console and rose are dark,
+ * and a blanket value would break the two it does not match.
+ */
+html[data-theme="console"], html[data-theme="dark"], html[data-theme="rose"] { color-scheme: dark; }
+/* No data-theme="light" here: that id never exists — a whole !important block was once
+   scoped to it and silently never ran. The light themes are paper and daylight. */
+html[data-theme="paper"], html[data-theme="daylight"] { color-scheme: light; }
+
 html[data-theme="rose"] {
   --surface-page:     #fbf0f1;
   --surface-sidebar:  #f8eaec;

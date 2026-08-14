@@ -4,7 +4,16 @@ import { join } from "node:path";
 
 const root = join(__dirname, "../../../..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
-const css = () => read("apps/app/src/styles.css");
+/**
+ * Comments STRIPPED before matching.
+ *
+ * These rules are about the CSS the browser applies, and a comment explaining why an override was
+ * removed necessarily contains the word it forbids. That is not a hypothetical: a comment reading
+ * "a whole !important block was once scoped to it" pushed this file over its own ceiling. Fifth
+ * time this pattern has bitten in this codebase — when the rule is about rendered output, read the
+ * rendered output.
+ */
+const css = () => read("apps/app/src/styles.css").replace(/\/\*[\s\S]*?\*\//g, "");
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(join(root, dir))) {

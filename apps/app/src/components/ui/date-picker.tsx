@@ -195,9 +195,21 @@ export function DateField({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
   const { date } = parseValue(value);
+  /**
+   * A DATETIME reads as "15 Aug 16:30", not "2026-08-15 16:30".
+   *
+   * The ISO form is 16 characters and does not fit two fields side by side in a dialog column — it
+   * was ellipsised to "2026-08-15 16:…", hiding the very thing the user came to set. The year is
+   * the least useful part of a time you are choosing right now, and the short month is unambiguous
+   * in every locale we ship.
+   *
+   * DATE-ONLY fields keep the ISO form: they are used for due dates and ranges where the exact
+   * stored value is what people want to see, and they are never doubled up in a narrow row.
+   */
+  const hhmm = date ? `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}` : "";
   const label = date
     ? (withTime
-        ? `${ymd(date)} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+        ? `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${hhmm}`
         : ymd(date))
     : "";
 
