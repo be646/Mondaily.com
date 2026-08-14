@@ -57084,8 +57084,9 @@ var init_validate = __esm({
     "use strict";
     init_dist6();
     zValidator2 = ((target, schema) => zValidator(target, schema, (result, c2) => {
-      if (!result.success) {
-        return c2.json({ error: describeZodError(result.error) }, 400);
+      const r2 = result;
+      if (!r2.success) {
+        return c2.json({ error: r2.error ? describeZodError(r2.error) : "Invalid request body." }, 400);
       }
       return void 0;
     }));

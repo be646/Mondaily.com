@@ -41,8 +41,21 @@ export function describeZodError(error: ZodError): string {
 // would collapse that inference and break all 171 call sites.
 export const zValidator = ((target: Parameters<typeof baseValidator>[0], schema: Parameters<typeof baseValidator>[1]) =>
   baseValidator(target, schema, (result, c) => {
-    if (!result.success) {
-      return c.json({ error: describeZodError(result.error as ZodError) }, 400);
+    /**
+     * Read the result through ONE narrow shape instead of the library's union.
+     *
+     * `result` is typed as a discriminated union intersected with `{ target }`, and whether
+     * `result.error` narrows out of that depends on the exact @hono/zod-validator types resolved at
+     * build time. It compiled locally and FAILED THE PRODUCTION BUILD on the same TypeScript
+     * version (5.9.3) — TS2339, property 'error' does not exist — which stalled every deploy of
+     * both projects until it was found in the build log.
+     *
+     * The hook only needs two things: did it fail, and what was the ZodError. Reading exactly those
+     * two fields cannot drift when the library's type shape does.
+     */
+    const r = result as unknown as { success: boolean; error?: ZodError };
+    if (!r.success) {
+      return c.json({ error: r.error ? describeZodError(r.error) : "Invalid request body." }, 400);
     }
     return undefined;
   })) as typeof baseValidator;
