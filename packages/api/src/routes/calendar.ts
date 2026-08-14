@@ -1006,16 +1006,47 @@ router.post("/events/:id/summarize-transcript", async (c) => {
 // overdue / due-today / related (title-keyword match) + a clearly-marked SUGGESTED draft (never created
 // here). Read-only, workspace-scoped, access = organizer/attendee/admin. No fabricated tasks.
 export interface FollowTask { id: string; title: string; due_date: string | null; priority?: string | null }
-export function groupFollowUps(tasks: FollowTask[], meetingTitle: string, now: Date): { overdue: FollowTask[]; due_today: FollowTask[]; related: FollowTask[] } {
+/**
+ * RELEVANCE FIRST, THEN URGENCY.
+ *
+ * This used to put EVERY overdue task and EVERY task due today into a meeting's panel, and only the
+ * third group was matched to the meeting at all. On a workspace with real work in it that means a
+ * sales call shows you an unrelated invoice chase and a bug fix — reported as "it shows random
+ * tasks which we have", and it was right: two of the three groups had nothing to do with the
+ * meeting.
+ *
+ * A task now has to EARN its place by relating to this meeting — its title, its agenda, or the
+ * people in it — and only then is it grouped by urgency. Nothing is fabricated and nothing is
+ * ranked by a model: relevance here is explainable, instant, and free, and the panel says WHY each
+ * task is present. An unrelated overdue task is not hidden from the user; it lives on /tasks, which
+ * the panel links to and whose real total is reported.
+ */
+export function groupFollowUps(
+  tasks: FollowTask[],
+  meetingTitle: string,
+  now: Date,
+  context?: { agenda?: string; people?: string[] },
+): { overdue: FollowTask[]; due_today: FollowTask[]; related: FollowTask[]; considered: number } {
   const todayStr = now.toDateString();
   const isToday = (d?: string | null) => !!d && new Date(d).toDateString() === todayStr;
-  const toks = new Set(tokenize(meetingTitle));
-  const relatedIds = new Set(tasks.filter((t) => tokenize(t.title || "").some((w) => toks.has(w))).map((t) => t.id));
-  const overdue = tasks.filter((t) => isOverdue(t.due_date, now));
-  const due_today = tasks.filter((t) => isToday(t.due_date));
+
+  // The meeting's own vocabulary: its title, its agenda, and the names/emails of the people in it.
+  const toks = new Set([
+    ...tokenize(meetingTitle),
+    ...tokenize(context?.agenda ?? ""),
+  ]);
+  const people = (context?.people ?? [])
+    .flatMap((p) => tokenize(p))
+    .filter(Boolean);
+  for (const p of people) toks.add(p);
+
+  const relevant = tasks.filter((t) => tokenize(t.title || "").some((w) => toks.has(w)));
+
+  const overdue = relevant.filter((t) => isOverdue(t.due_date, now));
+  const due_today = relevant.filter((t) => isToday(t.due_date));
   const seen = new Set([...overdue, ...due_today].map((t) => t.id));   // a task shows in ONE group only
-  const related = tasks.filter((t) => relatedIds.has(t.id) && !seen.has(t.id));
-  return { overdue, due_today, related };
+  const related = relevant.filter((t) => !seen.has(t.id));
+  return { overdue, due_today, related, considered: tasks.length };
 }
 
 router.get("/events/:id/followups", async (c) => {
@@ -1025,7 +1056,11 @@ router.get("/events/:id/followups", async (c) => {
   if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
   const { data: taskRows } = await supabase.from("tasks").select("id, title, due_date, priority").eq("workspace_id", ws).eq("completed", false).limit(500);
   const tasks: FollowTask[] = (taskRows ?? []).map((t) => ({ id: String(t.id), title: String(t.title ?? ""), due_date: (t.due_date as string | null) ?? null, priority: (t.priority as string | null) ?? null }));
-  const g = groupFollowUps(tasks, ev.data.title, new Date());
+  const dir = await members(ws);
+  const people = [ev.data.organizer_id, ...(ev.data.attendee_ids ?? [])]
+    .map((uid) => { const m = dir.get(uid); return `${m?.name ?? ""} ${m?.email ?? ""}`; })
+    .concat(ev.data.guest_emails ?? []);
+  const g = groupFollowUps(tasks, ev.data.title, new Date(), { agenda: ev.data.description, people });
   return c.json({
     ...g,
     suggested: { title: `Follow up on ${ev.data.title}`, draft: true },   // a template the user may create — NOT inserted

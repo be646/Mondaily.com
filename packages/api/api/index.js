@@ -74423,16 +74423,21 @@ ${transcript}`,
     // real attendee emails only (may be empty)
   });
 });
-function groupFollowUps(tasks2, meetingTitle, now) {
+function groupFollowUps(tasks2, meetingTitle, now, context2) {
   const todayStr = now.toDateString();
   const isToday = (d2) => !!d2 && new Date(d2).toDateString() === todayStr;
-  const toks = new Set(tokenize(meetingTitle));
-  const relatedIds = new Set(tasks2.filter((t3) => tokenize(t3.title || "").some((w2) => toks.has(w2))).map((t3) => t3.id));
-  const overdue = tasks2.filter((t3) => isOverdue(t3.due_date, now));
-  const due_today = tasks2.filter((t3) => isToday(t3.due_date));
+  const toks = /* @__PURE__ */ new Set([
+    ...tokenize(meetingTitle),
+    ...tokenize(context2?.agenda ?? "")
+  ]);
+  const people = (context2?.people ?? []).flatMap((p2) => tokenize(p2)).filter(Boolean);
+  for (const p2 of people) toks.add(p2);
+  const relevant = tasks2.filter((t3) => tokenize(t3.title || "").some((w2) => toks.has(w2)));
+  const overdue = relevant.filter((t3) => isOverdue(t3.due_date, now));
+  const due_today = relevant.filter((t3) => isToday(t3.due_date));
   const seen = new Set([...overdue, ...due_today].map((t3) => t3.id));
-  const related = tasks2.filter((t3) => relatedIds.has(t3.id) && !seen.has(t3.id));
-  return { overdue, due_today, related };
+  const related = relevant.filter((t3) => !seen.has(t3.id));
+  return { overdue, due_today, related, considered: tasks2.length };
 }
 router14.get("/events/:id/followups", async (c2) => {
   const ws = c2.get("workspaceId");
@@ -74443,7 +74448,12 @@ router14.get("/events/:id/followups", async (c2) => {
   if (!canView(ev.data, me2) && !isWorkspaceAdmin(role)) return c2.json({ error: "Not allowed." }, 403);
   const { data: taskRows } = await supabase.from("tasks").select("id, title, due_date, priority").eq("workspace_id", ws).eq("completed", false).limit(500);
   const tasks2 = (taskRows ?? []).map((t3) => ({ id: String(t3.id), title: String(t3.title ?? ""), due_date: t3.due_date ?? null, priority: t3.priority ?? null }));
-  const g2 = groupFollowUps(tasks2, ev.data.title, /* @__PURE__ */ new Date());
+  const dir = await members2(ws);
+  const people = [ev.data.organizer_id, ...ev.data.attendee_ids ?? []].map((uid) => {
+    const m2 = dir.get(uid);
+    return `${m2?.name ?? ""} ${m2?.email ?? ""}`;
+  }).concat(ev.data.guest_emails ?? []);
+  const g2 = groupFollowUps(tasks2, ev.data.title, /* @__PURE__ */ new Date(), { agenda: ev.data.description, people });
   return c2.json({
     ...g2,
     suggested: { title: `Follow up on ${ev.data.title}`, draft: true },

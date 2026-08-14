@@ -569,25 +569,72 @@ describe("Calendar UX — click-to-create + review panel + semantic colours", ()
   });
 });
 
-describe("Calendar — grouped follow-ups (real tasks, deterministic)", () => {
+describe("Calendar — meeting follow-ups are RELEVANT first, then urgent", () => {
+  /**
+   * SUPERSEDES the original grouping (2026-08-14).
+   *
+   * It put EVERY overdue task and EVERY task due today into a meeting's panel, and only the third
+   * group was matched to the meeting at all. So a sales call showed you an unrelated invoice chase.
+   * Reported as "it shows random tasks which we have" — and two of the three groups genuinely had
+   * nothing to do with the meeting.
+   *
+   * A task now has to EARN its place by relating to the meeting — title, agenda, or the people in
+   * it — and only then is grouped by urgency.
+   */
   const now = new Date("2026-07-06T12:00:00Z");
   const iso = (s: string) => new Date(s).toISOString();
   const tasks: FollowTask[] = [
-    { id: "o", title: "Old thing", due_date: iso("2026-07-01T09:00:00Z") },      // overdue
-    { id: "d", title: "Due thing", due_date: iso("2026-07-06T15:00:00Z") },      // due today
-    { id: "r", title: "Acme renewal follow-up", due_date: null },                 // related to "Acme onboarding"
-    { id: "n", title: "Buy milk", due_date: null },                               // unrelated, no date
+    { id: "o",  title: "Old thing", due_date: iso("2026-07-01T09:00:00Z") },            // overdue, UNRELATED
+    { id: "d",  title: "Due thing", due_date: iso("2026-07-06T15:00:00Z") },            // due today, UNRELATED
+    { id: "ao", title: "Acme contract", due_date: iso("2026-07-01T09:00:00Z") },        // overdue AND related
+    { id: "ad", title: "Acme deck", due_date: iso("2026-07-06T15:00:00Z") },            // due today AND related
+    { id: "r",  title: "Acme renewal follow-up", due_date: null },                       // related, no date
+    { id: "n",  title: "Buy milk", due_date: null },                                     // unrelated, no date
   ];
-  it("splits tasks into overdue / due-today / related without duplication", () => {
+
+  it("EXCLUDES overdue and due-today tasks that have nothing to do with the meeting", () => {
     const g = groupFollowUps(tasks, "Acme onboarding", now);
-    expect(g.overdue.map(t => t.id)).toEqual(["o"]);
-    expect(g.due_today.map(t => t.id)).toEqual(["d"]);
-    expect(g.related.map(t => t.id)).toEqual(["r"]);   // "n" unrelated; dated ones not double-counted
+    expect(g.overdue.map(t => t.id), "an unrelated overdue task is not this meeting's business").toEqual(["ao"]);
+    expect(g.due_today.map(t => t.id)).toEqual(["ad"]);
+    expect(g.related.map(t => t.id)).toEqual(["r"]);
+    expect([...g.overdue, ...g.due_today, ...g.related].map(t => t.id)).not.toContain("o");
+    expect([...g.overdue, ...g.due_today, ...g.related].map(t => t.id)).not.toContain("n");
   });
-  it("an overdue task that also matches keywords stays in overdue only (single group)", () => {
+
+  it("reports how many open tasks were considered, so nothing is hidden silently", () => {
+    // The unrelated ones are not lost — they live on /tasks, and the panel says how many exist.
+    const g = groupFollowUps(tasks, "Acme onboarding", now);
+    expect(g.considered).toBe(tasks.length);
+  });
+
+  it("a task shows in ONE group only", () => {
     const g = groupFollowUps([{ id: "x", title: "Acme overdue", due_date: iso("2026-07-01T09:00:00Z") }], "Acme onboarding", now);
     expect(g.overdue.map(t => t.id)).toEqual(["x"]);
     expect(g.related).toEqual([]);
+  });
+
+  it("counts the AGENDA as part of the meeting's vocabulary", () => {
+    // A meeting called "Weekly sync" says nothing; its agenda usually does.
+    const g = groupFollowUps(
+      [{ id: "p", title: "Pricing page copy", due_date: null }],
+      "Weekly sync", now, { agenda: "Review the pricing page before launch" },
+    );
+    expect(g.related.map(t => t.id)).toEqual(["p"]);
+  });
+
+  it("counts THE PEOPLE in the meeting", () => {
+    // A task naming an attendee is about them, whatever the meeting is called.
+    const g = groupFollowUps(
+      [{ id: "m", title: "Send Mina the onboarding pack", due_date: null }],
+      "Catch-up", now, { people: ["Mina Ibrahim <mina@example.com>"] },
+    );
+    expect(g.related.map(t => t.id)).toEqual(["m"]);
+  });
+
+  it("returns nothing rather than padding the panel when nothing relates", () => {
+    const g = groupFollowUps(tasks, "Completely different topic", now);
+    expect([...g.overdue, ...g.due_today, ...g.related]).toEqual([]);
+    expect(g.considered).toBe(tasks.length);
   });
 });
 
