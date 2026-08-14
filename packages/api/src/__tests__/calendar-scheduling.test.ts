@@ -155,8 +155,11 @@ describe("a live call is actually recorded as having happened", () => {
  */
 describe("the New meeting window is grouped, not stacked", () => {
   it("asks its questions in named sections separated by a hairline", () => {
-    const sections = (CAL_UI.match(/border-t px-5 py-3\.5/g) ?? []).length;
-    expect(sections, "when / where / agenda / who / options").toBeGreaterThanOrEqual(4);
+    // Count the section HEADINGS, not a layout class: the two-column pass changed how sections are
+    // bordered, and a test pinned to one class string would break on every layout change while
+    // saying nothing about whether the questions are still grouped.
+    const headings = (CAL_UI.match(/text-caption font-medium" style=\{\{ color: "var\(--text-muted\)" \}\}>/g) ?? []).length;
+    expect(headings, "when / where / agenda / who / guests / meeting type").toBeGreaterThanOrEqual(5);
     for (const key of ["cal.when", "cal.where", "cal.agenda", "cal.attendees"]) {
       expect(CAL_UI, `${key} should head a section`).toContain(`t("${key}")`);
     }

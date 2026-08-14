@@ -1242,15 +1242,21 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
 
   return (
-      <Modal title={t("cal.new_meeting")} width="sm" onClose={onClose}>
+      <Modal title={t("cal.new_meeting")} width="lg" onClose={onClose}>
         {/*
-          * Grouped, not stacked. This was eight unrelated controls in one column at four different
-          * type sizes, so "when" sat between "where" and "who" with nothing to say they were
-          * different questions. Sections are separated by a hairline — the same language as the
-          * meeting tickets — and every label now uses the type scale.
+          * ONE VIEW, TWO COLUMNS — no scrolling to schedule a meeting.
+          *
+          * This was a single narrow column of eight controls at four type sizes, tall enough that
+          * the attendee list and the Create button were never on screen together: you filled in a
+          * time, scrolled past things you rarely change, and lost sight of what you had chosen.
+          *
+          * Now the subject leads full-width, then the two halves of a meeting sit side by side —
+          * WHEN/WHERE/AGENDA (what it is) on the left, WHO/OPTIONS (who sees it) on the right.
+          * Sections are separated by hairlines, the same language as the meeting tickets, and every
+          * label is on the type scale. On a narrow screen the columns stack, so nothing is lost.
           */}
-        <div className="max-h-[70vh] overflow-y-auto">
-          {/* The title is the one thing you always type, so it leads and carries no box. */}
+        <div className="max-h-[76vh] overflow-y-auto">
+          {/* The subject leads and carries no box — it is the meeting, not a field. */}
           <div className="px-5 pt-4 pb-3">
             <input autoFocus
               className="w-full bg-transparent text-[15px] font-medium outline-none placeholder:font-normal"
@@ -1258,115 +1264,120 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
               placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           </div>
 
-          <div className="space-y-3 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="flex items-center justify-between">
-              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.when")}</span>
-              {durationLabel && <span className="text-caption tabular-nums" style={{ color: "var(--text-faint)" }}>{durationLabel}</span>}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" />
-              <DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" />
-            </div>
-            {timeError && <p className="text-caption" style={{ color: "var(--status-danger)" }}>{timeError}</p>}
-          </div>
-
-          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-            <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.where")}</span>
-            <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
-            {/* A Mondaily call IS a location — the same question, so it belongs in the same group. */}
-            <label className="flex items-center gap-2 text-body" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
-              <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
-              <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-caption">— {t("cal.calls_off")}</span>}
-            </label>
-          </div>
-
-          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="flex items-center justify-between">
-              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
-              <button onClick={draftAgenda} disabled={aiBusy} className="flex items-center gap-1 text-caption font-medium" style={{ color: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.draft_agenda")}</button>
-            </div>
-            <textarea className={`${field} min-h-[64px] resize-none`} style={style} placeholder={t("cal.agenda")} value={desc} onChange={e => setDesc(e.target.value)} />
-          </div>
-
-          <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-            <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</span>
-            <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
-              {others.map(m => {
-                const on = attendees.includes(m.id);
-                return (
-                  <button key={m.id} onClick={() => setAttendees(a => on ? a.filter(x => x !== m.id) : [...a, m.id])}
-                    className="flex items-center justify-between rounded-sm px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-primary)" }}>
-                    <span className="truncate">{m.name || m.email}</span>
-                    {on && <Check size={13} style={{ color: "var(--section-accent)" }} />}
-                  </button>
-                );
-              })}
-              {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
-            </div>
-            <div className="pt-1">
-              <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.guests")}</span>
-            </div>
-            <div className="flex gap-1.5">
-              <input
-                className={field} style={style} type="email" placeholder={t("cal.guest_placeholder")}
-                value={guestDraft}
-                onChange={e => setGuestDraft(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addGuest(); } }}
-                onBlur={addGuest}
-              />
-              <button onClick={addGuest} disabled={!guestDraftValid}
-                className="shrink-0 rounded-sm border px-3 text-caption font-medium disabled:opacity-40"
-                style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{t("common.add")}</button>
-            </div>
-            {guests.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {guests.map(g => (
-                  <span key={g} className="flex items-center gap-1 rounded-sm border px-2 py-0.5 text-caption"
-                    style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                    {g}
-                    <button onClick={() => setGuests(list => list.filter(x => x !== g))}
-                      aria-label={`Remove ${g}`} style={{ color: "var(--text-faint)" }}>×</button>
-                  </span>
-                ))}
+          <div className="grid gap-x-5 border-t md:grid-cols-2" style={{ borderColor: "var(--border-soft)" }}>
+            {/* ── left: what the meeting IS ─────────────────────────────────────────────────── */}
+            <div className="md:border-r" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="space-y-2.5 px-5 py-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.when")}</span>
+                  {durationLabel && <span className="text-caption tabular-nums" style={{ color: "var(--text-faint)" }}>{durationLabel}</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" />
+                  <DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" />
+                </div>
+                {timeError && <p className="text-caption" style={{ color: "var(--status-danger)" }}>{timeError}</p>}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <span className="flex items-center gap-1.5 text-caption" style={{ color: "var(--text-muted)" }}><Repeat size={12} /> {t("cal.repeat")}</span>
+                  <FieldSelect
+                    value={repeat}
+                    onChange={v => setRepeat(v as typeof repeat)}
+                    ariaLabel={t("cal.repeat")}
+                    options={[
+                      { value: "none", label: t("cal.repeat_none") },
+                      { value: "daily", label: t("cal.repeat_daily") },
+                      { value: "weekly", label: t("cal.repeat_weekly") },
+                      { value: "monthly", label: t("cal.repeat_monthly") },
+                    ]}
+                  />
+                  {repeat !== "none" && (
+                    <label className="flex items-center gap-1.5 text-caption" style={{ color: "var(--text-muted)" }}>
+                      {t("cal.repeat_until")}
+                      <DateField value={repeatUntil} onChange={setRepeatUntil} ariaLabel="Repeat until" placeholder="No end" className="!h-7 !text-[12px]"/>
+                    </label>
+                  )}
+                </div>
               </div>
-            )}
-            <p className="mt-1 text-caption" style={{ color: "var(--text-faint)" }}>{t("cal.guest_hint")}</p>
-          </div>
 
-          {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
-          <div className="space-y-2.5 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-body" style={{ color: "var(--text-secondary)" }}>Meeting type</span>
-            <FieldSelect
-              value={meetingType}
-              onChange={v => setMeetingType(v as MeetingType)}
-              ariaLabel="Meeting type"
-              options={MEETING_TYPES.map(id => ({ value: id, label: MEETING_TYPE_META[id].label }))}
-            />
-            <span className="w-full text-caption" style={{ color: "var(--text-faint)" }}>{MEETING_TYPE_META[meetingType].description}</span>
-          </div>
+              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.where")}</span>
+                <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
+                {/* A Mondaily call IS a location — the same question, so it belongs in the same group. */}
+                <label className="flex items-center gap-2 text-body" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
+                  <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
+                  <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-caption">— {t("cal.calls_off")}</span>}
+                </label>
+              </div>
 
-          {/* Recurrence — optional. Repeats from the start time; an end date is optional (open-ended otherwise). */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-body" style={{ color: "var(--text-secondary)" }}><Repeat size={13} /> {t("cal.repeat")}</span>
-            <FieldSelect
-              value={repeat}
-              onChange={v => setRepeat(v as typeof repeat)}
-              ariaLabel={t("cal.repeat")}
-              options={[
-                { value: "none", label: t("cal.repeat_none") },
-                { value: "daily", label: t("cal.repeat_daily") },
-                { value: "weekly", label: t("cal.repeat_weekly") },
-                { value: "monthly", label: t("cal.repeat_monthly") },
-              ]}
-            />
-            {repeat !== "none" && (
-              <label className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                {t("cal.repeat_until")}
-                <DateField value={repeatUntil} onChange={setRepeatUntil} ariaLabel="Repeat until" placeholder="No end" className="!h-7 !text-[12px]"/>
-              </label>
-            )}
-          </div>
+              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
+                  <button onClick={draftAgenda} disabled={aiBusy} className="flex items-center gap-1 text-caption font-medium" style={{ color: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.draft_agenda")}</button>
+                </div>
+                <textarea className={`${field} min-h-[64px] resize-none`} style={style} placeholder={t("cal.agenda")} value={desc} onChange={e => setDesc(e.target.value)} />
+              </div>
+            </div>
+
+            {/* ── right: who is in it ───────────────────────────────────────────────────────── */}
+            <div className="border-t md:border-t-0" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="space-y-2 px-5 py-3.5">
+                <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</span>
+                <div className="flex max-h-[104px] flex-col gap-0.5 overflow-y-auto rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
+                  {others.map(m => {
+                    const on = attendees.includes(m.id);
+                    return (
+                      <button key={m.id} onClick={() => setAttendees(a => on ? a.filter(x => x !== m.id) : [...a, m.id])}
+                        className="flex items-center justify-between rounded-sm px-2 py-1 text-left text-body transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-primary)" }}>
+                        <span className="truncate">{m.name || m.email}</span>
+                        {on && <Check size={13} style={{ color: "var(--section-accent)" }} />}
+                      </button>
+                    );
+                  })}
+                  {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
+                </div>
+
+                <div className="pt-1.5">
+                  <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.guests")}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  <input
+                    className={field} style={style} type="email" placeholder={t("cal.guest_placeholder")}
+                    value={guestDraft}
+                    onChange={e => setGuestDraft(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addGuest(); } }}
+                    onBlur={addGuest}
+                  />
+                  <button onClick={addGuest} disabled={!guestDraftValid}
+                    className="shrink-0 rounded-sm border px-3 text-caption font-medium disabled:opacity-40"
+                    style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{t("common.add")}</button>
+                </div>
+                {guests.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {guests.map(g => (
+                      <span key={g} className="flex items-center gap-1 rounded-sm border px-2 py-0.5 text-caption"
+                        style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        {g}
+                        <button onClick={() => setGuests(list => list.filter(x => x !== g))}
+                          aria-label={`Remove ${g}`} style={{ color: "var(--text-faint)" }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-caption" style={{ color: "var(--text-faint)" }}>{t("cal.guest_hint")}</p>
+              </div>
+
+              {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
+              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>Meeting type</span>
+                <FieldSelect
+                  value={meetingType}
+                  onChange={v => setMeetingType(v as MeetingType)}
+                  ariaLabel="Meeting type"
+                  options={MEETING_TYPES.map(id => ({ value: id, label: MEETING_TYPE_META[id].label }))}
+                />
+                <span className="block text-caption" style={{ color: "var(--text-faint)" }}>{MEETING_TYPE_META[meetingType].description}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
