@@ -66,7 +66,10 @@ describe("route + frontend wiring (source guards)", () => {
   it("save-batch returns per-lead failed + skipped_details, never a blanket 400 error", () => {
     expect(route).toMatch(/partitionSaveBatch\(leads, existingByKey\)/);
     expect(route).toMatch(/const failed = toInsert\.map\(\(b\) => \(\{ name: b\.name, reason: error\.message \|\| "no reason returned" \}\)\)/);
-    expect(route).toMatch(/skipped_details, ids: \[\], created: \[\], already_existed, failed \}, 200\)/);
+    // `rejected` added 2026-08-14: leads refused by cleaning are reported too, so a batch that
+    // saves 12 of 40 cannot report 40. Same intent as this test — per-lead honesty, never a
+    // blanket error.
+    expect(route).toMatch(/skipped_details, ids: \[\], created: \[\], already_existed, failed, rejected \}, 200\)/);
   });
 
   it("bulk-task/decision keep per-lead results + honest tally", () => {

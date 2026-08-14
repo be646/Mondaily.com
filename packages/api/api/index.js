@@ -86071,6 +86071,72 @@ router58.post("/settings", requireAdminRole, zValidator2("json", external_export
 init_dist();
 init_validate();
 init_zod();
+
+// src/lib/lead-clean.ts
+var tidy = (v2) => String(v2 ?? "").replace(/\s+/g, " ").trim();
+var TRACKING = /^(utm_[a-z_]+|gclid|fbclid|mc_[a-z]+|ref|source|campaign_id|igshid)$/i;
+function cleanUrl(raw2) {
+  const s2 = tidy(raw2);
+  if (!s2) return void 0;
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(s2)?.[1]?.toLowerCase();
+  if (scheme && scheme !== "http" && scheme !== "https") return void 0;
+  try {
+    const u2 = new URL(scheme ? s2 : `https://${s2}`);
+    if (!/^https?:$/.test(u2.protocol)) return void 0;
+    if (!u2.hostname.includes(".")) return void 0;
+    for (const k2 of [...u2.searchParams.keys()]) if (TRACKING.test(k2)) u2.searchParams.delete(k2);
+    u2.hash = "";
+    u2.hostname = u2.hostname.toLowerCase().replace(/^www\./, "");
+    let out = u2.toString();
+    if (u2.pathname === "/" && !u2.search) out = out.replace(/\/$/, "");
+    return out;
+  } catch {
+    return void 0;
+  }
+}
+function cleanEmail(raw2) {
+  const s2 = tidy(raw2).toLowerCase();
+  if (!s2) return void 0;
+  return /^[^\s@,;]+@[^\s@,;.]+\.[a-z]{2,}$/.test(s2) ? s2 : void 0;
+}
+function cleanPhone(raw2) {
+  const s2 = tidy(raw2);
+  if (!s2) return void 0;
+  const plus = s2.trimStart().startsWith("+");
+  const digits = s2.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) return void 0;
+  return (plus ? "+" : "") + digits;
+}
+var NAME_NOISE = /\s*[|·—–-]\s*(home|homepage|official site|official website|welcome)\s*$/i;
+function cleanName(raw2) {
+  let s2 = tidy(raw2).replace(NAME_NOISE, "").trim();
+  s2 = s2.replace(/[|·,;:\-–—]+$/, "").trim();
+  return s2 || void 0;
+}
+function isUsableLead(l2) {
+  if (!l2.name) return false;
+  return Boolean(l2.email || l2.phone || l2.website || l2.source_url);
+}
+function cleanLead(raw2) {
+  const dropped = [];
+  const keep = (field, before, after) => {
+    if (before && !after) dropped.push(field);
+    return after;
+  };
+  const lead = {
+    name: cleanName(raw2.name) ?? "",
+    email: keep("email", tidy(raw2.email) || void 0, cleanEmail(raw2.email)),
+    phone: keep("phone", tidy(raw2.phone) || void 0, cleanPhone(raw2.phone)),
+    website: keep("website", tidy(raw2.website) || void 0, cleanUrl(raw2.website)),
+    source_url: keep("source_url", tidy(raw2.source_url) || void 0, cleanUrl(raw2.source_url)),
+    handle: tidy(raw2.handle) || void 0,
+    region: tidy(raw2.region) || void 0,
+    summary: tidy(raw2.summary).slice(0, 1e3) || void 0
+  };
+  return { lead, usable: isUsableLead(lead), dropped };
+}
+
+// src/routes/discovery.ts
 init_client();
 init_auth();
 init_inngest2();
@@ -86438,9 +86504,17 @@ var saveSchema = external_exports.object({
   // atomically add the new record to a list
 });
 router59.post("/save", denyViewerWrites, zValidator2("json", saveSchema), async (c2) => {
-  const b2 = c2.req.valid("json");
+  const raw2 = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
+  const { lead, usable, dropped } = cleanLead(raw2);
+  if (!usable) {
+    return c2.json({
+      error: "Not enough to act on \u2014 a lead needs a name and at least one of email, phone, website or source.",
+      dropped
+    }, 422);
+  }
+  const b2 = { ...raw2, ...lead };
   const website = b2.website || void 0;
   let domain;
   try {
@@ -86612,9 +86686,12 @@ router59.post("/save-batch", denyViewerWrites, zValidator2("json", external_expo
   owner_id: external_exports.string().max(120).optional(),
   list_id: external_exports.string().uuid().optional()
 })), async (c2) => {
-  const { leads, owner_id, list_id } = c2.req.valid("json");
+  const { leads: rawLeads, owner_id, list_id } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
+  const cleanedAll = rawLeads.map((l2) => ({ raw: l2, ...cleanLead(l2) }));
+  const leads = cleanedAll.filter((x2) => x2.usable).map((x2) => ({ ...x2.raw, ...x2.lead }));
+  const rejected = cleanedAll.filter((x2) => !x2.usable).map((x2) => ({ name: x2.raw.name ?? "(unnamed)", reason: "no name or no way to contact" }));
   const domainOf = (website, source_url) => {
     const u2 = website || source_url || "";
     try {
@@ -86644,12 +86721,12 @@ router59.post("/save-batch", denyViewerWrites, zValidator2("json", external_expo
   const { data, error } = await supabase.from("nodes").insert(rows2).select("id");
   if (error) {
     const failed = toInsert.map((b2) => ({ name: b2.name, reason: error.message || "no reason returned" }));
-    return c2.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed }, 200);
+    return c2.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed, rejected }, 200);
   }
   const ids = (data ?? []).map((r2) => r2.id);
   const created = ids.map((id, i2) => ({ name: toInsert[i2]?.name ?? "", node_id: id }));
   if (list_id) for (const id of [...ids, ...already_existed.map((a2) => a2.node_id)]) await addToList(workspaceId, list_id, id);
-  return c2.json({ saved: ids.length, skipped, skipped_details, ids, created, already_existed, failed: [] }, 201);
+  return c2.json({ saved: ids.length, skipped, skipped_details, ids, created, already_existed, failed: [], rejected }, 201);
 });
 router59.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });

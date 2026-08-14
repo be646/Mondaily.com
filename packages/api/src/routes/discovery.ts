@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "../lib/validate";
 import { z } from "zod";
+import { cleanLead } from "../lib/lead-clean";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
@@ -310,9 +311,28 @@ const saveSchema = z.object({
   list_id: z.string().uuid().optional(),      // atomically add the new record to a list
 });
 router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c) => {
-  const b = c.req.valid("json");
+  const raw = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
+
+  /**
+   * CLEANED AND FILTERED ON THE WAY IN — not "tidied up later", which never happens.
+   *
+   * Discovery scrapes the open web, so names carry marketing tails, URLs carry utm tracking, and
+   * some "emails" are not emails. A sheet that is meant to be a work queue stops being one the
+   * moment it fills with values nobody can act on.
+   *
+   * A row with no name and no way to reach it is REFUSED rather than stored. It would not get
+   * fixed; it would sit there making the real leads harder to see.
+   */
+  const { lead, usable, dropped } = cleanLead(raw);
+  if (!usable) {
+    return c.json({
+      error: "Not enough to act on — a lead needs a name and at least one of email, phone, website or source.",
+      dropped,
+    }, 422);
+  }
+  const b = { ...raw, ...lead };
   const website = b.website || undefined;
   let domain: string | undefined;
   try { if (b.source_url) domain = new URL(b.source_url).host.replace(/^www\./, ""); } catch { /* ignore */ }
@@ -493,9 +513,21 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
   owner_id: z.string().max(120).optional(),
   list_id: z.string().uuid().optional(),
 })), async (c) => {
-  const { leads, owner_id, list_id } = c.req.valid("json");
+  const { leads: rawLeads, owner_id, list_id } = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
+
+  /**
+   * The batch path cleans and filters through the SAME function as the single save.
+   *
+   * Two save paths with two standards is how a sheet ends up half tidy — and "Save all" is the one
+   * people actually use, so the messy path would have been the common one. Unusable rows are
+   * counted and reported rather than dropped in silence: a batch that quietly saves 12 of 40 while
+   * reporting 40 is worse than one that says what it refused.
+   */
+  const cleanedAll = rawLeads.map((l) => ({ raw: l, ...cleanLead(l) }));
+  const leads = cleanedAll.filter((x) => x.usable).map((x) => ({ ...x.raw, ...x.lead }));
+  const rejected = cleanedAll.filter((x) => !x.usable).map((x) => ({ name: x.raw.name ?? "(unnamed)", reason: "no name or no way to contact" }));
   const domainOf = (website?: string, source_url?: string) => {
     const u = website || source_url || "";
     try { return new URL(u.startsWith("http") ? u : `https://${u}`).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
@@ -529,14 +561,14 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
     // Honest per-lead failure — the batch insert failed, so every attempted lead is reported failed
     // with the real reason (never a blanket generic error, never a fake "saved").
     const failed = toInsert.map((b) => ({ name: b.name, reason: error.message || "no reason returned" }));
-    return c.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed }, 200);
+    return c.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed, rejected }, 200);
   }
   const ids = (data ?? []).map((r) => r.id as string);
   const created = ids.map((id, i) => ({ name: toInsert[i]?.name ?? "", node_id: id }));
   // Add BOTH newly-created and already-existing matches to the list, so "add selected to list"
   // covers leads that were already in the graph too.
   if (list_id) for (const id of [...ids, ...already_existed.map((a) => a.node_id)]) await addToList(workspaceId, list_id, id);
-  return c.json({ saved: ids.length, skipped, skipped_details, ids, created, already_existed, failed: [] }, 201);
+  return c.json({ saved: ids.length, skipped, skipped_details, ids, created, already_existed, failed: [], rejected }, 201);
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──

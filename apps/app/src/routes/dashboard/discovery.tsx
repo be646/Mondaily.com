@@ -744,7 +744,7 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
     try {
       const leads = results.map((r) => ({
         name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
-        object_type: "company",
+        object_type: "discovered-leads",
         source_url: r.source_url,
         discovery_query: query,
         email: r.email ?? undefined,
@@ -913,7 +913,7 @@ function matchReasons(r: ResultRow): string[] {
 function toLeadPayload(r: ResultRow, query: string) {
   return {
     name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
-    object_type: "company", source_url: r.source_url, discovery_query: query,
+    object_type: "discovered-leads", source_url: r.source_url, discovery_query: query,
     email: r.email ?? undefined, phone: r.phone ?? undefined, handle: r.handle ?? undefined, region: r.region ?? undefined, summary: r.snippet || undefined,
   };
 }
@@ -1214,7 +1214,7 @@ function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetail
   const save = useMutation({
     mutationFn: () => apiClient.post<{ id: string; existed?: boolean }>("/discovery/save", {
       name: leadName,
-      object_type: "company",
+      object_type: "discovered-leads",
       source_url: r.source_url,
       discovery_query: query,
       email: r.email ?? undefined,
