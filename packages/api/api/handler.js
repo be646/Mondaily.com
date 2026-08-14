@@ -73095,8 +73095,15 @@ router14.post("/events/:id/call-link", async (c2) => {
 });
 async function ensureCallSession(ws, room, userId) {
   try {
-    const { data: existing } = await supabase.from("call_sessions").select("id").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
-    if (existing?.length) return;
+    const { data: existing } = await supabase.from("call_sessions").select("id, started_at").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+    const open = existing?.[0];
+    if (open) {
+      const startedMs = open.started_at ? new Date(String(open.started_at)).getTime() : NaN;
+      const stale = Number.isFinite(startedMs) && Date.now() - startedMs > 12 * 60 * 60 * 1e3;
+      if (!stale) return;
+      await supabase.from("call_sessions").update({ status: "ended", ended_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", open.id).eq("workspace_id", ws);
+      console.log(`[calendar] closed a stale active call session for room ${room}`);
+    }
     await supabase.from("call_sessions").insert({
       workspace_id: ws,
       room,

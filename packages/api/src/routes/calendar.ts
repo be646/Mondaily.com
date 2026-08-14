@@ -629,8 +629,30 @@ router.post("/events/:id/call-link", async (c) => {
 async function ensureCallSession(ws: string, room: string, userId: string): Promise<void> {
   try {
     const { data: existing } = await supabase.from("call_sessions")
-      .select("id").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
-    if (existing?.length) return;
+      .select("id, started_at").eq("workspace_id", ws).eq("room", room).eq("status", "active").limit(1);
+
+    /**
+     * A STALE "active" SESSION MUST NOT BLOCK THE NEXT CALL.
+     *
+     * Only /end-call closes a session, and nobody clicks "End for all" — people just leave. So the
+     * row stays `active` forever, and because this function skips when an active row exists, EVERY
+     * later call in that room would go unrecorded. Found in production: one session open since
+     * 13:50 with no duration, from a call that had already finished.
+     *
+     * A meeting still open after twelve hours is not in progress. It is closed out here, without a
+     * duration, because we genuinely do not know when the last person left — inventing one would be
+     * worse than admitting the gap.
+     */
+    const open = existing?.[0];
+    if (open) {
+      const startedMs = open.started_at ? new Date(String(open.started_at)).getTime() : NaN;
+      const stale = Number.isFinite(startedMs) && Date.now() - startedMs > 12 * 60 * 60 * 1000;
+      if (!stale) return;
+      await supabase.from("call_sessions")
+        .update({ status: "ended", ended_at: new Date().toISOString() })
+        .eq("id", open.id).eq("workspace_id", ws);
+      console.log(`[calendar] closed a stale active call session for room ${room}`);
+    }
 
     await supabase.from("call_sessions").insert({
       workspace_id: ws, room, initiator_id: userId, invitee_id: userId,

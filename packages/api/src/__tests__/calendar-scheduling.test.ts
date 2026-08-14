@@ -141,6 +141,20 @@ describe("a live call is actually recorded as having happened", () => {
     expect(fn).toMatch(/record: false/);
   });
 
+  it("a stale active session does not block the next call", () => {
+    /**
+     * Only /end-call closes a session, and nobody clicks "End for all" — people just leave. Found
+     * in production: a row open since 13:50 with no duration, from a call that had finished. Since
+     * ensureCallSession skips when an active row exists, every LATER call in that room would have
+     * gone unrecorded.
+     */
+    expect(CAL_API).toMatch(/12 \* 60 \* 60 \* 1000/);
+    expect(CAL_API).toMatch(/closed a stale active call session/);
+    // No invented duration: we do not know when the last person actually left.
+    const fn = CAL_API.slice(CAL_API.indexOf("async function ensureCallSession("), CAL_API.indexOf("async function closeCallSession("));
+    expect(fn, "a made-up duration is worse than admitting the gap").not.toMatch(/duration_sec/);
+  });
+
   it("ending the meeting closes the row with a real duration", () => {
     expect(CAL_API).toMatch(/async function closeCallSession\(/);
     expect(CAL_API).toMatch(/await closeCallSession\(ws, room\)/);
