@@ -887,7 +887,15 @@ describe("dashboard/calendar read-only 12px empty/meta uses text-body (Pass 8H)"
     expect(C).toMatch(/<span className="text-body" style=\{\{ color: "var\(--text-muted\)" \}\}>\{label\}<\/span>/);               // 648 metric label
     expect(C).toMatch(/<p className="text-body" style=\{\{ color: "var\(--text-faint\)" \}\}>\{t\("cal\.st_missing"\)\}<\/p>/);     // 917
     expect(C).toMatch(/<span className="text-body" style=\{\{ color: "var\(--text-muted\)" \}\}>\{s\.label\}<\/span>/);            // 1007 metric label
-    expect(C).toMatch(/\{others\.length === 0 && <span className="px-2 py-1\.5 text-body" style=\{\{ color: "var\(--text-faint\)" \}\}>\{t\("state\.empty"\)\}/); // 1167
+    /**
+     * SUPERSEDED 2026-08-14. The generic empty string was the NORMAL case here: every workspace in
+     * production has exactly one member, so this list — which excludes you — is empty for every
+     * user. It read as breakage while naming neither thing you can do about it. Replaced by a real
+     * empty state; the rule that it uses the type scale is what mattered and is kept.
+     */
+    expect(C).toMatch(/\{others\.length === 0 && \(/);
+    expect(C).toMatch(/<p className="text-body" style=\{\{ color: "var\(--text-muted\)" \}\}>\{t\("cal\.no_teammates"\)\}<\/p>/);
+    expect(C, "it must offer the way out, not just state the problem").toMatch(/to="\/settings\/members"/);
   });
   it("no <button>/<input> was given text-body", () => {
     expect(C).not.toMatch(/<button[^>]*\btext-body\b/);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { FieldSelect } from "../../components/ui/controls";
@@ -1335,7 +1335,23 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
                       </button>
                     );
                   })}
-                  {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
+                  {others.length === 0 && (
+                    /**
+                     * A PURPOSEFUL empty state, not "Nothing here yet".
+                     *
+                     * MEASURED 2026-08-14: every workspace in production has exactly ONE member, so
+                     * this list — which excludes you — is empty for literally every user. The generic
+                     * empty string was therefore the normal case, and it read as something being
+                     * broken while naming neither of the two things you can actually do about it.
+                     */
+                    <div className="px-2 py-1.5">
+                      <p className="text-body" style={{ color: "var(--text-muted)" }}>{t("cal.no_teammates")}</p>
+                      <p className="mt-0.5 text-caption" style={{ color: "var(--text-faint)" }}>
+                        <Link to="/settings/members" className="underline underline-offset-2" style={{ color: "var(--section-accent)" }}>{t("cal.invite_teammates")}</Link>
+                        {" "}{t("cal.or_add_guest")}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-1.5">
