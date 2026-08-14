@@ -212,8 +212,14 @@ export function DateField({
           background: "var(--surface-input)",
           color: label ? "var(--text-primary)" : "var(--text-muted)",
         }}>
-        <span className={label ? "tabular-nums" : ""}>{label || placeholder}</span>
-        <CalendarDays size={13} style={{ color: "var(--text-faint)" }} />
+        {/*
+          * truncate + min-w-0: without them a datetime label ("2026-08-14 15:30") WRAPS to a second
+          * line whenever the field is narrower than its text — which is exactly what two of these
+          * side by side in a dialog column does. A control that changes height with its contents
+          * breaks the row it sits in; an ellipsis does not.
+          */}
+        <span className={`min-w-0 truncate ${label ? "tabular-nums" : ""}`}>{label || placeholder}</span>
+        <CalendarDays size={13} className="shrink-0" style={{ color: "var(--text-faint)" }} />
       </button>
       <DatePicker open={open} anchorRef={ref} value={value} withTime={withTime}
         onChange={onChange} onClose={() => setOpen(false)} />

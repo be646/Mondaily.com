@@ -611,7 +611,7 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
   );
   return (
     <>
-      <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
+      <div className="border-b px-5 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
         <span className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.meeting_agent")}</span>
         <span className="mt-1 block text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
       </div>
@@ -841,7 +841,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   return (
     <>
         {/* AI Meeting Brief header — clearly framed, with Meeting Agent attribution (recessed band, matching the Today briefing + strip). */}
-        <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
+        <div className="border-b px-5 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Wand2 size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.ai_meeting_brief")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
@@ -1257,22 +1257,22 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
           */}
         <div className="max-h-[76vh] overflow-y-auto">
           {/* The subject leads and carries no box — it is the meeting, not a field. */}
-          <div className="px-5 pt-4 pb-3">
+          <div className="px-5 pt-3.5 pb-2.5">
             <input autoFocus
               className="w-full bg-transparent text-[15px] font-medium outline-none placeholder:font-normal"
               style={{ color: "var(--text-primary)" }}
               placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           </div>
 
-          <div className="grid gap-x-5 border-t md:grid-cols-2" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="grid gap-x-5 border-t md:grid-cols-[3fr_2fr]" style={{ borderColor: "var(--border-soft)" }}>
             {/* ── left: what the meeting IS ─────────────────────────────────────────────────── */}
             <div className="md:border-r" style={{ borderColor: "var(--border-soft)" }}>
-              <div className="space-y-2.5 px-5 py-3.5">
+              <div className="space-y-2 px-5 py-3">
                 <div className="flex items-center justify-between">
                   <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.when")}</span>
                   {durationLabel && <span className="text-caption tabular-nums" style={{ color: "var(--text-faint)" }}>{durationLabel}</span>}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0">
                   <DateField withTime value={start} onChange={changeStart} ariaLabel="Starts" />
                   <DateField withTime value={end} onChange={setEnd} ariaLabel="Ends" />
                 </div>
@@ -1299,17 +1299,19 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
                 </div>
               </div>
 
-              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="space-y-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
                 <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.where")}</span>
                 <input className={field} style={style} placeholder={t("cal.location")} value={location} onChange={e => setLocation(e.target.value)} />
                 {/* A Mondaily call IS a location — the same question, so it belongs in the same group. */}
                 <label className="flex items-center gap-2 text-body" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
-                  <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
+                  <input type="checkbox" className="h-3.5 w-3.5 shrink-0 rounded-sm"
+                    style={{ accentColor: "var(--section-accent)" }}
+                    checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
                   <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-caption">— {t("cal.calls_off")}</span>}
                 </label>
               </div>
 
-              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="space-y-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
                 <div className="flex items-center justify-between">
                   <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
                   <button onClick={draftAgenda} disabled={aiBusy} className="flex items-center gap-1 text-caption font-medium" style={{ color: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.draft_agenda")}</button>
@@ -1320,7 +1322,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
 
             {/* ── right: who is in it ───────────────────────────────────────────────────────── */}
             <div className="border-t md:border-t-0" style={{ borderColor: "var(--border-soft)" }}>
-              <div className="space-y-2 px-5 py-3.5">
+              <div className="space-y-2 px-5 py-3">
                 <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</span>
                 <div className="flex max-h-[104px] flex-col gap-0.5 overflow-y-auto rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
                   {others.map(m => {
@@ -1367,7 +1369,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
               </div>
 
               {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
-              <div className="space-y-2 border-t px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="space-y-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
                 <span className="text-caption font-medium" style={{ color: "var(--text-muted)" }}>Meeting type</span>
                 <FieldSelect
                   value={meetingType}
