@@ -383,6 +383,29 @@ function WaitingGuestsPanel({ eventId }: { eventId: string }) {
   );
 }
 
+/**
+ * Report a call failure where a human will see it.
+ *
+ * Calls failed silently: a disconnect became "ended" with no reason, and a failed connect became a
+ * blank error screen swallowed by a bare catch. So "it kicked me out" could not be investigated —
+ * there was nothing to read. This posts to the same sink as render errors (client_errors), which is
+ * how the /calendar crash was found at all.
+ *
+ * Best effort and never throws: a reporting failure must not add a second problem to a call that
+ * has already gone wrong. keepalive so it survives the page unloading behind it.
+ */
+function reportCallFailure(message: string, eventId: string): void {
+  try {
+    void fetch(`${BASE_URL}/api/v1/telemetry/error`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `[call] ${message}`.slice(0, 2000), route: `/calls/${eventId}`, source: "client" }),
+      credentials: "include",
+      keepalive: true,
+    }).catch(() => {});
+  } catch { /* never let reporting break a call */ }
+}
+
 function CallRoom({ event }: { event: CalEvent }) {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -565,13 +588,29 @@ function CallRoom({ event }: { event: CalEvent }) {
           } catch { /* ignore malformed */ }
         })
         .on(RoomEvent.ParticipantDisconnected, (p: Participant) => { setHands(s => { const n = new Set(s); n.delete(p.identity); return n; }); })
-        .on(RoomEvent.Disconnected, () => setPhase("ended"));
+        /**
+         * A DISCONNECT MUST SAY WHY.
+         *
+         * This discarded the reason and simply showed "ended", so being dropped mid-call was
+         * indistinguishable from the host ending it — reported as "I tried to go to the call room
+         * and it kicked me out", with nothing anywhere to explain it. LiveKit passes a
+         * DisconnectReason; recording it turns an unexplainable eviction into evidence.
+         */
+        .on(RoomEvent.Disconnected, (reason?: unknown) => {
+          reportCallFailure(`disconnected: ${String(reason ?? "unknown")}`, event.id);
+          setPhase("ended");
+        });
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(micOn);
       await room.localParticipant.setCameraEnabled(camOn);
       setPhase("live");
       refreshDevices();
-    } catch { setPhase("error"); }
+    } catch (e) {
+      // A bare catch here meant a failed connection produced a blank error screen and no trace at
+      // all — the same silence that made the stale-chunk errors invisible.
+      reportCallFailure(`connect failed: ${e instanceof Error ? e.message : String(e)}`, event.id);
+      setPhase("error");
+    }
   }
 
   async function leave() { try { await roomRef.current?.disconnect(); } catch { /* ignore */ } setPhase("ended"); }

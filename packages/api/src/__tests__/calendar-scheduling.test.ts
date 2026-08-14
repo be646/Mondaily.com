@@ -218,7 +218,9 @@ describe("guests receive a real calendar invite", () => {
   });
 
   it("prefers the join link as the location when there is a call", () => {
-    expect(CAL_API).toMatch(/location: d\.call_url \|\| d\.location \|\| undefined/);
+    // SUPERSEDED: this used to assert d.call_url, which is the MEMBER route behind sign-in. The
+    // calendar entry must carry the account-less guest link — see the guest-invitation suite below.
+    expect(CAL_API).toMatch(/location: guestUrl \|\| d\.location \|\| undefined/);
   });
 
   it("a broken invite never stops the email going out", () => {
@@ -262,5 +264,48 @@ describe("a guest invitation does not look like bulk mail", () => {
     expect(mail).toMatch(/localPart: "no-reply"/);
     expect(mail, "only the display name is overridable, never the address")
       .toMatch(/displayName: opts\?\.displayName \|\| "Mondaily"/);
+  });
+});
+
+/**
+ * "The receiver was required to create an account ... but in the email was written you dont need
+ * account." Both halves were true at once, which is the worst kind of bug: the invitation embedded
+ * `/calls/<id>` — a MEMBER route behind sign-in — directly underneath a sentence promising no
+ * account was needed. The account-less path already existed; the invite used the wrong one.
+ */
+describe("a guest invitation links somewhere a guest can actually go", () => {
+  const CALL_UI = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/call-room.tsx"), "utf8");
+
+  it("sends the account-less /join link, not the member /calls route", () => {
+    expect(CAL_API).toMatch(/guestUrl = `\$\{appUrl\(\)\}\/join\/\$\{opts\.eventId\}#g=\$\{token\}`/);
+    expect(CAL_API).toMatch(/action: \{ label: "Join the call", url: guestUrl \}/);
+  });
+
+  it("the calendar entry points at the same usable link", () => {
+    // A guest who adds the invite to their calendar clicks the LOCATION, not the email button.
+    expect(CAL_API).toMatch(/location: guestUrl \|\| d\.location/);
+    expect(CAL_API).toMatch(/url: guestUrl \|\| undefined/);
+  });
+
+  it("expiry is tied to the MEETING, not a fixed 24 hours", () => {
+    // A link minted today for a meeting next week would be dead on arrival — the same broken
+    // promise in slower form.
+    expect(CAL_API).toMatch(/Math\.max\(now \+ 24 \* 60 \* 60, \(Number\.isFinite\(endsAt\) \? endsAt : now\) \+ 4 \* 60 \* 60\)/);
+  });
+
+  it("only PROMISES no account when that is true", () => {
+    expect(CAL_API).toMatch(/footnote: cancelled \|\| !guestUrl \? undefined :/);
+  });
+
+  it("a call disconnect records WHY", () => {
+    // It discarded the reason and showed "ended", so being dropped mid-call was indistinguishable
+    // from the host ending it, and "it kicked me out" left no evidence anywhere.
+    expect(CALL_UI).toMatch(/RoomEvent\.Disconnected, \(reason\?: unknown\) =>/);
+    expect(CALL_UI).toMatch(/reportCallFailure\(`disconnected: /);
+  });
+
+  it("a failed connection is not swallowed by a bare catch", () => {
+    expect(CALL_UI).toMatch(/reportCallFailure\(`connect failed: /);
+    expect(CALL_UI).toMatch(/keepalive: true/);
   });
 });

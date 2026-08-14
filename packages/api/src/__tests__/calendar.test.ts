@@ -7,7 +7,16 @@ import { analyzeMeetings, relatedFollowUps, type MeetingLite } from "../jobs/mee
 
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
-const room = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-room.tsx", import.meta.url)), "utf8");
+/**
+ * Comments STRIPPED before matching.
+ *
+ * The rule is that no engine or provider brand is ever shown TO A USER — and a code comment is not
+ * shown to anyone. Reading the raw file means a comment explaining why the engine is hidden trips
+ * the guard that hides it, which is the sixth time this pattern has bitten in this codebase.
+ * When the rule is about rendered output, read the rendered output.
+ */
+const room = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-room.tsx", import.meta.url)), "utf8")
+  .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 // Presentational tiles were extracted into call-tiles.tsx so guest-call no longer statically imports
 // call-room (keeps call-room lazy-splittable). Tile-shape assertions read from the shared file.
 const roomTiles = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-tiles.tsx", import.meta.url)), "utf8");

@@ -235,10 +235,44 @@ async function inviteGuests(
   d: EventData,
   organiserName: string,
   verb: "created" | "updated" | "cancelled",
-  opts?: { eventId?: string; organiserEmail?: string; sequence?: number },
+  opts?: { eventId?: string; organiserEmail?: string; sequence?: number; workspaceId?: string },
 ): Promise<void> {
   const guests = d.guest_emails ?? [];
   if (!guests.length) return;
+
+  /**
+   * THE LINK A GUEST CAN ACTUALLY USE.
+   *
+   * `d.call_url` is `/calls/<id>` — a MEMBER route behind sign-in. Putting it in a guest
+   * invitation sent someone with no account to a login wall directly underneath a sentence
+   * promising they did not need one. Reported after the first real invite: "the receiver was
+   * required to create an account ... but in the email was written you dont need account".
+   *
+   * The account-less path already existed (`/join/<id>#g=<token>`, redeemed by guest-calls) — the
+   * invitation simply used the wrong one.
+   *
+   * EXPIRY IS TIED TO THE MEETING, not to a fixed 24h. A link minted today for a meeting next week
+   * would already be dead on arrival, which is the same broken promise in slower form. It stays
+   * valid until a few hours after the meeting ends, and the host can still revoke every outstanding
+   * link at once by bumping the event's guest-link epoch.
+   */
+  let guestUrl: string | null = null;
+  try {
+    const secret = process.env.AUTH_JWT_SECRET;
+    if (secret && opts?.eventId && opts.workspaceId && d.call_room_id && callsEnabled()) {
+      const now = Math.floor(Date.now() / 1000);
+      const endsAt = Math.floor(new Date(d.end_at).getTime() / 1000);
+      const exp = Math.max(now + 24 * 60 * 60, (Number.isFinite(endsAt) ? endsAt : now) + 4 * 60 * 60);
+      const token = await sign(
+        { kind: "call_guest", ev: opts.eventId, ws: opts.workspaceId, room: d.call_room_id, exp,
+          epoch: Number(d.guest_link_epoch ?? 0), jti: randomUUID() },
+        secret, "HS256",
+      );
+      guestUrl = `${appUrl()}/join/${opts.eventId}#g=${token}`;
+    }
+  } catch (e) {
+    console.error(`[calendar] could not mint a guest join link: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   const when = new Date(d.start_at).toLocaleString("en-GB", {
     dateStyle: "full", timeStyle: "short", timeZone: d.timezone || "UTC",
@@ -256,8 +290,10 @@ async function inviteGuests(
       `<p>${cancelled ? "This meeting has been cancelled." : `${esc(organiserName)} invited you to a meeting.`}</p>` +
       rows +
       (d.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc(d.description)}</p>` : ""),
-    ...(d.call_url && !cancelled ? { action: { label: "Join the call", url: d.call_url } } : {}),
-    footnote: cancelled ? undefined : "You do not need a Mondaily account to join.",
+    ...(guestUrl && !cancelled ? { action: { label: "Join the call", url: guestUrl } } : {}),
+    // The promise is made ONLY when it is true. Without a guest link there is nothing to join
+    // without an account, and saying so anyway is how the first invite sent someone to a login wall.
+    footnote: cancelled || !guestUrl ? undefined : "You do not need a Mondaily account to join.",
   });
 
   /**
@@ -275,14 +311,14 @@ async function inviteGuests(
         uid: icsUid(opts.eventId, organiserEmail),
         title: d.title,
         description: d.description || undefined,
-        location: d.call_url || d.location || undefined,
+        location: guestUrl || d.location || undefined,
         startAt: d.start_at,
         endAt: d.end_at,
         organizer: { name: organiserName, email: organiserEmail },
         attendees: guests.map((email) => ({ email })),
         sequence: opts.sequence ?? 0,
         method: cancelled ? "CANCEL" : "REQUEST",
-        url: d.call_url || undefined,
+        url: guestUrl || undefined,
       });
     }
   } catch (e) {
@@ -446,7 +482,7 @@ router.post("/events", zValidator("json", EventCreate), async (c) => {
     data,
     dir.get(me)?.name || dir.get(me)?.email || "Your host",
     "created",
-    { eventId: node.id, organiserEmail: dir.get(me)?.email, sequence: 0 },
+    { eventId: node.id, organiserEmail: dir.get(me)?.email, sequence: 0, workspaceId: ws },
   );
   return c.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled() }, 201);
 });

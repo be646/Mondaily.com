@@ -73835,6 +73835,31 @@ function shape(id, d2, dir, createdAt) {
 async function inviteGuests(d2, organiserName, verb, opts) {
   const guests = d2.guest_emails ?? [];
   if (!guests.length) return;
+  let guestUrl = null;
+  try {
+    const secret4 = process.env.AUTH_JWT_SECRET;
+    if (secret4 && opts?.eventId && opts.workspaceId && d2.call_room_id && callsEnabled2()) {
+      const now = Math.floor(Date.now() / 1e3);
+      const endsAt = Math.floor(new Date(d2.end_at).getTime() / 1e3);
+      const exp = Math.max(now + 24 * 60 * 60, (Number.isFinite(endsAt) ? endsAt : now) + 4 * 60 * 60);
+      const token = await sign2(
+        {
+          kind: "call_guest",
+          ev: opts.eventId,
+          ws: opts.workspaceId,
+          room: d2.call_room_id,
+          exp,
+          epoch: Number(d2.guest_link_epoch ?? 0),
+          jti: (0, import_node_crypto11.randomUUID)()
+        },
+        secret4,
+        "HS256"
+      );
+      guestUrl = `${appUrl3()}/join/${opts.eventId}#g=${token}`;
+    }
+  } catch (e2) {
+    console.error(`[calendar] could not mint a guest join link: ${e2 instanceof Error ? e2.message : String(e2)}`);
+  }
   const when = new Date(d2.start_at).toLocaleString("en-GB", {
     dateStyle: "full",
     timeStyle: "short",
@@ -73850,8 +73875,10 @@ async function inviteGuests(d2, organiserName, verb, opts) {
     title: cancelled ? `Cancelled: ${d2.title}` : d2.title,
     preheader: cancelled ? "This meeting has been cancelled." : `${when} \u2014 invitation from ${organiserName}`,
     bodyHtml: `<p>${cancelled ? "This meeting has been cancelled." : `${esc(organiserName)} invited you to a meeting.`}</p>` + rows2 + (d2.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc(d2.description)}</p>` : ""),
-    ...d2.call_url && !cancelled ? { action: { label: "Join the call", url: d2.call_url } } : {},
-    footnote: cancelled ? void 0 : "You do not need a Mondaily account to join."
+    ...guestUrl && !cancelled ? { action: { label: "Join the call", url: guestUrl } } : {},
+    // The promise is made ONLY when it is true. Without a guest link there is nothing to join
+    // without an account, and saying so anyway is how the first invite sent someone to a login wall.
+    footnote: cancelled || !guestUrl ? void 0 : "You do not need a Mondaily account to join."
   });
   let ics;
   try {
@@ -73861,14 +73888,14 @@ async function inviteGuests(d2, organiserName, verb, opts) {
         uid: icsUid(opts.eventId, organiserEmail),
         title: d2.title,
         description: d2.description || void 0,
-        location: d2.call_url || d2.location || void 0,
+        location: guestUrl || d2.location || void 0,
         startAt: d2.start_at,
         endAt: d2.end_at,
         organizer: { name: organiserName, email: organiserEmail },
         attendees: guests.map((email) => ({ email })),
         sequence: opts.sequence ?? 0,
         method: cancelled ? "CANCEL" : "REQUEST",
-        url: d2.call_url || void 0
+        url: guestUrl || void 0
       });
     }
   } catch (e2) {
@@ -74005,7 +74032,7 @@ router14.post("/events", zValidator2("json", EventCreate), async (c2) => {
     data,
     dir.get(me2)?.name || dir.get(me2)?.email || "Your host",
     "created",
-    { eventId: node.id, organiserEmail: dir.get(me2)?.email, sequence: 0 }
+    { eventId: node.id, organiserEmail: dir.get(me2)?.email, sequence: 0, workspaceId: ws }
   );
   return c2.json({ ...shape(node.id, data, dir, node.created_at), calls_enabled: callsEnabled2() }, 201);
 });
