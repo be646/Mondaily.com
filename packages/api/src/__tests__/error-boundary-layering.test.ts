@@ -78,3 +78,40 @@ describe("error boundaries are layered so a broken page is not a broken app", ()
     expect(boundary).toMatch(/keepalive: true/);
   });
 });
+
+/**
+ * THE BLIND SPOT, found 2026-08-14.
+ *
+ * The chunk-recovery branch `return`ed before the reporting call, so a stale-chunk error — by far
+ * the most common render error in a deployed SPA — was NEVER recorded. client_errors sat quiet for
+ * days while users hit them on every lazy route after a deploy, and the only evidence was someone
+ * saying "I keep getting a react error on any page".
+ *
+ * The auto-reload is exactly what made it invisible: it fixed the symptom and erased the trace.
+ */
+describe("a stale-chunk error is recorded, not silently reloaded away", () => {
+  it("reports BEFORE recovering", () => {
+    const fn = boundary.slice(boundary.indexOf("componentDidCatch"), boundary.indexOf("private report"));
+    const reportAt = fn.indexOf("this.report(");
+    const reloadAt = fn.indexOf("window.location.reload()");
+    expect(reportAt, "the report call must exist inside componentDidCatch").toBeGreaterThan(-1);
+    expect(reloadAt, "the reload must exist").toBeGreaterThan(-1);
+    expect(reportAt, "reporting after the reload means chunk errors are never recorded").toBeLessThan(reloadAt);
+  });
+
+  it("keepalive is what makes reporting-before-reload work", () => {
+    // Without it the browser cancels the request as the page tears down and the trace is lost anyway.
+    expect(boundary).toMatch(/keepalive: true/);
+  });
+
+  it("tags chunk errors instead of dropping them", () => {
+    // Expected after a deploy and self-healing — but a SPIKE is the difference between one stale
+    // tab and every user being bounced, and that is only visible if they are recorded.
+    expect(boundary).toMatch(/\[stale-chunk\]/);
+  });
+
+  it("still recovers automatically, exactly once", () => {
+    expect(boundary).toMatch(/sessionStorage\.setItem\(RELOAD_FLAG/);
+    expect(boundary).toMatch(/window\.location\.reload\(\)/);
+  });
+});

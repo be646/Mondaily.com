@@ -25,8 +25,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
+    const isChunk = CHUNK_RE.test(msg);
+
+    /**
+     * REPORT FIRST, THEN RECOVER.
+     *
+     * The chunk branch used to `return` before the reporting below, so a stale-chunk error — by far
+     * the most common render error in a deployed SPA — was NEVER recorded. `client_errors` sat
+     * quiet for days while users hit them on every lazy route after a deploy, and the only evidence
+     * was someone saying "I keep getting a react error". A whole class of production failure was
+     * invisible, and the auto-reload is precisely what made it invisible: it fixed the symptom and
+     * erased the trace.
+     *
+     * `keepalive` is what makes this safe to do before a reload — the browser finishes the request
+     * even as the page tears down. Reporting is best-effort and never blocks the recovery.
+     */
+    this.report(msg, isChunk);
+
     // Auto-recover from a stale-chunk load: reload once (guarded against loops) to pull fresh assets.
-    if (CHUNK_RE.test(msg)) {
+    if (isChunk) {
       try {
         if (!sessionStorage.getItem(RELOAD_FLAG)) {
           sessionStorage.setItem(RELOAD_FLAG, "1");
@@ -37,20 +54,26 @@ export class ErrorBoundary extends Component<Props, State> {
     }
     // eslint-disable-next-line no-console
     console.error("[ErrorBoundary]", error);
+  }
 
-    /**
-     * Report it somewhere a human will actually look.
-     *
-     * console.error goes into a browser nobody is watching. Until this existed, a render error in
-     * production was invisible unless a user described it — and a user rarely can.
-     *
-     * BEST EFFORT, and silent on failure: an error reporter that throws, blocks, or retries would
-     * turn one broken component into a broken app. keepalive so the report survives the reload that
-     * a chunk error triggers a few lines above.
-     */
+  /**
+   * Report it somewhere a human will actually look.
+   *
+   * console.error goes into a browser nobody is watching. Until this existed, a render error in
+   * production was invisible unless a user described it — and a user rarely can.
+   *
+   * BEST EFFORT, and silent on failure: an error reporter that throws, blocks, or retries would
+   * turn one broken component into a broken app. `keepalive` is what lets this run BEFORE the
+   * chunk-recovery reload — the browser completes the request as the page tears down.
+   *
+   * Chunk errors are TAGGED rather than filtered out. They are expected after a deploy and they
+   * self-heal, but a spike of them is the difference between "one user had a stale tab" and "every
+   * user is being bounced", and that is only visible if they are recorded at all.
+   */
+  private report(msg: string, isChunk: boolean) {
     try {
       const body = JSON.stringify({
-        message: msg.slice(0, 2000),
+        message: `${isChunk ? "[stale-chunk] " : ""}${msg}`.slice(0, 2000),
         route: typeof location !== "undefined" ? location.pathname : undefined,
         source: "client",
       });
