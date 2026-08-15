@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { aiGateway } from "../lib/ai-gateway";
 import { makeBaseConverter } from "../lib/currency-store";
+import { composeWorkspaceReport, reportToXlsx, reportToHtml } from "../lib/report-export";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -20,6 +21,49 @@ function unpack(node: { id: string; data: Record<string, unknown>; created_by?: 
 router.get("/", async (c) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_by,updated_at").eq("workspace_id", c.get("workspaceId")).eq("object_type", "report").order("updated_at", { ascending: false });
   return error ? c.json({ error: error.message }, 400) : c.json((data ?? []).map((node) => unpack(node as never)));
+});
+
+/**
+ * Downloadable workspace reports — Excel workbook + HTML (charts, print-to-PDF).
+ *
+ * Registered BEFORE "/:id" so the static paths can never be captured by the param route.
+ * Auth is the session cookie: app.mondaily.com → api.mondaily.com is same-site, so a plain
+ * link click carries the session and streams the file — no token in the URL.
+ */
+const exportQuery = z.object({
+  period: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"]).default("monthly"),
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+router.get("/export.xlsx", zValidator("query", exportQuery), async (c) => {
+  const { period, start, end } = c.req.valid("query");
+  try {
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end });
+    const bytes = reportToXlsx(bundle);
+    const name = `mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.xlsx`;
+    return c.body(bytes.buffer as ArrayBuffer, 200, {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "no-store",
+    });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "report export failed" }, 400);
+  }
+});
+
+router.get("/export.html", zValidator("query", exportQuery), async (c) => {
+  const { period, start, end } = c.req.valid("query");
+  const download = c.req.query("download") === "1";
+  try {
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end });
+    const html = reportToHtml(bundle);
+    const headers: Record<string, string> = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
+    if (download) headers["Content-Disposition"] = `attachment; filename="mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.html"`;
+    return c.body(html, 200, headers);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "report export failed" }, 400);
+  }
 });
 
 router.post("/", zValidator("json", reportInput), async (c) => {

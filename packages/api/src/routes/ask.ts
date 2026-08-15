@@ -10,6 +10,11 @@ import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
+import { composeWorkspaceReport } from "../lib/report-export";
+
+// Public origin of THIS api — used to hand the browser absolute download links (app→api is
+// same-site, so the session cookie rides along with a plain link click).
+const PUBLIC_API_ORIGIN = (process.env.API_URL ?? "https://api.mondaily.com").replace(/\/$/, "");
 import { runProspecting } from "./prospecting";
 import { sovereignSearchUrls, sovereignScrape, sovereignWebContext } from "../lib/sovereign-search";
 import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
@@ -50,7 +55,7 @@ HOW TO ANSWER — be decisive, never bounce questions back:
 
 TOOLS — you have real tools for every operation below; their schemas describe the parameters. Rules that matter:
 - NEVER deny a capability. You HAVE find_related_objects (the workspace graph), web_search (live external web — summarise WITH source URLs), discover_web_prospects (the Prospecting Agent: source-backed candidates from the live web — never invent one yourself), and real finance/report tools. Never say you "can't access", "aren't connected", or "can't search the web" — call the tool and look.
-- Finance and reports are never answered generically: list_invoices/get_invoice/list_finance_summary read real records; run_report executes a report and returns its real numbers — call it rather than guessing from the report's name.
+- Finance and reports are never answered generically: list_invoices/get_invoice/list_finance_summary read real records; run_report executes a report and returns its real numbers — call it rather than guessing from the report's name; generate_report builds a DOWNLOADABLE Excel + HTML report (KPIs, charts, forecast) for daily/weekly/monthly/quarterly/yearly/custom windows — use it whenever the user wants a file, and present BOTH returned links as markdown links.
 - create_decision queues sensitive actions for a human — use it instead of claiming you did something sensitive yourself. "Approve all pending" → list_decisions first, then resolve_decision per id; never claim an approval you did not call.
 - Workflows: create_workflow_draft saves a DISABLED draft for review; set_workflow_enabled only on an explicit instruction ("enable X" / "turn off Y") — never on your own initiative.
 - After using a tool, summarise what you did in plain language.
@@ -387,6 +392,19 @@ const TOOLS = [
     }
   },
   {
+    name: "generate_report",
+    description: "Build a DOWNLOADABLE workspace report — an Excel workbook plus an HTML report with charts, KPIs (with period-over-period deltas), a trend series and a labelled forecast. Use whenever the user wants a report as a FILE: 'excel sheet', 'download a report', 'monthly/weekly/quarterly/yearly report', 'export my numbers'. For an on-screen saved report use create_report instead.",
+    input_schema: {
+      type: "object",
+      properties: {
+        period: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"], description: "The reporting window (workspace calendar, period-to-date). Default monthly." },
+        start: { type: "string", description: "custom only: start date YYYY-MM-DD." },
+        end: { type: "string", description: "custom only: end date YYYY-MM-DD (inclusive)." }
+      },
+      required: ["period"]
+    }
+  },
+  {
     name: "create_note",
     description: "Create a note, optionally attached to a record. Use for 'add a note', 'jot this down', 'write a note about X'.",
     input_schema: {
@@ -509,7 +527,8 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
   { tools: ["create_record", "create_object_type"], keywords: /\b(contact|compan|deal|record|person|people|lead|client|account|create|add|new|object type|field|custom)\b/i },
   { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
-  { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  { tools: ["list_reports", "get_report", "run_report", "create_report", "generate_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  { tools: ["generate_report"], keywords: /\b(excel|xlsx|spreadsheet|download|export|printable|pdf)\b/i },
   // Deal figures are asked constantly and must never be counted by the model, so this group is
   // deliberately broad — any mention of the pipeline, a stage, or won/lost loads the exact-count
   // tool. Without a group a tool is UNREACHABLE: selectTools only ever passes CORE plus matches.
@@ -1397,6 +1416,25 @@ async function executeTool(
         const run = await runReportData(workspaceId, rpt.id).catch(() => null);
         const preview = run && !("error" in run) ? run.data.slice(0, 8).map((p) => `- ${p.label}: ${p.value}`).join("\n") : "";
         return `Created report "${input.name}" (${input.type} on ${input.object_type}). It's saved under Reports.${preview ? `\nLive preview:\n${preview}` : ""}`;
+      }
+
+      case "generate_report": {
+        const period = ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"].includes(String(input.period)) ? String(input.period) : "monthly";
+        try {
+          const bundle = await composeWorkspaceReport(workspaceId, period as never, { start: input.start, end: input.end });
+          const qs = `period=${period}${input.start ? `&start=${encodeURIComponent(String(input.start))}` : ""}${input.end ? `&end=${encodeURIComponent(String(input.end))}` : ""}`;
+          const base = PUBLIC_API_ORIGIN;
+          const kpiLines = bundle.kpis.map(k =>
+            `- ${k.label}: ${k.value} ${bundle.meta.base}${k.delta != null ? ` (${k.delta >= 0 ? "+" : ""}${k.delta}% vs same point last period)` : k.kind === "balance" ? " (as of now)" : ""}${k.note ? ` — ${k.note}` : ""}`).join("\n");
+          return `Report built for ${bundle.meta.range.start.slice(0, 10)} → ${bundle.meta.range.end.slice(0, 10)} (${period}, base ${bundle.meta.base}).\n` +
+            `Download links (present BOTH to the user as markdown links):\n` +
+            `- Excel workbook: ${base}/api/v1/reports/export.xlsx?${qs}\n` +
+            `- HTML report with charts (printable to PDF): ${base}/api/v1/reports/export.html?${qs}\n` +
+            `KPIs (real figures — cite these, do not restate from memory):\n${kpiLines}\n` +
+            `Top of pipeline by stage: ${bundle.pipelineByStage.slice(0, 4).map(s => `${s.stage} ${s.count} (${s.value})`).join(", ") || "none"}.`;
+        } catch (e) {
+          return `Error building report: ${e instanceof Error ? e.message : "unknown"}`;
+        }
       }
 
       case "create_note": {

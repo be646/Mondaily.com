@@ -6,12 +6,13 @@ import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../..
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { periodRange, previousRange } from "../../../lib/period";
-import { apiClient as outcomesClient } from "../../../lib/api-client";
+import { apiClient as outcomesClient, BASE_URL } from "../../../lib/api-client";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useRecordAggregate, aggScopeNotes, topGroup, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { Modal, ModalActions } from "@/components/ui/modal";
+import { DatePicker } from "../../../components/ui/date-picker";
 
 interface ObjAttr { name: string; type?: string }
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
@@ -520,6 +521,84 @@ function ReportBuilder() {
   );
 }
 
+/**
+ * Downloadable workspace report — Excel workbook + HTML with charts (print → PDF).
+ *
+ * Plain links, not fetch-and-blob: app → api is same-site, so the session cookie rides along and
+ * the API streams the file with Content-Disposition. The figures come from lib/money server-side —
+ * the same definitions the Brief and Owner Console show, so the file can never disagree with the
+ * screens.
+ */
+function ExportDateButton({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={anchorRef} onClick={() => setOpen(o => !o)}
+        className="rounded-md border px-2 py-1 text-xs"
+        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: value ? "var(--text-primary)" : "var(--text-faint)" }}>
+        {value || label}
+      </button>
+      <DatePicker open={open} anchorRef={anchorRef} value={value}
+        onChange={v => { onChange(v.slice(0, 10)); setOpen(false); }} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+function DownloadReport() {
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "custom">("monthly");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const customOk = period !== "custom" || (start && end && start <= end);
+  const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}`;
+  return (
+    <section className="mb-8 rounded-lg border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <BarChart2 size={14} style={{ color: "var(--text-muted)" }} />
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Download report</h2>
+        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+          KPIs with period-over-period deltas, trend, labelled forecast — workspace calendar, base currency
+        </span>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] as const).map(p => (
+          <button key={p} onClick={() => setPeriod(p)}
+            className="rounded-full border px-3 py-1 text-xs capitalize transition-colors"
+            style={period === p
+              ? { borderColor: "var(--section-accent, var(--text-primary))", color: "var(--text-primary)", background: "var(--surface-hover)" }
+              : { borderColor: "var(--border-soft)", color: "var(--text-muted)", background: "transparent" }}>
+            {p}
+          </button>
+        ))}
+        {period === "custom" && (
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            <ExportDateButton label="Start date" value={start} onChange={setStart} />
+            →
+            <ExportDateButton label="End date" value={end} onChange={setEnd} />
+          </span>
+        )}
+        <span className="grow" />
+        {customOk ? (
+          <>
+            <a href={`${BASE_URL}/api/v1/reports/export.xlsx?${qs}`}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              Excel workbook
+            </a>
+            <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              Charts report
+            </a>
+          </>
+        ) : (
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function SalesOutcomes() {
   const r = periodRange("month"); const pr = previousRange("month");
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
@@ -604,6 +683,9 @@ export function ReportsPage() {
         subtitle="Live analytics computed from your records — AI insight where a run exists."
         status={[{ label: "computed from records", kind: "monitoring" }]}
       />
+
+      {/* ── Downloadable report — Excel + charts, built server-side from THE money model ── */}
+      <DownloadReport />
 
       {/* ── Sales — business outcomes (admins; hidden otherwise) ── */}
       <SalesOutcomes />
