@@ -51,3 +51,28 @@ describe("the census cache and the cancellation path", () => {
     expect(del).toMatch(/sequence: 1/);
   });
 });
+
+describe("the answering doctrine demands analysis, not data dumps", () => {
+  const ASK = readFileSync(join(__dirname, "../routes/ask.ts"), "utf8");
+  /**
+   * "Top tier like Claude" is a testable set of behaviours, not vibes: read the problem behind the
+   * question, say what the data MEANS against its baseline, state uncomfortable findings plainly,
+   * end with one next action, calibrate uncertainty, answer every part, scale depth to the ask.
+   */
+  it("teaches the behaviours, each one", () => {
+    for (const rule of [
+      "READ THE PROBLEM BEHIND THE QUESTION",
+      "WHAT IT MEANS",
+      "COMPARE to the natural baseline",
+      "SAY THE UNCOMFORTABLE THING",
+      "THE ONE NEXT ACTION",
+      "CALIBRATE",
+      "MULTI-PART question",
+      "DEPTH SCALES WITH THE QUESTION",
+    ]) expect(ASK, `doctrine must include: ${rule}`).toContain(rule);
+  });
+
+  it("depth-scaling guards against the opposite failure — padding simple answers", () => {
+    expect(ASK).toMatch(/Never pad a simple answer/);
+  });
+});
