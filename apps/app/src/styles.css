@@ -888,14 +888,28 @@ html[data-theme="dark"] .minimal-sparkline {
   color: var(--text-primary);
   padding-left: 0.25rem;
 }
+/*
+ * The conversation reads like a DOCUMENT, not a terminal (2026-08-15).
+ *
+ * Claude's chat works because the machinery stays out of the prose: the user's turn is a quiet
+ * filled bubble, the assistant's turn is plain flowing text at a comfortable reading measure, and
+ * nothing draws a rail down the page. Ours drew a border-left down every answer and left the user's
+ * words in a hollow outline — console aesthetics fighting readable prose. Shared classes, so the
+ * full Ask page, Home's inline thread, and anything else that talks to /ask restyle together.
+ */
 .ask-user-bubble {
-  border: 1px solid var(--border-soft);
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 60%, transparent);
+  background: var(--surface-card);
   color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-sm);   /* the tail — reads as "spoken from the right" without a triangle */
 }
 .ask-assistant-line {
-  border-left: 1px solid color-mix(in srgb, var(--border-strong) 80%, transparent);
+  /* No rail. The answer is the page's main text; a gutter line demoted it to console output. */
+  font-size: 0.9375rem;
+  line-height: 1.75;
 }
+.ask-assistant-line p + p { margin-top: 0.65em; }
 
 /* Home's "frames" (Tasks/Meetings cards, the Agent Constellation's empty
    state, the Needs You list) use the same surface-card utility the rest

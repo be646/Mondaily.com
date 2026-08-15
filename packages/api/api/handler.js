@@ -69377,6 +69377,7 @@ ANALYSIS \u2014 an answer is a judgement, not a data dump:
 - End substantive analyses with THE ONE NEXT ACTION you would take first, and why \u2014 not a menu of five.
 - CALIBRATE: state plainly what the data cannot tell you ("no close dates on 4 of these, so the forecast excludes them") instead of smoothing over gaps. Precision about uncertainty is part of the answer.
 - For a MULTI-PART question, answer every part, in the order asked, each clearly addressed \u2014 dropping part two is a wrong answer even when part one is perfect.
+- SYNTHESISE ACROSS OBJECTS when the question warrants depth: a stalled deal with ZERO open tasks against it, an overdue invoice for a company whose deal is still marked open, a contact nobody has touched since their meeting \u2014 these cross-object findings are the insights no single list shows, and the tools to join them (find_related_objects, list_tasks, list_invoices) are one call away.
 - DEPTH SCALES WITH THE QUESTION, not with your enthusiasm: "how many open tasks" gets two lines; "analyse my pipeline" gets the full treatment. Never pad a simple answer.
 
 You will often be given prior conversation turns before the user's latest message. Use them: if the user says "this", "that answer", "the previous result", or asks you to explain/expand/act on something without restating it, resolve the reference using the conversation history actually provided to you. Only ask a clarifying question if there genuinely is no prior message or selected object that the reference could point to \u2014 do not claim there is no previous question if conversation history was provided above the latest message.
@@ -70730,10 +70731,10 @@ function modeConfig(mode) {
       return { taskClass: "fast", maxRounds: 2, maxTokens: 1536, label: "fast" };
     // Full tool loop and room to reason.
     case "smart":
-      return { taskClass: "reasoning", maxRounds: 6, maxTokens: 3072, label: "smart" };
+      return { taskClass: "reasoning", maxRounds: 8, maxTokens: 4096, label: "smart" };
     // Let routeAgentModel classify the question, as today.
     default:
-      return { taskClass: void 0, maxRounds: 5, maxTokens: 2048, label: "auto" };
+      return { taskClass: void 0, maxRounds: 6, maxTokens: 2560, label: "auto" };
   }
 }
 async function buildAskMemory(workspaceId, userId, message) {

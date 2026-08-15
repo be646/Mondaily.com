@@ -274,7 +274,9 @@ describe("Ask modes are real", () => {
     // model spec, and /ask/stream validated the field then ignored it entirely.
     expect(ask).toMatch(/export function modeConfig/);
     expect(ask).toMatch(/case "fast":\s*return \{ taskClass: "fast",\s*maxRounds: 2/);
-    expect(ask).toMatch(/case "smart": return \{ taskClass: "reasoning", maxRounds: 6/);
+    // Budgets deepened 2026-08-15 (smart 6→8 rounds for cross-object synthesis); the intent this
+    // test protects — three modes doing genuinely different amounts of work — is unchanged.
+    expect(ask).toMatch(/case "smart": return \{ taskClass: "reasoning", maxRounds: 8/);
     // and the budgets actually reach the gateway
     const wired = ask.match(/maxRounds: askMode\.maxRounds/g) ?? [];
     expect(wired.length).toBe(2);   // /ask and /ask/stream

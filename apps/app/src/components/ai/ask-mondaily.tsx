@@ -337,7 +337,7 @@ export function AskMondaily() {
             const meta = messageMeta[i];
             const AgentIcon = meta?.agent.icon;
             return (
-              <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
+              <div key={i} className={m.role === "user" ? "mx-auto w-full max-w-3xl flex justify-end" : "mx-auto w-full max-w-3xl flex gap-3 items-start"}>
                 {m.role === "assistant" && (
                   <div className="mt-0.5 shrink-0 text-[var(--text-secondary)]">
                     <LogoMark size={16}/>
@@ -345,7 +345,7 @@ export function AskMondaily() {
                 )}
 
                 {m.role === "user" ? (
-                  <div className="ask-user-bubble max-w-[72%] rounded-sm rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
+                  <div className="ask-user-bubble max-w-[72%] px-4 py-2.5 text-sm leading-relaxed">
                     {m.content}
                   </div>
                 ) : (
@@ -432,8 +432,8 @@ export function AskMondaily() {
                           { key: "report" as const, label: "Create report", Icon: BarChart2 },
                         ]).map(({ key, label, Icon }) => (
                           <button key={key} onClick={() => sendSuggestion(buildChipText(key, i))}
-                            className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
-                            style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
+                            style={{ borderColor: "var(--border-soft)", background: "transparent", color: "var(--text-secondary)" }}>
                             <Icon size={11}/> {label}
                           </button>
                         ))}
@@ -448,7 +448,7 @@ export function AskMondaily() {
 
         {/* Thinking */}
         {loading && (
-          <div className="flex items-center gap-3 pl-1 text-[var(--text-muted)]">
+          <div className="mx-auto w-full max-w-3xl flex items-center gap-3 pl-1 text-[var(--text-muted)]">
             <LogoSymbol size={36} thinking />
             <span className="text-sm italic tracking-wide">{liveStep}…</span>
           </div>
@@ -456,7 +456,7 @@ export function AskMondaily() {
 
         {/* Follow-up suggestions — fade-in sage pills, matching Home */}
         {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
-          <div className="chat-pills-in flex flex-wrap gap-2 pl-5">
+          <div className="mx-auto w-full max-w-3xl chat-pills-in flex flex-wrap gap-2 pl-5">
             {suggestions.map((s, i) => (
               <button key={`${i}-${s}`} onClick={() => sendSuggestion(s)}
                 className="group inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
