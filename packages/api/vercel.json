@@ -1,5 +1,6 @@
 {
   "buildCommand": "npx tsup && (node scripts/log-deploy.mjs || true)",
+  "regions": ["fra1"],
   "functions": {
     "api/handler.js": { "maxDuration": 300 }
   },

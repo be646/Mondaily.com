@@ -149,7 +149,12 @@ describe("the cron runs hourly on purpose", () => {
   it("is scheduled hourly, not monthly at UTC midnight", () => {
     // A single monthly UTC trigger closes a Warsaw month two hours early and an Auckland month
     // twelve hours late. Hourly + calendar lets every workspace close on its own midnight.
-    expect(read("packages/api/vercel.json")).toMatch(/"path": "\/api\/cron\/period-close", "schedule": "5 \* \* \* \*"/);
+    // Parsed, not pattern-matched: this used to pin the file's FORMATTING, so simply reflowing
+    // vercel.json broke a test about scheduling. Read the value that actually matters.
+    expect(
+      (JSON.parse(read("packages/api/vercel.json")).crons as { path: string; schedule: string }[])
+        .find(c => c.path === "/api/cron/period-close")?.schedule,
+    ).toBe("5 * * * *");
   });
 
   it("fails closed without CRON_SECRET, like every other cron here", () => {
