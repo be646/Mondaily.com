@@ -123,6 +123,9 @@ export function HomePage() {
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
   const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
   const [taskWidgetReply, setTaskWidgetReply] = useState<string | null>(null);
+  // Follow-ups for the LAST widget answer. The API returned these on every call and the widget
+  // read the field and then threw it away — suggestions existed everywhere except where shown.
+  const [taskWidgetFollowups, setTaskWidgetFollowups] = useState<string[]>([]);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const taskPickerRef = useRef<HTMLDivElement>(null);
   const [scanReport, setScanReport] = useState<string | null>(null);
@@ -223,7 +226,7 @@ export function HomePage() {
   // sources. Home's context is general workspace scope.
   const {
     messages, setMessages, currentThreadId, setCurrentThreadId, loading,
-    suggestions, setSuggestions, messageMeta, doSend, buildChipText, stop, regenerate, streamStatus,
+    suggestions, setSuggestions, messageMeta, doSend, buildChipText, stop, regenerate, streamStatus, tokenCount, elapsedSeconds,
   } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)", ...attachContext }, onAssistantMessage: startStreaming });
 
   useEffect(() => {
@@ -471,6 +474,7 @@ export function HomePage() {
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
       const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model });
       setTaskWidgetReply(data.reply || "Done.");
+      setTaskWidgetFollowups((data.suggestions ?? []).slice(0, 3));
       // Refresh task list in case AI created/updated tasks
       qc.invalidateQueries({ queryKey: ["tasks", "home"] });
     } catch (err: any) {
@@ -714,7 +718,10 @@ export function HomePage() {
                             // one is streaming; otherwise a plain "Thinking…". This used to cycle a
                             // fixed 4-step script on an 850ms timer — invented progress that had no
                             // connection to what the model was actually doing.
-                            ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{streamStatus ?? "Thinking"}…</span>
+                            ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>
+                                {streamStatus ?? (tokenCount > 0 ? "Writing" : "Thinking")}…
+                                {" "}<span className="not-italic tabular-nums opacity-70">· {elapsedSeconds < 60 ? `${elapsedSeconds}s` : `${Math.floor(elapsedSeconds / 60)}m ${String(elapsedSeconds % 60).padStart(2, "0")}s`}{tokenCount > 0 ? ` · ~${tokenCount} tokens` : ""}</span>
+                              </span>
                             : isStreaming
                               // While streaming: render as STABLE plain text (the parent is
                               // whitespace-pre-wrap) so half-typed lines don't re-parse into
@@ -1187,10 +1194,21 @@ export function HomePage() {
               <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
                 <LogoMark size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>
                 <p className="flex-1 whitespace-pre-wrap text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{taskWidgetReply}</p>
-                <button onClick={() => setTaskWidgetReply(null)} title="Dismiss"
+                <button onClick={() => { setTaskWidgetReply(null); setTaskWidgetFollowups([]); }} title="Dismiss"
                   className="shrink-0 transition-colors" style={{ color: "var(--text-faint)" }}>
                   <X size={11}/>
                 </button>
+              </div>
+            )}
+            {taskWidgetReply && taskWidgetFollowups.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {taskWidgetFollowups.map((f, i) => (
+                  <button key={i} onClick={() => { setTaskWidgetReply(null); setTaskWidgetFollowups([]); void submitTaskWidgetInput(f); }}
+                    className="rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-[var(--surface-hover)]"
+                    style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                    {f}
+                  </button>
+                ))}
               </div>
             )}
           </div>

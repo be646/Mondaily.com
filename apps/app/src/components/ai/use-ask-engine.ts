@@ -75,6 +75,16 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
   const [messageMeta, setMessageMeta] = useState<MessageMeta>(() => metaFromMessages(initial?.messages ?? []));
   /** Live token count of the answer currently streaming (resets each send). */
   const [tokenCount, setTokenCount] = useState(0);
+  /**
+   * Elapsed seconds for the CURRENT turn, from a real clock.
+   *
+   * Counted from the moment the request leaves, ticked once a second, frozen when the turn ends —
+   * so what the user reads is the actual wall time their question has taken, not an animation.
+   */
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const freezeClock = () => { if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; } };
+
   /** Current tool-activity status during streaming, e.g. "Running search records…". */
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
 
@@ -108,6 +118,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     setLoading(true);
     setSuggestions([]);
     setTokenCount(0);
+    setElapsedSeconds(0);
+    if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+    const startedAt = Date.now();
+    elapsedTimerRef.current = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     setStreamStatus(null);
 
     let model = "auto";
@@ -179,7 +193,14 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
           try { ev = JSON.parse(payload); } catch { continue; }
           if (ev.type === "token") {
             streamed += ev.text;
-            tokens += 1;
+            /**
+             * ESTIMATED from characters, not counted from frames. One SSE frame can carry many
+             * tokens, so `frames++` understated long answers by whatever the transport happened to
+             * batch — the number changed with network conditions, not with the answer. ~4 chars per
+             * token is the same estimate used everywhere else here; the EXACT count arrives with
+             * the provider's usage on the done frame and replaces this.
+             */
+            tokens = estimateTokens(streamed);
             setTokenCount(tokens);
             setStreamStatus(null);
             applyText(streamed.replace(/<followups>[\s\S]*$/, "")); // never show the control block
@@ -220,7 +241,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         addMessageToThread(tid, { role: "assistant", content: partial, sources: liveSources });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(liveSources), tokens: estimateTokens(partial) } }));
         opts.onAssistantMessage?.(aiIdx, partial, true); // this text already appeared live
-        setLoading(false);
+        freezeClock(); setLoading(false);
         setStreamStatus(null);
         return;
       }
@@ -247,7 +268,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         addMessageToThread(tid, errMsg);
       }
     }
-    setLoading(false);
+    freezeClock(); setLoading(false);
     setStreamStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, currentThreadId, loading, opts.context]);
@@ -291,7 +312,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
    *  partial text already streamed, so the user keeps what was produced. */
   const stop = useCallback(() => {
     abortRef.current?.abort();
-    setLoading(false);
+    freezeClock(); setLoading(false);
   }, []);
 
   /** Regenerate the last answer: drop the last assistant turn and re-ask the last
@@ -314,7 +335,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     currentThreadId, setCurrentThreadId,
     loading, suggestions, setSuggestions,
     messageMeta, setMessageMeta,
-    tokenCount, streamStatus,
+    tokenCount, elapsedSeconds, streamStatus,
     doSend, loadThread, buildChipText, clear, stop, regenerate,
   };
 }

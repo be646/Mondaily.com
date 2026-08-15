@@ -137,6 +137,22 @@ function HelpPanel({ prefill }: { prefill: string }) {
   const { session, update, close, newInquiry } = useHelp();
   const [input, setInput] = useState(prefill);
   const [busy, setBusy] = useState(false);
+  /**
+   * A real elapsed clock for the current inquiry — the one Claude-like signal this panel CAN show
+   * honestly. The agent answers in strict JSON parsed whole, so token-streaming it would mean
+   * showing half a JSON object; and inventing per-step progress for phases that emit no events is
+   * the fake-activity pattern this codebase keeps having to remove. What is true: the request is
+   * out, real time is passing, and the agent reads your workspace and diagnostics before writing.
+   * So that is what is shown.
+   */
+  const [busySeconds, setBusySeconds] = useState(0);
+  useEffect(() => {
+    if (!busy) return;
+    setBusySeconds(0);
+    const started = Date.now();
+    const id = setInterval(() => setBusySeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
   const [feedbackText, setFeedbackText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -312,7 +328,14 @@ function HelpPanel({ prefill }: { prefill: string }) {
               )}
             </div>
           ))}
-          {busy && <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> …</div>}
+          {/* A bare spinner and an ellipsis told the user nothing. This is what is truthfully known. */}
+          {busy && (
+            <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}>
+              <Loader2 size={13} className="animate-spin" />
+              <span>Investigating — reading your workspace and diagnostics…</span>
+              <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{busySeconds}s</span>
+            </div>
+          )}
 
           {/* Resolution controls — after Help has responded, ask if it's solved */}
           {showResolution && (

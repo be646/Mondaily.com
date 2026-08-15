@@ -85,7 +85,10 @@ describe("Home audit 2026-07-31 — nothing claims to be live that isn't", () =>
   });
 
   it("thinking text is the engine's real tool phase, not a timed script", () => {
-    expect(home()).toMatch(/streamStatus \?\? "Thinking"/);
+    // Strengthened 2026-08-15: once tokens flow the truthful phase is "Writing", so the line is
+    // now streamStatus ?? (tokenCount > 0 ? "Writing" : "Thinking") — still the engine's real
+    // state, still no timed script.
+    expect(home()).toMatch(/streamStatus \?\? \(tokenCount > 0 \? "Writing" : "Thinking"\)/);
     expect(home()).not.toMatch(/GRAPH_REASONING_STEPS\[thinkingStep\]/);
   });
 

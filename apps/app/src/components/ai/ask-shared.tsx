@@ -227,13 +227,9 @@ export function TokenLedger({ usage }: { usage?: { prompt_tokens?: number; compl
  * the backend confirmed.
  */
 
-// ── Reasoning steps — shown while waiting on a response ─────────────────────
-export const GRAPH_REASONING_STEPS = [
-  "Reading workspace graph",
-  "Finding related objects",
-  "Checking recent signals",
-  "Preparing answer",
-];
+// (The canned "reasoning steps" list that used to live here is gone. It rotated on a timer while
+// claiming to describe real phases — the actual step arrives in streamStatus from real tool calls,
+// and Home's audit had already banned the fake once. Removed at the last call site, 2026-08-15.)
 
 // ── Agent handoff — inferred lightly from prompt keywords, never fabricated
 // as a backend-confirmed fact ──────────────────────────────────────────────

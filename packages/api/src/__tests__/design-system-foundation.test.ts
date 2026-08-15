@@ -1725,7 +1725,9 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
   it("task-widget AI reply is actually rendered, not computed and discarded", () => {
     expect(home).toMatch(/\{taskWidgetReply && \(/);
     expect(home).toMatch(/\{taskWidgetReply\}<\/p>/);
-    expect(home).toMatch(/onClick=\{\(\) => setTaskWidgetReply\(null\)\}/);
+    // Dismiss now also clears the follow-up chips shown under the reply (2026-08-15) — same
+    // intent: the reply is rendered and dismissable, not computed and discarded.
+    expect(home).toMatch(/onClick=\{\(\) => \{ setTaskWidgetReply\(null\); setTaskWidgetFollowups\(\[\]\); \}\}/);
   });
 });
 

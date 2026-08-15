@@ -17,7 +17,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
-import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
+import { EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 import { useVoiceDictation } from "./use-voice";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
@@ -117,7 +117,7 @@ export function AskMondaily() {
   // and real sources. This page's context is general workspace scope
   // unless a thread is already open.
   const attach = useAttachments();
-  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, streamStatus, doSend, loadThread, buildChipText, clear, stop } =
+  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, elapsedSeconds, streamStatus, doSend, loadThread, buildChipText, clear, stop } =
     useAskEngine({
       initialThreadId: threadId && threadId !== "new" ? threadId : null,
       context: { scope_label: "the Ask Mondaily page (general workspace)", ...attach.attachContext },
@@ -137,24 +137,21 @@ export function AskMondaily() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reasoning steps — cycles through while waiting on a response, honest UI
-  // state (not a fake animation): each label is a real phase of the request.
-  const [thinkingStep, setThinkingStep] = useState(0);
-  useEffect(() => {
-    if (!loading) { setThinkingStep(0); return; }
-    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, GRAPH_REASONING_STEPS.length - 1)), 850);
-    return () => clearInterval(id);
-  }, [loading]);
-
-  // Elapsed "time spent thinking" — a clean ticking counter while a reply is
-  // being generated (rolls from seconds into m:ss).
-  const [thinkingSeconds, setThinkingSeconds] = useState(0);
-  useEffect(() => {
-    if (!loading) { setThinkingSeconds(0); return; }
-    setThinkingSeconds(0);
-    const id = setInterval(() => setThinkingSeconds(s => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [loading]);
+  /**
+   * THE STATUS LINE SHOWS WHAT IS ACTUALLY HAPPENING — nothing else.
+   *
+   * This used to rotate a canned list ("Reading workspace graph → Finding related objects → …") on
+   * an 850ms timer, under a comment insisting it was "not a fake animation". It was exactly that:
+   * the labels advanced with the clock, not with the work, and the REAL step was already arriving
+   * in streamStatus from actual tool calls and being displaced by the fake one.
+   *
+   * Now: "Thinking" until the model does anything observable (true — the request is with the
+   * model), the tool's own name while a tool runs, "Writing" once tokens flow. The clock is the
+   * engine's single real one, started when the request left and frozen when the turn ends — the
+   * old local copy reset to zero the moment the answer landed, erasing the number it existed to
+   * show.
+   */
+  const liveStep = streamStatus ?? (tokenCount > 0 ? "Writing" : "Thinking");
   const fmtElapsed = (s: number) => (s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`);
 
   // Close picker on outside click
@@ -277,9 +274,10 @@ export function AskMondaily() {
               </span>
               {loading && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-normal tracking-normal text-[var(--text-muted)]">
-                  <span>{streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}</span>
+                  <span>{liveStep}…</span>
                   <span className="opacity-50">·</span>
-                  <span className="tabular-nums">{fmtElapsed(thinkingSeconds)}</span>
+                  <span className="tabular-nums">{fmtElapsed(elapsedSeconds)}</span>
+                  {tokenCount > 0 && <><span className="opacity-50">·</span><span className="tabular-nums">~{tokenCount} tokens</span></>}
                 </span>
               )}
             </h1>
@@ -452,7 +450,7 @@ export function AskMondaily() {
         {loading && (
           <div className="flex items-center gap-3 pl-1 text-[var(--text-muted)]">
             <LogoSymbol size={36} thinking />
-            <span className="text-sm italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+            <span className="text-sm italic tracking-wide">{liveStep}…</span>
           </div>
         )}
 
