@@ -179,7 +179,14 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
 
       while (true) {
         const { done, value } = await reader.read();
-        bump(30_000); // reset the stall window on every frame received
+        /**
+         * 75s, not 30. The stall window was tuned when answers were one or two shallow rounds.
+         * A deep multi-round analysis legitimately goes quiet for longer than 30s between frames —
+         * the model is ingesting large tool results before its final synthesis — and the guard was
+         * aborting REAL work in progress, then falling back and re-charging for a second attempt.
+         * Seen live on a six-round cross-object question that had already streamed all its sources.
+         */
+        bump(75_000);
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");

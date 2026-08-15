@@ -1753,7 +1753,7 @@ export function modeConfig(mode?: AskMode): { taskClass?: TaskClass; maxRounds: 
     // Full tool loop and room to reason.
     case "smart": return { taskClass: "reasoning", maxRounds: 8, maxTokens: 4096, label: "smart" };
     // Let routeAgentModel classify the question, as today.
-    default:      return { taskClass: undefined,   maxRounds: 6, maxTokens: 2560, label: "auto" };
+    default:      return { taskClass: undefined,   maxRounds: 5, maxTokens: 2560, label: "auto" };
   }
 }
 /**

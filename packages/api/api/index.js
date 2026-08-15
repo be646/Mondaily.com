@@ -71783,7 +71783,7 @@ function modeConfig(mode) {
       return { taskClass: "reasoning", maxRounds: 8, maxTokens: 4096, label: "smart" };
     // Let routeAgentModel classify the question, as today.
     default:
-      return { taskClass: void 0, maxRounds: 6, maxTokens: 2560, label: "auto" };
+      return { taskClass: void 0, maxRounds: 5, maxTokens: 2560, label: "auto" };
   }
 }
 async function buildAskMemory(workspaceId, userId, message) {
