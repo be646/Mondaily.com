@@ -126,28 +126,30 @@ function Sheet({ title, sub, right, children, className = "" }: { title: string;
   );
 }
 
-/** Tiny live trend preview for the Report studio — the SAME bundle the exports render. */
+/**
+ * Tiny live trend sparkline for the Report studio header — the SAME bundle the exports render.
+ * Deliberately small: it seasons the sheet with real data; the full chart belongs to the files
+ * and the dashboard widgets, so a half-panel preview only left the studio looking empty.
+ */
 function StudioTrendPreview() {
   interface Mini { series: { label: string; won: number; projected?: boolean }[]; forecastFrom: number | null; meta: { base: string } }
   const q = useQuery<Mini>({ queryKey: ["ws-bundle", "monthly"], queryFn: () => apiClient.get("/reports/bundle.json?period=monthly"), staleTime: 120_000 });
   const series = q.data?.series ?? [];
-  if (q.isLoading) return <div className="h-20 animate-pulse rounded-md" style={{ background: "var(--surface-hover)" }} />;
-  if (!series.length) return <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>No trend data in this window yet.</p>;
-  const W = 260, H = 72, PAD = 6;
+  if (!series.length) return null;                                  // quiet: no skeleton, no filler box
+  const W = 132, H = 30, PAD = 3;
   const max = Math.max(1, ...series.map(s => s.won));
   const x = (i: number) => PAD + (i * (W - PAD * 2)) / Math.max(1, series.length - 1);
-  const y = (v: number) => H - 10 - (v / max) * (H - 20);
+  const y = (v: number) => H - 5 - (v / max) * (H - 10);
   const cut = q.data?.forecastFrom ?? series.length;
   const pts = (from: number, to: number) => series.slice(from, to).map((s, i) => `${x(from + i).toFixed(1)},${y(s.won).toFixed(1)}`).join(" ");
   return (
-    <div>
-      <p className="mb-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Live preview — closed won this month, projection dashed</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Closed won trend preview">
-        <line x1={PAD} y1={H - 8} x2={W - PAD} y2={H - 8} stroke="var(--border-soft)" strokeWidth="1" />
-        <polyline points={pts(0, cut)} fill="none" stroke="var(--section-accent)" strokeWidth="2" strokeLinejoin="round" />
-        {cut < series.length && <polyline points={pts(cut - 1, series.length)} fill="none" stroke="var(--section-accent)" strokeWidth="2" strokeDasharray="4 3" />}
+    <span className="inline-flex items-center gap-1.5" title="Closed won this month — live, projection dashed">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-[30px] w-[132px]" role="img" aria-label="Closed won trend, projection dashed">
+        <polyline points={pts(0, cut)} fill="none" stroke="var(--section-accent)" strokeWidth="1.8" strokeLinejoin="round" />
+        {cut < series.length && <polyline points={pts(cut - 1, series.length)} fill="none" stroke="var(--section-accent)" strokeWidth="1.8" strokeDasharray="3 2.5" />}
       </svg>
-    </div>
+      <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>won · live</span>
+    </span>
   );
 }
 
@@ -616,21 +618,8 @@ function DownloadReport() {
   const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}&ws=${ws}`;
   return (
     <Sheet title="Report studio" sub="KPIs with deltas, trend, labelled forecast — workspace calendar, base currency"
-      right={customOk ? (
-        <span className="flex items-center gap-2">
-          <a href={`${BASE_URL}/api/v1/reports/export.xlsx?${qs}`}
-            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Excel workbook</a>
-          <a href={`${BASE_URL}/api/v1/reports/export.pdf?${qs}`}
-            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>PDF report</a>
-          <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
-            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Charts report</a>
-        </span>
-      ) : <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>}>
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-      <div className="flex flex-wrap items-center gap-2 self-center">
+      right={<StudioTrendPreview />}>
+      <div className="flex flex-wrap items-center gap-2">
         {(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] as const).map(p => (
           <button key={p} onClick={() => setPeriod(p)}
             className="rounded-full border px-3 py-1 text-xs capitalize transition-colors"
@@ -648,10 +637,22 @@ function DownloadReport() {
           </span>
         )}
         <span className="grow" />
-      </div>
-      <div className="border-t pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0" style={{ borderColor: "var(--border-soft)" }}>
-        <StudioTrendPreview />
-      </div>
+        <span className="grow" />
+        {customOk ? (
+          <>
+            <a href={`${BASE_URL}/api/v1/reports/export.xlsx?${qs}`}
+              className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Excel workbook</a>
+            <a href={`${BASE_URL}/api/v1/reports/export.pdf?${qs}`}
+              className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>PDF report</a>
+            <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
+              className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Charts report</a>
+          </>
+        ) : (
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>
+        )}
       </div>
       <ReportScheduleRow />
       <PastReports />
