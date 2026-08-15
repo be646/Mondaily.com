@@ -205,8 +205,9 @@ describe("the surfaces are wired", () => {
 describe("a plain link click can actually reach the export routes", () => {
   const auth = readFileSync(join(__dirname, "../middleware/auth.ts"), "utf8");
 
-  it("requireAuth accepts ?ws= ONLY for the two GET export paths — found live: a top-level navigation cannot send X-Workspace-Id", () => {
-    expect(auth).toMatch(/\/reports\\\/export\\\.\(xlsx\|html\|pdf\)\$\//);
+  it("requireAuth accepts ?ws= ONLY for GET report downloads (exports + archive) — found live: a top-level navigation cannot send X-Workspace-Id", () => {
+    expect(auth).toContain("export\\.(xlsx|html|pdf)");
+    expect(auth).toContain("archive\\/[\\w-]+\\/(xlsx|pdf)");
     expect(auth).toMatch(/c\.req\.method === "GET"/);
     // The header stays the primary transport for everything else.
     expect(auth).toContain('c.req.header("X-Workspace-Id") ?? (navExport ? c.req.query("ws") : undefined)');

@@ -17,7 +17,8 @@ import { useEscapeClose } from "@/components/ui/modal";
 interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
 interface ReportWidget { id: string; type: "report"; report_id: string; title?: string; chart_type?: "line"|"bar"; size?: "small"|"large" }
 interface LegacyWidget { id: string; type?: undefined; report_id?: string; title?: string; chart_type?: "line"|"bar"; data?: { label: string; value: number }[]; size?: "small"|"large" }
-type AnyWidget = LiveWidget | ReportWidget | LegacyWidget;
+interface WorkspaceWidget { id: string; type: "workspace"; metric: "trend" | "stages"; period?: "weekly" | "monthly" | "quarterly" | "yearly"; title?: string; size?: "small"|"large" }
+type AnyWidget = LiveWidget | ReportWidget | LegacyWidget | WorkspaceWidget;
 
 interface Dashboard { id: string; name?: string; access?: "private"|"workspace"; widgets?: AnyWidget[]; updated_at?: string }
 interface ReportOption { id: string; name: string; type: string }
@@ -343,16 +344,60 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
   );
 }
 
+// ─── Workspace widget — the download-report bundle's charts, pinned live ─────
+// Same composition the Excel/PDF/HTML exports render (GET /reports/bundle.json), so a pinned
+// chart can never disagree with a downloaded one. Projection stays visually separated here too.
+function WorkspaceWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, onDrop }: {
+  widget: WorkspaceWidget; onRemove: () => void; onResize: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver:  (e: React.DragEvent) => void;
+  onDrop:      (e: React.DragEvent) => void;
+}) {
+  const period = widget.period ?? "monthly";
+  interface Bundle { series: { label: string; won: number; projected?: boolean }[]; forecastFrom: number | null; pipelineByStage: { stage: string; value: number }[]; meta: { base: string } }
+  const q = useQuery<Bundle>({
+    queryKey: ["ws-bundle", period],
+    queryFn: () => apiClient.get(`/reports/bundle.json?period=${period}`),
+    staleTime: 120_000,
+  });
+  const title = widget.title || (widget.metric === "trend" ? "Closed won trend" : "Pipeline by stage");
+  const data = widget.metric === "trend"
+    ? (q.data?.series ?? []).map(s => ({ label: s.label, value: s.won }))
+    : (q.data?.pipelineByStage ?? []).map(s => ({ label: s.stage, value: s.value }));
+  return (
+    <WidgetShell
+      title={`${title} · ${period}`}
+      icon={<LineChartIcon size={13} style={{ color: "var(--section-accent)" }} />}
+      link="/reports" linkLabel="Reports"
+      size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
+      onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+    >
+      {q.isLoading ? (
+        <div className="flex h-40 items-center justify-center"><Loader2 size={16} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
+      ) : q.isError ? (
+        <p className="py-10 text-center text-xs" style={{ color: "var(--text-faint)" }}>Couldn't load the workspace bundle.</p>
+      ) : data.length === 0 ? (
+        <p className="py-10 text-center text-xs" style={{ color: "var(--text-faint)" }}>No data in this window yet.</p>
+      ) : (
+        <AutoChart chartType={widget.metric === "trend" ? "line" : "bar"} data={data}
+          forecastFrom={widget.metric === "trend" ? (q.data?.forecastFrom ?? undefined) : undefined}
+          height={widget.size === "large" ? 260 : 190} />
+      )}
+    </WidgetShell>
+  );
+}
+
 function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   objects: ObjectType[]; reports: ReportOption[];
   onAdd: (w: AnyWidget) => void; onClose: () => void;
 }) {
   useEscapeClose(onClose);
-  const [tab, setTab] = useState<"live"|"report"|"custom">("live");
+  const [tab, setTab] = useState<"live"|"report"|"custom"|"workspace">("live");
   const TABS = [
-    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/> },
-    { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/> },
-    { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/> },
+    { id: "live"      as const, label: "Live Object",  icon: <Zap size={11}/> },
+    { id: "workspace" as const, label: "Workspace",    icon: <LineChartIcon size={11}/> },
+    { id: "report"    as const, label: "Saved Report", icon: <FileBarChart size={11}/> },
+    { id: "custom"    as const, label: "Custom Chart", icon: <Settings2 size={11}/> },
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -414,6 +459,30 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                     ))}
                   </div>
               }
+            </div>
+          ) : tab === "workspace" ? (
+            <div className="p-4">
+              <p className="mb-3 text-[11px] text-[var(--text-muted)]">The download-report charts, pinned live — identical numbers to the Excel/PDF exports.</p>
+              <div className="space-y-2">
+                {([
+                  { metric: "trend" as const, label: "Closed won & forecast", sub: "trend over the period, projection separated" },
+                  { metric: "stages" as const, label: "Pipeline by stage", sub: "open deal value per stage, as of now" },
+                ]).map(opt => (
+                  <div key={opt.metric} className="rounded-sm border border-[var(--border-soft)] p-3">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{opt.label}</p>
+                    <p className="mb-2 text-[11px] text-[var(--text-muted)]">{opt.sub}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(["weekly", "monthly", "quarterly", "yearly"] as const).map(p => (
+                        <button key={p}
+                          onClick={() => { onAdd({ id: crypto.randomUUID(), type: "workspace", metric: opt.metric, period: p }); onClose(); }}
+                          className="rounded-full border border-[var(--border-soft)] px-2.5 py-0.5 text-[11px] capitalize text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors">
+                          + {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <CustomChartTab objects={objects} onAdd={onAdd} onClose={onClose}/>
@@ -525,6 +594,7 @@ export function DashboardViewPage() {
 
   function isBroken(w: AnyWidget): boolean {
     if (w.type === "live") return !w.slug;
+    if (w.type === "workspace") return !w.metric;
     if (w.type === "report") return !w.report_id;
     // legacy: broken if no report_id AND no embedded data
     const leg = w as LegacyWidget;
@@ -597,6 +667,7 @@ export function DashboardViewPage() {
             const handlers = dh(w.id);
             if (isBroken(w)) return <BrokenWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
             if (w.type === "live") return <LiveWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
+            if (w.type === "workspace") return <WorkspaceWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
             return <ReportWidgetCard key={w.id} widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
           })}
         </div>

@@ -57842,7 +57842,7 @@ var init_auth = __esm({
     init_client();
     init_auth_tokens();
     requireAuth = createMiddleware(async (c2, next) => {
-      const navExport = c2.req.method === "GET" && /\/reports\/export\.(xlsx|html|pdf)$/.test(c2.req.path);
+      const navExport = c2.req.method === "GET" && /\/reports\/(export\.(xlsx|html|pdf)|archive\/[\w-]+\/(xlsx|pdf))$/.test(c2.req.path);
       const workspaceId = c2.req.header("X-Workspace-Id") ?? (navExport ? c2.req.query("ws") : void 0);
       if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
       let userId;
@@ -62257,9 +62257,247 @@ var init_report_export = __esm({
   }
 });
 
+// src/lib/pdf.ts
+function textWidth(s2, size, bold = false) {
+  let units = 0;
+  for (const ch of latin1(s2)) units += (HELV[ch] ?? 556) * (bold ? 1.06 : 1);
+  return units / 1e3 * size;
+}
+function fitText(s2, size, maxWidth, bold = false) {
+  if (textWidth(s2, size, bold) <= maxWidth) return s2;
+  let out = s2;
+  while (out.length > 1 && textWidth(out + "\u2026", size, bold) > maxWidth) out = out.slice(0, -1);
+  return out + "\u2026";
+}
+var A4, esc2, TRANSLIT, latin1, HELV, PdfDoc;
+var init_pdf = __esm({
+  "src/lib/pdf.ts"() {
+    "use strict";
+    A4 = { w: 595.28, h: 841.89 };
+    esc2 = (s2) => s2.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+    TRANSLIT = { "\u2014": "-", "\u2013": "-", "\u2192": ">", "\u2190": "<", "\u2212": "-", "\u2026": "...", "\u2019": "'", "\u2018": "'", "\u201C": '"', "\u201D": '"', "\u2713": "v", "\u0394": "d", "\u03A3": "S" };
+    latin1 = (s2) => Array.from(s2).map((ch) => TRANSLIT[ch] ?? (ch.charCodeAt(0) <= 255 ? ch : "?")).join("");
+    HELV = { " ": 278, "!": 278, '"': 355, "#": 556, $: 556, "%": 889, "&": 667, "'": 191, "(": 333, ")": 333, "*": 389, "+": 584, ",": 278, "-": 333, ".": 278, "/": 278, "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556, "6": 556, "7": 556, "8": 556, "9": 556, ":": 278, ";": 278, "<": 584, "=": 584, ">": 584, "?": 556, "@": 1015, A: 667, B: 667, C: 722, D: 722, E: 667, F: 611, G: 778, H: 722, I: 278, J: 500, K: 667, L: 556, M: 833, N: 722, O: 778, P: 667, Q: 778, R: 722, S: 667, T: 611, U: 722, V: 667, W: 944, X: 667, Y: 667, Z: 611, "[": 278, "\\": 278, "]": 278, "^": 469, _: 556, "`": 333, a: 556, b: 556, c: 500, d: 556, e: 556, f: 278, g: 556, h: 556, i: 222, j: 222, k: 500, l: 222, m: 833, n: 556, o: 556, p: 556, q: 556, r: 333, s: 500, t: 278, u: 556, v: 500, w: 722, x: 500, y: 500, z: 500, "{": 334, "|": 260, "}": 334, "~": 584 };
+    PdfDoc = class {
+      pages = [];
+      ops = [];
+      newPage() {
+        if (this.ops.length) this.pages.push(this.ops.join("\n"));
+        this.ops = [];
+      }
+      text(x2, y2, raw2, o2 = {}) {
+        const size = o2.size ?? 10;
+        const s2 = latin1(o2.maxWidth ? fitText(raw2, size, o2.maxWidth, o2.bold) : raw2);
+        let tx = x2;
+        if (o2.align === "right") tx = x2 - textWidth(s2, size, o2.bold);
+        if (o2.align === "center") tx = x2 - textWidth(s2, size, o2.bold) / 2;
+        const [r3, g2, b2] = o2.color ?? [0.07, 0.09, 0.15];
+        this.ops.push(`BT /${o2.bold ? "F2" : "F1"} ${size} Tf ${r3} ${g2} ${b2} rg 1 0 0 1 ${tx.toFixed(2)} ${y2.toFixed(2)} Tm (${esc2(s2)}) Tj ET`);
+      }
+      line(x1, y1, x2, y2, o2 = {}) {
+        const [r3, g2, b2] = o2.color ?? [0.9, 0.91, 0.92];
+        this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 0.75).toFixed(2)} w ${r3} ${g2} ${b2} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S Q`);
+      }
+      rect(x2, y2, w2, h2, color) {
+        const [r3, g2, b2] = color;
+        this.ops.push(`q ${r3} ${g2} ${b2} rg ${x2.toFixed(2)} ${y2.toFixed(2)} ${w2.toFixed(2)} ${h2.toFixed(2)} re f Q`);
+      }
+      polyline(points, o2 = {}) {
+        if (points.length < 2) return;
+        const [r3, g2, b2] = o2.color ?? [0, 0, 0];
+        const path = points.map(([x2, y2], i2) => `${x2.toFixed(2)} ${y2.toFixed(2)} ${i2 ? "l" : "m"}`).join(" ");
+        this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 1.5).toFixed(2)} w ${r3} ${g2} ${b2} RG 1 j 1 J ${path} S Q`);
+      }
+      /** Serialise: xref offsets are BYTE positions, so everything is measured in latin-1 lengths. */
+      finish() {
+        this.newPage();
+        const objects = [];
+        const pageCount = this.pages.length || 1;
+        const pageObjIds = Array.from({ length: pageCount }, (_2, i2) => 4 + i2 * 2);
+        objects.push(`<< /Type /Catalog /Pages 2 0 R >>`);
+        objects.push(`<< /Type /Pages /Kids [${pageObjIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageCount} >>`);
+        objects.push(`<< /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >> >>`);
+        (this.pages.length ? this.pages : [""]).forEach((content) => {
+          objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font 3 0 R >> /Contents ${objects.length + 2} 0 R >>`);
+          objects.push(`<< /Length ${content.length} >>
+stream
+${content}
+endstream`);
+        });
+        let out = "%PDF-1.4\n";
+        const offsets = [];
+        objects.forEach((body, i2) => {
+          offsets.push(out.length);
+          out += `${i2 + 1} 0 obj
+${body}
+endobj
+`;
+        });
+        const xref = out.length;
+        out += `xref
+0 ${objects.length + 1}
+0000000000 65535 f 
+`;
+        for (const off of offsets) out += `${String(off).padStart(10, "0")} 00000 n 
+`;
+        out += `trailer
+<< /Size ${objects.length + 1} /Root 1 0 R >>
+startxref
+${xref}
+%%EOF`;
+        const bytes = new Uint8Array(out.length);
+        for (let i2 = 0; i2 < out.length; i2++) bytes[i2] = out.charCodeAt(i2) & 255;
+        return bytes;
+      }
+    };
+  }
+});
+
+// src/lib/report-pdf.ts
+function reportToPdf(b2) {
+  const L2 = new Layout();
+  const d2 = L2.doc;
+  const dt2 = (iso) => iso.slice(0, 10);
+  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
+  d2.text(M2, L2.y, b2.meta.workspaceName.toUpperCase(), { size: 8, color: MUTED });
+  L2.advance(16);
+  d2.text(M2, L2.y, `${periodTitle} report${b2.meta.complete ? " \u2014 completed period" : ""}`, { size: 19, bold: true });
+  L2.advance(16);
+  d2.text(M2, L2.y, `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${b2.meta.timeZone} \xB7 base ${b2.meta.base}`, { size: 8.5, color: MUTED });
+  L2.advance(20);
+  const col2 = M2 + W2 * 0.5, col3 = M2 + W2 * 0.66;
+  for (const k2 of b2.kpis) {
+    L2.need(k2.note ? 26 : 15);
+    d2.text(M2, L2.y, k2.label, { size: 9.5, maxWidth: W2 * 0.46 });
+    d2.text(col2 + 60, L2.y, `${fmt2(k2.value)} ${b2.meta.base}`, { size: 9.5, bold: true, align: "right" });
+    const sub = k2.kind === "balance" ? "as of now" : k2.delta == null ? k2.previous != null ? `prev ${fmt2(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same window last period (${fmt2(k2.previous ?? 0)})`;
+    d2.text(col3 + 30, L2.y, sub, { size: 8, color: MUTED, maxWidth: W2 - (col3 + 30 - M2) });
+    L2.advance(12);
+    if (k2.note) {
+      d2.text(M2 + 8, L2.y, fitText(k2.note, 7.5, W2 - 8), { size: 7.5, color: AMBER });
+      L2.advance(11);
+    }
+    d2.line(M2, L2.y + 8, M2 + W2, L2.y + 8);
+    L2.advance(4);
+  }
+  L2.advance(14);
+  if (b2.series.length >= 2) {
+    L2.need(170);
+    d2.text(M2, L2.y, "Closed won & cash collected", { size: 11, bold: true });
+    L2.advance(12);
+    d2.text(M2, L2.y, "green = closed won \xB7 blue = cash collected" + (b2.forecastFrom ? " \xB7 dashed = least-squares projection of the real trend" : ""), { size: 7.5, color: MUTED });
+    L2.advance(12);
+    const CH = 110;
+    const top = L2.y, bottom = top - CH;
+    const max = Math.max(1, ...b2.series.map((s2) => Math.max(s2.won, s2.collected)));
+    const x2 = (i2) => M2 + 36 + i2 * (W2 - 44) / Math.max(1, b2.series.length - 1);
+    const yv = (v2) => bottom + v2 / max * CH;
+    d2.line(M2 + 36, bottom, M2 + W2, bottom, { color: LINE });
+    for (const f2 of [0, 0.5, 1]) d2.text(M2 + 32, yv(max * f2) - 3, fmt2(Math.round(max * f2)), { size: 7, color: FAINT, align: "right" });
+    const pts = (pick, from, to) => b2.series.slice(from, to).map((s2, i2) => [x2(from + i2), yv(pick(s2))]);
+    const solidEnd = b2.forecastFrom ?? b2.series.length;
+    d2.polyline(pts((s2) => s2.collected, 0, solidEnd), { color: BLUE, width: 1.2 });
+    d2.polyline(pts((s2) => s2.won, 0, solidEnd), { color: GREEN, width: 1.5 });
+    if (b2.forecastFrom) d2.polyline(pts((s2) => s2.won, b2.forecastFrom - 1, b2.series.length), { color: GREEN, width: 1.5, dash: [3, 2] });
+    const step3 = Math.ceil(b2.series.length / 7);
+    b2.series.forEach((s2, i2) => {
+      if (i2 % step3 === 0 || s2.projected) d2.text(x2(i2), bottom - 10, s2.label, { size: 6.5, color: FAINT, align: "center" });
+    });
+    L2.advance(CH + 26);
+  }
+  if (b2.pipelineByStage.length) {
+    L2.need(30 + b2.pipelineByStage.length * 16);
+    d2.text(M2, L2.y, "Open pipeline by stage (as of now)", { size: 11, bold: true });
+    L2.advance(16);
+    const maxV = Math.max(1, ...b2.pipelineByStage.map((s2) => s2.value));
+    const labelW = 110, valueW = 70;
+    for (const s2 of b2.pipelineByStage) {
+      const bw = Math.max(2, (W2 - labelW - valueW) * s2.value / maxV);
+      d2.text(M2 + labelW - 6, L2.y, fitText(s2.stage, 8.5, labelW - 8), { size: 8.5, align: "right" });
+      d2.rect(M2 + labelW, L2.y - 2, bw, 9, GREEN);
+      d2.text(M2 + labelW + bw + 6, L2.y, `${fmt2(s2.value)} \xB7 ${s2.count}`, { size: 8, color: MUTED });
+      L2.advance(16);
+    }
+    L2.advance(10);
+  }
+  const table = (title, headers2, rows2, widths) => {
+    if (!rows2.length) return;
+    L2.need(34 + Math.min(rows2.length, 5) * 13);
+    L2.doc.text(M2, L2.y, title, { size: 11, bold: true });
+    L2.advance(14);
+    let cx = M2;
+    headers2.forEach((h2, i2) => {
+      L2.doc.text(cx, L2.y, h2.toUpperCase(), { size: 7, color: MUTED });
+      cx += widths[i2];
+    });
+    L2.advance(11);
+    for (const r3 of rows2) {
+      L2.need(13);
+      cx = M2;
+      r3.forEach((cell, i2) => {
+        const num3 = typeof cell === "number";
+        L2.doc.text(num3 ? cx + widths[i2] - 14 : cx, L2.y, num3 ? fmt2(cell) : fitText(String(cell), 8.5, widths[i2] - 10), { size: 8.5, align: num3 ? "right" : "left" });
+        cx += widths[i2];
+      });
+      L2.advance(11);
+      L2.doc.line(M2, L2.y + 7, M2 + W2, L2.y + 7);
+      L2.advance(2);
+    }
+    L2.advance(14);
+  };
+  table("Top closers", ["Owner", "Deals won", `Value (${b2.meta.base})`], b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
+  table("Overdue invoices \u2014 aging", ["Bucket", "Invoices", `Total (${b2.meta.base})`], b2.overdueAging.filter((a2) => a2.count > 0).map((a2) => [a2.bucket, a2.count, a2.total]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
+  table("Open deals", ["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], b2.openDeals.slice(0, 30).map((x2) => [x2.name, x2.stage, x2.value, x2.owner]), [W2 * 0.4, W2 * 0.2, W2 * 0.2, W2 * 0.2]);
+  L2.need(40);
+  if (b2.meta.close) {
+    const c2 = b2.meta.close;
+    const driftTxt = c2.drifted ? `the live ledger has moved since the close \u2014 ${Object.entries(c2.changes).map(([k2, v2]) => `${k2} ${fmt2(v2.snapshot)} \u2192 ${fmt2(v2.live)}`).join("; ")} (disclosed, not reconciled)` : "recomputation agrees with the filed figures";
+    d2.text(M2, L2.y, fitText(`Filed close snapshot ${c2.key} (hash ${c2.hash.slice(0, 16)}\u2026): ${driftTxt}`, 7.5, W2), { size: 7.5, color: MUTED });
+    L2.advance(11);
+  }
+  d2.text(M2, L2.y, `Generated by Mondaily for ${b2.meta.workspaceName} on ${b2.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC.`, { size: 7.5, color: FAINT });
+  L2.advance(10);
+  d2.text(M2, L2.y, "Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are labelled, never blended into actuals.", { size: 7.5, color: FAINT, maxWidth: W2 });
+  return d2.finish();
+}
+var M2, W2, MUTED, FAINT, LINE, GREEN, BLUE, AMBER, fmt2, Layout;
+var init_report_pdf = __esm({
+  "src/lib/report-pdf.ts"() {
+    "use strict";
+    init_pdf();
+    M2 = 48;
+    W2 = A4.w - M2 * 2;
+    MUTED = [0.42, 0.45, 0.5];
+    FAINT = [0.61, 0.64, 0.69];
+    LINE = [0.9, 0.91, 0.92];
+    GREEN = [0.05, 0.62, 0.43];
+    BLUE = [0.23, 0.51, 0.96];
+    AMBER = [0.71, 0.4, 0.11];
+    fmt2 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
+    Layout = class {
+      doc = new PdfDoc();
+      cursor = M2;
+      get y() {
+        return A4.h - this.cursor;
+      }
+      /** Advance the cursor; new page when the next block would fall off the bottom. */
+      need(h2) {
+        if (this.cursor + h2 > A4.h - M2) {
+          this.doc.newPage();
+          this.cursor = M2;
+        }
+      }
+      advance(h2) {
+        this.cursor += h2;
+      }
+    };
+  }
+});
+
 // src/lib/report-schedule.ts
 var report_schedule_exports = {};
 __export(report_schedule_exports, {
+  ARCHIVE_BUCKET: () => ARCHIVE_BUCKET,
   REPORT_CADENCES: () => REPORT_CADENCES,
   currentPeriodKey: () => currentPeriodKey,
   deliverDueReports: () => deliverDueReports,
@@ -62314,6 +62552,41 @@ async function ownerAdminRecipients(ws) {
   const { data } = await supabase.from("workspace_members").select("email, name, role").eq("workspace_id", ws).in("role", ["owner", "admin"]).limit(50);
   return (data ?? []).filter((m2) => typeof m2.email === "string" && m2.email.includes("@")).map((m2) => ({ email: String(m2.email), name: typeof m2.name === "string" ? m2.name : void 0 }));
 }
+async function archiveSend(wsId, cadence, key, bundle, subject) {
+  try {
+    await supabase.storage.createBucket(ARCHIVE_BUCKET, { public: false }).then(() => {
+    }, () => {
+    });
+    const stamp2 = `${cadence}-${key.replace(/[^\w-]/g, "_")}`;
+    const files = {};
+    for (const [fmt4, bytes, mime] of [
+      ["xlsx", reportToXlsx(bundle), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+      ["pdf", reportToPdf(bundle), "application/pdf"]
+    ]) {
+      const path = `${wsId}/${stamp2}.${fmt4}`;
+      const { error } = await supabase.storage.from(ARCHIVE_BUCKET).upload(path, bytes, { contentType: mime, upsert: true });
+      if (error) return false;
+      files[fmt4] = { path, size: bytes.length };
+    }
+    const { data: existing } = await supabase.from("nodes").select("id").eq("workspace_id", wsId).eq("object_type", "report_archive").eq("data->>cadence", cadence).eq("data->>period_key", key).maybeSingle();
+    const data = {
+      cadence,
+      period_key: key,
+      subject,
+      files,
+      base: bundle.meta.base,
+      range: bundle.meta.range,
+      generated_at: bundle.meta.generatedAt,
+      close_key: bundle.meta.close?.key ?? null,
+      close_hash: bundle.meta.close?.hash ?? null
+    };
+    if (existing) await supabase.from("nodes").update({ data }).eq("id", existing.id);
+    else await supabase.from("nodes").insert({ workspace_id: wsId, vertical: "shared", object_type: "report_archive", created_by: "agent:report-delivery", data });
+    return true;
+  } catch {
+    return false;
+  }
+}
 async function deliverDueReports(wsId, wsRow, now = /* @__PURE__ */ new Date()) {
   const cfg = workspacePeriodConfig(wsRow);
   const schedule = readSchedule(wsRow.settings);
@@ -62335,11 +62608,12 @@ async function deliverDueReports(wsId, wsRow, now = /* @__PURE__ */ new Date()) 
         out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: "mail transport declined" });
         continue;
       }
+      const archived = await archiveSend(wsId, cadence, key, bundle, subject);
       const settings = wsRow.settings ?? {};
       const nextSchedule = { enabled: { ...schedule.enabled }, last_sent: { ...schedule.last_sent ?? {}, [cadence]: key } };
       await supabase.from("workspaces").update({ settings: { ...settings, report_schedule: nextSchedule } }).eq("id", wsId);
       wsRow.settings = { ...settings, report_schedule: nextSchedule };
-      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent" });
+      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent", archived });
     } catch (e2) {
       out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: e2 instanceof Error ? e2.message : String(e2) });
     }
@@ -62359,7 +62633,7 @@ async function runReportDelivery(now = /* @__PURE__ */ new Date()) {
   }
   return { workspaces: (workspaces ?? []).length, results };
 }
-var REPORT_CADENCES, API_ORIGIN, APP_ORIGIN, fmt3;
+var REPORT_CADENCES, API_ORIGIN, APP_ORIGIN, fmt3, ARCHIVE_BUCKET;
 var init_report_schedule = __esm({
   "src/lib/report-schedule.ts"() {
     "use strict";
@@ -62368,10 +62642,12 @@ var init_report_schedule = __esm({
     init_period_close();
     init_mail();
     init_report_export();
+    init_report_pdf();
     REPORT_CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"];
     API_ORIGIN = (process.env.API_URL ?? "https://api.mondaily.com").replace(/\/$/, "");
     APP_ORIGIN = (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
     fmt3 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
+    ARCHIVE_BUCKET = "report-archive";
   }
 });
 
@@ -70529,232 +70805,7 @@ init_auth();
 init_ai_gateway();
 init_currency_store();
 init_report_export();
-
-// src/lib/pdf.ts
-var A4 = { w: 595.28, h: 841.89 };
-var esc2 = (s2) => s2.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-var TRANSLIT = { "\u2014": "-", "\u2013": "-", "\u2192": ">", "\u2190": "<", "\u2212": "-", "\u2026": "...", "\u2019": "'", "\u2018": "'", "\u201C": '"', "\u201D": '"', "\u2713": "v", "\u0394": "d", "\u03A3": "S" };
-var latin1 = (s2) => Array.from(s2).map((ch) => TRANSLIT[ch] ?? (ch.charCodeAt(0) <= 255 ? ch : "?")).join("");
-var HELV = { " ": 278, "!": 278, '"': 355, "#": 556, $: 556, "%": 889, "&": 667, "'": 191, "(": 333, ")": 333, "*": 389, "+": 584, ",": 278, "-": 333, ".": 278, "/": 278, "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556, "6": 556, "7": 556, "8": 556, "9": 556, ":": 278, ";": 278, "<": 584, "=": 584, ">": 584, "?": 556, "@": 1015, A: 667, B: 667, C: 722, D: 722, E: 667, F: 611, G: 778, H: 722, I: 278, J: 500, K: 667, L: 556, M: 833, N: 722, O: 778, P: 667, Q: 778, R: 722, S: 667, T: 611, U: 722, V: 667, W: 944, X: 667, Y: 667, Z: 611, "[": 278, "\\": 278, "]": 278, "^": 469, _: 556, "`": 333, a: 556, b: 556, c: 500, d: 556, e: 556, f: 278, g: 556, h: 556, i: 222, j: 222, k: 500, l: 222, m: 833, n: 556, o: 556, p: 556, q: 556, r: 333, s: 500, t: 278, u: 556, v: 500, w: 722, x: 500, y: 500, z: 500, "{": 334, "|": 260, "}": 334, "~": 584 };
-function textWidth(s2, size, bold = false) {
-  let units = 0;
-  for (const ch of latin1(s2)) units += (HELV[ch] ?? 556) * (bold ? 1.06 : 1);
-  return units / 1e3 * size;
-}
-function fitText(s2, size, maxWidth, bold = false) {
-  if (textWidth(s2, size, bold) <= maxWidth) return s2;
-  let out = s2;
-  while (out.length > 1 && textWidth(out + "\u2026", size, bold) > maxWidth) out = out.slice(0, -1);
-  return out + "\u2026";
-}
-var PdfDoc = class {
-  pages = [];
-  ops = [];
-  newPage() {
-    if (this.ops.length) this.pages.push(this.ops.join("\n"));
-    this.ops = [];
-  }
-  text(x2, y2, raw2, o2 = {}) {
-    const size = o2.size ?? 10;
-    const s2 = latin1(o2.maxWidth ? fitText(raw2, size, o2.maxWidth, o2.bold) : raw2);
-    let tx = x2;
-    if (o2.align === "right") tx = x2 - textWidth(s2, size, o2.bold);
-    if (o2.align === "center") tx = x2 - textWidth(s2, size, o2.bold) / 2;
-    const [r3, g2, b2] = o2.color ?? [0.07, 0.09, 0.15];
-    this.ops.push(`BT /${o2.bold ? "F2" : "F1"} ${size} Tf ${r3} ${g2} ${b2} rg 1 0 0 1 ${tx.toFixed(2)} ${y2.toFixed(2)} Tm (${esc2(s2)}) Tj ET`);
-  }
-  line(x1, y1, x2, y2, o2 = {}) {
-    const [r3, g2, b2] = o2.color ?? [0.9, 0.91, 0.92];
-    this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 0.75).toFixed(2)} w ${r3} ${g2} ${b2} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S Q`);
-  }
-  rect(x2, y2, w2, h2, color) {
-    const [r3, g2, b2] = color;
-    this.ops.push(`q ${r3} ${g2} ${b2} rg ${x2.toFixed(2)} ${y2.toFixed(2)} ${w2.toFixed(2)} ${h2.toFixed(2)} re f Q`);
-  }
-  polyline(points, o2 = {}) {
-    if (points.length < 2) return;
-    const [r3, g2, b2] = o2.color ?? [0, 0, 0];
-    const path = points.map(([x2, y2], i2) => `${x2.toFixed(2)} ${y2.toFixed(2)} ${i2 ? "l" : "m"}`).join(" ");
-    this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 1.5).toFixed(2)} w ${r3} ${g2} ${b2} RG 1 j 1 J ${path} S Q`);
-  }
-  /** Serialise: xref offsets are BYTE positions, so everything is measured in latin-1 lengths. */
-  finish() {
-    this.newPage();
-    const objects = [];
-    const pageCount = this.pages.length || 1;
-    const pageObjIds = Array.from({ length: pageCount }, (_2, i2) => 4 + i2 * 2);
-    objects.push(`<< /Type /Catalog /Pages 2 0 R >>`);
-    objects.push(`<< /Type /Pages /Kids [${pageObjIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageCount} >>`);
-    objects.push(`<< /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >> >>`);
-    (this.pages.length ? this.pages : [""]).forEach((content) => {
-      objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font 3 0 R >> /Contents ${objects.length + 2} 0 R >>`);
-      objects.push(`<< /Length ${content.length} >>
-stream
-${content}
-endstream`);
-    });
-    let out = "%PDF-1.4\n";
-    const offsets = [];
-    objects.forEach((body, i2) => {
-      offsets.push(out.length);
-      out += `${i2 + 1} 0 obj
-${body}
-endobj
-`;
-    });
-    const xref = out.length;
-    out += `xref
-0 ${objects.length + 1}
-0000000000 65535 f 
-`;
-    for (const off of offsets) out += `${String(off).padStart(10, "0")} 00000 n 
-`;
-    out += `trailer
-<< /Size ${objects.length + 1} /Root 1 0 R >>
-startxref
-${xref}
-%%EOF`;
-    const bytes = new Uint8Array(out.length);
-    for (let i2 = 0; i2 < out.length; i2++) bytes[i2] = out.charCodeAt(i2) & 255;
-    return bytes;
-  }
-};
-
-// src/lib/report-pdf.ts
-var M2 = 48;
-var W2 = A4.w - M2 * 2;
-var MUTED = [0.42, 0.45, 0.5];
-var FAINT = [0.61, 0.64, 0.69];
-var LINE = [0.9, 0.91, 0.92];
-var GREEN = [0.05, 0.62, 0.43];
-var BLUE = [0.23, 0.51, 0.96];
-var AMBER = [0.71, 0.4, 0.11];
-var fmt2 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
-var Layout = class {
-  doc = new PdfDoc();
-  cursor = M2;
-  get y() {
-    return A4.h - this.cursor;
-  }
-  /** Advance the cursor; new page when the next block would fall off the bottom. */
-  need(h2) {
-    if (this.cursor + h2 > A4.h - M2) {
-      this.doc.newPage();
-      this.cursor = M2;
-    }
-  }
-  advance(h2) {
-    this.cursor += h2;
-  }
-};
-function reportToPdf(b2) {
-  const L2 = new Layout();
-  const d2 = L2.doc;
-  const dt2 = (iso) => iso.slice(0, 10);
-  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
-  d2.text(M2, L2.y, b2.meta.workspaceName.toUpperCase(), { size: 8, color: MUTED });
-  L2.advance(16);
-  d2.text(M2, L2.y, `${periodTitle} report${b2.meta.complete ? " \u2014 completed period" : ""}`, { size: 19, bold: true });
-  L2.advance(16);
-  d2.text(M2, L2.y, `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${b2.meta.timeZone} \xB7 base ${b2.meta.base}`, { size: 8.5, color: MUTED });
-  L2.advance(20);
-  const col2 = M2 + W2 * 0.5, col3 = M2 + W2 * 0.66;
-  for (const k2 of b2.kpis) {
-    L2.need(k2.note ? 26 : 15);
-    d2.text(M2, L2.y, k2.label, { size: 9.5, maxWidth: W2 * 0.46 });
-    d2.text(col2 + 60, L2.y, `${fmt2(k2.value)} ${b2.meta.base}`, { size: 9.5, bold: true, align: "right" });
-    const sub = k2.kind === "balance" ? "as of now" : k2.delta == null ? k2.previous != null ? `prev ${fmt2(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same window last period (${fmt2(k2.previous ?? 0)})`;
-    d2.text(col3 + 30, L2.y, sub, { size: 8, color: MUTED, maxWidth: W2 - (col3 + 30 - M2) });
-    L2.advance(12);
-    if (k2.note) {
-      d2.text(M2 + 8, L2.y, fitText(k2.note, 7.5, W2 - 8), { size: 7.5, color: AMBER });
-      L2.advance(11);
-    }
-    d2.line(M2, L2.y + 8, M2 + W2, L2.y + 8);
-    L2.advance(4);
-  }
-  L2.advance(14);
-  if (b2.series.length >= 2) {
-    L2.need(170);
-    d2.text(M2, L2.y, "Closed won & cash collected", { size: 11, bold: true });
-    L2.advance(12);
-    d2.text(M2, L2.y, "green = closed won \xB7 blue = cash collected" + (b2.forecastFrom ? " \xB7 dashed = least-squares projection of the real trend" : ""), { size: 7.5, color: MUTED });
-    L2.advance(12);
-    const CH = 110;
-    const top = L2.y, bottom = top - CH;
-    const max = Math.max(1, ...b2.series.map((s2) => Math.max(s2.won, s2.collected)));
-    const x2 = (i2) => M2 + 36 + i2 * (W2 - 44) / Math.max(1, b2.series.length - 1);
-    const yv = (v2) => bottom + v2 / max * CH;
-    d2.line(M2 + 36, bottom, M2 + W2, bottom, { color: LINE });
-    for (const f2 of [0, 0.5, 1]) d2.text(M2 + 32, yv(max * f2) - 3, fmt2(Math.round(max * f2)), { size: 7, color: FAINT, align: "right" });
-    const pts = (pick, from, to) => b2.series.slice(from, to).map((s2, i2) => [x2(from + i2), yv(pick(s2))]);
-    const solidEnd = b2.forecastFrom ?? b2.series.length;
-    d2.polyline(pts((s2) => s2.collected, 0, solidEnd), { color: BLUE, width: 1.2 });
-    d2.polyline(pts((s2) => s2.won, 0, solidEnd), { color: GREEN, width: 1.5 });
-    if (b2.forecastFrom) d2.polyline(pts((s2) => s2.won, b2.forecastFrom - 1, b2.series.length), { color: GREEN, width: 1.5, dash: [3, 2] });
-    const step3 = Math.ceil(b2.series.length / 7);
-    b2.series.forEach((s2, i2) => {
-      if (i2 % step3 === 0 || s2.projected) d2.text(x2(i2), bottom - 10, s2.label, { size: 6.5, color: FAINT, align: "center" });
-    });
-    L2.advance(CH + 26);
-  }
-  if (b2.pipelineByStage.length) {
-    L2.need(30 + b2.pipelineByStage.length * 16);
-    d2.text(M2, L2.y, "Open pipeline by stage (as of now)", { size: 11, bold: true });
-    L2.advance(16);
-    const maxV = Math.max(1, ...b2.pipelineByStage.map((s2) => s2.value));
-    const labelW = 110, valueW = 70;
-    for (const s2 of b2.pipelineByStage) {
-      const bw = Math.max(2, (W2 - labelW - valueW) * s2.value / maxV);
-      d2.text(M2 + labelW - 6, L2.y, fitText(s2.stage, 8.5, labelW - 8), { size: 8.5, align: "right" });
-      d2.rect(M2 + labelW, L2.y - 2, bw, 9, GREEN);
-      d2.text(M2 + labelW + bw + 6, L2.y, `${fmt2(s2.value)} \xB7 ${s2.count}`, { size: 8, color: MUTED });
-      L2.advance(16);
-    }
-    L2.advance(10);
-  }
-  const table = (title, headers2, rows2, widths) => {
-    if (!rows2.length) return;
-    L2.need(34 + Math.min(rows2.length, 5) * 13);
-    L2.doc.text(M2, L2.y, title, { size: 11, bold: true });
-    L2.advance(14);
-    let cx = M2;
-    headers2.forEach((h2, i2) => {
-      L2.doc.text(cx, L2.y, h2.toUpperCase(), { size: 7, color: MUTED });
-      cx += widths[i2];
-    });
-    L2.advance(11);
-    for (const r3 of rows2) {
-      L2.need(13);
-      cx = M2;
-      r3.forEach((cell, i2) => {
-        const num3 = typeof cell === "number";
-        L2.doc.text(num3 ? cx + widths[i2] - 14 : cx, L2.y, num3 ? fmt2(cell) : fitText(String(cell), 8.5, widths[i2] - 10), { size: 8.5, align: num3 ? "right" : "left" });
-        cx += widths[i2];
-      });
-      L2.advance(11);
-      L2.doc.line(M2, L2.y + 7, M2 + W2, L2.y + 7);
-      L2.advance(2);
-    }
-    L2.advance(14);
-  };
-  table("Top closers", ["Owner", "Deals won", `Value (${b2.meta.base})`], b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
-  table("Overdue invoices \u2014 aging", ["Bucket", "Invoices", `Total (${b2.meta.base})`], b2.overdueAging.filter((a2) => a2.count > 0).map((a2) => [a2.bucket, a2.count, a2.total]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
-  table("Open deals", ["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], b2.openDeals.slice(0, 30).map((x2) => [x2.name, x2.stage, x2.value, x2.owner]), [W2 * 0.4, W2 * 0.2, W2 * 0.2, W2 * 0.2]);
-  L2.need(40);
-  if (b2.meta.close) {
-    const c2 = b2.meta.close;
-    const driftTxt = c2.drifted ? `the live ledger has moved since the close \u2014 ${Object.entries(c2.changes).map(([k2, v2]) => `${k2} ${fmt2(v2.snapshot)} \u2192 ${fmt2(v2.live)}`).join("; ")} (disclosed, not reconciled)` : "recomputation agrees with the filed figures";
-    d2.text(M2, L2.y, fitText(`Filed close snapshot ${c2.key} (hash ${c2.hash.slice(0, 16)}\u2026): ${driftTxt}`, 7.5, W2), { size: 7.5, color: MUTED });
-    L2.advance(11);
-  }
-  d2.text(M2, L2.y, `Generated by Mondaily for ${b2.meta.workspaceName} on ${b2.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC.`, { size: 7.5, color: FAINT });
-  L2.advance(10);
-  d2.text(M2, L2.y, "Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are labelled, never blended into actuals.", { size: 7.5, color: FAINT, maxWidth: W2 });
-  return d2.finish();
-}
-
-// src/routes/reports.ts
+init_report_pdf();
 init_report_schedule();
 init_period_close();
 init_mail();
@@ -70817,6 +70868,39 @@ router7.get("/export.html", zValidator2("query", exportQuery), async (c2) => {
   } catch (e2) {
     return c2.json({ error: e2 instanceof Error ? e2.message : "report export failed" }, 400);
   }
+});
+router7.get("/bundle.json", zValidator2("query", exportQuery), async (c2) => {
+  const { period, start, end, complete } = c2.req.valid("query");
+  try {
+    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end }, /* @__PURE__ */ new Date(), { complete: complete === "1" });
+    return c2.json(bundle);
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "report failed" }, 400);
+  }
+});
+router7.get("/archive", async (c2) => {
+  const { data, error } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "report_archive").order("created_at", { ascending: false }).limit(60);
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json((data ?? []).map((n2) => {
+    const d2 = n2.data ?? {};
+    return { id: n2.id, cadence: d2.cadence, period_key: d2.period_key, subject: d2.subject, generated_at: d2.generated_at, base: d2.base, close_key: d2.close_key ?? null, formats: Object.keys(d2.files ?? {}) };
+  }));
+});
+router7.get("/archive/:id/:fmt", async (c2) => {
+  const fmt4 = c2.req.param("fmt");
+  if (fmt4 !== "xlsx" && fmt4 !== "pdf") return c2.json({ error: "Unknown format" }, 400);
+  const { data: node } = await supabase.from("nodes").select("data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "report_archive").eq("id", c2.req.param("id")).maybeSingle();
+  const file = node?.data?.files?.[fmt4];
+  if (!file?.path) return c2.json({ error: "Archived file not found" }, 404);
+  const dl = await supabase.storage.from(ARCHIVE_BUCKET).download(file.path);
+  if (dl.error || !dl.data) return c2.json({ error: "The archived bytes are missing from storage." }, 404);
+  const d2 = node.data ?? {};
+  return c2.body(await dl.data.arrayBuffer(), 200, {
+    "Content-Type": fmt4 === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "Content-Disposition": `attachment; filename="mondaily-${String(d2.cadence ?? "report")}-${String(d2.period_key ?? "past")}.${fmt4}"`,
+    "Cache-Control": "private, max-age=3600"
+    // filed bytes are immutable; an hour of cache is safe
+  });
 });
 router7.get("/schedule", async (c2) => {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();

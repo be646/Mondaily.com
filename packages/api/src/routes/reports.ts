@@ -7,7 +7,7 @@ import { aiGateway } from "../lib/ai-gateway";
 import { makeBaseConverter } from "../lib/currency-store";
 import { composeWorkspaceReport, reportToXlsx, reportToHtml } from "../lib/report-export";
 import { reportToPdf } from "../lib/report-pdf";
-import { readSchedule, reportEmailHtml, REPORT_CADENCES, currentPeriodKey } from "../lib/report-schedule";
+import { readSchedule, reportEmailHtml, REPORT_CADENCES, currentPeriodKey, ARCHIVE_BUCKET } from "../lib/report-schedule";
 import { workspacePeriodConfig } from "../lib/period-close";
 import { sendWorkspaceEmail } from "../lib/mail";
 
@@ -85,6 +85,55 @@ router.get("/export.html", zValidator("query", exportQuery), async (c) => {
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "report export failed" }, 400);
   }
+});
+
+/**
+ * The bundle as JSON — for surfaces that render the charts themselves (dashboard widgets).
+ * Same composition as every file format; the numbers cannot fork.
+ */
+router.get("/bundle.json", zValidator("query", exportQuery), async (c) => {
+  const { period, start, end, complete } = c.req.valid("query");
+  try {
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end }, new Date(), { complete: complete === "1" });
+    return c.json(bundle);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "report failed" }, 400);
+  }
+});
+
+/**
+ * The archive — every scheduled send's files, EXACTLY as sent. The live exports above recompute;
+ * these do not, which is the entire point: "what did the August 1st email actually say" has one
+ * answer, the filed bytes, even after backdated corrections moved the live ledger.
+ */
+router.get("/archive", async (c) => {
+  const { data, error } = await supabase.from("nodes")
+    .select("id, data, created_at")
+    .eq("workspace_id", c.get("workspaceId")).eq("object_type", "report_archive")
+    .order("created_at", { ascending: false }).limit(60);
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json((data ?? []).map(n => {
+    const d = (n.data ?? {}) as Record<string, unknown>;
+    return { id: n.id, cadence: d.cadence, period_key: d.period_key, subject: d.subject, generated_at: d.generated_at, base: d.base, close_key: d.close_key ?? null, formats: Object.keys((d.files ?? {}) as object) };
+  }));
+});
+
+router.get("/archive/:id/:fmt", async (c) => {
+  const fmt = c.req.param("fmt");
+  if (fmt !== "xlsx" && fmt !== "pdf") return c.json({ error: "Unknown format" }, 400);
+  const { data: node } = await supabase.from("nodes").select("data")
+    .eq("workspace_id", c.get("workspaceId")).eq("object_type", "report_archive")
+    .eq("id", c.req.param("id")).maybeSingle();
+  const file = ((node?.data as Record<string, unknown> | null)?.files as Record<string, { path: string }> | undefined)?.[fmt];
+  if (!file?.path) return c.json({ error: "Archived file not found" }, 404);
+  const dl = await supabase.storage.from(ARCHIVE_BUCKET).download(file.path);
+  if (dl.error || !dl.data) return c.json({ error: "The archived bytes are missing from storage." }, 404);
+  const d = (node!.data ?? {}) as Record<string, unknown>;
+  return c.body(await dl.data.arrayBuffer(), 200, {
+    "Content-Type": fmt === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "Content-Disposition": `attachment; filename="mondaily-${String(d.cadence ?? "report")}-${String(d.period_key ?? "past")}.${fmt}"`,
+    "Cache-Control": "private, max-age=3600",   // filed bytes are immutable; an hour of cache is safe
+  });
 });
 
 /**

@@ -2,7 +2,8 @@ import { supabase } from "@mondaily/db/client";
 import { periodKey, wallClock, type PeriodConfig } from "@mondaily/shared/period";
 import { workspacePeriodConfig } from "./period-close";
 import { sendWorkspaceEmail } from "./mail";
-import { composeWorkspaceReport, type ExportPeriod, type ReportBundle } from "./report-export";
+import { composeWorkspaceReport, reportToXlsx, type ExportPeriod, type ReportBundle } from "./report-export";
+import { reportToPdf } from "./report-pdf";
 
 /**
  * Scheduled report delivery — "email me this every week / month / …".
@@ -99,7 +100,47 @@ async function ownerAdminRecipients(ws: string): Promise<{ email: string; name?:
     .map(m => ({ email: String(m.email), name: typeof m.name === "string" ? m.name : undefined }));
 }
 
-export interface DeliveryResult { workspace: string; cadence: ReportCadence; period: string; sent: number; status: "sent" | "skipped" | "no_recipients" | "failed"; detail?: string }
+export interface DeliveryResult { workspace: string; cadence: ReportCadence; period: string; sent: number; status: "sent" | "skipped" | "no_recipients" | "failed"; detail?: string; archived?: boolean }
+
+export const ARCHIVE_BUCKET = "report-archive";
+
+/**
+ * File the EXACT bytes that were sent, so a past report re-downloads as sent — not recomputed.
+ * A recomputation next month can legitimately differ (backdated invoice, corrected deal); the
+ * archive is the answer to "what did the email of August 1st actually say".
+ *
+ * Non-fatal by design: the email is the deliverable, the archive is the receipt. A storage
+ * hiccup must not stop the send or poison the idempotence key.
+ */
+async function archiveSend(wsId: string, cadence: ReportCadence, key: string, bundle: ReportBundle, subject: string): Promise<boolean> {
+  try {
+    await supabase.storage.createBucket(ARCHIVE_BUCKET, { public: false }).then(() => {}, () => {}); // exists → fine
+    const stamp = `${cadence}-${key.replace(/[^\w-]/g, "_")}`;
+    const files: Record<string, { path: string; size: number }> = {};
+    for (const [fmt, bytes, mime] of [
+      ["xlsx", reportToXlsx(bundle), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+      ["pdf", reportToPdf(bundle), "application/pdf"],
+    ] as const) {
+      const path = `${wsId}/${stamp}.${fmt}`;
+      const { error } = await supabase.storage.from(ARCHIVE_BUCKET).upload(path, bytes, { contentType: mime, upsert: true });
+      if (error) return false;
+      files[fmt] = { path, size: bytes.length };
+    }
+    // One archive row per (cadence, period): a cron retry after a failed settings write must
+    // update the existing receipt, not shelve a duplicate.
+    const { data: existing } = await supabase.from("nodes").select("id")
+      .eq("workspace_id", wsId).eq("object_type", "report_archive")
+      .eq("data->>cadence", cadence).eq("data->>period_key", key).maybeSingle();
+    const data = {
+      cadence, period_key: key, subject, files,
+      base: bundle.meta.base, range: bundle.meta.range, generated_at: bundle.meta.generatedAt,
+      close_key: bundle.meta.close?.key ?? null, close_hash: bundle.meta.close?.hash ?? null,
+    };
+    if (existing) await supabase.from("nodes").update({ data }).eq("id", existing.id);
+    else await supabase.from("nodes").insert({ workspace_id: wsId, vertical: "shared", object_type: "report_archive", created_by: "agent:report-delivery", data });
+    return true;
+  } catch { return false; }
+}
 
 /**
  * One workspace's due sends. Exposed separately from the sweep so the owner's "send me a test now"
@@ -123,12 +164,13 @@ export async function deliverDueReports(
       const { subject, body } = reportEmailHtml(bundle, wsId);
       const ok = await sendWorkspaceEmail(wsId, { subject, body, to: recipients });
       if (!ok) { out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: "mail transport declined" }); continue; }
+      const archived = await archiveSend(wsId, cadence, key, bundle, subject);
       // Record the send ONLY after it succeeded — a failed send stays due for the next hour.
       const settings = (wsRow.settings ?? {}) as Record<string, unknown>;
       const nextSchedule = { enabled: { ...schedule.enabled }, last_sent: { ...(schedule.last_sent ?? {}), [cadence]: key } };
       await supabase.from("workspaces").update({ settings: { ...settings, report_schedule: nextSchedule } }).eq("id", wsId);
       (wsRow as { settings?: unknown }).settings = { ...settings, report_schedule: nextSchedule };
-      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent" });
+      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent", archived });
     } catch (e) {
       out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: e instanceof Error ? e.message : String(e) });
     }

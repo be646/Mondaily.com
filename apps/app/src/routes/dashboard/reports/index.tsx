@@ -608,6 +608,7 @@ function DownloadReport() {
         )}
       </div>
       <ReportScheduleRow />
+      <PastReports />
     </section>
   );
 }
@@ -706,6 +707,46 @@ function SavedAnalyses() {
         ))}
       </div>
     </section>
+  );
+}
+
+
+/**
+ * The archive — scheduled sends re-download EXACTLY as sent (filed bytes, not a recomputation).
+ * Empty until the first scheduled email goes out; hidden entirely until then.
+ */
+function PastReports() {
+  interface ArchiveRow { id: string; cadence?: string; period_key?: string; subject?: string; generated_at?: string; close_key?: string | null; formats?: string[] }
+  const q = useQuery<ArchiveRow[]>({ queryKey: ["report-archive"], queryFn: () => apiClient.get("/reports/archive") });
+  const [open, setOpen] = useState(false);
+  const items = q.data ?? [];
+  if (items.length === 0) return null;
+  const ws = localStorage.getItem("mondaily_workspace_id") ?? "";
+  return (
+    <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+        <ArrowRight size={11} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+        Past reports ({items.length}) — exactly as emailed, never recomputed
+      </button>
+      {open && (
+        <ul className="mt-2 space-y-1">
+          {items.map(a => (
+            <li key={a.id} className="flex flex-wrap items-center gap-2 text-xs">
+              <span style={{ color: "var(--text-primary)" }}>{a.subject || `${a.cadence} — ${a.period_key}`}</span>
+              {a.close_key && <span className="rounded-full border px-1.5 py-px text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }} title="Matches the filed close snapshot">closed {a.close_key}</span>}
+              <span className="grow" />
+              {(a.formats ?? []).map(f => (
+                <a key={f} href={`${BASE_URL}/api/v1/reports/archive/${a.id}/${f}?ws=${ws}`}
+                  className="rounded-md border px-2 py-0.5 uppercase text-[10px] transition-colors hover:opacity-80"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  {f}
+                </a>
+              ))}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
