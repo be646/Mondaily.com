@@ -6,6 +6,9 @@ import { requireAuth } from "../middleware/auth";
 import { aiGateway } from "../lib/ai-gateway";
 import { makeBaseConverter } from "../lib/currency-store";
 import { composeWorkspaceReport, reportToXlsx, reportToHtml } from "../lib/report-export";
+import { readSchedule, reportEmailHtml, REPORT_CADENCES, currentPeriodKey } from "../lib/report-schedule";
+import { workspacePeriodConfig } from "../lib/period-close";
+import { sendWorkspaceEmail } from "../lib/mail";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -34,12 +37,14 @@ const exportQuery = z.object({
   period: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"]).default("monthly"),
   start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** "1" = the last COMPLETED period (what a scheduled email covers) instead of period-to-date. */
+  complete: z.string().optional(),
 });
 
 router.get("/export.xlsx", zValidator("query", exportQuery), async (c) => {
-  const { period, start, end } = c.req.valid("query");
+  const { period, start, end, complete } = c.req.valid("query");
   try {
-    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end });
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end }, new Date(), { complete: complete === "1" });
     const bytes = reportToXlsx(bundle);
     const name = `mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.xlsx`;
     return c.body(bytes.buffer as ArrayBuffer, 200, {
@@ -53,16 +58,74 @@ router.get("/export.xlsx", zValidator("query", exportQuery), async (c) => {
 });
 
 router.get("/export.html", zValidator("query", exportQuery), async (c) => {
-  const { period, start, end } = c.req.valid("query");
+  const { period, start, end, complete } = c.req.valid("query");
   const download = c.req.query("download") === "1";
   try {
-    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end });
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end }, new Date(), { complete: complete === "1" });
     const html = reportToHtml(bundle);
     const headers: Record<string, string> = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
     if (download) headers["Content-Disposition"] = `attachment; filename="mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.html"`;
     return c.body(html, 200, headers);
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "report export failed" }, 400);
+  }
+});
+
+/**
+ * Report schedule — "email me this report every <cadence>".
+ *
+ * Stored in workspaces.settings.report_schedule; the hourly cron (app.ts /api/cron/report-delivery)
+ * sends the last COMPLETED period on the workspace's own calendar. Owner/admin only: the schedule
+ * emails owners/admins, so only they may create that obligation.
+ */
+router.get("/schedule", async (c) => {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", c.get("workspaceId")).maybeSingle();
+  return c.json(readSchedule((data?.settings ?? {}) as Record<string, unknown>));
+});
+
+router.post("/schedule", zValidator("json", z.object({
+  enabled: z.record(z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]), z.boolean()),
+})), async (c) => {
+  const role = c.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c.json({ error: "Owner/admin only." }, 403);
+  const ws = c.get("workspaceId");
+  const { enabled } = c.req.valid("json");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = (data?.settings ?? {}) as Record<string, unknown>;
+  const prev = readSchedule(settings);
+  const cleaned: Record<string, boolean> = {};
+  for (const cad of REPORT_CADENCES) if (enabled[cad] === true) cleaned[cad] = true;
+  // Enabling a cadence anchors last_sent to the CURRENT period, so the first email arrives when
+  // this period ENDS — not an immediate mail covering a period the user already lived through.
+  const { data: wsRow } = await supabase.from("workspaces").select("timezone, settings").eq("id", ws).maybeSingle();
+  const cfg = workspacePeriodConfig(wsRow as { timezone?: unknown; settings?: unknown } | null);
+  const last_sent = { ...(prev.last_sent ?? {}) };
+  for (const cad of REPORT_CADENCES) {
+    if (cleaned[cad] && !prev.enabled[cad]) last_sent[cad] = currentPeriodKey(cad, cfg, new Date());
+  }
+  const report_schedule = { enabled: cleaned, last_sent };
+  const { error } = await supabase.from("workspaces").update({ settings: { ...settings, report_schedule } }).eq("id", ws);
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ enabled: cleaned });
+});
+
+/** Send the CALLER a test of the scheduled email now — same composition + template as the cron. */
+router.post("/schedule/send-test", zValidator("json", z.object({
+  period: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]).default("monthly"),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { period } = c.req.valid("json");
+  const { data: me } = await supabase.from("workspace_members")
+    .select("email, name").eq("workspace_id", ws).eq("user_id", c.get("userId")).maybeSingle();
+  const email = typeof me?.email === "string" && me.email.includes("@") ? me.email : null;
+  if (!email) return c.json({ error: "Your membership has no email address to send to." }, 400);
+  try {
+    const bundle = await composeWorkspaceReport(ws, period, undefined, new Date(), { complete: true });
+    const { subject, body } = reportEmailHtml(bundle, ws);
+    const ok = await sendWorkspaceEmail(ws, { subject: `[Test] ${subject}`, body, to: [{ email, name: (me?.name as string) ?? undefined }] });
+    return ok ? c.json({ sent: true, to: email }) : c.json({ error: "Mail transport declined the message — check the workspace email setup on /status." }, 502);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "send failed" }, 400);
   }
 });
 

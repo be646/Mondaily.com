@@ -277,6 +277,27 @@ app.get("/api/cron/support-reminders", async (c) => {
 });
 
 /**
+ * Scheduled report delivery — HOURLY, on the workspace's calendar, like period-close and for the
+ * same reason: "monthly" means the WORKSPACE's month, and a single UTC trigger mails Warsaw early
+ * and Auckland late. Idempotent by recorded period key (settings.report_schedule.last_sent), so an
+ * hour with nothing newly ended sends nothing.
+ */
+app.get("/api/cron/report-delivery", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+  const { runReportDelivery } = await import("./lib/report-schedule");
+  try {
+    const r = await runReportDelivery();
+    const acted = r.results.filter(x => x.status !== "skipped");
+    return c.json({ ran: true, at: new Date().toISOString(), workspaces: r.workspaces, deliveries: acted });
+  } catch (e) {
+    return c.json({ ran: false, error: String(e) }, 500);
+  }
+});
+
+/**
  * Dedicated Discovery-monitors cron — runs ONLY the "Watch this search" saved searches, so we can
  * refresh them several times a day WITHOUT re-running the heavy daily batch (invoices, scoring…).
  * Same CRON_SECRET auth as /api/cron/daily. Configured in vercel.json.

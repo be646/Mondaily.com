@@ -55326,16 +55326,16 @@ function burstCapFor(tier) {
   return PLAN_TIERS[tier]?.burstCap ?? PLAN_TIERS.scout.burstCap;
 }
 function pricingFacts() {
-  const fmt2 = (n2) => n2 == null ? "custom" : n2.toLocaleString("en-US");
+  const fmt3 = (n2) => n2 == null ? "custom" : n2.toLocaleString("en-US");
   return [
     "PLANS (monthly, with included AI credits):",
-    `- Scout: free \u2014 ${fmt2(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
-    `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo \u2014 ${fmt2(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
-    `- Command: $${PLAN_TIERS.command.priceMonthly}/mo \u2014 ${fmt2(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
+    `- Scout: free \u2014 ${fmt3(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
+    `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo \u2014 ${fmt3(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
+    `- Command: $${PLAN_TIERS.command.priceMonthly}/mo \u2014 ${fmt3(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
     "- Sovereign: custom \u2014 custom AI credits, private/self-hosted infrastructure.",
     "PAY-AS-YOU-GO CREDIT PACKS: " + CREDIT_PACK_ORDER.map((id) => {
       const p2 = CREDIT_PACKS[id];
-      return `${p2.name} $${p2.price_usd} \u2192 ${fmt2(p2.base_credits)} credits`;
+      return `${p2.name} $${p2.price_usd} \u2192 ${fmt3(p2.base_credits)} credits`;
     }).join("; ") + ".",
     `Pack bonuses: Operator +10%, Command +20%, and annual subscriptions add another +${Math.round(ANNUAL_BONUS_PCT * 100)}%.`,
     "Say 'AI credits', never 'tokens'. Do NOT claim unlimited AI \u2014 credits are metered. Manual CRUD (creating/editing records) does not use AI credits; AI chat, agents, enrichment, Discovery deep research, report generation, and workflow drafting do."
@@ -61709,6 +61709,665 @@ function groundingViolations(text, payload, opts = {}) {
 var init_grounding = __esm({
   "src/lib/grounding.ts"() {
     "use strict";
+  }
+});
+
+// src/lib/xlsx.ts
+function sheetXml(sheet) {
+  const colCount = sheet.rows.reduce((m2, r3) => Math.max(m2, r3.length), 0);
+  const widths = Array.from({ length: colCount }, (_2, c2) => {
+    if (sheet.widths?.[c2]) return sheet.widths[c2];
+    let w2 = 8;
+    for (const row of sheet.rows) {
+      const v2 = row[c2];
+      if (v2 == null) continue;
+      w2 = Math.max(w2, Math.min(60, String(typeof v2 === "number" ? v2.toFixed(2) : v2).length + 2));
+    }
+    return w2;
+  });
+  const cols = colCount ? `<cols>${widths.map((w2, c2) => `<col min="${c2 + 1}" max="${c2 + 1}" width="${w2}" customWidth="1"/>`).join("")}</cols>` : "";
+  const rows2 = sheet.rows.map((row, r3) => {
+    const cells = row.map((v2, c2) => {
+      if (v2 == null || v2 === "") return "";
+      const ref = `${colRef(c2)}${r3 + 1}`;
+      if (typeof v2 === "number" && Number.isFinite(v2)) {
+        const style = Number.isInteger(v2) ? r3 === 0 ? 1 : 0 : 2;
+        return `<c r="${ref}"${style ? ` s="${style}"` : ""}><v>${v2}</v></c>`;
+      }
+      const s2 = r3 === 0 ? ` s="1"` : "";
+      return `<c r="${ref}"${s2} t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(v2))}</t></is></c>`;
+    }).join("");
+    return `<row r="${r3 + 1}">${cells}</row>`;
+  }).join("");
+  return `${XML_HEAD}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${rows2}</sheetData></worksheet>`;
+}
+function crc32(bytes) {
+  let c2 = 4294967295;
+  for (let i2 = 0; i2 < bytes.length; i2++) c2 = CRC_TABLE[(c2 ^ bytes[i2]) & 255] ^ c2 >>> 8;
+  return (c2 ^ 4294967295) >>> 0;
+}
+function zip(entries, stamp2) {
+  const dosTime = (stamp2.getHours() << 11 | stamp2.getMinutes() << 5 | stamp2.getSeconds() >> 1) & 65535;
+  const dosDate = (stamp2.getFullYear() - 1980 << 9 | stamp2.getMonth() + 1 << 5 | stamp2.getDate()) & 65535;
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  const u16 = (v2) => [v2 & 255, v2 >> 8 & 255];
+  const u32 = (v2) => [v2 & 255, v2 >>> 8 & 255, v2 >>> 16 & 255, v2 >>> 24 & 255];
+  for (const e2 of entries) {
+    const nameBytes = new TextEncoder().encode(e2.name);
+    const crc = crc32(e2.data);
+    const local = new Uint8Array([
+      ...u32(67324752),
+      ...u16(20),
+      ...u16(0),
+      ...u16(0),
+      ...u16(dosTime),
+      ...u16(dosDate),
+      ...u32(crc),
+      ...u32(e2.data.length),
+      ...u32(e2.data.length),
+      ...u16(nameBytes.length),
+      ...u16(0),
+      ...nameBytes
+    ]);
+    chunks.push(local, e2.data);
+    central.push(new Uint8Array([
+      ...u32(33639248),
+      ...u16(20),
+      ...u16(20),
+      ...u16(0),
+      ...u16(0),
+      ...u16(dosTime),
+      ...u16(dosDate),
+      ...u32(crc),
+      ...u32(e2.data.length),
+      ...u32(e2.data.length),
+      ...u16(nameBytes.length),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u16(0),
+      ...u32(0),
+      ...u32(offset),
+      ...nameBytes
+    ]));
+    offset += local.length + e2.data.length;
+  }
+  const centralSize = central.reduce((s2, c2) => s2 + c2.length, 0);
+  const eocd = new Uint8Array([
+    ...u32(101010256),
+    ...u16(0),
+    ...u16(0),
+    ...u16(entries.length),
+    ...u16(entries.length),
+    ...u32(centralSize),
+    ...u32(offset),
+    ...u16(0)
+  ]);
+  const total = offset + centralSize + eocd.length;
+  const out = new Uint8Array(total);
+  let p2 = 0;
+  for (const c2 of [...chunks, ...central, eocd]) {
+    out.set(c2, p2);
+    p2 += c2.length;
+  }
+  return out;
+}
+function buildXlsx(sheets, generatedAt = /* @__PURE__ */ new Date()) {
+  const named = sheets.map((s2, i2) => ({ ...s2, name: sheetName(s2.name, i2) }));
+  const enc = (s2) => new TextEncoder().encode(s2);
+  const contentTypes = `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>` + named.map((_2, i2) => `<Override PartName="/xl/worksheets/sheet${i2 + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") + `</Types>`;
+  const rootRels = `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const workbook = `${XML_HEAD}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` + named.map((s2, i2) => `<sheet name="${escapeXml(s2.name)}" sheetId="${i2 + 1}" r:id="rId${i2 + 1}"/>`).join("") + `</sheets></workbook>`;
+  const wbRels = `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + named.map((_2, i2) => `<Relationship Id="rId${i2 + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i2 + 1}.xml"/>`).join("") + `<Relationship Id="rId${named.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  return zip([
+    { name: "[Content_Types].xml", data: enc(contentTypes) },
+    { name: "_rels/.rels", data: enc(rootRels) },
+    { name: "xl/workbook.xml", data: enc(workbook) },
+    { name: "xl/_rels/workbook.xml.rels", data: enc(wbRels) },
+    { name: "xl/styles.xml", data: enc(STYLES) },
+    ...named.map((s2, i2) => ({ name: `xl/worksheets/sheet${i2 + 1}.xml`, data: enc(sheetXml(s2)) }))
+  ], generatedAt);
+}
+var XML_HEAD, escapeXml, colRef, sheetName, STYLES, CRC_TABLE;
+var init_xlsx = __esm({
+  "src/lib/xlsx.ts"() {
+    "use strict";
+    XML_HEAD = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+`;
+    escapeXml = (s2) => s2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
+    colRef = (i2) => {
+      let n2 = i2 + 1, s2 = "";
+      while (n2 > 0) {
+        const r3 = (n2 - 1) % 26;
+        s2 = String.fromCharCode(65 + r3) + s2;
+        n2 = Math.floor((n2 - 1) / 26);
+      }
+      return s2;
+    };
+    sheetName = (raw2, index) => {
+      const cleaned = raw2.replace(/[\[\]:*?/\\]/g, " ").trim().slice(0, 31);
+      return cleaned || `Sheet${index + 1}`;
+    };
+    STYLES = `${XML_HEAD}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" applyFont="1"/><xf numFmtId="164" applyNumberFormat="1"/></cellXfs></styleSheet>`;
+    CRC_TABLE = (() => {
+      const t3 = new Uint32Array(256);
+      for (let n2 = 0; n2 < 256; n2++) {
+        let c2 = n2;
+        for (let k2 = 0; k2 < 8; k2++) c2 = c2 & 1 ? 3988292384 ^ c2 >>> 1 : c2 >>> 1;
+        t3[n2] = c2 >>> 0;
+      }
+      return t3;
+    })();
+  }
+});
+
+// src/lib/report-export.ts
+function dayStart(at2, cfg) {
+  const w2 = wallClock(at2, cfg.timeZone);
+  return instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
+}
+function resolveRanges(period, cfg, now, custom2, complete = false) {
+  if (period === "custom") {
+    const s2 = Date.parse(custom2?.start ?? "");
+    const e0 = Date.parse(custom2?.end ?? "");
+    if (!Number.isFinite(s2) || !Number.isFinite(e0) || e0 < s2) throw new Error("custom period needs valid start and end dates (YYYY-MM-DD, end \u2265 start)");
+    const e2 = e0 + DAY_MS2 - 1;
+    const len = e2 - s2;
+    return { range: { start: s2, end: Math.min(e2, now.getTime()) }, prev: { start: s2 - len - 1, end: s2 - 1 } };
+  }
+  if (period === "daily") {
+    const todayStart = dayStart(now, cfg).getTime();
+    if (complete) {
+      const yStart = dayStart(new Date(todayStart - DAY_MS2 / 2), cfg).getTime();
+      const dbStart = dayStart(new Date(yStart - DAY_MS2 / 2), cfg).getTime();
+      return { range: { start: yStart, end: todayStart - 1 }, prev: { start: dbStart, end: yStart - 1 } };
+    }
+    const offset2 = now.getTime() - todayStart;
+    const prevStart = dayStart(new Date(todayStart - DAY_MS2 / 2), cfg).getTime();
+    return { range: { start: todayStart, end: now.getTime() }, prev: { start: prevStart, end: prevStart + offset2 } };
+  }
+  const TYPE3 = {
+    weekly: "WEEKLY",
+    monthly: "MONTHLY",
+    quarterly: "QUARTERLY",
+    yearly: "YEARLY"
+  };
+  const type = TYPE3[period];
+  if (complete) {
+    const last = previousPeriod(now, type, cfg);
+    const before = periodBounds(new Date(last.start.getTime() - 1e3), type, cfg);
+    return {
+      range: { start: last.start.getTime(), end: last.end.getTime() - 1 },
+      prev: { start: before.start.getTime(), end: before.end.getTime() - 1 }
+    };
+  }
+  const start = periodStart(now, type, cfg).getTime();
+  const offset = now.getTime() - start;
+  const prevBounds = previousPeriod(now, type, cfg);
+  return {
+    range: { start, end: now.getTime() },
+    prev: { start: prevBounds.start.getTime(), end: Math.min(prevBounds.start.getTime() + offset, prevBounds.end.getTime()) }
+  };
+}
+function expensesIn(rows2, toBase, base, range) {
+  let total = 0, count = 0;
+  for (const r3 of rows2) {
+    const d2 = r3.data ?? {};
+    const status = String(d2.status ?? "").toLowerCase();
+    if (status !== "approved" && status !== "verified") continue;
+    const when = Date.parse(String(d2.date ?? d2.approved_at ?? r3.created_at ?? ""));
+    if (!Number.isFinite(when) || when < range.start || when > range.end) continue;
+    const m2 = readMoney(d2);
+    const v2 = m2.modelled && m2.base_amount != null && (m2.base_currency ?? "").toUpperCase() === base.toUpperCase() ? m2.base_amount : toBase(m2.amount, m2.currency || base);
+    total += v2;
+    count++;
+  }
+  return { total: r2(total), count };
+}
+function granularity(period, range) {
+  if (period === "daily" || period === "weekly" || period === "monthly") return "day";
+  if (period === "quarterly") return "week";
+  if (period === "yearly") return "month";
+  const days = (range.end - range.start) / DAY_MS2;
+  return days <= 31 ? "day" : days <= 130 ? "week" : "month";
+}
+function bucketLabel(t3, g2, cfg) {
+  const w2 = wallClock(new Date(t3), cfg.timeZone);
+  if (g2 === "month") return `${w2.year}-${String(w2.month).padStart(2, "0")}`;
+  const iso = `${w2.year}-${String(w2.month).padStart(2, "0")}-${String(w2.day).padStart(2, "0")}`;
+  if (g2 === "day") return iso;
+  const ws = periodStart(new Date(t3), "WEEKLY", cfg);
+  const sw = wallClock(ws, cfg.timeZone);
+  return `wk ${sw.year}-${String(sw.month).padStart(2, "0")}-${String(sw.day).padStart(2, "0")}`;
+}
+function buildBuckets(range, g2, cfg) {
+  const labels = [];
+  const stepDays = g2 === "day" ? 1 : g2 === "week" ? 7 : 28;
+  let t3 = range.start;
+  let guard = 0;
+  while (t3 <= range.end && guard++ < 400) {
+    const label = bucketLabel(t3, g2, cfg);
+    if (labels[labels.length - 1] !== label) labels.push(label);
+    t3 += stepDays * DAY_MS2;
+  }
+  const last = bucketLabel(range.end, g2, cfg);
+  if (labels[labels.length - 1] !== last) labels.push(last);
+  return labels;
+}
+function projectSeries(values, horizon) {
+  const n2 = values.length;
+  if (n2 < 3) return [];
+  const meanX = (n2 - 1) / 2;
+  const meanY = values.reduce((s2, v2) => s2 + v2, 0) / n2;
+  let num3 = 0, den = 0;
+  for (let i2 = 0; i2 < n2; i2++) {
+    num3 += (i2 - meanX) * (values[i2] - meanY);
+    den += (i2 - meanX) ** 2;
+  }
+  const slope = den === 0 ? 0 : num3 / den;
+  const intercept = meanY - slope * meanX;
+  return Array.from({ length: horizon }, (_2, k2) => Math.max(0, r2(intercept + slope * (n2 + k2))));
+}
+async function composeWorkspaceReport(ws, period, custom2, now = /* @__PURE__ */ new Date(), opts = {}) {
+  const complete = opts.complete ?? false;
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const cfg = workspacePeriodConfig(wsRow);
+  const { range, prev } = resolveRanges(period, cfg, now, custom2, complete);
+  const [deals, invoices, expenses, conv] = await Promise.all([
+    pagedNodes(ws, { ilike: "%deal%" }),
+    pagedNodes(ws, { eq: "invoice" }),
+    pagedNodes(ws, { eq: "expense" }),
+    makeBaseConverter(ws)
+  ]);
+  const { base, toBase } = conv;
+  const won = closedWonIn(deals, range), wonPrev = closedWonIn(deals, prev);
+  const created = pipelineCreatedIn(deals, range), createdPrev = pipelineCreatedIn(deals, prev);
+  const open = openPipeline(deals);
+  const inv = invoiceMetrics(invoices, toBase, base, range);
+  const invPrev = invoiceMetrics(invoices, toBase, base, prev);
+  const exp = expensesIn(expenses, toBase, base, range);
+  const expPrev = expensesIn(expenses, toBase, base, prev);
+  const net = r2(inv.collected - exp.total);
+  const netPrev = r2(invPrev.collected - expPrev.total);
+  const weighted = r2(weightedForecast(deals));
+  const kpis = [
+    {
+      label: "Closed won",
+      kind: "flow",
+      value: r2(won.value),
+      previous: r2(wonPrev.value),
+      delta: deltaPct(won.value, wonPrev.value),
+      count: won.count,
+      note: won.undated ? `${won.undated} won deal${won.undated === 1 ? "" : "s"} carry no close date and are excluded from period figures (${r2(won.undated_value ?? 0)} ${base})` : void 0
+    },
+    { label: "Pipeline created", kind: "flow", value: r2(created.value), previous: r2(createdPrev.value), delta: deltaPct(created.value, createdPrev.value), count: created.count },
+    { label: "Cash collected", kind: "flow", value: inv.collected, previous: invPrev.collected, delta: deltaPct(inv.collected, invPrev.collected) },
+    { label: "Invoiced", kind: "flow", value: inv.invoiced, previous: invPrev.invoiced, delta: deltaPct(inv.invoiced, invPrev.invoiced) },
+    {
+      label: "Expenses",
+      kind: "flow",
+      value: exp.total,
+      previous: expPrev.total,
+      delta: deltaPct(exp.total, expPrev.total),
+      count: exp.count,
+      note: "approved/verified expenses only \u2014 the same population the period close counts"
+    },
+    { label: "Net cash (collected \u2212 expenses)", kind: "flow", value: net, previous: netPrev, delta: deltaPct(net, netPrev) },
+    { label: "Open pipeline (now)", kind: "balance", value: r2(open.value), previous: null, delta: null, count: open.count },
+    { label: "Outstanding AR (now)", kind: "balance", value: inv.outstanding, previous: null, delta: null },
+    { label: "Overdue (now)", kind: "balance", value: inv.overdue.total, previous: null, delta: null, count: inv.overdue.count },
+    {
+      label: "Weighted pipeline forecast (now)",
+      kind: "balance",
+      value: weighted,
+      previous: null,
+      delta: null,
+      note: "stage-weighted open pipeline \u2014 declared weights, not a prediction model"
+    }
+  ];
+  const g2 = granularity(period, range);
+  const labels = buildBuckets(range, g2, cfg);
+  const byLabel = new Map(labels.map((l2) => [l2, { won: 0, collected: 0 }]));
+  for (const d2 of deals) {
+    const wd = wonDate(d2);
+    if (!wd || !/won/i.test(dealStage(d2.data))) continue;
+    const t3 = Date.parse(wd);
+    if (!Number.isFinite(t3) || t3 < range.start || t3 > range.end) continue;
+    const b2 = byLabel.get(bucketLabel(t3, g2, cfg));
+    if (b2) b2.won = r2(b2.won + dealValue(d2.data));
+  }
+  for (const r3 of invoices) {
+    const d2 = r3.data ?? {};
+    if (String(d2.status ?? "") !== "paid") continue;
+    const t3 = Date.parse(String(d2.paid_at ?? r3.created_at));
+    if (!Number.isFinite(t3) || t3 < range.start || t3 > range.end) continue;
+    const b2 = byLabel.get(bucketLabel(t3, g2, cfg));
+    if (b2) b2.collected = r2(b2.collected + toBase(Number(d2.total ?? 0) || 0, String(d2.currency ?? base)));
+  }
+  const series = labels.map((l2) => ({ label: l2, ...byLabel.get(l2) }));
+  const wonVals = series.map((s2) => s2.won);
+  const projected = projectSeries(wonVals, Math.min(3, Math.max(1, Math.floor(series.length / 3))));
+  const forecastFrom = projected.length ? series.length : null;
+  for (let k2 = 0; k2 < projected.length; k2++) {
+    series.push({ label: `+${k2 + 1}`, won: projected[k2], collected: 0, projected: true });
+  }
+  const stages = /* @__PURE__ */ new Map();
+  const openDeals = [];
+  for (const d2 of deals) {
+    const stage = dealStage(d2.data);
+    if (!isOpen(stage)) continue;
+    const b2 = stages.get(stage) ?? { count: 0, value: 0 };
+    b2.count++;
+    b2.value = r2(b2.value + dealValue(d2.data));
+    stages.set(stage, b2);
+    openDeals.push({
+      name: String(d2.data?.name ?? d2.data?.title ?? "Untitled"),
+      stage,
+      value: r2(dealValue(d2.data)),
+      owner: String(d2.data?.deal_owner ?? d2.data?.assigned_to ?? "") || "Unassigned"
+    });
+  }
+  openDeals.sort((a2, b2) => b2.value - a2.value);
+  let close;
+  if (complete && (period === "weekly" || period === "monthly" || period === "quarterly" || period === "yearly")) {
+    const type = { weekly: "WEEKLY", monthly: "MONTHLY", quarterly: "QUARTERLY", yearly: "YEARLY" }[period];
+    const key = periodKey2(new Date(range.start), type, cfg);
+    try {
+      const { data: snap } = await supabase.from("period_snapshots").select("hash").eq("workspace_id", ws).eq("period_type", type).eq("period_key", key).maybeSingle();
+      if (snap?.hash) {
+        const drift = await driftFor(ws, type, key);
+        close = { key, hash: String(snap.hash), drifted: drift?.drifted ?? false, changes: drift?.changes ?? {} };
+      }
+    } catch {
+    }
+  }
+  return {
+    meta: {
+      period,
+      range: { start: new Date(range.start).toISOString(), end: new Date(range.end).toISOString() },
+      prevRange: { start: new Date(prev.start).toISOString(), end: new Date(prev.end).toISOString() },
+      base,
+      timeZone: cfg.timeZone,
+      generatedAt: now.toISOString(),
+      truncated: false,
+      complete,
+      ...close ? { close } : {}
+    },
+    kpis,
+    series,
+    forecastFrom,
+    weightedPipelineForecast: weighted,
+    pipelineByStage: [...stages].map(([stage, b2]) => ({ stage, ...b2 })).sort((a2, b2) => b2.value - a2.value),
+    topClosers: closersIn(deals, range),
+    overdueAging: inv.overdue.aging,
+    openDeals: openDeals.slice(0, 200)
+  };
+}
+function reportToXlsx(b2) {
+  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
+  const dt2 = (iso) => iso.slice(0, 10);
+  const summary = {
+    name: "Summary",
+    rows: [
+      ["Metric", "Type", `Value (${b2.meta.base})`, "Previous period", "\u0394 %", "Count", "Note"],
+      ...b2.kpis.map((k2) => [k2.label, k2.kind, k2.value, k2.previous, k2.delta, k2.count ?? null, k2.note ?? null]),
+      [],
+      [`${periodTitle} report`, null, null, null, null, null, null],
+      ["Window", `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}`, null, null, null, null, null],
+      ["Compared with", `${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} (same distance into the previous period)`, null, null, null, null, null],
+      ["Timezone", b2.meta.timeZone, null, null, null, null, null],
+      ["Generated", b2.meta.generatedAt, null, null, null, null, null],
+      ...b2.meta.close ? [
+        ["Close snapshot", `${b2.meta.close.key} \xB7 hash ${b2.meta.close.hash.slice(0, 16)}\u2026`, null, null, null, null, null],
+        [b2.meta.close.drifted ? `DRIFT since close: ${Object.entries(b2.meta.close.changes).map(([k2, v2]) => `${k2} ${v2.snapshot} \u2192 ${v2.live}`).join("; ")}` : "Recomputation agrees with the filed close snapshot", null, null, null, null, null, null]
+      ] : []
+    ]
+  };
+  const seriesSheet = {
+    name: "Trend & forecast",
+    rows: [
+      ["Bucket", `Closed won (${b2.meta.base})`, `Cash collected (${b2.meta.base})`, "Projected?"],
+      ...b2.series.map((s2) => [s2.label, s2.won, s2.collected, s2.projected ? "projected (least-squares trend)" : null])
+    ]
+  };
+  const stagesSheet = {
+    name: "Pipeline by stage",
+    rows: [["Stage", "Open deals", `Value (${b2.meta.base})`], ...b2.pipelineByStage.map((s2) => [s2.stage, s2.count, s2.value])]
+  };
+  const closersSheet = {
+    name: "Top closers",
+    rows: [["Owner", "Deals won", `Value (${b2.meta.base})`], ...b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value])]
+  };
+  const agingSheet = {
+    name: "Overdue aging",
+    rows: [["Bucket", "Invoices", `Total (${b2.meta.base})`], ...b2.overdueAging.map((a2) => [a2.bucket, a2.count, a2.total])]
+  };
+  const dealsSheet = {
+    name: "Open deals",
+    rows: [["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], ...b2.openDeals.map((d2) => [d2.name, d2.stage, d2.value, d2.owner])]
+  };
+  return buildXlsx([summary, seriesSheet, stagesSheet, closersSheet, agingSheet, dealsSheet], new Date(b2.meta.generatedAt));
+}
+function lineChartSvg(series, forecastFrom) {
+  const W2 = 760, H2 = 220, PAD2 = 36;
+  if (!series.length) return "";
+  const max = Math.max(1, ...series.map((s2) => Math.max(s2.won, s2.collected)));
+  const x2 = (i2) => PAD2 + i2 * (W2 - PAD2 * 2) / Math.max(1, series.length - 1);
+  const y2 = (v2) => H2 - PAD2 - v2 / max * (H2 - PAD2 * 2);
+  const path = (pick, upTo) => series.slice(0, upTo).map((s2, i2) => `${i2 ? "L" : "M"}${x2(i2).toFixed(1)},${y2(pick(s2)).toFixed(1)}`).join(" ");
+  const solidEnd = forecastFrom ?? series.length;
+  const wonSolid = path((s2) => s2.won, solidEnd);
+  const wonDash = forecastFrom ? series.slice(forecastFrom - 1).map((s2, i2) => `${i2 ? "L" : "M"}${x2(forecastFrom - 1 + i2).toFixed(1)},${y2(s2.won).toFixed(1)}`).join(" ") : "";
+  const coll = path((s2) => s2.collected, solidEnd);
+  const ticks = [0, 0.5, 1].map((f2) => `<text x="4" y="${(y2(max * f2) + 4).toFixed(1)}" class="tick">${fmt(Math.round(max * f2))}</text>`).join("");
+  const labels = series.map((s2, i2) => i2 % Math.ceil(series.length / 8) === 0 || s2.projected ? `<text x="${x2(i2).toFixed(1)}" y="${H2 - 10}" class="tick" text-anchor="middle">${esc(s2.label)}</text>` : "").join("");
+  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Closed won and cash collected over the period">
+    <line x1="${PAD2}" y1="${H2 - PAD2}" x2="${W2 - PAD2}" y2="${H2 - PAD2}" class="axis"/>
+    ${ticks}${labels}
+    <path d="${coll}" class="line collected"/>
+    <path d="${wonSolid}" class="line won"/>
+    ${wonDash ? `<path d="${wonDash}" class="line won dash"/>` : ""}
+  </svg>`;
+}
+function barChartSvg(rows2) {
+  if (!rows2.length) return "";
+  const W2 = 760, BAR = 26, GAP = 10, LABELW = 150;
+  const H2 = rows2.length * (BAR + GAP) + 10;
+  const max = Math.max(1, ...rows2.map((r3) => r3.value));
+  const bars = rows2.map((r3, i2) => {
+    const w2 = Math.max(2, (W2 - LABELW - 90) * r3.value / max);
+    const yy = i2 * (BAR + GAP) + 5;
+    return `<text x="${LABELW - 8}" y="${yy + BAR / 2 + 4}" text-anchor="end" class="tick">${esc(r3.stage)}</text>
+      <rect x="${LABELW}" y="${yy}" width="${w2.toFixed(1)}" height="${BAR}" rx="4" class="bar"/>
+      <text x="${LABELW + w2 + 8}" y="${yy + BAR / 2 + 4}" class="tick">${fmt(r3.value)}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Open pipeline by stage">${bars}</svg>`;
+}
+function reportToHtml(b2) {
+  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
+  const dt2 = (iso) => iso.slice(0, 10);
+  const kpiCards = b2.kpis.map((k2) => `
+    <div class="kpi">
+      <div class="kpi-label">${esc(k2.label)}</div>
+      <div class="kpi-value">${fmt(k2.value)} <span class="ccy">${esc(b2.meta.base)}</span></div>
+      <div class="kpi-sub">${k2.kind === "balance" ? "as of now" : k2.delta == null ? k2.previous != null ? `prev ${fmt(k2.previous)}` : "no prior-period base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same point last period (${fmt(k2.previous ?? 0)})`}${k2.count != null ? ` \xB7 ${k2.count} record${k2.count === 1 ? "" : "s"}` : ""}</div>
+      ${k2.note ? `<div class="kpi-note">${esc(k2.note)}</div>` : ""}
+    </div>`).join("");
+  const table = (headers2, rows2) => rows2.length ? `<table><thead><tr>${headers2.map((h2) => `<th>${esc(h2)}</th>`).join("")}</tr></thead><tbody>${rows2.map((r3) => `<tr>${r3.map((c2, i2) => `<td class="${typeof c2 === "number" ? "num" : ""}">${typeof c2 === "number" ? fmt(c2) : esc(String(c2))}</td>`).join("")}</tr>`).join("")}</tbody></table>` : `<p class="empty">No data in this window.</p>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mondaily \u2014 ${esc(periodTitle)} report ${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}</title>
+<style>
+  :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --accent:#0e9f6e; --accent2:#3b82f6; }
+  * { box-sizing:border-box; margin:0 }
+  body { font:14px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#fff; max-width:820px; margin:0 auto; padding:32px 24px 64px }
+  h1 { font-size:1.5rem; margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
+  .sub { color:var(--muted); font-size:.85rem; margin-bottom:24px }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px }
+  .kpi { border:1px solid var(--line); border-radius:10px; padding:12px 14px }
+  .kpi-label { font-size:.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em }
+  .kpi-value { font-size:1.25rem; font-weight:600; margin-top:2px } .ccy { font-size:.75rem; color:var(--muted); font-weight:400 }
+  .kpi-sub { font-size:.75rem; color:var(--muted) } .kpi-note { font-size:.72rem; color:#b45309; margin-top:4px }
+  svg { width:100%; height:auto; margin-top:6px } .axis { stroke:var(--line) } .tick { font-size:10px; fill:var(--muted) }
+  .line { fill:none; stroke-width:2 } .won { stroke:var(--accent) } .collected { stroke:var(--accent2) } .dash { stroke-dasharray:5 4 }
+  .bar { fill:var(--accent); opacity:.85 }
+  .legend { font-size:.75rem; color:var(--muted) } .legend b { font-weight:600 }
+  .legend .sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin:0 4px 0 12px; vertical-align:middle }
+  table { width:100%; border-collapse:collapse; font-size:.85rem } th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line) }
+  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted) } td.num { text-align:right; font-variant-numeric:tabular-nums }
+  .empty { color:var(--muted); font-size:.85rem }
+  footer { margin-top:40px; font-size:.75rem; color:var(--muted); border-top:1px solid var(--line); padding-top:12px }
+  @media print { body { padding:0 } .kpi { break-inside:avoid } h2 { break-after:avoid } }
+</style></head><body>
+<h1>${esc(periodTitle)} report${b2.meta.complete ? " \u2014 completed period" : ""}</h1>
+<div class="sub">${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${esc(b2.meta.timeZone)} \xB7 base ${esc(b2.meta.base)}</div>
+<div class="kpis">${kpiCards}</div>
+<h2>Closed won &amp; cash collected</h2>
+<div class="legend"><span class="sw" style="background:var(--accent)"></span><b>Closed won</b><span class="sw" style="background:var(--accent2)"></span><b>Cash collected</b>${b2.forecastFrom ? ` \xB7 dashed = least-squares projection of the real trend` : ""}</div>
+${lineChartSvg(b2.series, b2.forecastFrom)}
+<h2>Open pipeline by stage (as of now)</h2>
+${barChartSvg(b2.pipelineByStage)}
+<h2>Top closers</h2>
+${table(["Owner", "Deals won", `Value (${b2.meta.base})`], b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value]))}
+<h2>Overdue invoices \u2014 aging</h2>
+${table(["Bucket", "Invoices", `Total (${b2.meta.base})`], b2.overdueAging.filter((a2) => a2.count > 0).map((a2) => [a2.bucket, a2.count, a2.total]))}
+<h2>Open deals</h2>
+${table(["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], b2.openDeals.slice(0, 50).map((d2) => [d2.name, d2.stage, d2.value, d2.owner]))}
+<footer>${b2.meta.close ? `Filed close snapshot <b>${esc(b2.meta.close.key)}</b> (hash ${esc(b2.meta.close.hash.slice(0, 16))}\u2026): ${b2.meta.close.drifted ? `the live ledger has moved since the close \u2014 ${Object.entries(b2.meta.close.changes).map(([k2, v2]) => `${esc(k2)} ${fmt(v2.snapshot)} \u2192 ${fmt(v2.live)}`).join("; ")} (disclosed, not reconciled).` : "recomputation agrees with the filed figures."}<br/>` : ""}Generated by Mondaily on ${b2.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC. Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are transparent least-squares extensions of the real series \u2014 labelled, never blended into actuals.</footer>
+</body></html>`;
+}
+var DAY_MS2, r2, esc, fmt;
+var init_report_export = __esm({
+  "src/lib/report-export.ts"() {
+    "use strict";
+    init_client();
+    init_period();
+    init_period_close();
+    init_money();
+    init_currency_store();
+    init_money2();
+    init_xlsx();
+    DAY_MS2 = 864e5;
+    r2 = (x2) => Math.round(x2 * 100) / 100;
+    esc = (s2) => s2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    fmt = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
+  }
+});
+
+// src/lib/report-schedule.ts
+var report_schedule_exports = {};
+__export(report_schedule_exports, {
+  REPORT_CADENCES: () => REPORT_CADENCES,
+  currentPeriodKey: () => currentPeriodKey,
+  deliverDueReports: () => deliverDueReports,
+  readSchedule: () => readSchedule,
+  reportEmailHtml: () => reportEmailHtml,
+  runReportDelivery: () => runReportDelivery
+});
+function currentPeriodKey(cadence, cfg, now) {
+  if (cadence === "daily") {
+    const w2 = wallClock(now, cfg.timeZone);
+    return `${w2.year}-${String(w2.month).padStart(2, "0")}-${String(w2.day).padStart(2, "0")}`;
+  }
+  const type = { weekly: "WEEKLY", monthly: "MONTHLY", quarterly: "QUARTERLY", yearly: "YEARLY" }[cadence];
+  return periodKey2(now, type, cfg);
+}
+function reportEmailHtml(b2, ws) {
+  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
+  const dt2 = (iso) => iso.slice(0, 10);
+  const window2 = `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}`;
+  const qs = `period=${b2.meta.period}&complete=1&ws=${ws}`;
+  const td = `padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;`;
+  const rows2 = b2.kpis.map((k2) => `<tr>
+      <td style="${td}">${k2.label}</td>
+      <td style="${td}text-align:right;font-variant-numeric:tabular-nums;">${fmt2(k2.value)} ${b2.meta.base}</td>
+      <td style="${td}color:#6b7280;">${k2.kind === "balance" ? "as of send time" : k2.delta == null ? k2.previous != null ? `prev ${fmt2(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs previous ${b2.meta.period.replace(/ly$/, "")}`}</td>
+    </tr>${k2.note ? `<tr><td colspan="3" style="padding:0 10px 6px;font-size:11px;color:#b45309;">${k2.note}</td></tr>` : ""}`).join("");
+  const closeLine = b2.meta.close ? `<p style="font-size:12px;color:#6b7280;">Filed close snapshot <b>${b2.meta.close.key}</b> (hash ${b2.meta.close.hash.slice(0, 16)}\u2026): ${b2.meta.close.drifted ? "the live ledger has moved since the close \u2014 the linked report discloses each change." : "recomputation agrees with the filed figures."}</p>` : "";
+  return {
+    subject: `${periodTitle} report \u2014 ${window2}`,
+    body: `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
+      <h2 style="font-size:18px;margin:16px 0 2px;">${periodTitle} report</h2>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 14px;">${window2} \xB7 ${b2.meta.timeZone} \xB7 base ${b2.meta.base}</p>
+      <table style="width:100%;border-collapse:collapse;">${rows2}</table>
+      ${closeLine}
+      <p style="margin:18px 0;">
+        <a href="${API_ORIGIN}/api/v1/reports/export.html?${qs}" style="display:inline-block;padding:8px 14px;background:#111827;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;">Full report with charts</a>
+        &nbsp;<a href="${API_ORIGIN}/api/v1/reports/export.xlsx?${qs}" style="display:inline-block;padding:8px 14px;border:1px solid #d1d5db;border-radius:6px;color:#111827;text-decoration:none;font-size:13px;">Excel workbook</a>
+      </p>
+      <p style="font-size:11px;color:#9ca3af;">Sent by Mondaily on the workspace's calendar. Flow metrics are counted inside the window; balances are as of send time. Manage this schedule under <a href="${APP_ORIGIN}/reports" style="color:#6b7280;">Reports</a>.</p>
+    </div>`
+  };
+}
+function readSchedule(settings) {
+  const raw2 = settings?.report_schedule ?? {};
+  const enabled2 = {};
+  for (const c2 of REPORT_CADENCES) if (raw2.enabled?.[c2] === true) enabled2[c2] = true;
+  return { enabled: enabled2, last_sent: raw2.last_sent ?? {} };
+}
+async function ownerAdminRecipients(ws) {
+  const { data } = await supabase.from("workspace_members").select("email, name, role").eq("workspace_id", ws).in("role", ["owner", "admin"]).limit(50);
+  return (data ?? []).filter((m2) => typeof m2.email === "string" && m2.email.includes("@")).map((m2) => ({ email: String(m2.email), name: typeof m2.name === "string" ? m2.name : void 0 }));
+}
+async function deliverDueReports(wsId, wsRow, now = /* @__PURE__ */ new Date()) {
+  const cfg = workspacePeriodConfig(wsRow);
+  const schedule = readSchedule(wsRow.settings);
+  const out = [];
+  const due = REPORT_CADENCES.filter((c2) => schedule.enabled[c2] && schedule.last_sent?.[c2] !== currentPeriodKey(c2, cfg, now));
+  if (!due.length) return out;
+  const recipients = await ownerAdminRecipients(wsId);
+  for (const cadence of due) {
+    const key = currentPeriodKey(cadence, cfg, now);
+    if (!recipients.length) {
+      out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "no_recipients" });
+      continue;
+    }
+    try {
+      const bundle = await composeWorkspaceReport(wsId, cadence, void 0, now, { complete: true });
+      const { subject, body } = reportEmailHtml(bundle, wsId);
+      const ok2 = await sendWorkspaceEmail(wsId, { subject, body, to: recipients });
+      if (!ok2) {
+        out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: "mail transport declined" });
+        continue;
+      }
+      const settings = wsRow.settings ?? {};
+      const nextSchedule = { enabled: { ...schedule.enabled }, last_sent: { ...schedule.last_sent ?? {}, [cadence]: key } };
+      await supabase.from("workspaces").update({ settings: { ...settings, report_schedule: nextSchedule } }).eq("id", wsId);
+      wsRow.settings = { ...settings, report_schedule: nextSchedule };
+      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent" });
+    } catch (e2) {
+      out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: e2 instanceof Error ? e2.message : String(e2) });
+    }
+  }
+  return out;
+}
+async function runReportDelivery(now = /* @__PURE__ */ new Date()) {
+  const { data: workspaces, error } = await supabase.from("workspaces").select("id, settings, timezone").is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  const results = [];
+  for (const ws of workspaces ?? []) {
+    try {
+      results.push(...await deliverDueReports(String(ws.id), ws, now));
+    } catch (e2) {
+      results.push({ workspace: String(ws.id), cadence: "daily", period: "-", sent: 0, status: "failed", detail: String(e2) });
+    }
+  }
+  return { workspaces: (workspaces ?? []).length, results };
+}
+var REPORT_CADENCES, API_ORIGIN, APP_ORIGIN, fmt2;
+var init_report_schedule = __esm({
+  "src/lib/report-schedule.ts"() {
+    "use strict";
+    init_client();
+    init_period();
+    init_period_close();
+    init_mail();
+    init_report_export();
+    REPORT_CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"];
+    API_ORIGIN = (process.env.API_URL ?? "https://api.mondaily.com").replace(/\/$/, "");
+    APP_ORIGIN = (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+    fmt2 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
   }
 });
 
@@ -68816,476 +69475,10 @@ init_zod();
 init_auth();
 init_ai_gateway();
 init_currency_store();
-
-// src/lib/report-export.ts
-init_client();
-init_period();
+init_report_export();
+init_report_schedule();
 init_period_close();
-init_currency_store();
-init_money2();
-
-// src/lib/xlsx.ts
-var XML_HEAD = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-`;
-var escapeXml = (s2) => s2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
-var colRef = (i2) => {
-  let n2 = i2 + 1, s2 = "";
-  while (n2 > 0) {
-    const r3 = (n2 - 1) % 26;
-    s2 = String.fromCharCode(65 + r3) + s2;
-    n2 = Math.floor((n2 - 1) / 26);
-  }
-  return s2;
-};
-var sheetName = (raw2, index) => {
-  const cleaned = raw2.replace(/[\[\]:*?/\\]/g, " ").trim().slice(0, 31);
-  return cleaned || `Sheet${index + 1}`;
-};
-function sheetXml(sheet) {
-  const colCount = sheet.rows.reduce((m2, r3) => Math.max(m2, r3.length), 0);
-  const widths = Array.from({ length: colCount }, (_2, c2) => {
-    if (sheet.widths?.[c2]) return sheet.widths[c2];
-    let w2 = 8;
-    for (const row of sheet.rows) {
-      const v2 = row[c2];
-      if (v2 == null) continue;
-      w2 = Math.max(w2, Math.min(60, String(typeof v2 === "number" ? v2.toFixed(2) : v2).length + 2));
-    }
-    return w2;
-  });
-  const cols = colCount ? `<cols>${widths.map((w2, c2) => `<col min="${c2 + 1}" max="${c2 + 1}" width="${w2}" customWidth="1"/>`).join("")}</cols>` : "";
-  const rows2 = sheet.rows.map((row, r3) => {
-    const cells = row.map((v2, c2) => {
-      if (v2 == null || v2 === "") return "";
-      const ref = `${colRef(c2)}${r3 + 1}`;
-      if (typeof v2 === "number" && Number.isFinite(v2)) {
-        const style = Number.isInteger(v2) ? r3 === 0 ? 1 : 0 : 2;
-        return `<c r="${ref}"${style ? ` s="${style}"` : ""}><v>${v2}</v></c>`;
-      }
-      const s2 = r3 === 0 ? ` s="1"` : "";
-      return `<c r="${ref}"${s2} t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(v2))}</t></is></c>`;
-    }).join("");
-    return `<row r="${r3 + 1}">${cells}</row>`;
-  }).join("");
-  return `${XML_HEAD}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${rows2}</sheetData></worksheet>`;
-}
-var STYLES = `${XML_HEAD}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" applyFont="1"/><xf numFmtId="164" applyNumberFormat="1"/></cellXfs></styleSheet>`;
-var CRC_TABLE = (() => {
-  const t3 = new Uint32Array(256);
-  for (let n2 = 0; n2 < 256; n2++) {
-    let c2 = n2;
-    for (let k2 = 0; k2 < 8; k2++) c2 = c2 & 1 ? 3988292384 ^ c2 >>> 1 : c2 >>> 1;
-    t3[n2] = c2 >>> 0;
-  }
-  return t3;
-})();
-function crc32(bytes) {
-  let c2 = 4294967295;
-  for (let i2 = 0; i2 < bytes.length; i2++) c2 = CRC_TABLE[(c2 ^ bytes[i2]) & 255] ^ c2 >>> 8;
-  return (c2 ^ 4294967295) >>> 0;
-}
-function zip(entries, stamp2) {
-  const dosTime = (stamp2.getHours() << 11 | stamp2.getMinutes() << 5 | stamp2.getSeconds() >> 1) & 65535;
-  const dosDate = (stamp2.getFullYear() - 1980 << 9 | stamp2.getMonth() + 1 << 5 | stamp2.getDate()) & 65535;
-  const chunks = [];
-  const central = [];
-  let offset = 0;
-  const u16 = (v2) => [v2 & 255, v2 >> 8 & 255];
-  const u32 = (v2) => [v2 & 255, v2 >>> 8 & 255, v2 >>> 16 & 255, v2 >>> 24 & 255];
-  for (const e2 of entries) {
-    const nameBytes = new TextEncoder().encode(e2.name);
-    const crc = crc32(e2.data);
-    const local = new Uint8Array([
-      ...u32(67324752),
-      ...u16(20),
-      ...u16(0),
-      ...u16(0),
-      ...u16(dosTime),
-      ...u16(dosDate),
-      ...u32(crc),
-      ...u32(e2.data.length),
-      ...u32(e2.data.length),
-      ...u16(nameBytes.length),
-      ...u16(0),
-      ...nameBytes
-    ]);
-    chunks.push(local, e2.data);
-    central.push(new Uint8Array([
-      ...u32(33639248),
-      ...u16(20),
-      ...u16(20),
-      ...u16(0),
-      ...u16(0),
-      ...u16(dosTime),
-      ...u16(dosDate),
-      ...u32(crc),
-      ...u32(e2.data.length),
-      ...u32(e2.data.length),
-      ...u16(nameBytes.length),
-      ...u16(0),
-      ...u16(0),
-      ...u16(0),
-      ...u16(0),
-      ...u32(0),
-      ...u32(offset),
-      ...nameBytes
-    ]));
-    offset += local.length + e2.data.length;
-  }
-  const centralSize = central.reduce((s2, c2) => s2 + c2.length, 0);
-  const eocd = new Uint8Array([
-    ...u32(101010256),
-    ...u16(0),
-    ...u16(0),
-    ...u16(entries.length),
-    ...u16(entries.length),
-    ...u32(centralSize),
-    ...u32(offset),
-    ...u16(0)
-  ]);
-  const total = offset + centralSize + eocd.length;
-  const out = new Uint8Array(total);
-  let p2 = 0;
-  for (const c2 of [...chunks, ...central, eocd]) {
-    out.set(c2, p2);
-    p2 += c2.length;
-  }
-  return out;
-}
-function buildXlsx(sheets, generatedAt = /* @__PURE__ */ new Date()) {
-  const named = sheets.map((s2, i2) => ({ ...s2, name: sheetName(s2.name, i2) }));
-  const enc = (s2) => new TextEncoder().encode(s2);
-  const contentTypes = `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>` + named.map((_2, i2) => `<Override PartName="/xl/worksheets/sheet${i2 + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") + `</Types>`;
-  const rootRels = `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
-  const workbook = `${XML_HEAD}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` + named.map((s2, i2) => `<sheet name="${escapeXml(s2.name)}" sheetId="${i2 + 1}" r:id="rId${i2 + 1}"/>`).join("") + `</sheets></workbook>`;
-  const wbRels = `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + named.map((_2, i2) => `<Relationship Id="rId${i2 + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i2 + 1}.xml"/>`).join("") + `<Relationship Id="rId${named.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
-  return zip([
-    { name: "[Content_Types].xml", data: enc(contentTypes) },
-    { name: "_rels/.rels", data: enc(rootRels) },
-    { name: "xl/workbook.xml", data: enc(workbook) },
-    { name: "xl/_rels/workbook.xml.rels", data: enc(wbRels) },
-    { name: "xl/styles.xml", data: enc(STYLES) },
-    ...named.map((s2, i2) => ({ name: `xl/worksheets/sheet${i2 + 1}.xml`, data: enc(sheetXml(s2)) }))
-  ], generatedAt);
-}
-
-// src/lib/report-export.ts
-var DAY_MS2 = 864e5;
-var r2 = (x2) => Math.round(x2 * 100) / 100;
-function dayStart(at2, cfg) {
-  const w2 = wallClock(at2, cfg.timeZone);
-  return instantOf({ year: w2.year, month: w2.month, day: w2.day }, cfg.timeZone);
-}
-function resolveRanges(period, cfg, now, custom2) {
-  if (period === "custom") {
-    const s2 = Date.parse(custom2?.start ?? "");
-    const e0 = Date.parse(custom2?.end ?? "");
-    if (!Number.isFinite(s2) || !Number.isFinite(e0) || e0 < s2) throw new Error("custom period needs valid start and end dates (YYYY-MM-DD, end \u2265 start)");
-    const e2 = e0 + DAY_MS2 - 1;
-    const len = e2 - s2;
-    return { range: { start: s2, end: Math.min(e2, now.getTime()) }, prev: { start: s2 - len - 1, end: s2 - 1 } };
-  }
-  if (period === "daily") {
-    const start2 = dayStart(now, cfg).getTime();
-    const offset2 = now.getTime() - start2;
-    const prevStart = dayStart(new Date(start2 - DAY_MS2 / 2), cfg).getTime();
-    return { range: { start: start2, end: now.getTime() }, prev: { start: prevStart, end: prevStart + offset2 } };
-  }
-  const TYPE3 = {
-    weekly: "WEEKLY",
-    monthly: "MONTHLY",
-    quarterly: "QUARTERLY",
-    yearly: "YEARLY"
-  };
-  const type = TYPE3[period];
-  const start = periodStart(now, type, cfg).getTime();
-  const offset = now.getTime() - start;
-  const prevBounds = previousPeriod(now, type, cfg);
-  return {
-    range: { start, end: now.getTime() },
-    prev: { start: prevBounds.start.getTime(), end: Math.min(prevBounds.start.getTime() + offset, prevBounds.end.getTime()) }
-  };
-}
-function granularity(period, range) {
-  if (period === "daily" || period === "weekly" || period === "monthly") return "day";
-  if (period === "quarterly") return "week";
-  if (period === "yearly") return "month";
-  const days = (range.end - range.start) / DAY_MS2;
-  return days <= 31 ? "day" : days <= 130 ? "week" : "month";
-}
-function bucketLabel(t3, g2, cfg) {
-  const w2 = wallClock(new Date(t3), cfg.timeZone);
-  if (g2 === "month") return `${w2.year}-${String(w2.month).padStart(2, "0")}`;
-  const iso = `${w2.year}-${String(w2.month).padStart(2, "0")}-${String(w2.day).padStart(2, "0")}`;
-  if (g2 === "day") return iso;
-  const ws = periodStart(new Date(t3), "WEEKLY", cfg);
-  const sw = wallClock(ws, cfg.timeZone);
-  return `wk ${sw.year}-${String(sw.month).padStart(2, "0")}-${String(sw.day).padStart(2, "0")}`;
-}
-function buildBuckets(range, g2, cfg) {
-  const labels = [];
-  const stepDays = g2 === "day" ? 1 : g2 === "week" ? 7 : 28;
-  let t3 = range.start;
-  let guard = 0;
-  while (t3 <= range.end && guard++ < 400) {
-    const label = bucketLabel(t3, g2, cfg);
-    if (labels[labels.length - 1] !== label) labels.push(label);
-    t3 += stepDays * DAY_MS2;
-  }
-  const last = bucketLabel(range.end, g2, cfg);
-  if (labels[labels.length - 1] !== last) labels.push(last);
-  return labels;
-}
-function projectSeries(values, horizon) {
-  const n2 = values.length;
-  if (n2 < 3) return [];
-  const meanX = (n2 - 1) / 2;
-  const meanY = values.reduce((s2, v2) => s2 + v2, 0) / n2;
-  let num3 = 0, den = 0;
-  for (let i2 = 0; i2 < n2; i2++) {
-    num3 += (i2 - meanX) * (values[i2] - meanY);
-    den += (i2 - meanX) ** 2;
-  }
-  const slope = den === 0 ? 0 : num3 / den;
-  const intercept = meanY - slope * meanX;
-  return Array.from({ length: horizon }, (_2, k2) => Math.max(0, r2(intercept + slope * (n2 + k2))));
-}
-async function composeWorkspaceReport(ws, period, custom2, now = /* @__PURE__ */ new Date()) {
-  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
-  const cfg = workspacePeriodConfig(wsRow);
-  const { range, prev } = resolveRanges(period, cfg, now, custom2);
-  const [deals, invoices, conv] = await Promise.all([
-    pagedNodes(ws, { ilike: "%deal%" }),
-    pagedNodes(ws, { eq: "invoice" }),
-    makeBaseConverter(ws)
-  ]);
-  const { base, toBase } = conv;
-  const won = closedWonIn(deals, range), wonPrev = closedWonIn(deals, prev);
-  const created = pipelineCreatedIn(deals, range), createdPrev = pipelineCreatedIn(deals, prev);
-  const open = openPipeline(deals);
-  const inv = invoiceMetrics(invoices, toBase, base, range);
-  const invPrev = invoiceMetrics(invoices, toBase, base, prev);
-  const weighted = r2(weightedForecast(deals));
-  const kpis = [
-    {
-      label: "Closed won",
-      kind: "flow",
-      value: r2(won.value),
-      previous: r2(wonPrev.value),
-      delta: deltaPct(won.value, wonPrev.value),
-      count: won.count,
-      note: won.undated ? `${won.undated} won deal${won.undated === 1 ? "" : "s"} carry no close date and are excluded from period figures (${r2(won.undated_value ?? 0)} ${base})` : void 0
-    },
-    { label: "Pipeline created", kind: "flow", value: r2(created.value), previous: r2(createdPrev.value), delta: deltaPct(created.value, createdPrev.value), count: created.count },
-    { label: "Cash collected", kind: "flow", value: inv.collected, previous: invPrev.collected, delta: deltaPct(inv.collected, invPrev.collected) },
-    { label: "Invoiced", kind: "flow", value: inv.invoiced, previous: invPrev.invoiced, delta: deltaPct(inv.invoiced, invPrev.invoiced) },
-    { label: "Open pipeline (now)", kind: "balance", value: r2(open.value), previous: null, delta: null, count: open.count },
-    { label: "Outstanding AR (now)", kind: "balance", value: inv.outstanding, previous: null, delta: null },
-    { label: "Overdue (now)", kind: "balance", value: inv.overdue.total, previous: null, delta: null, count: inv.overdue.count },
-    {
-      label: "Weighted pipeline forecast (now)",
-      kind: "balance",
-      value: weighted,
-      previous: null,
-      delta: null,
-      note: "stage-weighted open pipeline \u2014 declared weights, not a prediction model"
-    }
-  ];
-  const g2 = granularity(period, range);
-  const labels = buildBuckets(range, g2, cfg);
-  const byLabel = new Map(labels.map((l2) => [l2, { won: 0, collected: 0 }]));
-  for (const d2 of deals) {
-    const wd = wonDate(d2);
-    if (!wd || !/won/i.test(dealStage(d2.data))) continue;
-    const t3 = Date.parse(wd);
-    if (!Number.isFinite(t3) || t3 < range.start || t3 > range.end) continue;
-    const b2 = byLabel.get(bucketLabel(t3, g2, cfg));
-    if (b2) b2.won = r2(b2.won + dealValue(d2.data));
-  }
-  for (const r3 of invoices) {
-    const d2 = r3.data ?? {};
-    if (String(d2.status ?? "") !== "paid") continue;
-    const t3 = Date.parse(String(d2.paid_at ?? r3.created_at));
-    if (!Number.isFinite(t3) || t3 < range.start || t3 > range.end) continue;
-    const b2 = byLabel.get(bucketLabel(t3, g2, cfg));
-    if (b2) b2.collected = r2(b2.collected + toBase(Number(d2.total ?? 0) || 0, String(d2.currency ?? base)));
-  }
-  const series = labels.map((l2) => ({ label: l2, ...byLabel.get(l2) }));
-  const wonVals = series.map((s2) => s2.won);
-  const projected = projectSeries(wonVals, Math.min(3, Math.max(1, Math.floor(series.length / 3))));
-  const forecastFrom = projected.length ? series.length : null;
-  for (let k2 = 0; k2 < projected.length; k2++) {
-    series.push({ label: `+${k2 + 1}`, won: projected[k2], collected: 0, projected: true });
-  }
-  const stages = /* @__PURE__ */ new Map();
-  const openDeals = [];
-  for (const d2 of deals) {
-    const stage = dealStage(d2.data);
-    if (!isOpen(stage)) continue;
-    const b2 = stages.get(stage) ?? { count: 0, value: 0 };
-    b2.count++;
-    b2.value = r2(b2.value + dealValue(d2.data));
-    stages.set(stage, b2);
-    openDeals.push({
-      name: String(d2.data?.name ?? d2.data?.title ?? "Untitled"),
-      stage,
-      value: r2(dealValue(d2.data)),
-      owner: String(d2.data?.deal_owner ?? d2.data?.assigned_to ?? "") || "Unassigned"
-    });
-  }
-  openDeals.sort((a2, b2) => b2.value - a2.value);
-  return {
-    meta: {
-      period,
-      range: { start: new Date(range.start).toISOString(), end: new Date(range.end).toISOString() },
-      prevRange: { start: new Date(prev.start).toISOString(), end: new Date(prev.end).toISOString() },
-      base,
-      timeZone: cfg.timeZone,
-      generatedAt: now.toISOString(),
-      truncated: false
-    },
-    kpis,
-    series,
-    forecastFrom,
-    weightedPipelineForecast: weighted,
-    pipelineByStage: [...stages].map(([stage, b2]) => ({ stage, ...b2 })).sort((a2, b2) => b2.value - a2.value),
-    topClosers: closersIn(deals, range),
-    overdueAging: inv.overdue.aging,
-    openDeals: openDeals.slice(0, 200)
-  };
-}
-function reportToXlsx(b2) {
-  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
-  const dt2 = (iso) => iso.slice(0, 10);
-  const summary = {
-    name: "Summary",
-    rows: [
-      ["Metric", "Type", `Value (${b2.meta.base})`, "Previous period", "\u0394 %", "Count", "Note"],
-      ...b2.kpis.map((k2) => [k2.label, k2.kind, k2.value, k2.previous, k2.delta, k2.count ?? null, k2.note ?? null]),
-      [],
-      [`${periodTitle} report`, null, null, null, null, null, null],
-      ["Window", `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}`, null, null, null, null, null],
-      ["Compared with", `${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} (same distance into the previous period)`, null, null, null, null, null],
-      ["Timezone", b2.meta.timeZone, null, null, null, null, null],
-      ["Generated", b2.meta.generatedAt, null, null, null, null, null]
-    ]
-  };
-  const seriesSheet = {
-    name: "Trend & forecast",
-    rows: [
-      ["Bucket", `Closed won (${b2.meta.base})`, `Cash collected (${b2.meta.base})`, "Projected?"],
-      ...b2.series.map((s2) => [s2.label, s2.won, s2.collected, s2.projected ? "projected (least-squares trend)" : null])
-    ]
-  };
-  const stagesSheet = {
-    name: "Pipeline by stage",
-    rows: [["Stage", "Open deals", `Value (${b2.meta.base})`], ...b2.pipelineByStage.map((s2) => [s2.stage, s2.count, s2.value])]
-  };
-  const closersSheet = {
-    name: "Top closers",
-    rows: [["Owner", "Deals won", `Value (${b2.meta.base})`], ...b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value])]
-  };
-  const agingSheet = {
-    name: "Overdue aging",
-    rows: [["Bucket", "Invoices", `Total (${b2.meta.base})`], ...b2.overdueAging.map((a2) => [a2.bucket, a2.count, a2.total])]
-  };
-  const dealsSheet = {
-    name: "Open deals",
-    rows: [["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], ...b2.openDeals.map((d2) => [d2.name, d2.stage, d2.value, d2.owner])]
-  };
-  return buildXlsx([summary, seriesSheet, stagesSheet, closersSheet, agingSheet, dealsSheet], new Date(b2.meta.generatedAt));
-}
-var esc = (s2) => s2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-var fmt = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
-function lineChartSvg(series, forecastFrom) {
-  const W2 = 760, H2 = 220, PAD2 = 36;
-  if (!series.length) return "";
-  const max = Math.max(1, ...series.map((s2) => Math.max(s2.won, s2.collected)));
-  const x2 = (i2) => PAD2 + i2 * (W2 - PAD2 * 2) / Math.max(1, series.length - 1);
-  const y2 = (v2) => H2 - PAD2 - v2 / max * (H2 - PAD2 * 2);
-  const path = (pick, upTo) => series.slice(0, upTo).map((s2, i2) => `${i2 ? "L" : "M"}${x2(i2).toFixed(1)},${y2(pick(s2)).toFixed(1)}`).join(" ");
-  const solidEnd = forecastFrom ?? series.length;
-  const wonSolid = path((s2) => s2.won, solidEnd);
-  const wonDash = forecastFrom ? series.slice(forecastFrom - 1).map((s2, i2) => `${i2 ? "L" : "M"}${x2(forecastFrom - 1 + i2).toFixed(1)},${y2(s2.won).toFixed(1)}`).join(" ") : "";
-  const coll = path((s2) => s2.collected, solidEnd);
-  const ticks = [0, 0.5, 1].map((f2) => `<text x="4" y="${(y2(max * f2) + 4).toFixed(1)}" class="tick">${fmt(Math.round(max * f2))}</text>`).join("");
-  const labels = series.map((s2, i2) => i2 % Math.ceil(series.length / 8) === 0 || s2.projected ? `<text x="${x2(i2).toFixed(1)}" y="${H2 - 10}" class="tick" text-anchor="middle">${esc(s2.label)}</text>` : "").join("");
-  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Closed won and cash collected over the period">
-    <line x1="${PAD2}" y1="${H2 - PAD2}" x2="${W2 - PAD2}" y2="${H2 - PAD2}" class="axis"/>
-    ${ticks}${labels}
-    <path d="${coll}" class="line collected"/>
-    <path d="${wonSolid}" class="line won"/>
-    ${wonDash ? `<path d="${wonDash}" class="line won dash"/>` : ""}
-  </svg>`;
-}
-function barChartSvg(rows2) {
-  if (!rows2.length) return "";
-  const W2 = 760, BAR = 26, GAP = 10, LABELW = 150;
-  const H2 = rows2.length * (BAR + GAP) + 10;
-  const max = Math.max(1, ...rows2.map((r3) => r3.value));
-  const bars = rows2.map((r3, i2) => {
-    const w2 = Math.max(2, (W2 - LABELW - 90) * r3.value / max);
-    const yy = i2 * (BAR + GAP) + 5;
-    return `<text x="${LABELW - 8}" y="${yy + BAR / 2 + 4}" text-anchor="end" class="tick">${esc(r3.stage)}</text>
-      <rect x="${LABELW}" y="${yy}" width="${w2.toFixed(1)}" height="${BAR}" rx="4" class="bar"/>
-      <text x="${LABELW + w2 + 8}" y="${yy + BAR / 2 + 4}" class="tick">${fmt(r3.value)}</text>`;
-  }).join("");
-  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Open pipeline by stage">${bars}</svg>`;
-}
-function reportToHtml(b2) {
-  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
-  const dt2 = (iso) => iso.slice(0, 10);
-  const kpiCards = b2.kpis.map((k2) => `
-    <div class="kpi">
-      <div class="kpi-label">${esc(k2.label)}</div>
-      <div class="kpi-value">${fmt(k2.value)} <span class="ccy">${esc(b2.meta.base)}</span></div>
-      <div class="kpi-sub">${k2.kind === "balance" ? "as of now" : k2.delta == null ? k2.previous != null ? `prev ${fmt(k2.previous)}` : "no prior-period base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same point last period (${fmt(k2.previous ?? 0)})`}${k2.count != null ? ` \xB7 ${k2.count} record${k2.count === 1 ? "" : "s"}` : ""}</div>
-      ${k2.note ? `<div class="kpi-note">${esc(k2.note)}</div>` : ""}
-    </div>`).join("");
-  const table = (headers2, rows2) => rows2.length ? `<table><thead><tr>${headers2.map((h2) => `<th>${esc(h2)}</th>`).join("")}</tr></thead><tbody>${rows2.map((r3) => `<tr>${r3.map((c2, i2) => `<td class="${typeof c2 === "number" ? "num" : ""}">${typeof c2 === "number" ? fmt(c2) : esc(String(c2))}</td>`).join("")}</tr>`).join("")}</tbody></table>` : `<p class="empty">No data in this window.</p>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mondaily \u2014 ${esc(periodTitle)} report ${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}</title>
-<style>
-  :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --accent:#0e9f6e; --accent2:#3b82f6; }
-  * { box-sizing:border-box; margin:0 }
-  body { font:14px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#fff; max-width:820px; margin:0 auto; padding:32px 24px 64px }
-  h1 { font-size:1.5rem; margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
-  .sub { color:var(--muted); font-size:.85rem; margin-bottom:24px }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px }
-  .kpi { border:1px solid var(--line); border-radius:10px; padding:12px 14px }
-  .kpi-label { font-size:.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em }
-  .kpi-value { font-size:1.25rem; font-weight:600; margin-top:2px } .ccy { font-size:.75rem; color:var(--muted); font-weight:400 }
-  .kpi-sub { font-size:.75rem; color:var(--muted) } .kpi-note { font-size:.72rem; color:#b45309; margin-top:4px }
-  svg { width:100%; height:auto; margin-top:6px } .axis { stroke:var(--line) } .tick { font-size:10px; fill:var(--muted) }
-  .line { fill:none; stroke-width:2 } .won { stroke:var(--accent) } .collected { stroke:var(--accent2) } .dash { stroke-dasharray:5 4 }
-  .bar { fill:var(--accent); opacity:.85 }
-  .legend { font-size:.75rem; color:var(--muted) } .legend b { font-weight:600 }
-  .legend .sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin:0 4px 0 12px; vertical-align:middle }
-  table { width:100%; border-collapse:collapse; font-size:.85rem } th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line) }
-  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted) } td.num { text-align:right; font-variant-numeric:tabular-nums }
-  .empty { color:var(--muted); font-size:.85rem }
-  footer { margin-top:40px; font-size:.75rem; color:var(--muted); border-top:1px solid var(--line); padding-top:12px }
-  @media print { body { padding:0 } .kpi { break-inside:avoid } h2 { break-after:avoid } }
-</style></head><body>
-<h1>${esc(periodTitle)} report</h1>
-<div class="sub">${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${esc(b2.meta.timeZone)} \xB7 base ${esc(b2.meta.base)}</div>
-<div class="kpis">${kpiCards}</div>
-<h2>Closed won &amp; cash collected</h2>
-<div class="legend"><span class="sw" style="background:var(--accent)"></span><b>Closed won</b><span class="sw" style="background:var(--accent2)"></span><b>Cash collected</b>${b2.forecastFrom ? ` \xB7 dashed = least-squares projection of the real trend` : ""}</div>
-${lineChartSvg(b2.series, b2.forecastFrom)}
-<h2>Open pipeline by stage (as of now)</h2>
-${barChartSvg(b2.pipelineByStage)}
-<h2>Top closers</h2>
-${table(["Owner", "Deals won", `Value (${b2.meta.base})`], b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value]))}
-<h2>Overdue invoices \u2014 aging</h2>
-${table(["Bucket", "Invoices", `Total (${b2.meta.base})`], b2.overdueAging.filter((a2) => a2.count > 0).map((a2) => [a2.bucket, a2.count, a2.total]))}
-<h2>Open deals</h2>
-${table(["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], b2.openDeals.slice(0, 50).map((d2) => [d2.name, d2.stage, d2.value, d2.owner]))}
-<footer>Generated by Mondaily on ${b2.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC. Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are transparent least-squares extensions of the real series \u2014 labelled, never blended into actuals.</footer>
-</body></html>`;
-}
-
-// src/routes/reports.ts
+init_mail();
 var router7 = new Hono2();
 router7.use("*", requireAuth);
 var reportType = external_exports.enum(["insight", "funnel", "time_in_stage", "historical", "forecast"]);
@@ -69300,12 +69493,14 @@ router7.get("/", async (c2) => {
 var exportQuery = external_exports.object({
   period: external_exports.enum(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"]).default("monthly"),
   start: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  end: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+  end: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** "1" = the last COMPLETED period (what a scheduled email covers) instead of period-to-date. */
+  complete: external_exports.string().optional()
 });
 router7.get("/export.xlsx", zValidator2("query", exportQuery), async (c2) => {
-  const { period, start, end } = c2.req.valid("query");
+  const { period, start, end, complete } = c2.req.valid("query");
   try {
-    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end });
+    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end }, /* @__PURE__ */ new Date(), { complete: complete === "1" });
     const bytes = reportToXlsx(bundle);
     const name = `mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.xlsx`;
     return c2.body(bytes.buffer, 200, {
@@ -69318,16 +69513,60 @@ router7.get("/export.xlsx", zValidator2("query", exportQuery), async (c2) => {
   }
 });
 router7.get("/export.html", zValidator2("query", exportQuery), async (c2) => {
-  const { period, start, end } = c2.req.valid("query");
+  const { period, start, end, complete } = c2.req.valid("query");
   const download = c2.req.query("download") === "1";
   try {
-    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end });
+    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end }, /* @__PURE__ */ new Date(), { complete: complete === "1" });
     const html = reportToHtml(bundle);
     const headers2 = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" };
     if (download) headers2["Content-Disposition"] = `attachment; filename="mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.html"`;
     return c2.body(html, 200, headers2);
   } catch (e2) {
     return c2.json({ error: e2 instanceof Error ? e2.message : "report export failed" }, 400);
+  }
+});
+router7.get("/schedule", async (c2) => {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();
+  return c2.json(readSchedule(data?.settings ?? {}));
+});
+router7.post("/schedule", zValidator2("json", external_exports.object({
+  enabled: external_exports.record(external_exports.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]), external_exports.boolean())
+})), async (c2) => {
+  const role = c2.get("role") || "member";
+  if (role !== "owner" && role !== "admin") return c2.json({ error: "Owner/admin only." }, 403);
+  const ws = c2.get("workspaceId");
+  const { enabled: enabled2 } = c2.req.valid("json");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = data?.settings ?? {};
+  const prev = readSchedule(settings);
+  const cleaned = {};
+  for (const cad of REPORT_CADENCES) if (enabled2[cad] === true) cleaned[cad] = true;
+  const { data: wsRow } = await supabase.from("workspaces").select("timezone, settings").eq("id", ws).maybeSingle();
+  const cfg = workspacePeriodConfig(wsRow);
+  const last_sent = { ...prev.last_sent ?? {} };
+  for (const cad of REPORT_CADENCES) {
+    if (cleaned[cad] && !prev.enabled[cad]) last_sent[cad] = currentPeriodKey(cad, cfg, /* @__PURE__ */ new Date());
+  }
+  const report_schedule = { enabled: cleaned, last_sent };
+  const { error } = await supabase.from("workspaces").update({ settings: { ...settings, report_schedule } }).eq("id", ws);
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ enabled: cleaned });
+});
+router7.post("/schedule/send-test", zValidator2("json", external_exports.object({
+  period: external_exports.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]).default("monthly")
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { period } = c2.req.valid("json");
+  const { data: me2 } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", ws).eq("user_id", c2.get("userId")).maybeSingle();
+  const email = typeof me2?.email === "string" && me2.email.includes("@") ? me2.email : null;
+  if (!email) return c2.json({ error: "Your membership has no email address to send to." }, 400);
+  try {
+    const bundle = await composeWorkspaceReport(ws, period, void 0, /* @__PURE__ */ new Date(), { complete: true });
+    const { subject, body } = reportEmailHtml(bundle, ws);
+    const ok2 = await sendWorkspaceEmail(ws, { subject: `[Test] ${subject}`, body, to: [{ email, name: me2?.name ?? void 0 }] });
+    return ok2 ? c2.json({ sent: true, to: email }) : c2.json({ error: "Mail transport declined the message \u2014 check the workspace email setup on /status." }, 502);
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "send failed" }, 400);
   }
 });
 router7.post("/", zValidator2("json", reportInput), async (c2) => {
@@ -69549,6 +69788,7 @@ router7.post("/:id/insight", async (c2) => {
 });
 
 // src/routes/ask.ts
+init_report_export();
 init_prospecting();
 init_sovereign_search();
 init_embeddings2();
@@ -83825,14 +84065,14 @@ router47.post("/:id/send", async (c2) => {
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
   const SYM = { USD: "$", EUR: "\u20AC", GBP: "\xA3", PLN: "z\u0142", JPY: "\xA5" };
   const sym = SYM[base] ?? `${base} `;
-  const fmt2 = (n2) => n2 >= 1e6 ? `${sym}${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `${sym}${(n2 / 1e3).toFixed(0)}K` : `${sym}${n2.toLocaleString()}`;
+  const fmt3 = (n2) => n2 >= 1e6 ? `${sym}${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `${sym}${(n2 / 1e3).toFixed(0)}K` : `${sym}${n2.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
   const now = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const statsRows = [
     ["Total records", String(total)],
     ...wonRecs.length ? [["Completed / Won", String(wonRecs.length)]] : [],
-    ...valueCol && wonValue ? [["Won value", fmt2(wonValue)]] : [],
-    ...valueCol && totalValue ? [["Total pipeline value", fmt2(totalValue)]] : [],
+    ...valueCol && wonValue ? [["Won value", fmt3(wonValue)]] : [],
+    ...valueCol && totalValue ? [["Total pipeline value", fmt3(totalValue)]] : [],
     ...winRate !== null ? [["Win rate", `${winRate}%`]] : []
   ];
   const html = `<!DOCTYPE html>
@@ -87275,6 +87515,20 @@ app.get("/api/cron/support-reminders", async (c2) => {
   try {
     const r3 = await runWaitingOnUserSweep2();
     return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), ...r3 });
+  } catch (e2) {
+    return c2.json({ ran: false, error: String(e2) }, 500);
+  }
+});
+app.get("/api/cron/report-delivery", async (c2) => {
+  const secret4 = process.env.CRON_SECRET;
+  if (!secret4) return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
+  const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret4}`) return c2.json({ error: "Unauthorized" }, 401);
+  const { runReportDelivery: runReportDelivery2 } = await Promise.resolve().then(() => (init_report_schedule(), report_schedule_exports));
+  try {
+    const r3 = await runReportDelivery2();
+    const acted = r3.results.filter((x2) => x2.status !== "skipped");
+    return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), workspaces: r3.workspaces, deliveries: acted });
   } catch (e2) {
     return c2.json({ ran: false, error: String(e2) }, 500);
   }

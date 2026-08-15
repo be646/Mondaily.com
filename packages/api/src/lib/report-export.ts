@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
-import { periodStart, previousPeriod, instantOf, wallClock, type PeriodConfig, type PeriodType } from "@mondaily/shared/period";
-import { workspacePeriodConfig } from "./period-close";
+import { periodStart, previousPeriod, periodBounds, periodKey, instantOf, wallClock, type PeriodConfig, type PeriodType } from "@mondaily/shared/period";
+import { workspacePeriodConfig, driftFor } from "./period-close";
+import { readMoney } from "@mondaily/shared/money";
 import { makeBaseConverter } from "./currency-store";
 import {
   pagedNodes, closedWonIn, pipelineCreatedIn, openPipeline, weightedForecast, closersIn,
@@ -40,6 +41,10 @@ export interface ReportBundle {
     timeZone: string;
     generatedAt: string;
     truncated: boolean;
+    /** True when the window is a COMPLETED prior period (scheduled sends) rather than period-to-date. */
+    complete: boolean;
+    /** Present when the window matches a filed close snapshot — the immutable, hash-chained truth. */
+    close?: { key: string; hash: string; drifted: boolean; changes: Record<string, { snapshot: number; live: number }> };
   };
   kpis: { label: string; kind: "flow" | "balance"; value: number; previous: number | null; delta: number | null; count?: number; note?: string }[];
   series: SeriesPoint[];
@@ -63,6 +68,8 @@ function dayStart(at: Date, cfg: PeriodConfig): Date {
 export function resolveRanges(
   period: ExportPeriod, cfg: PeriodConfig, now: Date,
   custom?: { start?: string; end?: string },
+  /** Complete = the last FINISHED period (scheduled sends), compared full-against-full. */
+  complete = false,
 ): { range: MsRange; prev: MsRange } {
   if (period === "custom") {
     const s = Date.parse(custom?.start ?? "");
@@ -73,15 +80,33 @@ export function resolveRanges(
     return { range: { start: s, end: Math.min(e, now.getTime()) }, prev: { start: s - len - 1, end: s - 1 } };
   }
   if (period === "daily") {
-    const start = dayStart(now, cfg).getTime();
-    const offset = now.getTime() - start;
-    const prevStart = dayStart(new Date(start - DAY_MS / 2), cfg).getTime();
-    return { range: { start, end: now.getTime() }, prev: { start: prevStart, end: prevStart + offset } };
+    const todayStart = dayStart(now, cfg).getTime();
+    if (complete) {
+      // Yesterday, whole, against the day before it, whole.
+      const yStart = dayStart(new Date(todayStart - DAY_MS / 2), cfg).getTime();
+      const dbStart = dayStart(new Date(yStart - DAY_MS / 2), cfg).getTime();
+      return { range: { start: yStart, end: todayStart - 1 }, prev: { start: dbStart, end: yStart - 1 } };
+    }
+    const offset = now.getTime() - todayStart;
+    const prevStart = dayStart(new Date(todayStart - DAY_MS / 2), cfg).getTime();
+    return { range: { start: todayStart, end: now.getTime() }, prev: { start: prevStart, end: prevStart + offset } };
   }
   const TYPE: Record<Exclude<ExportPeriod, "daily" | "custom">, PeriodType> = {
     weekly: "WEEKLY", monthly: "MONTHLY", quarterly: "QUARTERLY", yearly: "YEARLY",
   };
   const type = TYPE[period];
+  if (complete) {
+    // The last finished period, whole, against the whole period before it — equal windows, so the
+    // delta needs no same-point clamping.
+    const last = previousPeriod(now, type, cfg);
+    // The period CONTAINING the instant just before `last` starts — periodBounds, not
+    // previousPeriod, which would skip one further back (June's previous is May).
+    const before = periodBounds(new Date(last.start.getTime() - 1000), type, cfg);
+    return {
+      range: { start: last.start.getTime(), end: last.end.getTime() - 1 },
+      prev: { start: before.start.getTime(), end: before.end.getTime() - 1 },
+    };
+  }
   const start = periodStart(now, type, cfg).getTime();
   const offset = now.getTime() - start;
   const prevBounds = previousPeriod(now, type, cfg);
@@ -90,6 +115,34 @@ export function resolveRanges(
     range: { start, end: now.getTime() },
     prev: { start: prevBounds.start.getTime(), end: Math.min(prevBounds.start.getTime() + offset, prevBounds.end.getTime()) },
   };
+}
+
+/**
+ * Expenses inside a window — the SAME population rule the period-close snapshot uses
+ * (approved/verified only, dated by `date` → `approved_at` → created_at) so a report and a close
+ * can never count different expenses. Valued from the frozen money fields when present, today's
+ * rate otherwise (period-close.computeMetrics documents why the mixed basis is disclosed, not hidden).
+ */
+export function expensesIn(
+  rows: NodeRow[],
+  toBase: (amount: number, currency: string) => number,
+  base: string,
+  range: MsRange,
+): { total: number; count: number } {
+  let total = 0, count = 0;
+  for (const r of rows) {
+    const d = (r.data ?? {}) as Record<string, unknown>;
+    const status = String(d.status ?? "").toLowerCase();
+    if (status !== "approved" && status !== "verified") continue;
+    const when = Date.parse(String(d.date ?? d.approved_at ?? r.created_at ?? ""));
+    if (!Number.isFinite(when) || when < range.start || when > range.end) continue;
+    const m = readMoney(d);
+    const v = m.modelled && m.base_amount != null && (m.base_currency ?? "").toUpperCase() === base.toUpperCase()
+      ? m.base_amount
+      : toBase(m.amount, m.currency || base);
+    total += v; count++;
+  }
+  return { total: r2(total), count };
 }
 
 /** Bucket granularity that keeps the chart readable at each period length. */
@@ -143,14 +196,17 @@ export function projectSeries(values: number[], horizon: number): number[] {
 
 export async function composeWorkspaceReport(
   ws: string, period: ExportPeriod, custom?: { start?: string; end?: string }, now: Date = new Date(),
+  opts: { complete?: boolean } = {},
 ): Promise<ReportBundle> {
+  const complete = opts.complete ?? false;
   const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
   const cfg = workspacePeriodConfig(wsRow as { timezone?: unknown; settings?: unknown } | null);
-  const { range, prev } = resolveRanges(period, cfg, now, custom);
+  const { range, prev } = resolveRanges(period, cfg, now, custom, complete);
 
-  const [deals, invoices, conv] = await Promise.all([
+  const [deals, invoices, expenses, conv] = await Promise.all([
     pagedNodes(ws, { ilike: "%deal%" }),
     pagedNodes(ws, { eq: "invoice" }),
+    pagedNodes(ws, { eq: "expense" }),
     makeBaseConverter(ws),
   ]);
   const { base, toBase } = conv;
@@ -161,6 +217,10 @@ export async function composeWorkspaceReport(
   const open = openPipeline(deals);
   const inv = invoiceMetrics(invoices, toBase, base, range);
   const invPrev = invoiceMetrics(invoices, toBase, base, prev);
+  const exp = expensesIn(expenses, toBase, base, range);
+  const expPrev = expensesIn(expenses, toBase, base, prev);
+  const net = r2(inv.collected - exp.total);
+  const netPrev = r2(invPrev.collected - expPrev.total);
   const weighted = r2(weightedForecast(deals));
 
   const kpis: ReportBundle["kpis"] = [
@@ -169,6 +229,9 @@ export async function composeWorkspaceReport(
     { label: "Pipeline created", kind: "flow", value: r2(created.value), previous: r2(createdPrev.value), delta: deltaPct(created.value, createdPrev.value), count: created.count },
     { label: "Cash collected", kind: "flow", value: inv.collected, previous: invPrev.collected, delta: deltaPct(inv.collected, invPrev.collected) },
     { label: "Invoiced", kind: "flow", value: inv.invoiced, previous: invPrev.invoiced, delta: deltaPct(inv.invoiced, invPrev.invoiced) },
+    { label: "Expenses", kind: "flow", value: exp.total, previous: expPrev.total, delta: deltaPct(exp.total, expPrev.total), count: exp.count,
+      note: "approved/verified expenses only — the same population the period close counts" },
+    { label: "Net cash (collected − expenses)", kind: "flow", value: net, previous: netPrev, delta: deltaPct(net, netPrev) },
     { label: "Open pipeline (now)", kind: "balance", value: r2(open.value), previous: null, delta: null, count: open.count },
     { label: "Outstanding AR (now)", kind: "balance", value: inv.outstanding, previous: null, delta: null },
     { label: "Overdue (now)", kind: "balance", value: inv.overdue.total, previous: null, delta: null, count: inv.overdue.count },
@@ -223,6 +286,24 @@ export async function composeWorkspaceReport(
   }
   openDeals.sort((a, b) => b.value - a.value);
 
+  // ── Close alignment — only a COMPLETED calendar period can have a filed snapshot. When one
+  // exists, the report carries its hash (the immutable, chain-linked truth) and, where the live
+  // ledger has since moved, the drift — disclosed, never silently reconciled.
+  let close: ReportBundle["meta"]["close"];
+  if (complete && (period === "weekly" || period === "monthly" || period === "quarterly" || period === "yearly")) {
+    const type = ({ weekly: "WEEKLY", monthly: "MONTHLY", quarterly: "QUARTERLY", yearly: "YEARLY" } as const)[period];
+    const key = periodKey(new Date(range.start), type, cfg);
+    try {
+      const { data: snap } = await supabase
+        .from("period_snapshots").select("hash")
+        .eq("workspace_id", ws).eq("period_type", type).eq("period_key", key).maybeSingle();
+      if (snap?.hash) {
+        const drift = await driftFor(ws, type, key);
+        close = { key, hash: String(snap.hash), drifted: drift?.drifted ?? false, changes: drift?.changes ?? {} };
+      }
+    } catch { /* a missing snapshot table must not block the report itself */ }
+  }
+
   return {
     meta: {
       period,
@@ -230,6 +311,8 @@ export async function composeWorkspaceReport(
       prevRange: { start: new Date(prev.start).toISOString(), end: new Date(prev.end).toISOString() },
       base, timeZone: cfg.timeZone, generatedAt: now.toISOString(),
       truncated: false,
+      complete,
+      ...(close ? { close } : {}),
     },
     kpis, series, forecastFrom,
     weightedPipelineForecast: weighted,
@@ -256,6 +339,12 @@ export function reportToXlsx(b: ReportBundle): Uint8Array {
       ["Compared with", `${dt(b.meta.prevRange.start)} → ${dt(b.meta.prevRange.end)} (same distance into the previous period)`, null, null, null, null, null],
       ["Timezone", b.meta.timeZone, null, null, null, null, null],
       ["Generated", b.meta.generatedAt, null, null, null, null, null],
+      ...(b.meta.close ? [
+        ["Close snapshot", `${b.meta.close.key} · hash ${b.meta.close.hash.slice(0, 16)}…`, null, null, null, null, null],
+        [b.meta.close.drifted
+          ? `DRIFT since close: ${Object.entries(b.meta.close.changes).map(([k, v]) => `${k} ${v.snapshot} → ${v.live}`).join("; ")}`
+          : "Recomputation agrees with the filed close snapshot", null, null, null, null, null, null],
+      ] as (string | number | null)[][] : []),
     ],
   };
   const seriesSheet: XlsxSheet = {
@@ -374,7 +463,7 @@ export function reportToHtml(b: ReportBundle): string {
   footer { margin-top:40px; font-size:.75rem; color:var(--muted); border-top:1px solid var(--line); padding-top:12px }
   @media print { body { padding:0 } .kpi { break-inside:avoid } h2 { break-after:avoid } }
 </style></head><body>
-<h1>${esc(periodTitle)} report</h1>
+<h1>${esc(periodTitle)} report${b.meta.complete ? " — completed period" : ""}</h1>
 <div class="sub">${dt(b.meta.range.start)} → ${dt(b.meta.range.end)} · compared with ${dt(b.meta.prevRange.start)} → ${dt(b.meta.prevRange.end)} · ${esc(b.meta.timeZone)} · base ${esc(b.meta.base)}</div>
 <div class="kpis">${kpiCards}</div>
 <h2>Closed won &amp; cash collected</h2>
@@ -388,6 +477,6 @@ ${table(["Owner", "Deals won", `Value (${b.meta.base})`], b.topClosers.map(c => 
 ${table(["Bucket", "Invoices", `Total (${b.meta.base})`], b.overdueAging.filter(a => a.count > 0).map(a => [a.bucket, a.count, a.total]))}
 <h2>Open deals</h2>
 ${table(["Deal", "Stage", `Value (${b.meta.base})`, "Owner"], b.openDeals.slice(0, 50).map(d => [d.name, d.stage, d.value, d.owner]))}
-<footer>Generated by Mondaily on ${b.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC. Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are transparent least-squares extensions of the real series — labelled, never blended into actuals.</footer>
+<footer>${b.meta.close ? `Filed close snapshot <b>${esc(b.meta.close.key)}</b> (hash ${esc(b.meta.close.hash.slice(0, 16))}…): ${b.meta.close.drifted ? `the live ledger has moved since the close — ${Object.entries(b.meta.close.changes).map(([k, v]) => `${esc(k)} ${fmt(v.snapshot)} → ${fmt(v.live)}`).join("; ")} (disclosed, not reconciled).` : "recomputation agrees with the filed figures."}<br/>` : ""}Generated by Mondaily on ${b.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC. Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are transparent least-squares extensions of the real series — labelled, never blended into actuals.</footer>
 </body></html>`;
 }

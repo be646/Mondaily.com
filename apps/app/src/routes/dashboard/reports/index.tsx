@@ -598,7 +598,62 @@ function DownloadReport() {
           <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>
         )}
       </div>
+      <ReportScheduleRow />
     </section>
+  );
+}
+
+/**
+ * The email schedule — real state from /reports/schedule, saved on toggle. The first email for a
+ * newly enabled cadence arrives when the CURRENT period ends (the API anchors last_sent on enable),
+ * and covers that completed period on the workspace's calendar.
+ */
+function ReportScheduleRow() {
+  const qc = useQueryClient();
+  const schedQ = useQuery({
+    queryKey: ["report-schedule"],
+    queryFn: () => apiClient.get<{ enabled: Partial<Record<string, boolean>> }>("/reports/schedule"),
+  });
+  const save = useMutation({
+    mutationFn: (enabled: Record<string, boolean>) =>
+      apiClient.post("/reports/schedule", { enabled }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["report-schedule"] }),
+  });
+  const [testState, setTestState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const sendTest = async () => {
+    setTestState("sending");
+    try {
+      await apiClient.post("/reports/schedule/send-test", { period: "monthly" });
+      setTestState("sent");
+    } catch { setTestState("failed"); }
+  };
+  const enabled = schedQ.data?.enabled ?? {};
+  const toggle = (cad: string) => save.mutate({ ...Object.fromEntries(Object.entries(enabled).filter(([, v]) => v).map(([k]) => [k, true])), [cad]: !enabled[cad] });
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
+      <span className="text-xs" style={{ color: "var(--text-muted)" }}>Email this report automatically:</span>
+      {(["daily", "weekly", "monthly", "quarterly", "yearly"] as const).map(cad => (
+        <button key={cad} onClick={() => toggle(cad)} disabled={schedQ.isLoading || save.isPending}
+          aria-pressed={!!enabled[cad]}
+          className="rounded-full border px-2.5 py-0.5 text-[11px] capitalize transition-colors"
+          style={enabled[cad]
+            ? { borderColor: "var(--section-accent, var(--text-primary))", color: "var(--text-primary)", background: "var(--surface-hover)" }
+            : { borderColor: "var(--border-soft)", color: "var(--text-faint)", background: "transparent" }}>
+          {cad}
+        </button>
+      ))}
+      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+        {Object.values(enabled).some(Boolean)
+          ? "sent to owners & admins when each period ends, on your workspace calendar"
+          : "off — nothing is sent"}
+      </span>
+      <span className="grow" />
+      <button onClick={() => void sendTest()} disabled={testState === "sending"}
+        className="rounded-md border px-2.5 py-1 text-[11px] transition-colors hover:opacity-80"
+        style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+        {testState === "sending" ? "Sending…" : testState === "sent" ? "Test sent — check your inbox" : testState === "failed" ? "Send failed — check /status" : "Email me a test"}
+      </button>
+    </div>
   );
 }
 

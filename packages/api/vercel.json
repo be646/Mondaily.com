@@ -12,6 +12,7 @@
     { "path": "/api/cron/monitors", "schedule": "0 */4 * * *" },
     { "path": "/api/cron/executive-brief", "schedule": "0 7 1 * *" },
     { "path": "/api/cron/period-close", "schedule": "5 * * * *" },
-    { "path": "/api/cron/support-reminders", "schedule": "0 9 * * *" }
+    { "path": "/api/cron/support-reminders", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/report-delivery", "schedule": "20 * * * *" }
   ]
 }
