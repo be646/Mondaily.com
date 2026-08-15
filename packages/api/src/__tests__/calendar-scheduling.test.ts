@@ -362,3 +362,20 @@ describe("a missing microphone does not end the meeting", () => {
     expect(CALL_UI).toMatch(/camera unavailable: /);
   });
 });
+
+describe("RSVP replies can actually reach us", () => {
+  it("the ICS organizer is an address WE receive, not the organiser's personal inbox", () => {
+    /**
+     * A guest's Accept is mailed to the ORGANIZER's mailto and nowhere else. With the organiser's
+     * own Gmail there, every reply bypassed our receiver and guest_responses could never update —
+     * the entire RSVP pipeline was unreachable for real meetings. Caught by walking the path
+     * before rehearsing it; the self-test could not catch it because it hand-set the address.
+     */
+    expect(CAL_API).toMatch(/const organizerAddr = rsvpDomain \? `rsvp@\$\{rsvpDomain\}` : organiserEmail;/);
+    expect(CAL_API).toMatch(/organizer: \{ name: organiserName, email: organizerAddr \}/);
+  });
+
+  it("keeps the human name on the invite — only the machine address changes", () => {
+    expect(CAL_API).toMatch(/name: organiserName, email: organizerAddr/);
+  });
+});

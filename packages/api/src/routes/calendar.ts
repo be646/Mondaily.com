@@ -307,6 +307,23 @@ async function inviteGuests(
   try {
     const organiserEmail = opts?.organiserEmail;
     if (opts?.eventId && organiserEmail) {
+      /**
+       * THE ORGANIZER ADDRESS MUST BE OURS, or RSVP never comes home.
+       *
+       * When a guest clicks Accept, their calendar mails the METHOD:REPLY to the ORGANIZER's
+       * mailto — nowhere else. With the organiser's own address here (their Gmail), every reply
+       * went to their personal inbox and our inbound server never saw one: the whole RSVP pipeline
+       * behind it was unreachable for real meetings. The self-test only worked because it hand-set
+       * the organiser to our domain — a bug the test could not catch, caught by walking the path
+       * before rehearsing it.
+       *
+       * `rsvp@<sovereign domain>` routes to our receiver (which accepts any local part) and the
+       * reply handler matches by UID, not recipient. CN keeps the HUMAN name, so the guest still
+       * sees the organiser's name; only the machine address changes. Falls back to the organiser's
+       * real address when sovereign mail is not configured — degraded but never broken.
+       */
+      const rsvpDomain = (process.env.SOVEREIGN_MAIL_DOMAIN || "").trim().toLowerCase();
+      const organizerAddr = rsvpDomain ? `rsvp@${rsvpDomain}` : organiserEmail;
       ics = buildIcs({
         uid: icsUid(opts.eventId, organiserEmail),
         title: d.title,
@@ -314,7 +331,7 @@ async function inviteGuests(
         location: guestUrl || d.location || undefined,
         startAt: d.start_at,
         endAt: d.end_at,
-        organizer: { name: organiserName, email: organiserEmail },
+        organizer: { name: organiserName, email: organizerAddr },
         attendees: guests.map((email) => ({ email })),
         sequence: opts.sequence ?? 0,
         method: cancelled ? "CANCEL" : "REQUEST",

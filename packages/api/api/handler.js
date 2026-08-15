@@ -72854,6 +72854,8 @@ async function inviteGuests(d2, organiserName, verb, opts) {
   try {
     const organiserEmail = opts?.organiserEmail;
     if (opts?.eventId && organiserEmail) {
+      const rsvpDomain = (process.env.SOVEREIGN_MAIL_DOMAIN || "").trim().toLowerCase();
+      const organizerAddr = rsvpDomain ? `rsvp@${rsvpDomain}` : organiserEmail;
       ics = buildIcs({
         uid: icsUid(opts.eventId, organiserEmail),
         title: d2.title,
@@ -72861,7 +72863,7 @@ async function inviteGuests(d2, organiserName, verb, opts) {
         location: guestUrl || d2.location || void 0,
         startAt: d2.start_at,
         endAt: d2.end_at,
-        organizer: { name: organiserName, email: organiserEmail },
+        organizer: { name: organiserName, email: organizerAddr },
         attendees: guests.map((email) => ({ email })),
         sequence: opts.sequence ?? 0,
         method: cancelled ? "CANCEL" : "REQUEST",
