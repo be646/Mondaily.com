@@ -68637,7 +68637,7 @@ function tplVars(p2, lang, base = "") {
     base: base.trim() || who
   };
 }
-function useLocalized(lang) {
+function localizedLang(lang) {
   const L2 = normalizeLang(lang);
   return L2 === "en" ? null : L2;
 }
@@ -68649,7 +68649,7 @@ function profileTerms(p2) {
   return { ...FAMILY_FLAVOR[industryFamily(p2.industry)].terms, ...p2.preferred_terms };
 }
 function discoverySuggestions(p2, limit2 = 4, lang) {
-  const L2 = useLocalized(lang);
+  const L2 = localizedLang(lang);
   if (L2) {
     const vars = tplVars(p2, L2);
     const out2 = tList(L2, "tpl.discovery").map((t3) => fillTemplate(t3, vars));
@@ -68663,7 +68663,7 @@ function discoverySuggestions(p2, limit2 = 4, lang) {
   return dedupe(out, limit2);
 }
 function askStarterPrompts(p2, limit2 = 4, lang) {
-  const L2 = useLocalized(lang);
+  const L2 = localizedLang(lang);
   if (L2) return dedupe(tList(L2, "tpl.ask").map((t3) => fillTemplate(t3, tplVars(p2, L2))), limit2);
   const family = industryFamily(p2.industry);
   const out = [];
@@ -68703,10 +68703,10 @@ function applyTerms(text, p2) {
 }
 function discoveryPlaceholder(p2, lang) {
   const ex = discoverySuggestions(p2, 1, lang)[0] ?? "companies matching your ideal customer";
-  return useLocalized(lang) ? ex : `Find leads or reviews \u2014 e.g. "${ex}"`;
+  return localizedLang(lang) ? ex : `Find leads or reviews \u2014 e.g. "${ex}"`;
 }
 function discoveryNextSuggestions(p2, limit2 = 3, lang) {
-  const L2 = useLocalized(lang);
+  const L2 = localizedLang(lang);
   if (L2) return dedupe(tList(L2, "tpl.discovery_next").map((t3) => fillTemplate(t3, tplVars(p2, L2))), limit2);
   const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
   const region = p2.region.trim();
@@ -68718,7 +68718,7 @@ function discoveryNextSuggestions(p2, limit2 = 3, lang) {
   return dedupe([...out, ...discoverySuggestions(p2, limit2)], limit2);
 }
 function broadQueryRefinements(p2, query, limit2 = 3, lang) {
-  const L2 = useLocalized(lang);
+  const L2 = localizedLang(lang);
   if (L2) return dedupe(tList(L2, "tpl.discovery_broad").map((t3) => fillTemplate(t3, tplVars(p2, L2, query))), limit2);
   const base = query.trim() || (p2.target_customers.trim() || "results");
   const region = p2.region.trim();
@@ -68758,7 +68758,7 @@ function importExamples(p2, limit2 = 3) {
   return dedupe(profileObjects(p2).map((o2) => `Import ${o2} from a CSV`), limit2);
 }
 function homeQuickPrompts(p2, lang) {
-  const L2 = useLocalized(lang);
+  const L2 = localizedLang(lang);
   if (L2) {
     const vars = tplVars(p2, L2);
     return [

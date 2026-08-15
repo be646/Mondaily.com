@@ -201,7 +201,7 @@ function tplVars(p: WorkspaceProfile, lang: string, base = ""): Record<string, s
   };
 }
 /** Non-English requested AND we can localize → true. Keeps the English path 100% unchanged. */
-function useLocalized(lang?: string): string | null {
+function localizedLang(lang?: string): string | null {
   const L = normalizeLang(lang);
   return L === "en" ? null : L;
 }
@@ -223,7 +223,7 @@ export function profileTerms(p: WorkspaceProfile): Record<string, string> {
  * so an empty profile still yields sensible generic prompts.
  */
 export function discoverySuggestions(p: WorkspaceProfile, limit = 4, lang?: string): string[] {
-  const L = useLocalized(lang);
+  const L = localizedLang(lang);
   if (L) {
     const vars = tplVars(p, L);
     const out = tList(L, "tpl.discovery").map((t) => fillTemplate(t, vars));
@@ -239,7 +239,7 @@ export function discoverySuggestions(p: WorkspaceProfile, limit = 4, lang?: stri
 
 /** Ask starter prompts tuned to the profile (family + goals), with generic fallbacks. */
 export function askStarterPrompts(p: WorkspaceProfile, limit = 4, lang?: string): string[] {
-  const L = useLocalized(lang);
+  const L = localizedLang(lang);
   if (L) return dedupe(tList(L, "tpl.ask").map((t) => fillTemplate(t, tplVars(p, L))), limit);
   const family = industryFamily(p.industry);
   const out: string[] = [];
@@ -299,12 +299,12 @@ export function discoveryPlaceholder(p: WorkspaceProfile, lang?: string): string
   const ex = discoverySuggestions(p, 1, lang)[0] ?? "companies matching your ideal customer";
   // Non-English: show the localized example alone (the English "Find leads or reviews — e.g." prefix
   // would look wrong); English keeps the familiar prefixed hint.
-  return useLocalized(lang) ? ex : `Find leads or reviews — e.g. "${ex}"`;
+  return localizedLang(lang) ? ex : `Find leads or reviews — e.g. "${ex}"`;
 }
 
 /** "What to search next" — follow-on Discovery ideas from the profile (always returns some). */
 export function discoveryNextSuggestions(p: WorkspaceProfile, limit = 3, lang?: string): string[] {
-  const L = useLocalized(lang);
+  const L = localizedLang(lang);
   if (L) return dedupe(tList(L, "tpl.discovery_next").map((t) => fillTemplate(t, tplVars(p, L))), limit);
   const who = p.target_customers.trim() || p.discovery_focus.trim() || "your ideal customers";
   const region = p.region.trim();
@@ -318,7 +318,7 @@ export function discoveryNextSuggestions(p: WorkspaceProfile, limit = 3, lang?: 
 
 /** Refinements shown when a query is too broad — narrows by region / customer / signal from profile. */
 export function broadQueryRefinements(p: WorkspaceProfile, query: string, limit = 3, lang?: string): string[] {
-  const L = useLocalized(lang);
+  const L = localizedLang(lang);
   if (L) return dedupe(tList(L, "tpl.discovery_broad").map((t) => fillTemplate(t, tplVars(p, L, query))), limit);
   const base = query.trim() || (p.target_customers.trim() || "results");
   const region = p.region.trim();
@@ -371,7 +371,7 @@ export function importExamples(p: WorkspaceProfile, limit = 3): string[] {
 /** Profile-aware Home quick prompts — attention / decisions / discovery. Localized when a non-English
  *  language is passed (frames translated, profile data kept verbatim); English keeps term-substitution. */
 export function homeQuickPrompts(p: WorkspaceProfile, lang?: string): { key: string; prompt: string }[] {
-  const L = useLocalized(lang);
+  const L = localizedLang(lang);
   if (L) {
     const vars = tplVars(p, L);
     return [

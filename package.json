@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Mondaily AI business operating system monorepo",
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@11.7.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,7 +12,7 @@
     "start": "node server.js",
     "dev": "turbo dev",
     "build": "turbo build",
-    "lint": "turbo lint",
+    "lint": "eslint apps/app/src packages/api/src packages/shared/src",
     "typecheck": "turbo typecheck",
     "test": "pnpm --filter @mondaily/api test",
     "audit:sovereignty": "bash scripts/audit/sovereignty-audit.sh",
@@ -28,8 +28,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "turbo": "^2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.67.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
