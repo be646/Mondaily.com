@@ -1633,7 +1633,7 @@ const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined
  * mid-message — half a message is worse context than none). ~24k chars ≈ 6k tokens.
  */
 const HISTORY_CHAR_BUDGET = 24_000;
-function budgetHistory<T extends { content: string }>(turns: T[]): T[] {
+export function budgetHistory<T extends { content: string }>(turns: T[]): T[] {
   const out: T[] = [];
   let spent = 0;
   for (let i = turns.length - 1; i >= 0; i--) {

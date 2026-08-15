@@ -73072,6 +73072,13 @@ router14.delete("/events/:id", async (c2) => {
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c2.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me2, "cancelled");
+  const dirCancel = await members2(ws);
+  void inviteGuests(
+    next,
+    dirCancel.get(next.organizer_id)?.name || dirCancel.get(next.organizer_id)?.email || "Your host",
+    "cancelled",
+    { eventId: ev.id, organiserEmail: dirCancel.get(next.organizer_id)?.email, sequence: 1, workspaceId: ws }
+  );
   return c2.json({ ok: true, status: "cancelled" });
 });
 router14.post("/events/:id/reschedule", zValidator2("json", external_exports.object({ start_at: external_exports.string().min(1) })), async (c2) => {

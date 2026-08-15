@@ -561,6 +561,20 @@ router.delete("/events/:id", async (c) => {
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me, "cancelled");
+  /**
+   * GUESTS HEAR ABOUT THE CANCELLATION TOO — found by auditing my own work. notifyAttendees
+   * reaches members' in-app notifications; a guest has no app, so without this their calendar kept
+   * a LIVE entry for a dead meeting, join link and all, and they would have turned up. The CANCEL
+   * ics (SEQUENCE advanced past the invite's 0, METHOD + STATUS both set) is what removes the
+   * entry from their calendar rather than just emailing them prose about it.
+   */
+  const dirCancel = await members(ws);
+  void inviteGuests(
+    next,
+    dirCancel.get(next.organizer_id)?.name || dirCancel.get(next.organizer_id)?.email || "Your host",
+    "cancelled",
+    { eventId: ev.id, organiserEmail: dirCancel.get(next.organizer_id)?.email, sequence: 1, workspaceId: ws },
+  );
   return c.json({ ok: true, status: "cancelled" });
 });
 
