@@ -3,7 +3,7 @@ import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X, Trash2 } from "lu
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
-import { CommandPageHeader } from "../../../components/ui/controls";
+import { CommandPageHeader, FieldSelect } from "../../../components/ui/controls";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { periodRange, previousRange } from "../../../lib/period";
 import { apiClient as outcomesClient, BASE_URL } from "../../../lib/api-client";
@@ -192,18 +192,16 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
     <Link
       ref={ref}
       to={`/reports/sales?object=${obj.slug}`}
-      className="group flex items-start gap-3 overflow-hidden rounded-sm border p-3.5 transition-colors hover:border-[var(--section-accent)]"
-      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+      className="group flex items-center gap-3 border-b py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
+      style={{ borderColor: "var(--border-soft)" }}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border"
-        style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
-        <BarChart2 size={16} />
-      </div>
+      <BarChart2 size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{titleCase(obj.name_plural)}</p>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{titleCase(obj.name_plural)}</p>
         {hasKpis ? (
           <>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
               {countQ.data && <Kpi label={(countQ.data.value ?? 0) === 1 ? "record" : "records"} value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
               {moneyStr && <Kpi label={`Σ ${primary!.key}`} value={moneyStr} resp={money} op="sum" />}
               {/* Numeric field exists but is empty → honest "no data yet", not a misleading 0. */}
@@ -213,14 +211,15 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
               {!primary && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
               {top && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span className="font-medium" style={{ color: "var(--text-secondary)" }}>{top.label}</span><span style={{ color: "var(--text-faint)" }}>top · {top.count.toLocaleString()}</span></span>}
             </div>
-            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Computed from records · all-time{noComputableKpi && " · no numeric field"}</p>
+            <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>all-time{noComputableKpi && " · no numeric field"}</p>
           </>
         ) : (
           // Loading / no-KPI fallback — the original honest shell, never a fabricated number.
-          <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
+          <p className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
         )}
+        </div>
       </div>
-      <ArrowRight size={14} className="mt-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+      <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
     </Link>
   );
 }
@@ -440,31 +439,30 @@ function ReportBuilder() {
     <div className="mb-8">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Report builder</p>
       <div className="flex flex-wrap items-end gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Sheet
-          <select value={objectType} onChange={e => { setObjectType(e.target.value); setResult(null); setColumn(""); }} className="key-input mt-1 block h-8 w-40 px-2 text-[12px]">
-            <option value="">Choose…</option>
-            {(objectsQ2.data ?? []).map(o => <option key={o.slug} value={o.slug}>{o.name_plural ?? o.slug}</option>)}
-          </select>
-        </label>
-        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Group by
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="key-input mt-1 block h-8 w-36 px-2 text-[12px]">
-            <option value="none">Total only</option>
-            <option value="date">Month created</option>
-            {(colsQ.data ?? []).map(c2 => <option key={c2} value={c2}>{c2.replace(/_/g, " ")}</option>)}
-          </select>
-        </label>
-        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Metric
-          <select value={op} onChange={e => setOp(e.target.value as never)} className="key-input mt-1 block h-8 w-24 px-2 text-[12px]">
-            <option value="count">Count</option><option value="sum">Sum</option><option value="avg">Average</option>
-          </select>
-        </label>
+        {/* The app's OWN dropdown, not the browser's: the native <select> popup ignores the
+            theme entirely and read as a foreign control in the middle of the page. */}
+        <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Sheet
+          <FieldSelect ariaLabel="Sheet" value={objectType} placeholder="Choose…" className="mt-1 w-40"
+            options={(objectsQ2.data ?? []).map(o => ({ value: o.slug, label: titleCase(o.name_plural ?? o.slug) }))}
+            onChange={v => { setObjectType(v); setResult(null); setColumn(""); }} />
+        </div>
+        <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Group by
+          <FieldSelect ariaLabel="Group by" value={groupBy} className="mt-1 w-40"
+            options={[{ value: "none", label: "Total only" }, { value: "date", label: "Month created" },
+              ...(colsQ.data ?? []).map(c2 => ({ value: c2, label: c2.replace(/_/g, " ") }))]}
+            onChange={v => setGroupBy(v)} />
+        </div>
+        <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Metric
+          <FieldSelect ariaLabel="Metric" value={op} className="mt-1 w-28"
+            options={[{ value: "count", label: "Count" }, { value: "sum", label: "Sum" }, { value: "avg", label: "Average" }]}
+            onChange={v => setOp(v as never)} />
+        </div>
         {op !== "count" && (
-          <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Of column
-            <select value={column} onChange={e => setColumn(e.target.value)} className="key-input mt-1 block h-8 w-36 px-2 text-[12px]">
-              <option value="">Choose…</option>
-              {(colsQ.data ?? []).map(c2 => <option key={c2} value={c2}>{c2.replace(/_/g, " ")}</option>)}
-            </select>
-          </label>
+          <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Of column
+            <FieldSelect ariaLabel="Of column" value={column} placeholder="Choose…" className="mt-1 w-40"
+              options={(colsQ.data ?? []).map(c2 => ({ value: c2, label: c2.replace(/_/g, " ") }))}
+              onChange={v => setColumn(v)} />
+          </div>
         )}
         {op !== "count" && (
           <label className="flex items-center gap-1.5 pb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
@@ -559,11 +557,10 @@ function DownloadReport() {
   const ws = localStorage.getItem("mondaily_workspace_id") ?? "";
   const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}&ws=${ws}`;
   return (
-    <section className="mb-8 rounded-lg border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className="flex flex-wrap items-center gap-2">
-        <BarChart2 size={14} style={{ color: "var(--text-muted)" }} />
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Download report</h2>
-        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+    <section className="mb-8">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Download report</p>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
           KPIs with period-over-period deltas, trend, labelled forecast — workspace calendar, base currency
         </span>
       </div>
@@ -682,20 +679,17 @@ function SavedAnalyses() {
   const TYPE_LABEL: Record<string, string> = { insight: "trend", funnel: "funnel", time_in_stage: "time in stage", historical: "history", forecast: "forecast" };
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center gap-2">
-        <BarChart2 size={14} style={{ color: "var(--text-muted)" }} />
-        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Saved analyses</h2>
-        <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-          saved by you or built by Ask · recomputed live on open
-        </span>
+      <div className="flex items-baseline gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Saved analyses</p>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>saved by you or built by Ask · recomputed live on open</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-1">
         {items.map(r => (
-          <div key={r.id} className="group flex items-center gap-2 rounded-sm border p-3 transition-colors hover:border-[var(--section-accent)]"
-            style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <Link to={`/reports/${r.id}`} className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{r.name || "Untitled report"}</p>
-              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+          <div key={r.id} className="group flex items-center gap-3 border-b py-2 transition-colors hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border-soft)" }}>
+            <Link to={`/reports/${r.id}`} className="flex min-w-0 flex-1 items-baseline gap-3">
+              <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{r.name || "Untitled report"}</p>
+              <p className="shrink-0 text-[11px]" style={{ color: "var(--text-faint)" }}>
                 {TYPE_LABEL[r.type ?? ""] ?? r.type ?? "report"} · updated {new Date(r.updated_at).toLocaleDateString()}
               </p>
             </Link>
@@ -703,6 +697,7 @@ function SavedAnalyses() {
               className="btn-icon h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" title="Delete report">
               <Trash2 size={13} />
             </button>
+            <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
           </div>
         ))}
       </div>
@@ -851,12 +846,9 @@ export function ReportsPage() {
 
       {/* ── Live Reports ── */}
       <section className="mb-10">
-        <div className="mb-3 flex items-center gap-2">
-          <Zap size={14} style={{ color: "var(--text-muted)" }} />
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Live Reports</h2>
-          <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-            Computed live from your records · AI insights on demand
-          </span>
+        <div className="mb-3 flex items-baseline gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Live reports</p>
+          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>computed live from your records · AI insights on demand</span>
         </div>
 
         {objectsQ.isLoading ? (
@@ -875,8 +867,8 @@ export function ReportsPage() {
             <div className="space-y-6">
               {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
                 <div key={group.key}>
-                  <p className="mb-2 text-body" style={{ color: "var(--text-faint)" }}>{group.label}</p>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{group.label}</p>
+                  <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
                     {objects.filter(o => groupOf(o) === group.key).map(obj => (
                       <ReportObjectCard key={obj.slug} obj={obj} onStat={reportStat} />
                     ))}
@@ -891,12 +883,9 @@ export function ReportsPage() {
       {/* ── Dashboards ── */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <LayoutDashboard size={14} style={{ color: "var(--text-muted)" }} />
-            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Dashboards</h2>
-            <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-              Pin live widgets &amp; custom charts
-            </span>
+          <div className="flex items-baseline gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Dashboards</p>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>pin live widgets &amp; custom charts</span>
           </div>
           <button
             onClick={() => setCreating(true)}
@@ -910,74 +899,34 @@ export function ReportsPage() {
         {dashboardsQ.isLoading ? (
           <DelayedLoading onRetry={() => dashboardsQ.refetch()}><PageSkeletonCards count={3} label="Loading dashboards…"/></DelayedLoading>
         ) : dashboardsQ.data?.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
             {dashboardsQ.data.map(dashboard => {
               const allWidgets = Array.isArray(dashboard.widgets) ? dashboard.widgets as Array<{ type?: string }> : [];
               const liveCount   = allWidgets.filter(w => w.type === "live").length;
               const reportCount = allWidgets.filter(w => w.type === "report").length;
-              const totalCount  = allWidgets.length;
-              const otherCount  = Math.max(0, totalCount - liveCount - reportCount);
-              // Real widget composition (live / chart / other) — heights proportional to actual counts,
-              // not decorative noise.
-              const comp = [
-                { n: liveCount, color: "#2f9e6b" },
-                { n: reportCount, color: "var(--text-secondary)" },
-                { n: otherCount, color: "var(--border-strong)" },
-              ].filter(x => x.n > 0);
-              const compMax = Math.max(1, ...comp.map(x => x.n));
+              const wsCount     = allWidgets.filter(w => w.type === "workspace").length;
+              const parts = [
+                liveCount ? `${liveCount} live` : "",
+                wsCount ? `${wsCount} workspace` : "",
+                reportCount ? `${reportCount} chart${reportCount !== 1 ? "s" : ""}` : "",
+              ].filter(Boolean).join(" · ");
               return (
                 <Link
                   key={dashboard.id}
                   to={`/reports/dashboards/${dashboard.id}`}
-                  className="surface-card group overflow-hidden rounded-sm transition-colors hover:border-[var(--border-strong)]"
+                  className="group flex items-center gap-3 border-b py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
                   style={{ borderColor: "var(--border-soft)" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}
                 >
-                  {/* Preview area */}
-                  <div className="relative h-28 overflow-hidden px-4 pt-3 pb-0" style={{ background: "var(--surface-hover)" }}>
-                    {totalCount === 0 ? (
-                      <div className="flex h-full items-center justify-center">
-                        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Empty · click to add widgets</p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Widget type badges */}
-                        <div className="mb-2 flex gap-1.5">
-                          {liveCount > 0 && (
-                            <span className="rounded-sm border border-[#2f9e6b]/25 bg-[#2f9e6b]/10 px-2 py-0.5 text-[10px] font-medium text-[#2f9e6b]">
-                              {liveCount} live
-                            </span>
-                          )}
-                          {reportCount > 0 && (
-                            <span className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
-                              {reportCount} chart{reportCount !== 1 ? "s" : ""}
-                            </span>
-                          )}
-                          {totalCount > 0 && liveCount === 0 && reportCount === 0 && (
-                            <span className="rounded-sm border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                              {totalCount} widget{totalCount !== 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </div>
-                        {/* Real widget composition — bar per widget type, height ∝ actual count. */}
-                        <div className="flex items-end gap-1.5 h-12">
-                          {comp.map((seg, i) => (
-                            <div key={i} className="flex-1 rounded-t-sm transition-all"
-                              style={{ height: `${Math.max(14, (seg.n / compMax) * 100)}%`, background: seg.color, opacity: 0.55 }} />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {/* Info row */}
-                  <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: "var(--border-soft)" }}>
-                    <LayoutDashboard size={13} className="text-[var(--text-muted)] shrink-0"/>
-                    <h3 className="flex-1 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
-                    <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                      {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
-                    </span>
-                  </div>
+                  <LayoutDashboard size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
+                  <h3 className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
+                  <span className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+                    {allWidgets.length === 0 ? "empty · click to add widgets" : parts || `${allWidgets.length} widget${allWidgets.length !== 1 ? "s" : ""}`}
+                  </span>
+                  <span className="grow" />
+                  <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                    {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+                  </span>
+                  <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
                 </Link>
               );
             })}
