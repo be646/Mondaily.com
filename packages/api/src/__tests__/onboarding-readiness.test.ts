@@ -25,7 +25,10 @@ describe("onboarding is driven by server state, not a browser flag", () => {
   it("the session reports whether the workspace is onboarded", () => {
     // workspaces.onboarded already existed and was already written by /onboarding/complete.
     // Nothing ever read it back.
-    expect(read("packages/api/src/routes/auth.ts")).toMatch(/select\("onboarded"\)/);
+    // Now read via the workspaces(onboarded) FK join on the first query (2026-08-15) — the same
+    // value, one fewer sequential round trip on every page load. Intent unchanged: the session
+    // REPORTS the server's onboarded state.
+    expect(read("packages/api/src/routes/auth.ts")).toMatch(/workspaces\(onboarded\)/);
     expect(read("apps/app/src/hooks/useCurrentUser.ts")).toMatch(/onboarded: boolean/);
   });
 
@@ -38,7 +41,8 @@ describe("onboarding is driven by server state, not a browser flag", () => {
   it("an unknown value defaults to ONBOARDED, never trapping an existing user", () => {
     // Failing open matters more than failing closed here: a bad lookup must not put established
     // users into a signup wizard.
-    expect(read("packages/api/src/routes/auth.ts")).toMatch(/onboarded = \(ws as \{ onboarded\?: boolean \} \| null\)\?\.onboarded \?\? true/);
+    // Same fail-open default, read off the joined row now.
+    expect(read("packages/api/src/routes/auth.ts")).toMatch(/const onboarded = wsRow\?\.onboarded \?\? true/);
     expect(read("apps/app/src/components/auth/sovereign-auth-context.tsx")).toMatch(/onboarded: d\.onboarded \?\? true/);
   });
 });
