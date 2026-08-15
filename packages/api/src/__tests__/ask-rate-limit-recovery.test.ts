@@ -95,3 +95,23 @@ describe("a rate-limited answer gets recovered, not apologised for", () => {
     for (const m of messages) expect(m.toLowerCase()).not.toMatch(/cerebras|openai|anthropic|groq|together/);
   });
 });
+
+describe("a tool-less retry is told the truth about itself", () => {
+  /**
+   * SEEN LIVE 2026-08-15: the rate-limit recovery strips tools but kept the original system
+   * prompt — which spends paragraphs insisting the model HAS tools and must never deny them.
+   * Faced with that contradiction, the model improvised pseudo-XML tool syntax AS PROSE
+   * (<search_records><object_type>deals</object_type>…) and the markup rendered to the user as
+   * the answer. The token ledger proved the path: input = prompt with no tool schemas.
+   */
+  it("appends the recovery note wherever tools are stripped", () => {
+    expect(GATEWAY).toMatch(/TOOLLESS_RETRY_NOTE/);
+    expect(GATEWAY).toMatch(/tools: \[\], system: \(req\.system \?\? ""\) \+ TOOLLESS_RETRY_NOTE/);
+    expect(GATEWAY).toMatch(/tools: \[\], system: \(effectiveReq\.system \?\? ""\) \+ TOOLLESS_RETRY_NOTE/);
+  });
+
+  it("the note bans tool syntax AND demands disclosure of what went unverified", () => {
+    expect(GATEWAY).toMatch(/Do not emit tool-call syntax/);
+    expect(GATEWAY).toMatch(/which parts you could not verify without tools/);
+  });
+});

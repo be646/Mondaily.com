@@ -210,6 +210,23 @@ export function boundToolResult(raw: string, spent: number, toolName: string): {
  * and tells the user. Without any wait at all the retry lands inside the same spent quota and fails
  * in milliseconds, which is the bug this exists to fix.
  */
+/**
+ * The system prompt for a TOOL-LESS retry of a tool-expecting request.
+ *
+ * The rate-limit recovery strips tools (tool rounds multiply the very token spend that caused the
+ * limit) but kept the original system prompt — which spends paragraphs telling the model it HAS
+ * tools and must never deny them. Faced with that contradiction, the model improvised: it emitted
+ * pseudo-XML tool syntax AS PROSE (<search_records><object_type>deals</object_type>…), and that
+ * markup rendered to the user as the answer. Seen live 2026-08-15; the token ledger proved the
+ * path (input = prompt with no tool schemas).
+ *
+ * The retry must be TOLD the truth about its own situation, and told to say it.
+ */
+const TOOLLESS_RETRY_NOTE =
+  "\n\nRECOVERY MODE — tools are NOT available for this attempt. Do not emit tool-call syntax of any " +
+  "kind (no XML tags, no function-call markup — it would render to the user as garbage text). Answer " +
+  "from the conversation so far, and say plainly which parts you could not verify without tools.";
+
 function retryAfterMs(err: unknown): number {
   const MAX_WAIT_MS = 3500;
   const e = err as { headers?: Record<string, string>; response?: { headers?: { get?: (k: string) => string | null } } };
@@ -798,7 +815,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
       const fb = resolveModel(FAST_MODEL_SPEC);
       // Tools dropped: the retry exists to get a reply out, and tool rounds multiply the token
       // spend that caused the limit in the first place.
-      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [] }, 1).catch(() => null);
+      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [], system: (req.system ?? "") + TOOLLESS_RETRY_NOTE }, 1).catch(() => null);
       if (recovered?.reply?.trim()) return recovered;
     }
 
@@ -899,7 +916,7 @@ export async function aiGatewayAgentStream(
       if (waitMs > 0) await new Promise(res => setTimeout(res, waitMs));
     }
     const fb = resolveModel(rateLimited ? FAST_MODEL_SPEC : DEFAULT_MODEL_SPEC);
-    const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
+    const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [], system: (effectiveReq.system ?? "") + TOOLLESS_RETRY_NOTE }, 1).catch(() => null);
     // Rate-limit message: a 429 means the per-minute AI quota is spent, not that the service is
     // down. Tell the user plainly so they wait, not retry-spam. NEVER name the AI provider — the
     // system is our own; infrastructure suppliers are not surfaced to users.

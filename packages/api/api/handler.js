@@ -56396,7 +56396,7 @@ async function aiGatewayAgent(req) {
     if (rateLimited) {
       await new Promise((res) => setTimeout(res, retryAfterMs(primaryErr)));
       const fb = resolveModel(FAST_MODEL_SPEC);
-      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [] }, 1).catch(() => null);
+      const recovered = await runOpenAICompatAgent(fb.modelId, { ...req, tools: [], system: (req.system ?? "") + TOOLLESS_RETRY_NOTE }, 1).catch(() => null);
       if (recovered?.reply?.trim()) return recovered;
     }
     console.error(`[gateway:agent] gateway exhausted \u2014 returning graceful reply (rateLimited=${rateLimited})`);
@@ -56452,7 +56452,7 @@ async function aiGatewayAgentStream(req, onEvent) {
       if (waitMs > 0) await new Promise((res) => setTimeout(res, waitMs));
     }
     const fb = resolveModel(rateLimited ? FAST_MODEL_SPEC : DEFAULT_MODEL_SPEC);
-    const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
+    const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [], system: (effectiveReq.system ?? "") + TOOLLESS_RETRY_NOTE }, 1).catch(() => null);
     const reply = r2?.reply || (rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };
@@ -56593,7 +56593,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel2(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
-var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, TOOL_RESULT_CHAR_CAP, TOOL_BUDGET_CHAR_CAP, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
+var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, TOOL_RESULT_CHAR_CAP, TOOL_BUDGET_CHAR_CAP, TOOLLESS_RETRY_NOTE, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
 var init_ai_gateway = __esm({
   "src/lib/ai-gateway.ts"() {
     "use strict";
@@ -56607,6 +56607,7 @@ var init_ai_gateway = __esm({
     FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
     TOOL_RESULT_CHAR_CAP = 6e3;
     TOOL_BUDGET_CHAR_CAP = 24e3;
+    TOOLLESS_RETRY_NOTE = "\n\nRECOVERY MODE \u2014 tools are NOT available for this attempt. Do not emit tool-call syntax of any kind (no XML tags, no function-call markup \u2014 it would render to the user as garbage text). Answer from the conversation so far, and say plainly which parts you could not verify without tools.";
     lastGatewayError = null;
     CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
     DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
