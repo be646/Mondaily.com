@@ -70402,19 +70402,12 @@ HOW TO ANSWER \u2014 be decisive, never bounce questions back:
 - Prefer a clean Markdown TABLE whenever you're showing more than two records or any set of rows with shared fields (tasks, invoices, deals, contacts). Tables read far better than prose lists for structured data.
 - "What changed / what's new / recent activity / this week / what happened" \u2192 this means RECORDS, not just notifications. Call the data tools \u2014 list_records / search_records (recently updated nodes), list_tasks, list_invoices, and find_related_objects \u2014 to gather the actual tasks, deals, contacts, and records that were created or updated, then summarise them grouped by type (new vs updated). NEVER conclude "nothing changed" just because there are no notifications \u2014 notifications are a separate, often-empty signal; the real activity lives in the records themselves. If a tool returns items, report them; only say "no activity" if the record tools themselves come back empty.
 
-You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, build a custom object type, or explore relationships between records \u2014 use the appropriate tool. After using a tool, summarize what you did in plain language.
-
-Mondaily has a real workspace graph: every record is a node, and nodes can be connected to each other by edges (relationships). You DO have a tool for this \u2014 find_related_objects. Never tell the user that "workspace graph" isn't a feature you have a tool for. If they ask about related objects, connections, or "the graph" for a person/company/record, call find_related_objects with either the record's name or its node_id (if you already know it from this conversation or from a previous tool result).
-
-You also have real finance and report tools \u2014 never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points \u2014 always call run_report rather than guessing at numbers from a report's name or type alone.
-
-You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze \u2014 use this instead of claiming you did something sensitive yourself), create_workflow_draft (saves a disabled workflow draft for the user to review in the builder \u2014 for "build me a workflow", create the draft and tell them to review it), and set_workflow_enabled (enable/activate or disable/pause an EXISTING workflow by name). You MAY enable or disable a workflow when the user EXPLICITLY asks ("enable the X workflow", "turn off Y") \u2014 call set_workflow_enabled and confirm the new state plainly. Never enable a workflow on your own initiative or without an explicit instruction; for a brand-new workflow always create a draft first, don't auto-enable it.
-
-For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned \u2014 never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
-
-You also have discover_web_prospects \u2014 the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL \u2014 never invent a candidate yourself; always call this tool instead.
-
-You also have web_search \u2014 a general LIVE WEB search that reads the top pages and returns their real content. Use it WHENEVER the user asks for anything external the workspace can't answer: reviews or ratings of a company/product ("search Vivacy reviews", "what do people say about X"), news, current facts, background research, prices, "look up X online". You CAN search the web \u2014 never tell the user you're "unable to perform an external web search" or that you "don't have the tools"; you DO have web_search, so call it and summarise the results WITH their source URLs. web_search is read-only (no records created); use discover_web_prospects instead only when the user wants the results saved as records.
+TOOLS \u2014 you have real tools for every operation below; their schemas describe the parameters. Rules that matter:
+- NEVER deny a capability. You HAVE find_related_objects (the workspace graph), web_search (live external web \u2014 summarise WITH source URLs), discover_web_prospects (the Prospecting Agent: source-backed candidates from the live web \u2014 never invent one yourself), and real finance/report tools. Never say you "can't access", "aren't connected", or "can't search the web" \u2014 call the tool and look.
+- Finance and reports are never answered generically: list_invoices/get_invoice/list_finance_summary read real records; run_report executes a report and returns its real numbers \u2014 call it rather than guessing from the report's name.
+- create_decision queues sensitive actions for a human \u2014 use it instead of claiming you did something sensitive yourself. "Approve all pending" \u2192 list_decisions first, then resolve_decision per id; never claim an approval you did not call.
+- Workflows: create_workflow_draft saves a DISABLED draft for review; set_workflow_enabled only on an explicit instruction ("enable X" / "turn off Y") \u2014 never on your own initiative.
+- After using a tool, summarise what you did in plain language.
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" \u2192 search_records first to find the IDs, then create_list, then add_to_list in sequence.
@@ -71708,6 +71701,19 @@ var OBJECT_LABEL = {
 };
 var router8 = new Hono2();
 var HISTORY_TURN_LIMIT = 16;
+var HISTORY_CHAR_BUDGET = 24e3;
+function budgetHistory(turns) {
+  const out = [];
+  let spent = 0;
+  for (let i2 = turns.length - 1; i2 >= 0; i2--) {
+    const cost = (turns[i2].content ?? "").length;
+    if (spent + cost > HISTORY_CHAR_BUDGET && out.length > 0) break;
+    out.unshift(turns[i2]);
+    spent += cost;
+  }
+  return out;
+}
+var typesCensusCache = /* @__PURE__ */ new Map();
 async function workspaceProfileBlock(workspaceId, userId) {
   if (!workspaceId) return "";
   try {
@@ -71719,11 +71725,18 @@ async function workspaceProfileBlock(workspaceId, userId) {
     const block = profileContextBlock(profile);
     let typesBlock = "";
     try {
-      const { data: rows2 } = await supabase.from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(5e3);
-      const counts = /* @__PURE__ */ new Map();
-      for (const r2 of rows2 ?? []) {
-        const t3 = String(r2.object_type ?? "");
-        if (t3) counts.set(t3, (counts.get(t3) ?? 0) + 1);
+      const cached = typesCensusCache.get(workspaceId);
+      let counts;
+      if (cached && Date.now() - cached.at < 6e4) {
+        counts = cached.counts;
+      } else {
+        const { data: rows2 } = await supabase.from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(5e3);
+        counts = /* @__PURE__ */ new Map();
+        for (const r2 of rows2 ?? []) {
+          const t3 = String(r2.object_type ?? "");
+          if (t3) counts.set(t3, (counts.get(t3) ?? 0) + 1);
+        }
+        typesCensusCache.set(workspaceId, { at: Date.now(), counts });
       }
       if (counts.size) {
         const listed = [...counts].sort((a2, b2) => b2[1] - a2[1]).map(([t3, n2]) => `${t3} (${n2}+)`).join(", ");
@@ -71895,7 +71908,7 @@ WORKSPACE CURRENCY: ${askCur}. Format every money figure in ${askCur} and label 
 
 Web context:
 ${webContext}` : "") + contextNote + memory.block + preferenceBlock(tone, scope);
-    const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
+    const priorTurns = budgetHistory((history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content })));
     const messages = [...priorTurns, { role: "user", content: message }];
     const sources = [];
     const { reply: agentReply, rounds, provider, usage: usage2 } = await aiGatewayAgent({
@@ -72005,7 +72018,7 @@ WORKSPACE CURRENCY: ${askCur2}. Format every money figure in ${askCur2} and labe
 
 Web context:
 ${webContext}` : "") + buildContextNote(context2) + memory.block + preferenceBlock(tone, scope);
-      const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
+      const priorTurns = budgetHistory((history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content })));
       const messages = [...priorTurns, { role: "user", content: message }];
       const sources = [];
       const { reply: agentReply, usage: usage2, provider: streamProvider } = await aiGatewayAgentStream({

@@ -48,19 +48,12 @@ HOW TO ANSWER — be decisive, never bounce questions back:
 - Prefer a clean Markdown TABLE whenever you're showing more than two records or any set of rows with shared fields (tasks, invoices, deals, contacts). Tables read far better than prose lists for structured data.
 - "What changed / what's new / recent activity / this week / what happened" → this means RECORDS, not just notifications. Call the data tools — list_records / search_records (recently updated nodes), list_tasks, list_invoices, and find_related_objects — to gather the actual tasks, deals, contacts, and records that were created or updated, then summarise them grouped by type (new vs updated). NEVER conclude "nothing changed" just because there are no notifications — notifications are a separate, often-empty signal; the real activity lives in the records themselves. If a tool returns items, report them; only say "no activity" if the record tools themselves come back empty.
 
-You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, build a custom object type, or explore relationships between records — use the appropriate tool. After using a tool, summarize what you did in plain language.
-
-Mondaily has a real workspace graph: every record is a node, and nodes can be connected to each other by edges (relationships). You DO have a tool for this — find_related_objects. Never tell the user that "workspace graph" isn't a feature you have a tool for. If they ask about related objects, connections, or "the graph" for a person/company/record, call find_related_objects with either the record's name or its node_id (if you already know it from this conversation or from a previous tool result).
-
-You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
-
-You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — for "build me a workflow", create the draft and tell them to review it), and set_workflow_enabled (enable/activate or disable/pause an EXISTING workflow by name). You MAY enable or disable a workflow when the user EXPLICITLY asks ("enable the X workflow", "turn off Y") — call set_workflow_enabled and confirm the new state plainly. Never enable a workflow on your own initiative or without an explicit instruction; for a brand-new workflow always create a draft first, don't auto-enable it.
-
-For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned — never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
-
-You also have discover_web_prospects — the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL — never invent a candidate yourself; always call this tool instead.
-
-You also have web_search — a general LIVE WEB search that reads the top pages and returns their real content. Use it WHENEVER the user asks for anything external the workspace can't answer: reviews or ratings of a company/product ("search Vivacy reviews", "what do people say about X"), news, current facts, background research, prices, "look up X online". You CAN search the web — never tell the user you're "unable to perform an external web search" or that you "don't have the tools"; you DO have web_search, so call it and summarise the results WITH their source URLs. web_search is read-only (no records created); use discover_web_prospects instead only when the user wants the results saved as records.
+TOOLS — you have real tools for every operation below; their schemas describe the parameters. Rules that matter:
+- NEVER deny a capability. You HAVE find_related_objects (the workspace graph), web_search (live external web — summarise WITH source URLs), discover_web_prospects (the Prospecting Agent: source-backed candidates from the live web — never invent one yourself), and real finance/report tools. Never say you "can't access", "aren't connected", or "can't search the web" — call the tool and look.
+- Finance and reports are never answered generically: list_invoices/get_invoice/list_finance_summary read real records; run_report executes a report and returns its real numbers — call it rather than guessing from the report's name.
+- create_decision queues sensitive actions for a human — use it instead of claiming you did something sensitive yourself. "Approve all pending" → list_decisions first, then resolve_decision per id; never claim an approval you did not call.
+- Workflows: create_workflow_draft saves a DISABLED draft for review; set_workflow_enabled only on an explicit instruction ("enable X" / "turn off Y") — never on your own initiative.
+- After using a tool, summarise what you did in plain language.
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
@@ -1633,6 +1626,23 @@ const OBJECT_LABEL: Record<string, string> = {
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined) sent for context
+/**
+ * Cap history by SIZE as well as turn count. Sixteen turns sounds bounded, but a turn holding a
+ * big table reply is thousands of tokens, and a real thread was measured re-sending 23,409 prompt
+ * tokens for one new question. Newest turns win; older ones fall off whole (never truncated
+ * mid-message — half a message is worse context than none). ~24k chars ≈ 6k tokens.
+ */
+const HISTORY_CHAR_BUDGET = 24_000;
+function budgetHistory<T extends { content: string }>(turns: T[]): T[] {
+  const out: T[] = [];
+  let spent = 0;
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const cost = (turns[i]!.content ?? "").length;
+    if (spent + cost > HISTORY_CHAR_BUDGET && out.length > 0) break;
+    out.unshift(turns[i]!); spent += cost;
+  }
+  return out;
+}
 
 /** Builds the "what the user currently has open" note appended to the system
  *  prompt. Shared by the non-streaming and streaming ask endpoints. */
@@ -1642,6 +1652,8 @@ const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined
  * language is resolved per-user first (settings.user_preferences[userId].language), falling back to
  * the workspace profile language, then English. Empty/error → "" so it can never break a request.
  */
+const typesCensusCache = new Map<string, { at: number; counts: Map<string, number> }>();
+
 export async function workspaceProfileBlock(workspaceId: string | undefined, userId?: string): Promise<string> {
   if (!workspaceId) return "";
   try {
@@ -1663,12 +1675,25 @@ export async function workspaceProfileBlock(workspaceId: string | undefined, use
     // right object if it has never been told which objects exist.
     let typesBlock = "";
     try {
-      const { data: rows } = await supabase
-        .from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(5000);
-      const counts = new Map<string, number>();
-      for (const r of rows ?? []) {
-        const t = String((r as { object_type?: string }).object_type ?? "");
-        if (t) counts.set(t, (counts.get(t) ?? 0) + 1);
+      /**
+       * CACHED for 60s per workspace. This census ran on EVERY question — a 1,000-row fetch (the
+       * stated limit(5000) is capped by PostgREST at 1,000 anyway, the same silent-cap trap the
+       * backup hit) whose result changes at human speed. Sixty seconds of staleness in a hint
+       * block costs nothing; a database sweep per question costs latency on every single ask.
+       */
+      const cached = typesCensusCache.get(workspaceId);
+      let counts: Map<string, number>;
+      if (cached && Date.now() - cached.at < 60_000) {
+        counts = cached.counts;
+      } else {
+        const { data: rows } = await supabase
+          .from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(5000);
+        counts = new Map<string, number>();
+        for (const r of rows ?? []) {
+          const t = String((r as { object_type?: string }).object_type ?? "");
+          if (t) counts.set(t, (counts.get(t) ?? 0) + 1);
+        }
+        typesCensusCache.set(workspaceId, { at: Date.now(), counts });
       }
       if (counts.size) {
         const listed = [...counts].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} (${n}+)`).join(", ");
@@ -1859,7 +1884,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
 
     // Prepend prior conversation turns (capped) so the model has real memory
     // of this thread instead of treating every message as the first one.
-    const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
+    const priorTurns = budgetHistory((history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content })));
     const messages: any[] = [...priorTurns, { role: "user", content: message }];
 
     const sources: SourceMeta[] = [];
@@ -2032,7 +2057,7 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
       ]);
       const askCur2 = (await workspaceBaseCurrency(workspaceId).catch(() => "USD")).toUpperCase();
       const systemPrompt = SYSTEM_PROMPT + `\n\nWORKSPACE CURRENCY: ${askCur2}. Format every money figure in ${askCur2} and label it as such. Never print a currency symbol that is not ${askCur2} unless a tool result explicitly says otherwise.` + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block + preferenceBlock(tone, scope);
-      const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
+      const priorTurns = budgetHistory((history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content })));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
 
