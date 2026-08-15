@@ -91,7 +91,7 @@ describe("the schedule's idempotence anchor is a period key", () => {
 
 const bundle: ReportBundle = {
   meta: {
-    period: "monthly", complete: true,
+    period: "monthly", complete: true, workspaceName: "Acme GmbH",
     range: { start: "2026-07-01T00:00:00.000Z", end: "2026-07-31T23:59:59.000Z" },
     prevRange: { start: "2026-06-01T00:00:00.000Z", end: "2026-06-30T23:59:59.000Z" },
     base: "USD", timeZone: "UTC", generatedAt: "2026-08-01T00:20:00.000Z", truncated: false,
@@ -128,7 +128,7 @@ describe("the scheduled email tells the truth in every client", () => {
   const { subject, body } = reportEmailHtml(bundle, "ws-123");
 
   it("subject names the covered window", () => {
-    expect(subject).toBe("Monthly report — 2026-07-01 → 2026-07-31");
+    expect(subject).toBe("Acme GmbH — Monthly report (2026-07-01 → 2026-07-31)");
   });
 
   it("links carry complete=1 and the workspace (a mail client link is a top-level navigation)", () => {

@@ -125,6 +125,7 @@ describe("both renderings carry the honesty labels", () => {
       range: { start: "2026-08-01T00:00:00.000Z", end: "2026-08-15T10:00:00.000Z" },
       prevRange: { start: "2026-07-01T00:00:00.000Z", end: "2026-07-15T10:00:00.000Z" },
       base: "EUR", timeZone: "UTC", generatedAt: "2026-08-15T10:00:00.000Z", truncated: false,
+      workspaceName: "Test WS", complete: false,
     },
     kpis: [
       { label: "Closed won", kind: "flow", value: 1000, previous: 500, delta: 100, count: 3, note: "1 won deal carries no close date and is excluded from period figures (250 EUR)" },
@@ -205,7 +206,7 @@ describe("a plain link click can actually reach the export routes", () => {
   const auth = readFileSync(join(__dirname, "../middleware/auth.ts"), "utf8");
 
   it("requireAuth accepts ?ws= ONLY for the two GET export paths — found live: a top-level navigation cannot send X-Workspace-Id", () => {
-    expect(auth).toMatch(/\/reports\\\/export\\\.\(xlsx\|html\)\$\//);
+    expect(auth).toMatch(/\/reports\\\/export\\\.\(xlsx\|html\|pdf\)\$\//);
     expect(auth).toMatch(/c\.req\.method === "GET"/);
     // The header stays the primary transport for everything else.
     expect(auth).toContain('c.req.header("X-Workspace-Id") ?? (navExport ? c.req.query("ws") : undefined)');
