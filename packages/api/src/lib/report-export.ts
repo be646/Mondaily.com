@@ -41,6 +41,8 @@ export interface ReportBundle {
     timeZone: string;
     generatedAt: string;
     truncated: boolean;
+    /** The workspace's own name — these files travel outside Mondaily. */
+    workspaceName: string;
     /** True when the window is a COMPLETED prior period (scheduled sends) rather than period-to-date. */
     complete: boolean;
     /** Present when the window matches a filed close snapshot — the immutable, hash-chained truth. */
@@ -199,7 +201,7 @@ export async function composeWorkspaceReport(
   opts: { complete?: boolean } = {},
 ): Promise<ReportBundle> {
   const complete = opts.complete ?? false;
-  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone, name").eq("id", ws).maybeSingle();
   const cfg = workspacePeriodConfig(wsRow as { timezone?: unknown; settings?: unknown } | null);
   const { range, prev } = resolveRanges(period, cfg, now, custom, complete);
 
@@ -311,6 +313,7 @@ export async function composeWorkspaceReport(
       prevRange: { start: new Date(prev.start).toISOString(), end: new Date(prev.end).toISOString() },
       base, timeZone: cfg.timeZone, generatedAt: now.toISOString(),
       truncated: false,
+      workspaceName: String((wsRow as { name?: unknown } | null)?.name ?? "").trim() || "Workspace",
       complete,
       ...(close ? { close } : {}),
     },
@@ -334,7 +337,7 @@ export function reportToXlsx(b: ReportBundle): Uint8Array {
       ["Metric", "Type", `Value (${b.meta.base})`, "Previous period", "Δ %", "Count", "Note"],
       ...b.kpis.map(k => [k.label, k.kind, k.value, k.previous, k.delta, k.count ?? null, k.note ?? null] as (string | number | null)[]),
       [],
-      [`${periodTitle} report`, null, null, null, null, null, null],
+      [`${b.meta.workspaceName} — ${periodTitle} report`, null, null, null, null, null, null],
       ["Window", `${dt(b.meta.range.start)} → ${dt(b.meta.range.end)}`, null, null, null, null, null],
       ["Compared with", `${dt(b.meta.prevRange.start)} → ${dt(b.meta.prevRange.end)} (same distance into the previous period)`, null, null, null, null, null],
       ["Timezone", b.meta.timeZone, null, null, null, null, null],
@@ -440,12 +443,12 @@ export function reportToHtml(b: ReportBundle): string {
     : `<p class="empty">No data in this window.</p>`;
 
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mondaily — ${esc(periodTitle)} report ${dt(b.meta.range.start)} → ${dt(b.meta.range.end)}</title>
+<title>${esc(b.meta.workspaceName)} — ${esc(periodTitle)} report ${dt(b.meta.range.start)} → ${dt(b.meta.range.end)}</title>
 <style>
   :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --accent:#0e9f6e; --accent2:#3b82f6; }
   * { box-sizing:border-box; margin:0 }
   body { font:14px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#fff; max-width:820px; margin:0 auto; padding:32px 24px 64px }
-  h1 { font-size:1.5rem; margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
+  h1 { font-size:1.5rem; margin-bottom:2px } .ws { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
   .sub { color:var(--muted); font-size:.85rem; margin-bottom:24px }
   .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px }
   .kpi { border:1px solid var(--line); border-radius:10px; padding:12px 14px }
@@ -463,6 +466,7 @@ export function reportToHtml(b: ReportBundle): string {
   footer { margin-top:40px; font-size:.75rem; color:var(--muted); border-top:1px solid var(--line); padding-top:12px }
   @media print { body { padding:0 } .kpi { break-inside:avoid } h2 { break-after:avoid } }
 </style></head><body>
+<div class="ws">${esc(b.meta.workspaceName)}</div>
 <h1>${esc(periodTitle)} report${b.meta.complete ? " — completed period" : ""}</h1>
 <div class="sub">${dt(b.meta.range.start)} → ${dt(b.meta.range.end)} · compared with ${dt(b.meta.prevRange.start)} → ${dt(b.meta.prevRange.end)} · ${esc(b.meta.timeZone)} · base ${esc(b.meta.base)}</div>
 <div class="kpis">${kpiCards}</div>

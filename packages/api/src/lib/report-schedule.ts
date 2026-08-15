@@ -68,14 +68,15 @@ export function reportEmailHtml(b: ReportBundle, ws: string): { subject: string;
         b.meta.close.drifted ? "the live ledger has moved since the close — the linked report discloses each change." : "recomputation agrees with the filed figures."}</p>`
     : "";
   return {
-    subject: `${periodTitle} report — ${window}`,
+    subject: `${b.meta.workspaceName} — ${periodTitle} report (${window})`,
     body: `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
-      <h2 style="font-size:18px;margin:16px 0 2px;">${periodTitle} report</h2>
+      <p style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;margin:16px 0 0;">${b.meta.workspaceName}</p>\n      <h2 style="font-size:18px;margin:2px 0 2px;">${periodTitle} report</h2>
       <p style="font-size:13px;color:#6b7280;margin:0 0 14px;">${window} · ${b.meta.timeZone} · base ${b.meta.base}</p>
       <table style="width:100%;border-collapse:collapse;">${rows}</table>
       ${closeLine}
       <p style="margin:18px 0;">
         <a href="${API_ORIGIN}/api/v1/reports/export.html?${qs}" style="display:inline-block;padding:8px 14px;background:#111827;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;">Full report with charts</a>
+        &nbsp;<a href="${API_ORIGIN}/api/v1/reports/export.pdf?${qs}" style="display:inline-block;padding:8px 14px;border:1px solid #d1d5db;border-radius:6px;color:#111827;text-decoration:none;font-size:13px;">PDF</a>
         &nbsp;<a href="${API_ORIGIN}/api/v1/reports/export.xlsx?${qs}" style="display:inline-block;padding:8px 14px;border:1px solid #d1d5db;border-radius:6px;color:#111827;text-decoration:none;font-size:13px;">Excel workbook</a>
       </p>
       <p style="font-size:11px;color:#9ca3af;">Sent by Mondaily on the workspace's calendar. Flow metrics are counted inside the window; balances are as of send time. Manage this schedule under <a href="${APP_ORIGIN}/reports" style="color:#6b7280;">Reports</a>.</p>

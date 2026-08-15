@@ -1429,7 +1429,8 @@ async function executeTool(
           return `Report built for ${bundle.meta.range.start.slice(0, 10)} → ${bundle.meta.range.end.slice(0, 10)} (${period}, base ${bundle.meta.base}).\n` +
             `Download links (present BOTH to the user as markdown links):\n` +
             `- Excel workbook: ${base}/api/v1/reports/export.xlsx?${qs}\n` +
-            `- HTML report with charts (printable to PDF): ${base}/api/v1/reports/export.html?${qs}\n` +
+            `- HTML report with charts: ${base}/api/v1/reports/export.html?${qs}\n` +
+            `- PDF report: ${base}/api/v1/reports/export.pdf?${qs}\n` +
             `KPIs (real figures — cite these, do not restate from memory):\n${kpiLines}\n` +
             `Top of pipeline by stage: ${bundle.pipelineByStage.slice(0, 4).map(s => `${s.stage} ${s.count} (${s.value})`).join(", ") || "none"}.`;
         } catch (e) {

@@ -25,7 +25,7 @@ export const requireAuth = createMiddleware<{
   // top-level browser NAVIGATION (report downloads: a plain <a> click cannot attach headers), so
   // those two GET paths may carry it as ?ws= instead. Membership is verified identically either
   // way — the query form only changes the transport, never the authorization.
-  const navExport = c.req.method === "GET" && /\/reports\/export\.(xlsx|html)$/.test(c.req.path);
+  const navExport = c.req.method === "GET" && /\/reports\/export\.(xlsx|html|pdf)$/.test(c.req.path);
   const workspaceId = c.req.header("X-Workspace-Id") ?? (navExport ? c.req.query("ws") : undefined);
   if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
 

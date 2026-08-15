@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
+import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
@@ -41,6 +41,10 @@ const REPORT_GROUPS: { key: string; label: string; match: RegExp }[] = [
   { key: "ops",      label: "Operations",        match: /task|project|ticket|asset|training|visit|feature|ops|activit|event/i },
   { key: "other",    label: "Other records",     match: /.*/ },
 ];
+// Object names arrive as raw slugs ("contacts", "assets") next to hand-titled ones ("People") —
+// the mixed casing read as neglect. Display-only: the slug itself is untouched.
+const titleCase = (s: string) => s.replace(/[_-]+/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
+
 const groupOf = (o: ObjectType) => (REPORT_GROUPS.find(g => g.match.test(`${o.slug} ${o.name_plural}`)) ?? REPORT_GROUPS[REPORT_GROUPS.length - 1]!).key;
 
 // Same attribute-name → data-key normalization the record table + create form use.
@@ -196,7 +200,7 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
         <BarChart2 size={16} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{titleCase(obj.name_plural)}</p>
         {hasKpis ? (
           <>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
@@ -588,6 +592,11 @@ function DownloadReport() {
               style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
               Excel workbook
             </a>
+            <a href={`${BASE_URL}/api/v1/reports/export.pdf?${qs}`}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              PDF report
+            </a>
             <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
               className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
               style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
@@ -654,6 +663,49 @@ function ReportScheduleRow() {
         {testState === "sending" ? "Sending…" : testState === "sent" ? "Test sent — check your inbox" : testState === "failed" ? "Send failed — check /status" : "Email me a test"}
       </button>
     </div>
+  );
+}
+
+
+interface SavedAnalysis { id: string; name?: string; type?: string; updated_at: string }
+
+function SavedAnalyses() {
+  const qc = useQueryClient();
+  const q = useQuery<SavedAnalysis[]>({ queryKey: ["saved-analyses"], queryFn: () => apiClient.get("/reports") });
+  const remove = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/reports/${id}`),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["saved-analyses"] }),
+  });
+  const items = q.data ?? [];
+  if (q.isLoading || items.length === 0) return null;   // nothing saved → no empty shell taking space
+  const TYPE_LABEL: Record<string, string> = { insight: "trend", funnel: "funnel", time_in_stage: "time in stage", historical: "history", forecast: "forecast" };
+  return (
+    <section className="mb-8">
+      <div className="mb-3 flex items-center gap-2">
+        <BarChart2 size={14} style={{ color: "var(--text-muted)" }} />
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Saved analyses</h2>
+        <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
+          saved by you or built by Ask · recomputed live on open
+        </span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map(r => (
+          <div key={r.id} className="group flex items-center gap-2 rounded-sm border p-3 transition-colors hover:border-[var(--section-accent)]"
+            style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <Link to={`/reports/${r.id}`} className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{r.name || "Untitled report"}</p>
+              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+                {TYPE_LABEL[r.type ?? ""] ?? r.type ?? "report"} · updated {new Date(r.updated_at).toLocaleDateString()}
+              </p>
+            </Link>
+            <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending}
+              className="btn-icon h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" title="Delete report">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -750,6 +802,11 @@ export function ReportsPage() {
 
       {/* ── Report builder — any sheet, grouped, charted, savable ── */}
       <ReportBuilder />
+
+      {/* ── Saved analyses — the reports Ask and the builder actually SAVE. Until now nothing
+          listed them: create_report answered "It's saved under Reports" and this page never
+          showed them, so every AI-built report was reachable only by knowing its URL. ── */}
+      <SavedAnalyses />
 
       {/* ── Live Reports ── */}
       <section className="mb-10">

@@ -4473,19 +4473,19 @@ var require__ = __commonJS({
     SHA1.hmacStrength = 80;
     SHA1.padLength = 64;
     SHA1.prototype._update = function _update(msg, start) {
-      var W2 = this.W;
+      var W3 = this.W;
       for (var i2 = 0; i2 < 16; i2++)
-        W2[i2] = msg[start + i2];
-      for (; i2 < W2.length; i2++)
-        W2[i2] = rotl32(W2[i2 - 3] ^ W2[i2 - 8] ^ W2[i2 - 14] ^ W2[i2 - 16], 1);
+        W3[i2] = msg[start + i2];
+      for (; i2 < W3.length; i2++)
+        W3[i2] = rotl32(W3[i2 - 3] ^ W3[i2 - 8] ^ W3[i2 - 14] ^ W3[i2 - 16], 1);
       var a2 = this.h[0];
       var b2 = this.h[1];
       var c2 = this.h[2];
       var d2 = this.h[3];
       var e2 = this.h[4];
-      for (i2 = 0; i2 < W2.length; i2++) {
+      for (i2 = 0; i2 < W3.length; i2++) {
         var s2 = ~~(i2 / 20);
-        var t3 = sum32_5(rotl32(a2, 5), ft_1(s2, b2, c2, d2), e2, W2[i2], sha1_K[s2]);
+        var t3 = sum32_5(rotl32(a2, 5), ft_1(s2, b2, c2, d2), e2, W3[i2], sha1_K[s2]);
         e2 = d2;
         d2 = c2;
         c2 = rotl32(b2, 30);
@@ -4615,11 +4615,11 @@ var require__2 = __commonJS({
     SHA256.hmacStrength = 192;
     SHA256.padLength = 64;
     SHA256.prototype._update = function _update(msg, start) {
-      var W2 = this.W;
+      var W3 = this.W;
       for (var i2 = 0; i2 < 16; i2++)
-        W2[i2] = msg[start + i2];
-      for (; i2 < W2.length; i2++)
-        W2[i2] = sum32_4(g1_256(W2[i2 - 2]), W2[i2 - 7], g0_256(W2[i2 - 15]), W2[i2 - 16]);
+        W3[i2] = msg[start + i2];
+      for (; i2 < W3.length; i2++)
+        W3[i2] = sum32_4(g1_256(W3[i2 - 2]), W3[i2 - 7], g0_256(W3[i2 - 15]), W3[i2 - 16]);
       var a2 = this.h[0];
       var b2 = this.h[1];
       var c2 = this.h[2];
@@ -4628,9 +4628,9 @@ var require__2 = __commonJS({
       var f2 = this.h[5];
       var g2 = this.h[6];
       var h2 = this.h[7];
-      assert(this.k.length === W2.length);
-      for (i2 = 0; i2 < W2.length; i2++) {
-        var T1 = sum32_5(h2, s1_256(e2), ch32(e2, f2, g2), this.k[i2], W2[i2]);
+      assert(this.k.length === W3.length);
+      for (i2 = 0; i2 < W3.length; i2++) {
+        var T1 = sum32_5(h2, s1_256(e2), ch32(e2, f2, g2), this.k[i2], W3[i2]);
         var T2 = sum32(s0_256(a2), maj32(a2, b2, c2));
         h2 = g2;
         g2 = f2;
@@ -4908,19 +4908,19 @@ var require__4 = __commonJS({
     SHA512.hmacStrength = 192;
     SHA512.padLength = 128;
     SHA512.prototype._prepareBlock = function _prepareBlock(msg, start) {
-      var W2 = this.W;
+      var W3 = this.W;
       for (var i2 = 0; i2 < 32; i2++)
-        W2[i2] = msg[start + i2];
-      for (; i2 < W2.length; i2 += 2) {
-        var c0_hi = g1_512_hi(W2[i2 - 4], W2[i2 - 3]);
-        var c0_lo = g1_512_lo(W2[i2 - 4], W2[i2 - 3]);
-        var c1_hi = W2[i2 - 14];
-        var c1_lo = W2[i2 - 13];
-        var c2_hi = g0_512_hi(W2[i2 - 30], W2[i2 - 29]);
-        var c2_lo = g0_512_lo(W2[i2 - 30], W2[i2 - 29]);
-        var c3_hi = W2[i2 - 32];
-        var c3_lo = W2[i2 - 31];
-        W2[i2] = sum64_4_hi(
+        W3[i2] = msg[start + i2];
+      for (; i2 < W3.length; i2 += 2) {
+        var c0_hi = g1_512_hi(W3[i2 - 4], W3[i2 - 3]);
+        var c0_lo = g1_512_lo(W3[i2 - 4], W3[i2 - 3]);
+        var c1_hi = W3[i2 - 14];
+        var c1_lo = W3[i2 - 13];
+        var c2_hi = g0_512_hi(W3[i2 - 30], W3[i2 - 29]);
+        var c2_lo = g0_512_lo(W3[i2 - 30], W3[i2 - 29]);
+        var c3_hi = W3[i2 - 32];
+        var c3_lo = W3[i2 - 31];
+        W3[i2] = sum64_4_hi(
           c0_hi,
           c0_lo,
           c1_hi,
@@ -4930,7 +4930,7 @@ var require__4 = __commonJS({
           c3_hi,
           c3_lo
         );
-        W2[i2 + 1] = sum64_4_lo(
+        W3[i2 + 1] = sum64_4_lo(
           c0_hi,
           c0_lo,
           c1_hi,
@@ -4944,7 +4944,7 @@ var require__4 = __commonJS({
     };
     SHA512.prototype._update = function _update(msg, start) {
       this._prepareBlock(msg, start);
-      var W2 = this.W;
+      var W3 = this.W;
       var ah = this.h[0];
       var al = this.h[1];
       var bh = this.h[2];
@@ -4961,8 +4961,8 @@ var require__4 = __commonJS({
       var gl = this.h[13];
       var hh = this.h[14];
       var hl = this.h[15];
-      assert(this.k.length === W2.length);
-      for (var i2 = 0; i2 < W2.length; i2 += 2) {
+      assert(this.k.length === W3.length);
+      for (var i2 = 0; i2 < W3.length; i2 += 2) {
         var c0_hi = hh;
         var c0_lo = hl;
         var c1_hi = s1_512_hi(eh, el);
@@ -4971,8 +4971,8 @@ var require__4 = __commonJS({
         var c2_lo = ch64_lo(eh, el, fh, fl, gh, gl);
         var c3_hi = this.k[i2];
         var c3_lo = this.k[i2 + 1];
-        var c4_hi = W2[i2];
-        var c4_lo = W2[i2 + 1];
+        var c4_hi = W3[i2];
+        var c4_lo = W3[i2 + 1];
         var T1_hi = sum64_5_hi(
           c0_hi,
           c0_lo,
@@ -45638,7 +45638,7 @@ function kt(e2, t3, r3, o2, n2, a2) {
     g2 = e3;
   }));
   let E2 = Promise.resolve(void 0);
-  return u(((P3, W2) => {
+  return u(((P3, W3) => {
     let k2;
     function O2() {
       if (w2) return;
@@ -45689,7 +45689,7 @@ function kt(e2, t3, r3, o2, n2, a2) {
       z2(void 0, e3, t4);
     }
     function F2(e3, t4) {
-      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W2(t4) : P3(void 0), null;
+      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W3(t4) : P3(void 0), null;
     }
     w2 || (b(i2.closed, B2, A2), b(l2.closed, (function() {
       return S2 || (R3 = "closed"), null;
@@ -55326,16 +55326,16 @@ function burstCapFor(tier) {
   return PLAN_TIERS[tier]?.burstCap ?? PLAN_TIERS.scout.burstCap;
 }
 function pricingFacts() {
-  const fmt3 = (n2) => n2 == null ? "custom" : n2.toLocaleString("en-US");
+  const fmt4 = (n2) => n2 == null ? "custom" : n2.toLocaleString("en-US");
   return [
     "PLANS (monthly, with included AI credits):",
-    `- Scout: free \u2014 ${fmt3(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
-    `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo \u2014 ${fmt3(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
-    `- Command: $${PLAN_TIERS.command.priceMonthly}/mo \u2014 ${fmt3(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
+    `- Scout: free \u2014 ${fmt4(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
+    `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo \u2014 ${fmt4(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
+    `- Command: $${PLAN_TIERS.command.priceMonthly}/mo \u2014 ${fmt4(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
     "- Sovereign: custom \u2014 custom AI credits, private/self-hosted infrastructure.",
     "PAY-AS-YOU-GO CREDIT PACKS: " + CREDIT_PACK_ORDER.map((id) => {
       const p2 = CREDIT_PACKS[id];
-      return `${p2.name} $${p2.price_usd} \u2192 ${fmt3(p2.base_credits)} credits`;
+      return `${p2.name} $${p2.price_usd} \u2192 ${fmt4(p2.base_credits)} credits`;
     }).join("; ") + ".",
     `Pack bonuses: Operator +10%, Command +20%, and annual subscriptions add another +${Math.round(ANNUAL_BONUS_PCT * 100)}%.`,
     "Say 'AI credits', never 'tokens'. Do NOT claim unlimited AI \u2014 credits are metered. Manual CRUD (creating/editing records) does not use AI credits; AI chat, agents, enrichment, Discovery deep research, report generation, and workflow drafting do."
@@ -57842,7 +57842,7 @@ var init_auth = __esm({
     init_client();
     init_auth_tokens();
     requireAuth = createMiddleware(async (c2, next) => {
-      const navExport = c2.req.method === "GET" && /\/reports\/export\.(xlsx|html)$/.test(c2.req.path);
+      const navExport = c2.req.method === "GET" && /\/reports\/export\.(xlsx|html|pdf)$/.test(c2.req.path);
       const workspaceId = c2.req.header("X-Workspace-Id") ?? (navExport ? c2.req.query("ws") : void 0);
       if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
       let userId;
@@ -61972,7 +61972,7 @@ function projectSeries(values, horizon) {
 }
 async function composeWorkspaceReport(ws, period, custom2, now = /* @__PURE__ */ new Date(), opts = {}) {
   const complete = opts.complete ?? false;
-  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone").eq("id", ws).maybeSingle();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings, timezone, name").eq("id", ws).maybeSingle();
   const cfg = workspacePeriodConfig(wsRow);
   const { range, prev } = resolveRanges(period, cfg, now, custom2, complete);
   const [deals, invoices, expenses, conv] = await Promise.all([
@@ -62092,6 +62092,7 @@ async function composeWorkspaceReport(ws, period, custom2, now = /* @__PURE__ */
       timeZone: cfg.timeZone,
       generatedAt: now.toISOString(),
       truncated: false,
+      workspaceName: String(wsRow?.name ?? "").trim() || "Workspace",
       complete,
       ...close ? { close } : {}
     },
@@ -62114,7 +62115,7 @@ function reportToXlsx(b2) {
       ["Metric", "Type", `Value (${b2.meta.base})`, "Previous period", "\u0394 %", "Count", "Note"],
       ...b2.kpis.map((k2) => [k2.label, k2.kind, k2.value, k2.previous, k2.delta, k2.count ?? null, k2.note ?? null]),
       [],
-      [`${periodTitle} report`, null, null, null, null, null, null],
+      [`${b2.meta.workspaceName} \u2014 ${periodTitle} report`, null, null, null, null, null, null],
       ["Window", `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}`, null, null, null, null, null],
       ["Compared with", `${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} (same distance into the previous period)`, null, null, null, null, null],
       ["Timezone", b2.meta.timeZone, null, null, null, null, null],
@@ -62151,10 +62152,10 @@ function reportToXlsx(b2) {
   return buildXlsx([summary, seriesSheet, stagesSheet, closersSheet, agingSheet, dealsSheet], new Date(b2.meta.generatedAt));
 }
 function lineChartSvg(series, forecastFrom) {
-  const W2 = 760, H2 = 220, PAD2 = 36;
+  const W3 = 760, H2 = 220, PAD2 = 36;
   if (!series.length) return "";
   const max = Math.max(1, ...series.map((s2) => Math.max(s2.won, s2.collected)));
-  const x2 = (i2) => PAD2 + i2 * (W2 - PAD2 * 2) / Math.max(1, series.length - 1);
+  const x2 = (i2) => PAD2 + i2 * (W3 - PAD2 * 2) / Math.max(1, series.length - 1);
   const y2 = (v2) => H2 - PAD2 - v2 / max * (H2 - PAD2 * 2);
   const path = (pick, upTo) => series.slice(0, upTo).map((s2, i2) => `${i2 ? "L" : "M"}${x2(i2).toFixed(1)},${y2(pick(s2)).toFixed(1)}`).join(" ");
   const solidEnd = forecastFrom ?? series.length;
@@ -62163,8 +62164,8 @@ function lineChartSvg(series, forecastFrom) {
   const coll = path((s2) => s2.collected, solidEnd);
   const ticks = [0, 0.5, 1].map((f2) => `<text x="4" y="${(y2(max * f2) + 4).toFixed(1)}" class="tick">${fmt(Math.round(max * f2))}</text>`).join("");
   const labels = series.map((s2, i2) => i2 % Math.ceil(series.length / 8) === 0 || s2.projected ? `<text x="${x2(i2).toFixed(1)}" y="${H2 - 10}" class="tick" text-anchor="middle">${esc(s2.label)}</text>` : "").join("");
-  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Closed won and cash collected over the period">
-    <line x1="${PAD2}" y1="${H2 - PAD2}" x2="${W2 - PAD2}" y2="${H2 - PAD2}" class="axis"/>
+  return `<svg viewBox="0 0 ${W3} ${H2}" role="img" aria-label="Closed won and cash collected over the period">
+    <line x1="${PAD2}" y1="${H2 - PAD2}" x2="${W3 - PAD2}" y2="${H2 - PAD2}" class="axis"/>
     ${ticks}${labels}
     <path d="${coll}" class="line collected"/>
     <path d="${wonSolid}" class="line won"/>
@@ -62173,17 +62174,17 @@ function lineChartSvg(series, forecastFrom) {
 }
 function barChartSvg(rows2) {
   if (!rows2.length) return "";
-  const W2 = 760, BAR = 26, GAP = 10, LABELW = 150;
+  const W3 = 760, BAR = 26, GAP = 10, LABELW = 150;
   const H2 = rows2.length * (BAR + GAP) + 10;
   const max = Math.max(1, ...rows2.map((r3) => r3.value));
   const bars = rows2.map((r3, i2) => {
-    const w2 = Math.max(2, (W2 - LABELW - 90) * r3.value / max);
+    const w2 = Math.max(2, (W3 - LABELW - 90) * r3.value / max);
     const yy = i2 * (BAR + GAP) + 5;
     return `<text x="${LABELW - 8}" y="${yy + BAR / 2 + 4}" text-anchor="end" class="tick">${esc(r3.stage)}</text>
       <rect x="${LABELW}" y="${yy}" width="${w2.toFixed(1)}" height="${BAR}" rx="4" class="bar"/>
       <text x="${LABELW + w2 + 8}" y="${yy + BAR / 2 + 4}" class="tick">${fmt(r3.value)}</text>`;
   }).join("");
-  return `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Open pipeline by stage">${bars}</svg>`;
+  return `<svg viewBox="0 0 ${W3} ${H2}" role="img" aria-label="Open pipeline by stage">${bars}</svg>`;
 }
 function reportToHtml(b2) {
   const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
@@ -62197,12 +62198,12 @@ function reportToHtml(b2) {
     </div>`).join("");
   const table = (headers2, rows2) => rows2.length ? `<table><thead><tr>${headers2.map((h2) => `<th>${esc(h2)}</th>`).join("")}</tr></thead><tbody>${rows2.map((r3) => `<tr>${r3.map((c2, i2) => `<td class="${typeof c2 === "number" ? "num" : ""}">${typeof c2 === "number" ? fmt(c2) : esc(String(c2))}</td>`).join("")}</tr>`).join("")}</tbody></table>` : `<p class="empty">No data in this window.</p>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mondaily \u2014 ${esc(periodTitle)} report ${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}</title>
+<title>${esc(b2.meta.workspaceName)} \u2014 ${esc(periodTitle)} report ${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)}</title>
 <style>
   :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --accent:#0e9f6e; --accent2:#3b82f6; }
   * { box-sizing:border-box; margin:0 }
   body { font:14px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#fff; max-width:820px; margin:0 auto; padding:32px 24px 64px }
-  h1 { font-size:1.5rem; margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
+  h1 { font-size:1.5rem; margin-bottom:2px } .ws { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:2px } h2 { font-size:1.05rem; margin:32px 0 10px }
   .sub { color:var(--muted); font-size:.85rem; margin-bottom:24px }
   .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px }
   .kpi { border:1px solid var(--line); border-radius:10px; padding:12px 14px }
@@ -62220,6 +62221,7 @@ function reportToHtml(b2) {
   footer { margin-top:40px; font-size:.75rem; color:var(--muted); border-top:1px solid var(--line); padding-top:12px }
   @media print { body { padding:0 } .kpi { break-inside:avoid } h2 { break-after:avoid } }
 </style></head><body>
+<div class="ws">${esc(b2.meta.workspaceName)}</div>
 <h1>${esc(periodTitle)} report${b2.meta.complete ? " \u2014 completed period" : ""}</h1>
 <div class="sub">${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${esc(b2.meta.timeZone)} \xB7 base ${esc(b2.meta.base)}</div>
 <div class="kpis">${kpiCards}</div>
@@ -62281,19 +62283,21 @@ function reportEmailHtml(b2, ws) {
   const td = `padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;`;
   const rows2 = b2.kpis.map((k2) => `<tr>
       <td style="${td}">${k2.label}</td>
-      <td style="${td}text-align:right;font-variant-numeric:tabular-nums;">${fmt2(k2.value)} ${b2.meta.base}</td>
-      <td style="${td}color:#6b7280;">${k2.kind === "balance" ? "as of send time" : k2.delta == null ? k2.previous != null ? `prev ${fmt2(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs previous ${b2.meta.period.replace(/ly$/, "")}`}</td>
+      <td style="${td}text-align:right;font-variant-numeric:tabular-nums;">${fmt3(k2.value)} ${b2.meta.base}</td>
+      <td style="${td}color:#6b7280;">${k2.kind === "balance" ? "as of send time" : k2.delta == null ? k2.previous != null ? `prev ${fmt3(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs previous ${b2.meta.period.replace(/ly$/, "")}`}</td>
     </tr>${k2.note ? `<tr><td colspan="3" style="padding:0 10px 6px;font-size:11px;color:#b45309;">${k2.note}</td></tr>` : ""}`).join("");
   const closeLine = b2.meta.close ? `<p style="font-size:12px;color:#6b7280;">Filed close snapshot <b>${b2.meta.close.key}</b> (hash ${b2.meta.close.hash.slice(0, 16)}\u2026): ${b2.meta.close.drifted ? "the live ledger has moved since the close \u2014 the linked report discloses each change." : "recomputation agrees with the filed figures."}</p>` : "";
   return {
-    subject: `${periodTitle} report \u2014 ${window2}`,
+    subject: `${b2.meta.workspaceName} \u2014 ${periodTitle} report (${window2})`,
     body: `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
-      <h2 style="font-size:18px;margin:16px 0 2px;">${periodTitle} report</h2>
+      <p style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;margin:16px 0 0;">${b2.meta.workspaceName}</p>
+      <h2 style="font-size:18px;margin:2px 0 2px;">${periodTitle} report</h2>
       <p style="font-size:13px;color:#6b7280;margin:0 0 14px;">${window2} \xB7 ${b2.meta.timeZone} \xB7 base ${b2.meta.base}</p>
       <table style="width:100%;border-collapse:collapse;">${rows2}</table>
       ${closeLine}
       <p style="margin:18px 0;">
         <a href="${API_ORIGIN}/api/v1/reports/export.html?${qs}" style="display:inline-block;padding:8px 14px;background:#111827;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;">Full report with charts</a>
+        &nbsp;<a href="${API_ORIGIN}/api/v1/reports/export.pdf?${qs}" style="display:inline-block;padding:8px 14px;border:1px solid #d1d5db;border-radius:6px;color:#111827;text-decoration:none;font-size:13px;">PDF</a>
         &nbsp;<a href="${API_ORIGIN}/api/v1/reports/export.xlsx?${qs}" style="display:inline-block;padding:8px 14px;border:1px solid #d1d5db;border-radius:6px;color:#111827;text-decoration:none;font-size:13px;">Excel workbook</a>
       </p>
       <p style="font-size:11px;color:#9ca3af;">Sent by Mondaily on the workspace's calendar. Flow metrics are counted inside the window; balances are as of send time. Manage this schedule under <a href="${APP_ORIGIN}/reports" style="color:#6b7280;">Reports</a>.</p>
@@ -62355,7 +62359,7 @@ async function runReportDelivery(now = /* @__PURE__ */ new Date()) {
   }
   return { workspaces: (workspaces ?? []).length, results };
 }
-var REPORT_CADENCES, API_ORIGIN, APP_ORIGIN, fmt2;
+var REPORT_CADENCES, API_ORIGIN, APP_ORIGIN, fmt3;
 var init_report_schedule = __esm({
   "src/lib/report-schedule.ts"() {
     "use strict";
@@ -62367,7 +62371,7 @@ var init_report_schedule = __esm({
     REPORT_CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"];
     API_ORIGIN = (process.env.API_URL ?? "https://api.mondaily.com").replace(/\/$/, "");
     APP_ORIGIN = (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
-    fmt2 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
+    fmt3 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
   }
 });
 
@@ -63468,21 +63472,21 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
         if (candidate && groundingViolations(candidate, digest).length === 0) insight = candidate;
       } catch {
       }
-      const esc4 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const esc5 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const bars = (rows2) => {
         const max = Math.max(1, ...rows2.map((r3) => r3.value));
         return `<table role="presentation" style="width:100%;border-collapse:collapse">${rows2.map((r3) => `
-      <tr><td style="padding:3px 10px 3px 0;font:11px -apple-system,sans-serif;color:#555;white-space:nowrap">${esc4(r3.label)}</td>
+      <tr><td style="padding:3px 10px 3px 0;font:11px -apple-system,sans-serif;color:#555;white-space:nowrap">${esc5(r3.label)}</td>
       <td style="width:70%"><div style="height:10px;border-radius:3px;background:${r3.color};width:${Math.max(2, Math.round(r3.value / max * 100))}%"></div></td>
       <td style="padding-left:8px;font:600 11px -apple-system,sans-serif;color:#222">${r3.value}</td></tr>`).join("")}</table>`;
       };
-      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 20px/1.2 ui-monospace,monospace;color:#111">${value}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc4(label)}${sub ? ` \xB7 ${esc4(sub)}` : ""}</div></td>`;
+      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 20px/1.2 ui-monospace,monospace;color:#111">${value}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc5(label)}${sub ? ` \xB7 ${esc5(sub)}` : ""}</div></td>`;
       const periodLabel = `last ${days} days`;
       const html = `<!doctype html><html><body style="margin:0;background:#fafafa;padding:24px">
   <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e8e8e4;border-radius:8px;overflow:hidden">
     <div style="padding:20px 24px;border-bottom:1px solid #e8e8e4">
-      <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc4(String(member.name ?? member.email))} \u2014 team report</div>
-      <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc4(String(member.role ?? ""))} \xB7 ${periodLabel} \xB7 generated ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)} \xB7 Mondaily</div>
+      <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc5(String(member.name ?? member.email))} \u2014 team report</div>
+      <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc5(String(member.role ?? ""))} \xB7 ${periodLabel} \xB7 generated ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)} \xB7 Mondaily</div>
     </div>
     <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
       ${kpi("Tasks completed", t3.completed)}${kpi("Open", t3.open)}${kpi("Overdue", t3.overdue)}${kpi("Decisions", decisionsResolved)}
@@ -63501,7 +63505,7 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
     <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
       ${kpi("AI credits", credits.toLocaleString(), periodLabel)}${kpi("Messages sent", messagesSent, periodLabel)}
     </tr></table>
-    ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc4(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above \u2014 validated, nothing invented.</p></div>` : ""}
+    ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc5(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above \u2014 validated, nothing invented.</p></div>` : ""}
     <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for the ${periodLabel}. Nothing is estimated.</p></div>
   </div></body></html>`;
       let emailed = false;
@@ -63554,17 +63558,17 @@ ${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: 
 });
 
 // src/lib/email-template.ts
-function esc2(s2) {
+function esc3(s2) {
   return String(s2 ?? "").replace(/[&<>"']/g, (c2) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c2]);
 }
 function renderEmail(opts) {
   const { title, preheader, bodyHtml, action, footnote, replyable = false } = opts;
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light"><title>${esc2(title)}</title></head>
+<meta name="color-scheme" content="light"><title>${esc3(title)}</title></head>
 <body style="margin:0;padding:0;background:${CANVAS};font-family:${FONT};-webkit-font-smoothing:antialiased">
 <!-- Preheader: shown beside the subject, hidden in the body itself. -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc2(preheader)}</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc3(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CANVAS};padding:32px 16px">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -63575,20 +63579,20 @@ function renderEmail(opts) {
       </td></tr>
 
       <tr><td style="padding:14px 28px 0">
-        <h1 style="margin:0;font:600 19px/1.35 ${FONT};color:${INK};letter-spacing:-.01em">${esc2(title)}</h1>
+        <h1 style="margin:0;font:600 19px/1.35 ${FONT};color:${INK};letter-spacing:-.01em">${esc3(title)}</h1>
       </td></tr>
 
-      <tr><td style="padding:12px 28px 0;font:15px/1.6 ${FONT};color:${MUTED}">${bodyHtml}</td></tr>
+      <tr><td style="padding:12px 28px 0;font:15px/1.6 ${FONT};color:${MUTED2}">${bodyHtml}</td></tr>
 
       ${action ? `<tr><td style="padding:22px 28px 0">
-        <a href="${esc2(action.url)}" style="display:inline-block;background:${BRAND2};color:#ffffff;
-          font:600 14px ${FONT};text-decoration:none;padding:11px 20px;border-radius:7px">${esc2(action.label)}</a>
+        <a href="${esc3(action.url)}" style="display:inline-block;background:${BRAND2};color:#ffffff;
+          font:600 14px ${FONT};text-decoration:none;padding:11px 20px;border-radius:7px">${esc3(action.label)}</a>
       </td></tr>` : ""}
 
-      ${footnote ? `<tr><td style="padding:14px 28px 0;font:13px/1.55 ${FONT};color:${FAINT}">${footnote}</td></tr>` : ""}
+      ${footnote ? `<tr><td style="padding:14px 28px 0;font:13px/1.55 ${FONT};color:${FAINT2}">${footnote}</td></tr>` : ""}
 
       <tr><td style="padding:24px 28px 22px">
-        <div style="border-top:1px solid ${HAIRLINE};padding-top:14px;font:12px/1.6 ${FONT};color:${FAINT}">
+        <div style="border-top:1px solid ${HAIRLINE};padding-top:14px;font:12px/1.6 ${FONT};color:${FAINT2}">
           Sent by Mondaily.${replyable ? " You can reply to this email directly \u2014 replies reach the same conversation." : ""}
         </div>
       </td></tr>
@@ -63601,26 +63605,26 @@ function quoteBlock(author, body, at2) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
     style="margin:14px 0;border-left:2px solid ${HAIRLINE}">
     <tr><td style="padding:2px 0 2px 14px">
-      <div style="font:600 13px ${FONT};color:${INK}">${esc2(author)}${at2 ? `<span style="font-weight:400;color:${FAINT}"> \xB7 ${esc2(at2)}</span>` : ""}</div>
-      <div style="margin-top:4px;font:14px/1.6 ${FONT};color:${MUTED};white-space:pre-wrap">${esc2(body)}</div>
+      <div style="font:600 13px ${FONT};color:${INK}">${esc3(author)}${at2 ? `<span style="font-weight:400;color:${FAINT2}"> \xB7 ${esc3(at2)}</span>` : ""}</div>
+      <div style="margin-top:4px;font:14px/1.6 ${FONT};color:${MUTED2};white-space:pre-wrap">${esc3(body)}</div>
     </td></tr></table>`;
 }
 function factRows(rows2) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0">
     ${rows2.map((r3) => `<tr>
-      <td style="padding:5px 0;font:13px ${FONT};color:${FAINT};width:120px">${esc2(r3.label)}</td>
-      <td style="padding:5px 0;font:13px ${FONT};color:${INK}">${esc2(r3.value)}</td>
+      <td style="padding:5px 0;font:13px ${FONT};color:${FAINT2};width:120px">${esc3(r3.label)}</td>
+      <td style="padding:5px 0;font:13px ${FONT};color:${INK}">${esc3(r3.value)}</td>
     </tr>`).join("")}
   </table>`;
 }
-var BRAND2, INK, MUTED, FAINT, HAIRLINE, CANVAS, FONT;
+var BRAND2, INK, MUTED2, FAINT2, HAIRLINE, CANVAS, FONT;
 var init_email_template = __esm({
   "src/lib/email-template.ts"() {
     "use strict";
     BRAND2 = "#2f9e6b";
     INK = "#141414";
-    MUTED = "#6b6b70";
-    FAINT = "#9a9aa0";
+    MUTED2 = "#6b6b70";
+    FAINT2 = "#9a9aa0";
     HAIRLINE = "#e8e8e4";
     CANVAS = "#f6f6f4";
     FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -63746,7 +63750,7 @@ async function mailWaitingReminder(to, t3, daysWaiting, closesInDays) {
   const html = renderEmail({
     title: "Still waiting on you",
     preheader: `Your request "${t3.subject}" is open and needs a reply.`,
-    bodyHtml: `<p style="margin:0 0 10px">We asked a question about <strong style="color:#141414">${esc2(t3.subject)}</strong> ${daysWaiting} days ago and haven't heard back. No rush \u2014 we just don't want to leave it half-finished.</p>
+    bodyHtml: `<p style="margin:0 0 10px">We asked a question about <strong style="color:#141414">${esc3(t3.subject)}</strong> ${daysWaiting} days ago and haven't heard back. No rush \u2014 we just don't want to leave it half-finished.</p>
       ${closesInDays !== null ? `<p style="margin:0">If we don't hear from you, we'll close it in ${closesInDays} day${closesInDays === 1 ? "" : "s"}. Replying at any point \u2014 even later \u2014 reopens it.</p>` : `<p style="margin:0">It stays open; reply whenever you can.</p>`}`,
     replyable: canReplyByEmail(),
     action: { label: "Reply now", url: ticketUrl(t3.id) }
@@ -63757,7 +63761,7 @@ async function mailAutoClosed(to, t3) {
   const html = renderEmail({
     title: "Closed for now",
     preheader: `"${t3.subject}" was closed \u2014 reply any time to reopen it.`,
-    bodyHtml: `<p style="margin:0 0 10px">We didn't hear back on <strong style="color:#141414">${esc2(t3.subject)}</strong>, so we've closed it to keep your list tidy.</p>
+    bodyHtml: `<p style="margin:0 0 10px">We didn't hear back on <strong style="color:#141414">${esc3(t3.subject)}</strong>, so we've closed it to keep your list tidy.</p>
       <p style="margin:0">Nothing is lost${canReplyByEmail() ? " \u2014 reply to this email and it reopens exactly where it left off" : "; reopen it any time from the link below"}.</p>`,
     replyable: canReplyByEmail(),
     action: { label: "Reopen the request", url: ticketUrl(t3.id) }
@@ -63768,7 +63772,7 @@ async function mailResolved(to, t3, summary) {
   const html = renderEmail({
     title: "That's sorted",
     preheader: `"${t3.subject}" is resolved.`,
-    bodyHtml: `<p style="margin:0 0 10px">We've marked <strong style="color:#141414">${esc2(t3.subject)}</strong> as resolved.</p>
+    bodyHtml: `<p style="margin:0 0 10px">We've marked <strong style="color:#141414">${esc3(t3.subject)}</strong> as resolved.</p>
       ${summary ? quoteBlock("What we did", summary) : ""}
       <p style="margin:12px 0 0">If it isn't right, ${canReplyByEmail() ? "reply and it reopens" : "reopen it from the link below"} \u2014 you don't need to file a new request.</p>`,
     replyable: canReplyByEmail(),
@@ -64419,13 +64423,13 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
       }
       const dwl = t3.deltas?.value_won;
       const deltaLine = dwl && dwl.kind === "pct" ? ` (${(dwl.direction ?? 0) >= 0 ? "\u25B2" : "\u25BC"} ${dwl.label} vs prior month)` : dwl && dwl.kind === "new" ? " (first wins on record for a month)" : dwl && dwl.kind === "raw" ? ` (${dwl.detail})` : "";
-      const esc4 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 18px/1.2 ui-monospace,monospace;color:#111">${esc4(value)}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc4(label)}${sub ? ` \xB7 ${esc4(sub)}` : ""}</div></td>`;
+      const esc5 = (v2) => v2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const kpi = (label, value, sub) => `<td style="padding:12px 16px;border-left:1px solid #e8e8e4"><div style="font:600 18px/1.2 ui-monospace,monospace;color:#111">${esc5(value)}</div><div style="font:11px -apple-system,sans-serif;color:#777;margin-top:2px">${esc5(label)}${sub ? ` \xB7 ${esc5(sub)}` : ""}</div></td>`;
       const html = `<!doctype html><html><body style="margin:0;background:#fafafa;padding:24px">
 <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e8e8e4;border-radius:8px;overflow:hidden">
   <div style="padding:20px 24px;border-bottom:1px solid #e8e8e4">
-    <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc4(String(w2.name ?? "Workspace"))} \u2014 executive brief</div>
-    <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc4(monthName)} \xB7 sent automatically on the 1st \xB7 Mondaily</div>
+    <div style="font:600 16px -apple-system,sans-serif;color:#111">${esc5(String(w2.name ?? "Workspace"))} \u2014 executive brief</div>
+    <div style="font:11px -apple-system,sans-serif;color:#777;margin-top:3px">${esc5(monthName)} \xB7 sent automatically on the 1st \xB7 Mondaily</div>
   </div>
   <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
     ${kpi("Value won", money(t3.value_won) + deltaLine, `${t3.deals_won} deals`)}${kpi("Value lost", money(t3.value_lost), `${t3.deals_lost} deals`)}
@@ -64437,9 +64441,9 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
     ${kpi("Tasks completed", String(tasksDone))}${kpi("Decisions resolved", String(decisionsDone))}
   </tr></table>
   ${goals.length > 0 ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Goals</div>${goals.map((g2) => `
-    <div style="display:flex;justify-content:space-between;font:12px -apple-system,sans-serif;color:#333;padding:3px 0"><span>${esc4(g2.label)}</span><span style="font-variant-numeric:tabular-nums;color:${g2.pct >= 100 ? "#2f9e6b" : g2.pct >= 70 ? "#555" : "#c6892e"}">${g2.actual.toLocaleString()}/${g2.target.toLocaleString()} \xB7 ${g2.pct}%</span></div>`).join("")}</div>` : ""}
-  ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc4(insight)}</p></div>` : ""}
-  <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc4(monthName)}, in ${esc4(cur)}.${t3.unconverted > 0 ? ` ${t3.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
+    <div style="display:flex;justify-content:space-between;font:12px -apple-system,sans-serif;color:#333;padding:3px 0"><span>${esc5(g2.label)}</span><span style="font-variant-numeric:tabular-nums;color:${g2.pct >= 100 ? "#2f9e6b" : g2.pct >= 70 ? "#555" : "#c6892e"}">${g2.actual.toLocaleString()}/${g2.target.toLocaleString()} \xB7 ${g2.pct}%</span></div>`).join("")}</div>` : ""}
+  ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc5(insight)}</p></div>` : ""}
+  <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc5(monthName)}, in ${esc5(cur)}.${t3.unconverted > 0 ? ` ${t3.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
 </div></body></html>`;
       const ok2 = await sendTransactionalEmail({ subject: `${w2.name ?? "Workspace"} \u2014 executive brief \xB7 ${monthName}`, to: recipients, body: html });
       if (ok2) sent++;
@@ -70525,6 +70529,232 @@ init_auth();
 init_ai_gateway();
 init_currency_store();
 init_report_export();
+
+// src/lib/pdf.ts
+var A4 = { w: 595.28, h: 841.89 };
+var esc2 = (s2) => s2.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+var TRANSLIT = { "\u2014": "-", "\u2013": "-", "\u2192": ">", "\u2190": "<", "\u2212": "-", "\u2026": "...", "\u2019": "'", "\u2018": "'", "\u201C": '"', "\u201D": '"', "\u2713": "v", "\u0394": "d", "\u03A3": "S" };
+var latin1 = (s2) => Array.from(s2).map((ch) => TRANSLIT[ch] ?? (ch.charCodeAt(0) <= 255 ? ch : "?")).join("");
+var HELV = { " ": 278, "!": 278, '"': 355, "#": 556, $: 556, "%": 889, "&": 667, "'": 191, "(": 333, ")": 333, "*": 389, "+": 584, ",": 278, "-": 333, ".": 278, "/": 278, "0": 556, "1": 556, "2": 556, "3": 556, "4": 556, "5": 556, "6": 556, "7": 556, "8": 556, "9": 556, ":": 278, ";": 278, "<": 584, "=": 584, ">": 584, "?": 556, "@": 1015, A: 667, B: 667, C: 722, D: 722, E: 667, F: 611, G: 778, H: 722, I: 278, J: 500, K: 667, L: 556, M: 833, N: 722, O: 778, P: 667, Q: 778, R: 722, S: 667, T: 611, U: 722, V: 667, W: 944, X: 667, Y: 667, Z: 611, "[": 278, "\\": 278, "]": 278, "^": 469, _: 556, "`": 333, a: 556, b: 556, c: 500, d: 556, e: 556, f: 278, g: 556, h: 556, i: 222, j: 222, k: 500, l: 222, m: 833, n: 556, o: 556, p: 556, q: 556, r: 333, s: 500, t: 278, u: 556, v: 500, w: 722, x: 500, y: 500, z: 500, "{": 334, "|": 260, "}": 334, "~": 584 };
+function textWidth(s2, size, bold = false) {
+  let units = 0;
+  for (const ch of latin1(s2)) units += (HELV[ch] ?? 556) * (bold ? 1.06 : 1);
+  return units / 1e3 * size;
+}
+function fitText(s2, size, maxWidth, bold = false) {
+  if (textWidth(s2, size, bold) <= maxWidth) return s2;
+  let out = s2;
+  while (out.length > 1 && textWidth(out + "\u2026", size, bold) > maxWidth) out = out.slice(0, -1);
+  return out + "\u2026";
+}
+var PdfDoc = class {
+  pages = [];
+  ops = [];
+  newPage() {
+    if (this.ops.length) this.pages.push(this.ops.join("\n"));
+    this.ops = [];
+  }
+  text(x2, y2, raw2, o2 = {}) {
+    const size = o2.size ?? 10;
+    const s2 = latin1(o2.maxWidth ? fitText(raw2, size, o2.maxWidth, o2.bold) : raw2);
+    let tx = x2;
+    if (o2.align === "right") tx = x2 - textWidth(s2, size, o2.bold);
+    if (o2.align === "center") tx = x2 - textWidth(s2, size, o2.bold) / 2;
+    const [r3, g2, b2] = o2.color ?? [0.07, 0.09, 0.15];
+    this.ops.push(`BT /${o2.bold ? "F2" : "F1"} ${size} Tf ${r3} ${g2} ${b2} rg 1 0 0 1 ${tx.toFixed(2)} ${y2.toFixed(2)} Tm (${esc2(s2)}) Tj ET`);
+  }
+  line(x1, y1, x2, y2, o2 = {}) {
+    const [r3, g2, b2] = o2.color ?? [0.9, 0.91, 0.92];
+    this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 0.75).toFixed(2)} w ${r3} ${g2} ${b2} RG ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S Q`);
+  }
+  rect(x2, y2, w2, h2, color) {
+    const [r3, g2, b2] = color;
+    this.ops.push(`q ${r3} ${g2} ${b2} rg ${x2.toFixed(2)} ${y2.toFixed(2)} ${w2.toFixed(2)} ${h2.toFixed(2)} re f Q`);
+  }
+  polyline(points, o2 = {}) {
+    if (points.length < 2) return;
+    const [r3, g2, b2] = o2.color ?? [0, 0, 0];
+    const path = points.map(([x2, y2], i2) => `${x2.toFixed(2)} ${y2.toFixed(2)} ${i2 ? "l" : "m"}`).join(" ");
+    this.ops.push(`q ${o2.dash ? `[${o2.dash[0]} ${o2.dash[1]}] 0 d ` : ""}${(o2.width ?? 1.5).toFixed(2)} w ${r3} ${g2} ${b2} RG 1 j 1 J ${path} S Q`);
+  }
+  /** Serialise: xref offsets are BYTE positions, so everything is measured in latin-1 lengths. */
+  finish() {
+    this.newPage();
+    const objects = [];
+    const pageCount = this.pages.length || 1;
+    const pageObjIds = Array.from({ length: pageCount }, (_2, i2) => 4 + i2 * 2);
+    objects.push(`<< /Type /Catalog /Pages 2 0 R >>`);
+    objects.push(`<< /Type /Pages /Kids [${pageObjIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageCount} >>`);
+    objects.push(`<< /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >> >>`);
+    (this.pages.length ? this.pages : [""]).forEach((content) => {
+      objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font 3 0 R >> /Contents ${objects.length + 2} 0 R >>`);
+      objects.push(`<< /Length ${content.length} >>
+stream
+${content}
+endstream`);
+    });
+    let out = "%PDF-1.4\n";
+    const offsets = [];
+    objects.forEach((body, i2) => {
+      offsets.push(out.length);
+      out += `${i2 + 1} 0 obj
+${body}
+endobj
+`;
+    });
+    const xref = out.length;
+    out += `xref
+0 ${objects.length + 1}
+0000000000 65535 f 
+`;
+    for (const off of offsets) out += `${String(off).padStart(10, "0")} 00000 n 
+`;
+    out += `trailer
+<< /Size ${objects.length + 1} /Root 1 0 R >>
+startxref
+${xref}
+%%EOF`;
+    const bytes = new Uint8Array(out.length);
+    for (let i2 = 0; i2 < out.length; i2++) bytes[i2] = out.charCodeAt(i2) & 255;
+    return bytes;
+  }
+};
+
+// src/lib/report-pdf.ts
+var M2 = 48;
+var W2 = A4.w - M2 * 2;
+var MUTED = [0.42, 0.45, 0.5];
+var FAINT = [0.61, 0.64, 0.69];
+var LINE = [0.9, 0.91, 0.92];
+var GREEN = [0.05, 0.62, 0.43];
+var BLUE = [0.23, 0.51, 0.96];
+var AMBER = [0.71, 0.4, 0.11];
+var fmt2 = (n2) => n2.toLocaleString("en", { maximumFractionDigits: 2 });
+var Layout = class {
+  doc = new PdfDoc();
+  cursor = M2;
+  get y() {
+    return A4.h - this.cursor;
+  }
+  /** Advance the cursor; new page when the next block would fall off the bottom. */
+  need(h2) {
+    if (this.cursor + h2 > A4.h - M2) {
+      this.doc.newPage();
+      this.cursor = M2;
+    }
+  }
+  advance(h2) {
+    this.cursor += h2;
+  }
+};
+function reportToPdf(b2) {
+  const L2 = new Layout();
+  const d2 = L2.doc;
+  const dt2 = (iso) => iso.slice(0, 10);
+  const periodTitle = b2.meta.period[0].toUpperCase() + b2.meta.period.slice(1);
+  d2.text(M2, L2.y, b2.meta.workspaceName.toUpperCase(), { size: 8, color: MUTED });
+  L2.advance(16);
+  d2.text(M2, L2.y, `${periodTitle} report${b2.meta.complete ? " \u2014 completed period" : ""}`, { size: 19, bold: true });
+  L2.advance(16);
+  d2.text(M2, L2.y, `${dt2(b2.meta.range.start)} \u2192 ${dt2(b2.meta.range.end)} \xB7 compared with ${dt2(b2.meta.prevRange.start)} \u2192 ${dt2(b2.meta.prevRange.end)} \xB7 ${b2.meta.timeZone} \xB7 base ${b2.meta.base}`, { size: 8.5, color: MUTED });
+  L2.advance(20);
+  const col2 = M2 + W2 * 0.5, col3 = M2 + W2 * 0.66;
+  for (const k2 of b2.kpis) {
+    L2.need(k2.note ? 26 : 15);
+    d2.text(M2, L2.y, k2.label, { size: 9.5, maxWidth: W2 * 0.46 });
+    d2.text(col2 + 60, L2.y, `${fmt2(k2.value)} ${b2.meta.base}`, { size: 9.5, bold: true, align: "right" });
+    const sub = k2.kind === "balance" ? "as of now" : k2.delta == null ? k2.previous != null ? `prev ${fmt2(k2.previous)}` : "no prior base" : `${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same window last period (${fmt2(k2.previous ?? 0)})`;
+    d2.text(col3 + 30, L2.y, sub, { size: 8, color: MUTED, maxWidth: W2 - (col3 + 30 - M2) });
+    L2.advance(12);
+    if (k2.note) {
+      d2.text(M2 + 8, L2.y, fitText(k2.note, 7.5, W2 - 8), { size: 7.5, color: AMBER });
+      L2.advance(11);
+    }
+    d2.line(M2, L2.y + 8, M2 + W2, L2.y + 8);
+    L2.advance(4);
+  }
+  L2.advance(14);
+  if (b2.series.length >= 2) {
+    L2.need(170);
+    d2.text(M2, L2.y, "Closed won & cash collected", { size: 11, bold: true });
+    L2.advance(12);
+    d2.text(M2, L2.y, "green = closed won \xB7 blue = cash collected" + (b2.forecastFrom ? " \xB7 dashed = least-squares projection of the real trend" : ""), { size: 7.5, color: MUTED });
+    L2.advance(12);
+    const CH = 110;
+    const top = L2.y, bottom = top - CH;
+    const max = Math.max(1, ...b2.series.map((s2) => Math.max(s2.won, s2.collected)));
+    const x2 = (i2) => M2 + 36 + i2 * (W2 - 44) / Math.max(1, b2.series.length - 1);
+    const yv = (v2) => bottom + v2 / max * CH;
+    d2.line(M2 + 36, bottom, M2 + W2, bottom, { color: LINE });
+    for (const f2 of [0, 0.5, 1]) d2.text(M2 + 32, yv(max * f2) - 3, fmt2(Math.round(max * f2)), { size: 7, color: FAINT, align: "right" });
+    const pts = (pick, from, to) => b2.series.slice(from, to).map((s2, i2) => [x2(from + i2), yv(pick(s2))]);
+    const solidEnd = b2.forecastFrom ?? b2.series.length;
+    d2.polyline(pts((s2) => s2.collected, 0, solidEnd), { color: BLUE, width: 1.2 });
+    d2.polyline(pts((s2) => s2.won, 0, solidEnd), { color: GREEN, width: 1.5 });
+    if (b2.forecastFrom) d2.polyline(pts((s2) => s2.won, b2.forecastFrom - 1, b2.series.length), { color: GREEN, width: 1.5, dash: [3, 2] });
+    const step3 = Math.ceil(b2.series.length / 7);
+    b2.series.forEach((s2, i2) => {
+      if (i2 % step3 === 0 || s2.projected) d2.text(x2(i2), bottom - 10, s2.label, { size: 6.5, color: FAINT, align: "center" });
+    });
+    L2.advance(CH + 26);
+  }
+  if (b2.pipelineByStage.length) {
+    L2.need(30 + b2.pipelineByStage.length * 16);
+    d2.text(M2, L2.y, "Open pipeline by stage (as of now)", { size: 11, bold: true });
+    L2.advance(16);
+    const maxV = Math.max(1, ...b2.pipelineByStage.map((s2) => s2.value));
+    const labelW = 110, valueW = 70;
+    for (const s2 of b2.pipelineByStage) {
+      const bw = Math.max(2, (W2 - labelW - valueW) * s2.value / maxV);
+      d2.text(M2 + labelW - 6, L2.y, fitText(s2.stage, 8.5, labelW - 8), { size: 8.5, align: "right" });
+      d2.rect(M2 + labelW, L2.y - 2, bw, 9, GREEN);
+      d2.text(M2 + labelW + bw + 6, L2.y, `${fmt2(s2.value)} \xB7 ${s2.count}`, { size: 8, color: MUTED });
+      L2.advance(16);
+    }
+    L2.advance(10);
+  }
+  const table = (title, headers2, rows2, widths) => {
+    if (!rows2.length) return;
+    L2.need(34 + Math.min(rows2.length, 5) * 13);
+    L2.doc.text(M2, L2.y, title, { size: 11, bold: true });
+    L2.advance(14);
+    let cx = M2;
+    headers2.forEach((h2, i2) => {
+      L2.doc.text(cx, L2.y, h2.toUpperCase(), { size: 7, color: MUTED });
+      cx += widths[i2];
+    });
+    L2.advance(11);
+    for (const r3 of rows2) {
+      L2.need(13);
+      cx = M2;
+      r3.forEach((cell, i2) => {
+        const num3 = typeof cell === "number";
+        L2.doc.text(num3 ? cx + widths[i2] - 14 : cx, L2.y, num3 ? fmt2(cell) : fitText(String(cell), 8.5, widths[i2] - 10), { size: 8.5, align: num3 ? "right" : "left" });
+        cx += widths[i2];
+      });
+      L2.advance(11);
+      L2.doc.line(M2, L2.y + 7, M2 + W2, L2.y + 7);
+      L2.advance(2);
+    }
+    L2.advance(14);
+  };
+  table("Top closers", ["Owner", "Deals won", `Value (${b2.meta.base})`], b2.topClosers.map((c2) => [c2.owner, c2.count, c2.value]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
+  table("Overdue invoices \u2014 aging", ["Bucket", "Invoices", `Total (${b2.meta.base})`], b2.overdueAging.filter((a2) => a2.count > 0).map((a2) => [a2.bucket, a2.count, a2.total]), [W2 * 0.5, W2 * 0.25, W2 * 0.25]);
+  table("Open deals", ["Deal", "Stage", `Value (${b2.meta.base})`, "Owner"], b2.openDeals.slice(0, 30).map((x2) => [x2.name, x2.stage, x2.value, x2.owner]), [W2 * 0.4, W2 * 0.2, W2 * 0.2, W2 * 0.2]);
+  L2.need(40);
+  if (b2.meta.close) {
+    const c2 = b2.meta.close;
+    const driftTxt = c2.drifted ? `the live ledger has moved since the close \u2014 ${Object.entries(c2.changes).map(([k2, v2]) => `${k2} ${fmt2(v2.snapshot)} \u2192 ${fmt2(v2.live)}`).join("; ")} (disclosed, not reconciled)` : "recomputation agrees with the filed figures";
+    d2.text(M2, L2.y, fitText(`Filed close snapshot ${c2.key} (hash ${c2.hash.slice(0, 16)}\u2026): ${driftTxt}`, 7.5, W2), { size: 7.5, color: MUTED });
+    L2.advance(11);
+  }
+  d2.text(M2, L2.y, `Generated by Mondaily for ${b2.meta.workspaceName} on ${b2.meta.generatedAt.slice(0, 16).replace("T", " ")} UTC.`, { size: 7.5, color: FAINT });
+  L2.advance(10);
+  d2.text(M2, L2.y, "Flow metrics are counted inside the window; balance metrics are as of generation time. Projections are labelled, never blended into actuals.", { size: 7.5, color: FAINT, maxWidth: W2 });
+  return d2.finish();
+}
+
+// src/routes/reports.ts
 init_report_schedule();
 init_period_close();
 init_mail();
@@ -70555,6 +70785,20 @@ router7.get("/export.xlsx", zValidator2("query", exportQuery), async (c2) => {
     return c2.body(bytes.buffer, 200, {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "no-store"
+    });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "report export failed" }, 400);
+  }
+});
+router7.get("/export.pdf", zValidator2("query", exportQuery), async (c2) => {
+  const { period, start, end, complete } = c2.req.valid("query");
+  try {
+    const bundle = await composeWorkspaceReport(c2.get("workspaceId"), period, { start, end }, /* @__PURE__ */ new Date(), { complete: complete === "1" });
+    const bytes = reportToPdf(bundle);
+    return c2.body(bytes.buffer, 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.pdf"`,
       "Cache-Control": "no-store"
     });
   } catch (e2) {
@@ -70803,6 +71047,16 @@ async function runReportData(workspaceId, reportId, input = {}) {
   }
   return { data, total, change: null, chart_type: String(config.chart_type ?? "line"), truncated };
 }
+router7.delete("/:id", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { data, error } = await supabase.from("nodes").delete().eq("workspace_id", ws).eq("object_type", "report").eq("id", c2.req.param("id")).select("id").maybeSingle();
+  if (error) return c2.json({ error: error.message }, 400);
+  if (!data) return c2.json({ error: "Report not found" }, 404);
+  await supabase.from("activities").insert({ node_id: data.id, workspace_id: ws, actor_type: "human", actor_id: c2.get("userId"), action: "deleted", diff: { object_type: "report" } }).then(() => {
+  }, () => {
+  });
+  return c2.json({ deleted: true });
+});
 router7.post("/:id/run", async (c2) => {
   const input = await c2.req.json().catch(() => ({}));
   const result = await runReportData(c2.get("workspaceId"), c2.req.param("id"), input);
@@ -72293,7 +72547,8 @@ ${preview}` : ""}`;
           return `Report built for ${bundle.meta.range.start.slice(0, 10)} \u2192 ${bundle.meta.range.end.slice(0, 10)} (${period}, base ${bundle.meta.base}).
 Download links (present BOTH to the user as markdown links):
 - Excel workbook: ${base}/api/v1/reports/export.xlsx?${qs}
-- HTML report with charts (printable to PDF): ${base}/api/v1/reports/export.html?${qs}
+- HTML report with charts: ${base}/api/v1/reports/export.html?${qs}
+- PDF report: ${base}/api/v1/reports/export.pdf?${qs}
 KPIs (real figures \u2014 cite these, do not restate from memory):
 ${kpiLines}
 Top of pipeline by stage: ${bundle.pipelineByStage.slice(0, 4).map((s2) => `${s2.stage} ${s2.count} (${s2.value})`).join(", ") || "none"}.`;
@@ -74429,7 +74684,7 @@ init_mail();
 init_email_template();
 
 // src/lib/ics.ts
-function esc3(v2) {
+function esc4(v2) {
   return String(v2 ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 }
 function stamp(iso) {
@@ -74460,22 +74715,22 @@ function buildIcs(ev) {
     "CALSCALE:GREGORIAN",
     `METHOD:${method}`,
     "BEGIN:VEVENT",
-    `UID:${esc3(ev.uid)}`,
+    `UID:${esc4(ev.uid)}`,
     `DTSTAMP:${now}`,
     `DTSTART:${stamp(ev.startAt)}`,
     `DTEND:${stamp(ev.endAt)}`,
     `SEQUENCE:${Number.isFinite(ev.sequence) ? ev.sequence : 0}`,
-    `SUMMARY:${esc3(ev.title)}`,
+    `SUMMARY:${esc4(ev.title)}`,
     // CANCEL must say so in the event itself, not only in METHOD — some clients read only this.
     `STATUS:${method === "CANCEL" ? "CANCELLED" : "CONFIRMED"}`,
-    `ORGANIZER;CN=${esc3(ev.organizer.name || ev.organizer.email)}:mailto:${ev.organizer.email}`
+    `ORGANIZER;CN=${esc4(ev.organizer.name || ev.organizer.email)}:mailto:${ev.organizer.email}`
   ];
-  if (ev.description) lines.push(`DESCRIPTION:${esc3(ev.description)}`);
-  if (ev.location) lines.push(`LOCATION:${esc3(ev.location)}`);
-  if (ev.url) lines.push(`URL:${esc3(ev.url)}`);
+  if (ev.description) lines.push(`DESCRIPTION:${esc4(ev.description)}`);
+  if (ev.location) lines.push(`LOCATION:${esc4(ev.location)}`);
+  if (ev.url) lines.push(`URL:${esc4(ev.url)}`);
   for (const a2 of ev.attendees ?? []) {
     lines.push(
-      `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${esc3(a2.name || a2.email)}:mailto:${a2.email}`
+      `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${esc4(a2.name || a2.email)}:mailto:${a2.email}`
     );
   }
   lines.push("END:VEVENT", "END:VCALENDAR");
@@ -74695,7 +74950,7 @@ async function inviteGuests(d2, organiserName, verb, opts) {
   const html = renderEmail({
     title: cancelled ? `Cancelled: ${d2.title}` : d2.title,
     preheader: cancelled ? "This meeting has been cancelled." : `${when} \u2014 invitation from ${organiserName}`,
-    bodyHtml: `<p>${cancelled ? "This meeting has been cancelled." : `${esc2(organiserName)} invited you to a meeting.`}</p>` + rows2 + (d2.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc2(d2.description)}</p>` : ""),
+    bodyHtml: `<p>${cancelled ? "This meeting has been cancelled." : `${esc3(organiserName)} invited you to a meeting.`}</p>` + rows2 + (d2.description && !cancelled ? `<p><strong>Agenda</strong><br>${esc3(d2.description)}</p>` : ""),
     ...guestUrl && !cancelled ? { action: { label: "Join the call", url: guestUrl } } : {},
     // The promise is made ONLY when it is true. Without a guest link there is nothing to join
     // without an account, and saying so anyway is how the first invite sent someone to a login wall.
@@ -82162,13 +82417,13 @@ router33.get("/export/:objectType", async (c2) => {
   const cols = [...new Set(rows2.flatMap((r3) => Object.keys(r3.data)))].filter((k2) => {
     return !rows2.some((r3) => r3.data[k2] && typeof r3.data[k2] === "object");
   }).slice(0, 60);
-  const esc4 = (v2) => {
+  const esc5 = (v2) => {
     const s2 = String(v2 ?? "");
     return /[",\n]/.test(s2) ? `"${s2.replace(/"/g, '""')}"` : s2;
   };
   const lines = [
-    [...cols, "updated_at"].map(esc4).join(","),
-    ...rows2.map((r3) => [...cols.map((k2) => esc4(r3.data[k2])), esc4(r3.updated_at ?? "")].join(",")),
+    [...cols, "updated_at"].map(esc5).join(","),
+    ...rows2.map((r3) => [...cols.map((k2) => esc5(r3.data[k2])), esc5(r3.updated_at ?? "")].join(",")),
     ...truncated ? [`# TRUNCATED: first ${EXPORT_CAP} rows only`] : []
   ];
   c2.header("Content-Type", "text/csv; charset=utf-8");
@@ -85114,14 +85369,14 @@ router47.post("/:id/send", async (c2) => {
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
   const SYM = { USD: "$", EUR: "\u20AC", GBP: "\xA3", PLN: "z\u0142", JPY: "\xA5" };
   const sym = SYM[base] ?? `${base} `;
-  const fmt3 = (n2) => n2 >= 1e6 ? `${sym}${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `${sym}${(n2 / 1e3).toFixed(0)}K` : `${sym}${n2.toLocaleString()}`;
+  const fmt4 = (n2) => n2 >= 1e6 ? `${sym}${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `${sym}${(n2 / 1e3).toFixed(0)}K` : `${sym}${n2.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
   const now = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const statsRows = [
     ["Total records", String(total)],
     ...wonRecs.length ? [["Completed / Won", String(wonRecs.length)]] : [],
-    ...valueCol && wonValue ? [["Won value", fmt3(wonValue)]] : [],
-    ...valueCol && totalValue ? [["Total pipeline value", fmt3(totalValue)]] : [],
+    ...valueCol && wonValue ? [["Won value", fmt4(wonValue)]] : [],
+    ...valueCol && totalValue ? [["Total pipeline value", fmt4(totalValue)]] : [],
     ...winRate !== null ? [["Win rate", `${winRate}%`]] : []
   ];
   const html = `<!DOCTYPE html>

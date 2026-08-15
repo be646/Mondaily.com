@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { aiGateway } from "../lib/ai-gateway";
 import { makeBaseConverter } from "../lib/currency-store";
 import { composeWorkspaceReport, reportToXlsx, reportToHtml } from "../lib/report-export";
+import { reportToPdf } from "../lib/report-pdf";
 import { readSchedule, reportEmailHtml, REPORT_CADENCES, currentPeriodKey } from "../lib/report-schedule";
 import { workspacePeriodConfig } from "../lib/period-close";
 import { sendWorkspaceEmail } from "../lib/mail";
@@ -50,6 +51,21 @@ router.get("/export.xlsx", zValidator("query", exportQuery), async (c) => {
     return c.body(bytes.buffer as ArrayBuffer, 200, {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "no-store",
+    });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "report export failed" }, 400);
+  }
+});
+
+router.get("/export.pdf", zValidator("query", exportQuery), async (c) => {
+  const { period, start, end, complete } = c.req.valid("query");
+  try {
+    const bundle = await composeWorkspaceReport(c.get("workspaceId"), period, { start, end }, new Date(), { complete: complete === "1" });
+    const bytes = reportToPdf(bundle);
+    return c.body(bytes.buffer as ArrayBuffer, 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="mondaily-${period}-report-${bundle.meta.range.end.slice(0, 10)}.pdf"`,
       "Cache-Control": "no-store",
     });
   } catch (e) {
@@ -393,6 +409,21 @@ export async function runReportData(
 
   return { data, total, change: null, chart_type: String(config.chart_type ?? "line"), truncated };
 }
+
+/**
+ * Delete a saved report. This existed nowhere: Ask's create_report told users "It's saved under
+ * Reports" while the index never listed them and nothing could remove one — an append-only shelf.
+ */
+router.delete("/:id", async (c) => {
+  const ws = c.get("workspaceId");
+  const { data, error } = await supabase.from("nodes").delete()
+    .eq("workspace_id", ws).eq("object_type", "report").eq("id", c.req.param("id"))
+    .select("id").maybeSingle();
+  if (error) return c.json({ error: error.message }, 400);
+  if (!data) return c.json({ error: "Report not found" }, 404);
+  await supabase.from("activities").insert({ node_id: data.id, workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "deleted", diff: { object_type: "report" } }).then(() => {}, () => {});
+  return c.json({ deleted: true });
+});
 
 router.post("/:id/run", async (c) => {
   const input: { type?: string; config?: Record<string, unknown> } = await c.req.json<{ type?: string; config?: Record<string, unknown> }>().catch(() => ({}));
