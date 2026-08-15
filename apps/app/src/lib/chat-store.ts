@@ -30,6 +30,19 @@ export function createThread(firstMessage: string): ChatThread {
   return { id: uuid, title: firstMessage.slice(0, 45), messages: [], updatedAt: Date.now() };
 }
 
+
+/** Drop everything from `fromIndex` on — the edit-and-rerun path removes the last exchange before
+ *  resending, and the stored thread must match what the screen shows or reopening it resurrects
+ *  the corrected-away question. */
+export function truncateThread(threadId: string, fromIndex: number): void {
+  const threads = getThreads();
+  const idx = threads.findIndex(t => t.id === threadId);
+  const thread = threads[idx];
+  if (!thread) return;
+  const updated: ChatThread = { ...thread, messages: thread.messages.slice(0, fromIndex), updatedAt: Date.now() };
+  saveThreads([updated, ...threads.filter(t => t.id !== threadId)]);
+}
+
 export function addMessageToThread(threadId: string, message: ChatMessage): void {
   const threads = getThreads();
   const idx = threads.findIndex(t => t.id === threadId);

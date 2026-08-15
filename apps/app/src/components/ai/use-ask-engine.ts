@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage, type ChatThread } from "../../lib/chat-store";
+import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage, type ChatThread , truncateThread} from "../../lib/chat-store";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import {
   inferAgentHandoff, friendlyAskError, mapBackendSources,
@@ -82,6 +82,13 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
    * so what the user reads is the actual wall time their question has taken, not an animation.
    */
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  /**
+   * Every step the run ACTUALLY took, in order — the tool statuses as they arrived. This is the
+   * honest version of a "plan" display: nothing is announced up front (that would be invented
+   * progress, the pattern this codebase keeps removing); completed steps accumulate as they truly
+   * complete, and the UI can render them as a live checklist.
+   */
+  const [stepLog, setStepLog] = useState<string[]>([]);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const freezeClock = () => { if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; } };
 
@@ -119,6 +126,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     setSuggestions([]);
     setTokenCount(0);
     setElapsedSeconds(0);
+    setStepLog([]);
     if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
     const startedAt = Date.now();
     elapsedTimerRef.current = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
@@ -213,6 +221,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
             applyText(streamed.replace(/<followups>[\s\S]*$/, "")); // never show the control block
           } else if (ev.type === "status") {
             setStreamStatus(ev.text);
+            setStepLog(prev => prev[prev.length - 1] === ev.text ? prev : [...prev, ev.text]);
           } else if (ev.type === "sources") {
             // Cards stream in the instant each tool finishes — render them now,
             // while the model is still generating the text answer.
@@ -337,12 +346,33 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     void doSend(lastUserTextRef.current);
   }, [loading, doSend]);
 
+  /**
+   * EDIT AND RE-RUN the last question — the Claude staple this chat lacked. A typo meant living
+   * with the wrong answer or burying it under a correction turn.
+   *
+   * The last user turn and everything after it are removed from BOTH the visible messages and the
+   * stored thread, then the corrected text goes through the same doSend as any question — one send
+   * path, no special replay logic to drift out of sync.
+   */
+  const editAndResend = (text: string) => {
+    const t = text.trim();
+    if (!t || loading) return;
+    let lastUser = -1;
+    for (let i = messages.length - 1; i >= 0; i--) if (messages[i]!.role === "user") { lastUser = i; break; }
+    if (lastUser >= 0) {
+      setMessages(prev => prev.slice(0, lastUser));
+      if (currentThreadId) truncateThread(currentThreadId, lastUser);
+    }
+    // let the truncation commit before the send appends
+    setTimeout(() => doSend(t), 0);
+  };
+
   return {
     messages, setMessages,
     currentThreadId, setCurrentThreadId,
     loading, suggestions, setSuggestions,
     messageMeta, setMessageMeta,
-    tokenCount, elapsedSeconds, streamStatus,
+    tokenCount, elapsedSeconds, streamStatus, stepLog, editAndResend,
     doSend, loadThread, buildChipText, clear, stop, regenerate,
   };
 }

@@ -197,6 +197,8 @@ export function ChartBlock({ raw }: { raw: string }) {
  * usage frame: Thinking (reasoning) · Generation · Total. Renders nothing if no
  * usage was reported.
  */
+
+export { markdownTablesToCsv } from "../../lib/markdown-tables";
 export function TokenLedger({ usage }: { usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; reasoning_tokens?: number } | null }) {
   if (!usage) return null;
   const total = usage.total_tokens ?? 0;

@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2, Square, Mic } from "lucide-react";
+import { Send, Loader2, Pencil, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2, Square, Mic } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -17,7 +17,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
-import { EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
+import { EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks, markdownTablesToCsv } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 import { useVoiceDictation } from "./use-voice";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
@@ -99,6 +99,9 @@ export function AskMondaily() {
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
+  // Which user message is being edited inline, and its draft text (edit-and-rerun).
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [streamingMsgIdx, setStreamingMsgIdx] = useState<number | null>(null);
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -117,7 +120,7 @@ export function AskMondaily() {
   // and real sources. This page's context is general workspace scope
   // unless a thread is already open.
   const attach = useAttachments();
-  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, elapsedSeconds, streamStatus, doSend, loadThread, buildChipText, clear, stop } =
+  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, elapsedSeconds, streamStatus, stepLog, editAndResend, doSend, loadThread, buildChipText, clear, stop } =
     useAskEngine({
       initialThreadId: threadId && threadId !== "new" ? threadId : null,
       context: { scope_label: "the Ask Mondaily page (general workspace)", ...attach.attachContext },
@@ -345,9 +348,34 @@ export function AskMondaily() {
                 )}
 
                 {m.role === "user" ? (
-                  <div className="ask-user-bubble max-w-[72%] px-4 py-2.5 text-sm leading-relaxed">
-                    {m.content}
-                  </div>
+                  editingIdx === i ? (
+                    /* Inline edit — Claude's edit-and-rerun. Save truncates this exchange and
+                       resends through the ONE send path; Cancel restores the bubble untouched. */
+                    <div className="w-full max-w-[72%]">
+                      <textarea autoFocus value={editDraft} onChange={e => setEditDraft(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setEditingIdx(null); editAndResend(editDraft); } if (e.key === "Escape") setEditingIdx(null); }}
+                        className="ask-user-bubble w-full resize-none px-4 py-2.5 text-sm leading-relaxed outline-none"
+                        rows={Math.min(6, Math.max(2, editDraft.split("\n").length))}/>
+                      <div className="mt-1.5 flex justify-end gap-2">
+                        <button onClick={() => setEditingIdx(null)} className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>Cancel</button>
+                        <button onClick={() => { setEditingIdx(null); editAndResend(editDraft); }} className="text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>Save & re-run</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group/edit relative max-w-[72%]">
+                      <div className="ask-user-bubble px-4 py-2.5 text-sm leading-relaxed">{m.content}</div>
+                      {/* Only the LAST question is editable — rewriting the middle of a thread would
+                          orphan every answer built on it. */}
+                      {!loading && i === messages.length - 2 && (
+                        <button onClick={() => { setEditingIdx(i); setEditDraft(m.content); }}
+                          title="Edit & re-run"
+                          className="absolute -left-7 top-2 rounded-md p-1 opacity-0 transition-opacity group-hover/edit:opacity-100"
+                          style={{ color: "var(--text-faint)" }}>
+                          <Pencil size={12}/>
+                        </button>
+                      )}
+                    </div>
+                  )
                 ) : (
                   <div className="flex-1 min-w-0">
                     <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
@@ -413,6 +441,21 @@ export function AskMondaily() {
                         {i === messages.length - 1 && !loading && (
                           <button onClick={regenerate} className="rounded-md p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-muted)] dark:text-[var(--text-faint)] dark:hover:text-[var(--text-secondary)] transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
                         )}
+                        {/* The table's data came from real tools; trapping it in rendered markdown
+                            means retyping it to use anywhere else. Only shown when a table exists. */}
+                        {markdownTablesToCsv(m.content) && (
+                          <button onClick={() => {
+                              const csv = markdownTablesToCsv(m.content);
+                              if (!csv) return;
+                              const a = document.createElement("a");
+                              a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                              a.download = "mondaily-answer.csv";
+                              a.click(); URL.revokeObjectURL(a.href);
+                            }}
+                            className="rounded-md p-1.5 text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors" title="Download table as CSV">
+                            <Download size={12}/>
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -451,6 +494,20 @@ export function AskMondaily() {
           <div className="mx-auto w-full max-w-3xl flex items-center gap-3 pl-1 text-[var(--text-muted)]">
             <LogoSymbol size={36} thinking />
             <span className="text-sm italic tracking-wide">{liveStep}…</span>
+          </div>
+        )}
+        {/* The steps the run has ACTUALLY taken, accumulating as each completes — never a plan
+            invented up front. This is what "show the exact step" looks like for a deep run. */}
+        {loading && stepLog.length > 0 && (
+          <div className="mx-auto w-full max-w-3xl space-y-1 pl-12">
+            {stepLog.map((step, si) => (
+              <div key={si} className="flex items-center gap-2 text-[12px]" style={{ color: si === stepLog.length - 1 && streamStatus ? "var(--text-secondary)" : "var(--text-faint)" }}>
+                {si === stepLog.length - 1 && streamStatus
+                  ? <Loader2 size={11} className="animate-spin shrink-0"/>
+                  : <Check size={11} className="shrink-0" style={{ color: "var(--section-accent)" }}/>}
+                <span>{step}</span>
+              </div>
+            ))}
           </div>
         )}
 
