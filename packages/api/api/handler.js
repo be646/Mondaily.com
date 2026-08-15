@@ -74423,16 +74423,17 @@ async function sessionProfile(userId) {
   const [{ data }, { data: cred }] = await Promise.all([
     // Deterministic: without an order, Postgres may return a different row per login, so a
     // multi-workspace user booted into an arbitrary workspace that changed between sessions.
-    supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle(),
+    // workspaces(onboarded) joined in via the FK, replacing what used to be a THIRD, sequential
+    // round trip after these two resolved. auth/me runs on every page load, so that extra trip was
+    // paid by every navigation in the product.
+    supabase.from("workspace_members").select("workspace_id, name, avatar_url, workspaces(onboarded)").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle(),
     // email_verified may not exist pre-migration → default to true so no banner shows (graceful).
     supabase.from("auth_credentials").select("email_verified").eq("user_id", userId).maybeSingle()
   ]);
   const workspaceId = data?.workspace_id ?? null;
-  let onboarded = true;
-  if (workspaceId) {
-    const { data: ws } = await supabase.from("workspaces").select("onboarded").eq("id", workspaceId).maybeSingle();
-    onboarded = ws?.onboarded ?? true;
-  }
+  const joined = data?.workspaces;
+  const wsRow = Array.isArray(joined) ? joined[0] : joined;
+  const onboarded = wsRow?.onboarded ?? true;
   return {
     workspaceId,
     name: data?.name ?? null,
