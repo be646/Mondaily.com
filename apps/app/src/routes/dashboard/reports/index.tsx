@@ -550,7 +550,10 @@ function DownloadReport() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const customOk = period !== "custom" || (start && end && start <= end);
-  const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}`;
+  // A link click is a top-level navigation — no way to attach the X-Workspace-Id header — so the
+  // workspace rides as ?ws= (the one nav exception requireAuth carves out; membership still checked).
+  const ws = localStorage.getItem("mondaily_workspace_id") ?? "";
+  const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}&ws=${ws}`;
   return (
     <section className="mb-8 rounded-lg border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex flex-wrap items-center gap-2">

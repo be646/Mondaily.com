@@ -21,7 +21,12 @@ async function resolveUserId(c: Context): Promise<string> {
 export const requireAuth = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string; financeRole: string; moduleAccess: Record<string, string> };
 }>(async (c, next) => {
-  const workspaceId = c.req.header("X-Workspace-Id");
+  // The workspace travels in a header everywhere fetch() runs the request. The ONE exception is a
+  // top-level browser NAVIGATION (report downloads: a plain <a> click cannot attach headers), so
+  // those two GET paths may carry it as ?ws= instead. Membership is verified identically either
+  // way — the query form only changes the transport, never the authorization.
+  const navExport = c.req.method === "GET" && /\/reports\/export\.(xlsx|html)$/.test(c.req.path);
+  const workspaceId = c.req.header("X-Workspace-Id") ?? (navExport ? c.req.query("ws") : undefined);
   if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
 
   let userId: string;

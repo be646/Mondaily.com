@@ -1422,7 +1422,7 @@ async function executeTool(
         const period = ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"].includes(String(input.period)) ? String(input.period) : "monthly";
         try {
           const bundle = await composeWorkspaceReport(workspaceId, period as never, { start: input.start, end: input.end });
-          const qs = `period=${period}${input.start ? `&start=${encodeURIComponent(String(input.start))}` : ""}${input.end ? `&end=${encodeURIComponent(String(input.end))}` : ""}`;
+          const qs = `period=${period}${input.start ? `&start=${encodeURIComponent(String(input.start))}` : ""}${input.end ? `&end=${encodeURIComponent(String(input.end))}` : ""}&ws=${workspaceId}`;
           const base = PUBLIC_API_ORIGIN;
           const kpiLines = bundle.kpis.map(k =>
             `- ${k.label}: ${k.value} ${bundle.meta.base}${k.delta != null ? ` (${k.delta >= 0 ? "+" : ""}${k.delta}% vs same point last period)` : k.kind === "balance" ? " (as of now)" : ""}${k.note ? ` — ${k.note}` : ""}`).join("\n");

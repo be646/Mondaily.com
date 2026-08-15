@@ -200,3 +200,21 @@ describe("the surfaces are wired", () => {
     expect(page).toContain("/api/v1/reports/export.html?");
   });
 });
+
+describe("a plain link click can actually reach the export routes", () => {
+  const auth = readFileSync(join(__dirname, "../middleware/auth.ts"), "utf8");
+
+  it("requireAuth accepts ?ws= ONLY for the two GET export paths — found live: a top-level navigation cannot send X-Workspace-Id", () => {
+    expect(auth).toMatch(/\/reports\\\/export\\\.\(xlsx\|html\)\$\//);
+    expect(auth).toMatch(/c\.req\.method === "GET"/);
+    // The header stays the primary transport for everything else.
+    expect(auth).toContain('c.req.header("X-Workspace-Id") ?? (navExport ? c.req.query("ws") : undefined)');
+  });
+
+  it("both link producers attach the workspace to the URL", () => {
+    const page = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/reports/index.tsx"), "utf8");
+    const ask = readFileSync(join(__dirname, "../routes/ask.ts"), "utf8");
+    expect(page).toMatch(/&ws=\$\{ws\}/);
+    expect(ask).toMatch(/&ws=\$\{workspaceId\}/);
+  });
+});

@@ -57842,7 +57842,8 @@ var init_auth = __esm({
     init_client();
     init_auth_tokens();
     requireAuth = createMiddleware(async (c2, next) => {
-      const workspaceId = c2.req.header("X-Workspace-Id");
+      const navExport = c2.req.method === "GET" && /\/reports\/export\.(xlsx|html)$/.test(c2.req.path);
+      const workspaceId = c2.req.header("X-Workspace-Id") ?? (navExport ? c2.req.query("ws") : void 0);
       if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
       let userId;
       try {
@@ -72046,7 +72047,7 @@ ${preview}` : ""}`;
         const period = ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"].includes(String(input.period)) ? String(input.period) : "monthly";
         try {
           const bundle = await composeWorkspaceReport(workspaceId, period, { start: input.start, end: input.end });
-          const qs = `period=${period}${input.start ? `&start=${encodeURIComponent(String(input.start))}` : ""}${input.end ? `&end=${encodeURIComponent(String(input.end))}` : ""}`;
+          const qs = `period=${period}${input.start ? `&start=${encodeURIComponent(String(input.start))}` : ""}${input.end ? `&end=${encodeURIComponent(String(input.end))}` : ""}&ws=${workspaceId}`;
           const base = PUBLIC_API_ORIGIN;
           const kpiLines = bundle.kpis.map((k2) => `- ${k2.label}: ${k2.value} ${bundle.meta.base}${k2.delta != null ? ` (${k2.delta >= 0 ? "+" : ""}${k2.delta}% vs same point last period)` : k2.kind === "balance" ? " (as of now)" : ""}${k2.note ? ` \u2014 ${k2.note}` : ""}`).join("\n");
           return `Report built for ${bundle.meta.range.start.slice(0, 10)} \u2192 ${bundle.meta.range.end.slice(0, 10)} (${period}, base ${bundle.meta.base}).
