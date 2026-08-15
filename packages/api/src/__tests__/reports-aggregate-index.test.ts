@@ -71,7 +71,7 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     expect(index).toMatch(/const noComputableKpi = !cands\.length && !fields\.checkbox && !fields\.group/);
     expect(index).toMatch(/no numeric field/);
     // Record/records pluralization (no "1 records").
-    expect(index).toMatch(/\(countQ\.data\.value \?\? 0\) === 1 \? "record" : "records"/);
+    expect(index).toMatch(/\(countQ\.data\?\.value \?\? 0\) === 1 \? "record" : "records"/);
   });
   it("Phase 3j — smarter field selection: bounded candidate probes, prefers populated + money on tie", () => {
     // Candidates are capped (never a probe per schema field).

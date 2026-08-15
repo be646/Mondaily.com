@@ -107,6 +107,50 @@ function useInView<T extends HTMLElement>() {
   return [ref, inView] as const;
 }
 
+/**
+ * Sheet — one framed section panel. The page reads as a stack of report SHEETS: the panel frames,
+ * hairlines divide inside it, and data fills it. (The bare-hairline pass stripped the frames and
+ * the page collapsed into lines; the card-wall before it had frames but no hierarchy. This is the
+ * deliberate middle.)
+ */
+function Sheet({ title, sub, right, children, className = "" }: { title: string; sub?: string; right?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={`mb-5 rounded-lg border p-4 ${className}`} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="mb-3 flex flex-wrap items-baseline gap-2">
+        <h2 className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
+        {sub && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{sub}</span>}
+        {right && <><span className="grow" />{right}</>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Tiny live trend preview for the Report studio — the SAME bundle the exports render. */
+function StudioTrendPreview() {
+  interface Mini { series: { label: string; won: number; projected?: boolean }[]; forecastFrom: number | null; meta: { base: string } }
+  const q = useQuery<Mini>({ queryKey: ["ws-bundle", "monthly"], queryFn: () => apiClient.get("/reports/bundle.json?period=monthly"), staleTime: 120_000 });
+  const series = q.data?.series ?? [];
+  if (q.isLoading) return <div className="h-20 animate-pulse rounded-md" style={{ background: "var(--surface-hover)" }} />;
+  if (!series.length) return <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>No trend data in this window yet.</p>;
+  const W = 260, H = 72, PAD = 6;
+  const max = Math.max(1, ...series.map(s => s.won));
+  const x = (i: number) => PAD + (i * (W - PAD * 2)) / Math.max(1, series.length - 1);
+  const y = (v: number) => H - 10 - (v / max) * (H - 20);
+  const cut = q.data?.forecastFrom ?? series.length;
+  const pts = (from: number, to: number) => series.slice(from, to).map((s, i) => `${x(from + i).toFixed(1)},${y(s.won).toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <p className="mb-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Live preview — closed won this month, projection dashed</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Closed won trend preview">
+        <line x1={PAD} y1={H - 8} x2={W - PAD} y2={H - 8} stroke="var(--border-soft)" strokeWidth="1" />
+        <polyline points={pts(0, cut)} fill="none" stroke="var(--section-accent)" strokeWidth="2" strokeLinejoin="round" />
+        {cut < series.length && <polyline points={pts(cut - 1, series.length)} fill="none" stroke="var(--section-accent)" strokeWidth="2" strokeDasharray="4 3" />}
+      </svg>
+    </div>
+  );
+}
+
 function ScopeNotes({ resp, op }: { resp: AggResp; op: AggOp }) {
   const notes = aggScopeNotes(resp, op);
   if (!notes.length) return null;
@@ -188,38 +232,53 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obj.slug, countQ.data?.value, cands.length, primary?.key, primary?.type, sumForStat, money?.currency, filledPct, moneyEmpty]);
 
+  // Distribution bar — the REAL top status/stage groups the card already fetched, drawn as one
+  // proportional strip (top 3 segments at descending opacity). No group data → no bar, no filler.
+  const segs = (groupQ.data?.groups ?? []).filter(g => g.label && g.label !== "—").slice(0, 3);
+  const segTotal = segs.reduce((s2, g2) => s2 + g2.count, 0);
+
   return (
     <Link
       ref={ref}
       to={`/reports/sales?object=${obj.slug}`}
-      className="group flex items-center gap-3 border-b py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
-      style={{ borderColor: "var(--border-soft)" }}
+      className="group flex flex-col rounded-md p-3 transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_6%,var(--surface-hover))]"
+      style={{ background: "var(--surface-hover)" }}
     >
-      <BarChart2 size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{titleCase(obj.name_plural)}</p>
-        {hasKpis ? (
-          <>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
-              {countQ.data && <Kpi label={(countQ.data.value ?? 0) === 1 ? "record" : "records"} value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
-              {moneyStr && <Kpi label={`Σ ${primary!.key}`} value={moneyStr} resp={money} op="sum" />}
-              {/* Numeric field exists but is empty → honest "no data yet", not a misleading 0. */}
-              {moneyEmpty && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span style={{ color: "var(--text-faint)" }}>{primary!.key} · no data yet</span></span>}
-              {/* Completeness of the primary numeric field, shown only when partially filled (signal, not noise). */}
-              {moneyStr && filledPct != null && filledPct < 100 && <span className="whitespace-nowrap" style={{ color: "var(--text-faint)" }}>{filledPct}% filled</span>}
-              {!primary && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
-              {top && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span className="font-medium" style={{ color: "var(--text-secondary)" }}>{top.label}</span><span style={{ color: "var(--text-faint)" }}>top · {top.count.toLocaleString()}</span></span>}
-            </div>
-            <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>all-time{noComputableKpi && " · no numeric field"}</p>
-          </>
-        ) : (
-          // Loading / no-KPI fallback — the original honest shell, never a fabricated number.
-          <p className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
-        )}
-        </div>
+      <div className="flex items-baseline gap-2">
+        <p className="min-w-0 truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{titleCase(obj.name_plural)}</p>
+        <span className="grow" />
+        <ArrowRight size={12} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
       </div>
-      <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+      {hasKpis ? (
+        <>
+          <p className="mt-0.5 text-[17px] font-semibold tabular-nums leading-tight" style={{ color: "var(--text-primary)" }}>
+            {moneyStr ?? countQ.data?.value?.toLocaleString() ?? "—"}
+            <span className="ml-1.5 text-[10.5px] font-normal" style={{ color: "var(--text-muted)" }}>
+              {moneyStr ? `Σ ${primary!.key.replace(/_/g, " ")}` : (countQ.data?.value ?? 0) === 1 ? "record" : "records"}
+            </span>
+          </p>
+          {moneyStr && countQ.data && (
+            <p className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>{countQ.data.value?.toLocaleString()} records{filledPct != null && filledPct < 100 ? ` · ${filledPct}% filled` : ""}</p>
+          )}
+          {moneyEmpty && <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{primary!.key.replace(/_/g, " ")} · no data yet</p>}
+          {!primary && checkedQ.data && <p className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>{(checkedQ.data.value ?? 0).toLocaleString()} checked</p>}
+          {segTotal > 0 ? (
+            <>
+              <div className="mt-2 flex h-2 gap-0.5 overflow-hidden rounded-full">
+                {segs.map((g, i) => (
+                  <span key={g.label} style={{ width: `${Math.max(4, (g.count / segTotal) * 100)}%`, background: "var(--section-accent)", opacity: 0.85 - i * 0.28 }} />
+                ))}
+              </div>
+              <p className="mt-1 truncate text-[10px]" style={{ color: "var(--text-faint)" }}>{segs.map(g => `${g.label} ${g.count.toLocaleString()}`).join(" · ")}</p>
+            </>
+          ) : (
+            <p className="mt-2 text-[10px]" style={{ color: "var(--text-faint)" }}>all-time{noComputableKpi && " · no numeric field"}</p>
+          )}
+        </>
+      ) : (
+        // Loading / no-KPI fallback — the original honest shell, never a fabricated number.
+        <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
+      )}
     </Link>
   );
 }
@@ -436,9 +495,8 @@ function ReportBuilder() {
   const max = groups.length ? Math.max(...groups.map(g => g.value), 1) : 1;
 
   return (
-    <div className="mb-8">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Report builder</p>
-      <div className="flex flex-wrap items-end gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
+    <Sheet title="Report builder" sub="any sheet → group → metric, savable">
+      <div className="flex flex-wrap items-end gap-2">
         {/* The app's OWN dropdown, not the browser's: the native <select> popup ignores the
             theme entirely and read as a foreign control in the middle of the page. */}
         <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>Sheet
@@ -519,7 +577,7 @@ function ReportBuilder() {
           </div>
         </div>
       )}
-    </div>
+    </Sheet>
   );
 }
 
@@ -557,14 +615,22 @@ function DownloadReport() {
   const ws = localStorage.getItem("mondaily_workspace_id") ?? "";
   const qs = `period=${period}${period === "custom" ? `&start=${start}&end=${end}` : ""}&ws=${ws}`;
   return (
-    <section className="mb-8">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Download report</p>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          KPIs with period-over-period deltas, trend, labelled forecast — workspace calendar, base currency
+    <Sheet title="Report studio" sub="KPIs with deltas, trend, labelled forecast — workspace calendar, base currency"
+      right={customOk ? (
+        <span className="flex items-center gap-2">
+          <a href={`${BASE_URL}/api/v1/reports/export.xlsx?${qs}`}
+            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Excel workbook</a>
+          <a href={`${BASE_URL}/api/v1/reports/export.pdf?${qs}`}
+            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>PDF report</a>
+          <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
+            className="rounded-md border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>Charts report</a>
         </span>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      ) : <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>}>
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <div className="flex flex-wrap items-center gap-2 self-center">
         {(["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] as const).map(p => (
           <button key={p} onClick={() => setPeriod(p)}
             className="rounded-full border px-3 py-1 text-xs capitalize transition-colors"
@@ -582,31 +648,14 @@ function DownloadReport() {
           </span>
         )}
         <span className="grow" />
-        {customOk ? (
-          <>
-            <a href={`${BASE_URL}/api/v1/reports/export.xlsx?${qs}`}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
-              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-              Excel workbook
-            </a>
-            <a href={`${BASE_URL}/api/v1/reports/export.pdf?${qs}`}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
-              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-              PDF report
-            </a>
-            <a href={`${BASE_URL}/api/v1/reports/export.html?${qs}`} target="_blank" rel="noreferrer"
-              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
-              style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-              Charts report
-            </a>
-          </>
-        ) : (
-          <span className="text-xs" style={{ color: "var(--text-faint)" }}>Pick a start and end date</span>
-        )}
+      </div>
+      <div className="border-t pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0" style={{ borderColor: "var(--border-soft)" }}>
+        <StudioTrendPreview />
+      </div>
       </div>
       <ReportScheduleRow />
       <PastReports />
-    </section>
+    </Sheet>
   );
 }
 
@@ -678,30 +727,23 @@ function SavedAnalyses() {
   if (q.isLoading || items.length === 0) return null;   // nothing saved → no empty shell taking space
   const TYPE_LABEL: Record<string, string> = { insight: "trend", funnel: "funnel", time_in_stage: "time in stage", historical: "history", forecast: "forecast" };
   return (
-    <section className="mb-8">
-      <div className="flex items-baseline gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Saved analyses</p>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>saved by you or built by Ask · recomputed live on open</span>
-      </div>
-      <div className="mt-1">
+    <Sheet title="Saved analyses" sub="saved by you or built by Ask · recomputed live on open">
+      <div className="flex flex-wrap gap-1.5">
         {items.map(r => (
-          <div key={r.id} className="group flex items-center gap-3 border-b py-2 transition-colors hover:bg-[var(--surface-hover)]"
+          <span key={r.id} className="group inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1.5 transition-colors hover:bg-[var(--surface-hover)]"
             style={{ borderColor: "var(--border-soft)" }}>
-            <Link to={`/reports/${r.id}`} className="flex min-w-0 flex-1 items-baseline gap-3">
-              <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{r.name || "Untitled report"}</p>
-              <p className="shrink-0 text-[11px]" style={{ color: "var(--text-faint)" }}>
-                {TYPE_LABEL[r.type ?? ""] ?? r.type ?? "report"} · updated {new Date(r.updated_at).toLocaleDateString()}
-              </p>
+            <Link to={`/reports/${r.id}`} className="flex min-w-0 items-baseline gap-1.5">
+              <span className="max-w-[16rem] truncate text-[11.5px] font-medium" style={{ color: "var(--text-primary)" }}>{r.name || "Untitled report"}</span>
+              <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{TYPE_LABEL[r.type ?? ""] ?? r.type ?? "report"}</span>
             </Link>
             <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending}
-              className="btn-icon h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" title="Delete report">
-              <Trash2 size={13} />
+              className="btn-icon h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100" title="Delete report">
+              <Trash2 size={11} />
             </button>
-            <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
-          </div>
+          </span>
         ))}
       </div>
-    </section>
+    </Sheet>
   );
 }
 
@@ -845,12 +887,7 @@ export function ReportsPage() {
       <SavedAnalyses />
 
       {/* ── Live Reports ── */}
-      <section className="mb-10">
-        <div className="mb-3 flex items-baseline gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Live reports</p>
-          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>computed live from your records · AI insights on demand</span>
-        </div>
-
+      <Sheet title="Live reports" sub="computed live from your records · AI insights on demand" className="mb-10">
         {objectsQ.isLoading ? (
           <DelayedLoading onRetry={() => objectsQ.refetch()}><PageSkeletonCards count={3} label="Loading reports…"/></DelayedLoading>
         ) : objectsQ.isError ? (
@@ -867,8 +904,8 @@ export function ReportsPage() {
             <div className="space-y-6">
               {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
                 <div key={group.key}>
-                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{group.label}</p>
-                  <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{group.label}</p>
+                  <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                     {objects.filter(o => groupOf(o) === group.key).map(obj => (
                       <ReportObjectCard key={obj.slug} obj={obj} onStat={reportStat} />
                     ))}
@@ -878,28 +915,15 @@ export function ReportsPage() {
             </div>
           </>
         )}
-      </section>
+      </Sheet>
 
       {/* ── Dashboards ── */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Dashboards</p>
-            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>pin live widgets &amp; custom charts</span>
-          </div>
-          <button
-            onClick={() => setCreating(true)}
-            disabled={createDashboard.isPending}
-            className="btn-secondary text-xs"
-          >
-            <Plus size={11} /> New dashboard
-          </button>
-        </div>
-
+      <Sheet title="Dashboards" sub="pin live widgets &amp; custom charts"
+        right={<button onClick={() => setCreating(true)} disabled={createDashboard.isPending} className="btn-secondary text-xs"><Plus size={11} /> New dashboard</button>}>
         {dashboardsQ.isLoading ? (
           <DelayedLoading onRetry={() => dashboardsQ.refetch()}><PageSkeletonCards count={3} label="Loading dashboards…"/></DelayedLoading>
         ) : dashboardsQ.data?.length ? (
-          <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {dashboardsQ.data.map(dashboard => {
               const allWidgets = Array.isArray(dashboard.widgets) ? dashboard.widgets as Array<{ type?: string }> : [];
               const liveCount   = allWidgets.filter(w => w.type === "live").length;
@@ -914,19 +938,19 @@ export function ReportsPage() {
                 <Link
                   key={dashboard.id}
                   to={`/reports/dashboards/${dashboard.id}`}
-                  className="group flex items-center gap-3 border-b py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
-                  style={{ borderColor: "var(--border-soft)" }}
+                  className="group flex flex-col rounded-md p-3 transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_6%,var(--surface-hover))]"
+                  style={{ background: "var(--surface-hover)" }}
                 >
-                  <LayoutDashboard size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
-                  <h3 className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
-                  <span className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+                  <div className="flex items-baseline gap-2">
+                    <LayoutDashboard size={13} className="shrink-0 self-center" style={{ color: "var(--section-accent)" }} />
+                    <h3 className="min-w-0 truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
+                    <span className="grow" />
+                    <ArrowRight size={12} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+                  </div>
+                  <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
                     {allWidgets.length === 0 ? "empty · click to add widgets" : parts || `${allWidgets.length} widget${allWidgets.length !== 1 ? "s" : ""}`}
-                  </span>
-                  <span className="grow" />
-                  <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                    {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
-                  </span>
-                  <ArrowRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+                    <span style={{ color: "var(--text-faint)" }}> · {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+                  </p>
                 </Link>
               );
             })}
@@ -943,7 +967,7 @@ export function ReportsPage() {
             }
           />
         )}
-      </section>
+      </Sheet>
 
       {creating && (
         <NewDashboardDialog
