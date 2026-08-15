@@ -352,7 +352,12 @@ describe("PHASE 3 — persistent help session model", () => {
 describe("PHASE 3 — persistence + non-destructive navigation (source-read)", () => {
   const provider = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/help/help-panel.tsx", import.meta.url)), "utf8");
   it("HelpProvider holds the session and mirrors it to localStorage on every change", () => {
-    expect(provider).toMatch(/useState<HelpSession>\(\(\) => loadSession\(key\) \?\? newSession\(\)\)/);
+    // The initializer is now wrapped so a corrupt saved session cannot stop the app starting —
+    // this provider sits above the Outlet, so a throw here replaces the WHOLE app with an error
+    // card. The intent this test protects (state loaded from storage, falling back to a new
+    // session) is unchanged.
+    expect(provider).toMatch(/useState<HelpSession>\(\(\) => \{/);
+    expect(provider).toMatch(/return loadSession\(key\) \?\? newSession\(\);/);
     expect(provider).toMatch(/useEffect\(\(\) => \{ saveSession\(key, session\); \}, \[key, session\]\)/);
   });
   it("HelpProvider lives above the router Outlet (persists across routes)", () => {

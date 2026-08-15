@@ -67,7 +67,28 @@ export function loadSession(key: string): HelpSession | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const s = JSON.parse(raw) as HelpSession;
-    return s && Array.isArray(s.messages) ? s : null;
+    if (!s || !Array.isArray(s.messages)) return null;
+
+    /**
+     * VALIDATE THE ELEMENTS, not just the array.
+     *
+     * localStorage is untrusted input: it can hold a session written by ANY previous version of
+     * this app, half-written by a tab that closed mid-save, or edited by hand. The old check
+     * confirmed `messages` was an array and then trusted every element in it, so a single null or
+     * legacy-shaped entry reached code that reads `m.role` and `m.category`.
+     *
+     * That matters more here than almost anywhere else: HelpProvider sits ABOVE the router Outlet
+     * and builds this in a useState INITIALIZER, so a throw is not a broken panel — it is the whole
+     * application replaced by an error card with no sidebar to navigate away with. Exactly what was
+     * reported on /ask/new: "Cannot read properties of undefined (reading 'category')".
+     *
+     * Malformed entries are dropped rather than repaired. A conversation missing a turn is
+     * recoverable; an app that will not start is not.
+     */
+    const messages = s.messages.filter(
+      (m): m is HelpMsg => Boolean(m) && typeof m === "object" && typeof (m as HelpMsg).role === "string",
+    );
+    return { ...s, messages };
   } catch { return null; }
 }
 

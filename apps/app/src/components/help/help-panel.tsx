@@ -40,7 +40,18 @@ export const useHelp = () => useContext(HelpContext);
 
 export function HelpProvider({ children }: { children: React.ReactNode }) {
   const key = sessionKey();
-  const [session, setSession] = useState<HelpSession>(() => loadSession(key) ?? newSession());
+  /**
+   * A CORRUPT SAVED SESSION MUST NOT BE ABLE TO STOP THE APP.
+   *
+   * This provider sits above the router Outlet, so a throw in this initializer is caught by the
+   * ROOT boundary — the entire application replaced by an error card, no sidebar, nothing to click
+   * but Reload. loadSession is hardened, but the guarantee worth making is structural: whatever
+   * happens while reading storage, the app starts.
+   */
+  const [session, setSession] = useState<HelpSession>(() => {
+    try { return loadSession(key) ?? newSession(); }
+    catch { return newSession(); }
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [prefill, setPrefill] = useState("");
 
