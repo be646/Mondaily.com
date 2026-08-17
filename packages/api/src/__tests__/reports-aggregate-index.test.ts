@@ -42,12 +42,15 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     expect(index).toMatch(/t\.type === "currency"/);
     expect(index).toMatch(/t\.type === "checkbox"/);
   });
-  it("KPIs are labelled 'Computed from records · all-time' and carry scope notes", () => {
-    expect(index).toMatch(/Computed from records · all-time/);
-    expect(index).toMatch(/<ScopeNotes resp=\{resp\} op=\{op\} \/>/);
+  it("KPIs are labelled all-time and every Σ carries its scope disclosures", () => {
+    expect(index).toMatch(/all-time\{noComputableKpi && " · no numeric field"\}/);
+    // Truncation/unconverted notes must ride WITH the sum — a Σ without its caveat overstates.
+    expect(index).toMatch(/<ScopeNotes resp=\{money\} op="sum" \/>/);
   });
   it("loading/error degrades to the original honest shell — never a fake KPI", () => {
-    expect(index).toMatch(/const hasKpis = !!\(countQ\.data \|\| moneyStr \|\| checkedQ\.data \|\| top\)/);
+    expect(index).toMatch(/const hasKpis = !!\(countQ\.data \|\| moneyStr \|\| checkedQ\.data \|\| segTotal > 0\)/);
+    // `|| top` is BANNED here: with no local `top`, it resolves to window.top — always truthy.
+    expect(index).not.toMatch(/\|\| top\)/);
     expect(index).toMatch(/Computed from your \{obj\.name_plural\.toLowerCase\(\)\} on open/);
   });
   it("lazy-loads aggregates only when a card is near the viewport (no fan-out on first paint)", () => {

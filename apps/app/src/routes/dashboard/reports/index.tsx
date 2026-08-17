@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X, Trash2 } from "lucide-react";
+import { BarChart2, LayoutDashboard, Plus, ArrowRight, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
@@ -9,7 +9,7 @@ import { periodRange, previousRange } from "../../../lib/period";
 import { apiClient as outcomesClient, BASE_URL } from "../../../lib/api-client";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
-import { useRecordAggregate, aggScopeNotes, topGroup, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
+import { useRecordAggregate, aggScopeNotes, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { Modal, ModalActions } from "@/components/ui/modal";
 import { DatePicker } from "../../../components/ui/date-picker";
@@ -158,15 +158,6 @@ function ScopeNotes({ resp, op }: { resp: AggResp; op: AggOp }) {
   if (!notes.length) return null;
   return <>{notes.map((n, i) => <span key={i} className="ml-1" style={{ color: n.warn ? "#c6892e" : "var(--text-faint)" }}>· {n.text}</span>)}</>;
 }
-function Kpi({ label, value, resp, op }: { label: string; value: string; resp?: AggResp; op: AggOp }) {
-  return (
-    <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
-      <span className="tabular-nums font-medium" style={{ color: "var(--text-primary)" }}>{value}</span>
-      <span style={{ color: "var(--text-faint)" }}>{label}</span>
-      {resp && <ScopeNotes resp={resp} op={op} />}
-    </span>
-  );
-}
 
 // A single generic-object report card — the same link/target as before, now with REAL all-time KPIs
 // pulled from /records/aggregate. Any failing/loading call simply omits its KPI (never a fake number),
@@ -211,11 +202,16 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
       : primary?.type === "percentage" ? `${(money!.value! % 1 === 0 ? money!.value! : Number(money!.value!.toFixed(1))).toLocaleString()}%`
       : (money!.value! % 1 === 0 ? money!.value!.toLocaleString() : money!.value!.toFixed(2)))
     : null;
-  const top = topGroup(groupQ.data);
   // A card that can only ever show a plain record count (no numeric, checkbox, or group field) is
   // labelled honestly so a sparse card reads as "nothing else to compute", not "broken/generic".
   const noComputableKpi = !cands.length && !fields.checkbox && !fields.group;
-  const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || top);
+  // Distribution strip input — the REAL top status/stage groups the card already fetched.
+  const segs = (groupQ.data?.groups ?? []).filter(g => g.label && g.label !== "—").slice(0, 3);
+  const segTotal = segs.reduce((s2, g2) => s2 + g2.count, 0);
+  // NOT `|| top`: with the topGroup lookup removed, a bare `top` silently resolves to the GLOBAL
+  // window.top — always truthy — and the honest loading fallback never renders. TypeScript cannot
+  // catch that one; only reading the identifier can.
+  const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || segTotal > 0);
 
   // Report this card's resolved KPI up to the Executive Overview. Purely derived from the aggregates
   // already fetched above — no extra request. Fires only as values change (count/field/sum/completeness).
@@ -233,11 +229,6 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obj.slug, countQ.data?.value, cands.length, primary?.key, primary?.type, sumForStat, money?.currency, filledPct, moneyEmpty]);
-
-  // Distribution bar — the REAL top status/stage groups the card already fetched, drawn as one
-  // proportional strip (top 3 segments at descending opacity). No group data → no bar, no filler.
-  const segs = (groupQ.data?.groups ?? []).filter(g => g.label && g.label !== "—").slice(0, 3);
-  const segTotal = segs.reduce((s2, g2) => s2 + g2.count, 0);
 
   return (
     <Link
@@ -260,7 +251,13 @@ function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: st
             </span>
           </p>
           {moneyStr && countQ.data && (
-            <p className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>{countQ.data.value?.toLocaleString()} records{filledPct != null && filledPct < 100 ? ` · ${filledPct}% filled` : ""}</p>
+            <p className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+              {countQ.data.value?.toLocaleString()} records{filledPct != null && filledPct < 100 ? ` · ${filledPct}% filled` : ""}
+              {/* Scope disclosures (row-cap truncation, unconverted currencies) — the old KPI row
+                  carried these and the tile redesign silently dropped them; a Σ without its caveat
+                  reads as more complete than it is. */}
+              {money && <ScopeNotes resp={money} op="sum" />}
+            </p>
           )}
           {moneyEmpty && <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{primary!.key.replace(/_/g, " ")} · no data yet</p>}
           {!primary && checkedQ.data && <p className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>{(checkedQ.data.value ?? 0).toLocaleString()} checked</p>}
