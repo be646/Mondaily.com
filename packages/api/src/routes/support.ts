@@ -4,7 +4,9 @@ import { zValidator } from "../lib/validate";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole, isWorkspaceAdmin } from "../middleware/rbac";
-import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
+import { aiGateway, aiGatewayAgent, gatewayEnv } from "../lib/ai-gateway";
+import { TOOLS as ASK_TOOLS, executeTool as askExecuteTool, type SourceMeta } from "./ask";
+import { proposeWinDates, renderProposalTable } from "../lib/backfill-wins";
 import { getEntitlement } from "../lib/entitlements";
 import { ledgerBreakdown } from "../lib/credits";
 import { createNotification } from "../lib/notify";
@@ -264,6 +266,119 @@ TALK LIKE A PERSON WHO KNOWS THIS PRODUCT:
 
 PLANS & PAYMENTS: the PRICING section below is authoritative — quote it exactly and never improvise a price, credit amount, seat count or discount. If someone asks for something not in it (custom terms, invoicing, refunds, VAT), say it needs a human and open a ticket.`;
 
+// ── THE THREE BRAINS ─────────────────────────────────────────────────────────────────────────────
+// One agent, three deliberate modes. KNOWLEDGE answers from sources (the original agent, unchanged).
+// REPAIR diagnoses the user's actual workspace and either fixes what the product's own safe rails
+// can fix, or files a COMPLETE bug report itself — the user never writes a ticket, and the operator
+// receives diagnostics instead of "it doesn't work". BUILDER does real work in-chat with the same
+// creation tools Ask has. The honesty rule survives all three: report exactly what tools did.
+
+export type SupportBrain = "knowledge" | "repair" | "builder";
+
+export function detectBrain(message: string): SupportBrain {
+  const m = message.toLowerCase();
+  // Build-intent first: "create a report about the bug I logged" is a build, not a repair.
+  if (/\b(create|build|make me|set ?up|add a|generate|design|automat|workflow|dashboard|report|sheet|template|import)\b/.test(m)) return "builder";
+  if (/\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work|stuck|missing|duplicate|slow|can'?t|cannot|charged|payment (failed|problem|issue)|declined)\b/.test(m)) return "repair";
+  return "knowledge";
+}
+
+/** Ask tools the BUILDER brain may use — creation + the reads needed to do the job properly. */
+const BUILDER_TOOL_NAMES = new Set([
+  "search_records", "list_records", "list_lists", "list_reports", "run_report",
+  "create_task", "create_record", "create_list", "create_object_type", "create_report",
+  "generate_report", "create_workflow_draft", "create_note",
+]);
+/** Ask tools the REPAIR brain may use — READS ONLY; its mutations are the local supervised tools. */
+const REPAIR_TOOL_NAMES = new Set([
+  "search_records", "list_records", "list_invoices", "list_finance_summary", "list_reports", "run_report", "list_tasks",
+]);
+
+const LOCAL_TOOLS = [
+  {
+    name: "file_bug_report",
+    description: "File a bug report to the Mondaily team ON THE USER'S BEHALF, with this workspace's full diagnostics attached automatically. Use when the problem looks like a product defect you cannot fix with your tools. Tell the user you filed it and what you wrote — never file silently.",
+    input_schema: { type: "object", properties: {
+      subject: { type: "string", description: "Short, specific defect summary, e.g. 'Invoice PDF export returns 400 on invoices with credit notes'." },
+      details: { type: "string", description: "What the user reported, what you checked, what you found. Written for an engineer." },
+    }, required: ["subject", "details"] },
+  },
+  {
+    name: "propose_win_close_dates",
+    description: "DRY RUN of the supervised close-date backfill for won deals that carry no close date (they are excluded from period figures). Returns each deal with the EVIDENCE for a proposed date, or 'no evidence'. Never writes — point the user to the Deals live report to apply.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "check_payment_state",
+    description: "Read this workspace's real billing state: plan/tier and source, seats, AI credit wallet (included, purchased, used, remaining), and recent invoices. Use for any payment, charge, plan or credits question — answer from THIS data, never from memory.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+] as const;
+
+function brainTools(brain: SupportBrain) {
+  const names = brain === "builder" ? BUILDER_TOOL_NAMES : REPAIR_TOOL_NAMES;
+  const fromAsk = ASK_TOOLS.filter(t => names.has(t.name));
+  const locals = brain === "repair" ? LOCAL_TOOLS : LOCAL_TOOLS.filter(t => t.name !== "propose_win_close_dates");
+  return [...fromAsk, ...locals] as unknown as { name: string; description: string; input_schema: Record<string, unknown> }[];
+}
+
+async function supportToolExec(
+  name: string, input: Record<string, unknown>,
+  ws: string, userId: string, route: string | undefined,
+  ctx: Awaited<ReturnType<typeof buildSupportContext>>,
+  log: { tool: string; summary: string }[],
+): Promise<string> {
+  if (name === "file_bug_report") {
+    const subject = String(input.subject ?? "").slice(0, 200) || "Bug report (agent-filed)";
+    const details = String(input.details ?? "").slice(0, 8000);
+    const created = await createSupportTicketFull(ws, userId, {
+      category: "bug_report", subject, message: details, route,
+      metadata: { filed_by: "support-agent" },
+    });
+    if (created && "rejected" in created) {
+      log.push({ tool: name, summary: "Bug report REJECTED as too thin — write a fuller one" });
+      return `Your report was too thin to file: ${created.rejected.error} Write a fuller subject + details and call file_bug_report again.`;
+    }
+    log.push({ tool: name, summary: created ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
+    return created
+      ? `Bug report filed (id ${created.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.`
+      : "Filing failed — apologise and ask the user to use the Create support request button instead.";
+  }
+  if (name === "propose_win_close_dates") {
+    const proposals = await proposeWinDates(ws, {});
+    log.push({ tool: name, summary: `Checked ${proposals.length} undated win(s) for close-date evidence` });
+    if (!proposals.length) return "No undated wins — every won deal has a close date.";
+    return `${renderProposalTable(proposals)}\nDeals with evidence can be applied from Reports → Live Report → Deals ("Review evidence-backed close dates"). Deals without evidence stay undated — a fabricated close date is worse than a disclosed gap.`;
+  }
+  if (name === "check_payment_state") {
+    const w = ctx.wallet, e = ctx.entitlement;
+    log.push({ tool: name, summary: "Read billing state (plan, seats, credits)" });
+    return `REAL billing state: plan=${e.tier} (source ${e.source}${e.trial_ends_at ? `, trial ends ${e.trial_ends_at}` : ""}), seats=${e.seats}. Credits: ${w.enrolled ? `${w.remaining.toLocaleString()} remaining of ${(w.included_monthly_credits ?? 0).toLocaleString()}/mo included${w.purchased ? ` + ${w.purchased.toLocaleString()} purchased (never expire)` : ""}, ${w.used.toLocaleString()} used` : "not enrolled"}. Included credits reset monthly on read; purchased never expire. Plan changes and payment methods live at /settings/billing — you cannot change them.`;
+  }
+  // Everything else: the SAME executor Ask uses, same workspace scoping, same honesty in results.
+  const sources: SourceMeta[] = [];
+  const out = await askExecuteTool(name, input as Record<string, never>, ws, userId, sources);
+  log.push({ tool: name, summary: out.slice(0, 140).replace(/\n/g, " ") });
+  return out;
+}
+
+const BRAIN_DOCTRINE: Record<SupportBrain, string> = {
+  knowledge: "",   // the original SUPPORT_SYSTEM path is used unchanged
+  repair: `You are Mondaily's REPAIR brain — a support engineer with real diagnostic tools for THIS workspace.
+DOCTRINE:
+- Diagnose from evidence: the workspace facts, the recorded errors, and your tools. Never guess.
+- Fix what your tools can fix, and SAY exactly what you did. Where the fix lives behind a supervised screen (duplicate merge in Settings → Data health, close-date backfill in the Deals live report), run the read-only check first, then send the user to the exact screen with what they will find there.
+- If it is a product defect you cannot fix: file_bug_report YOURSELF with everything an engineer needs, then tell the user it is filed and what happens next. The user should never have to write a ticket.
+- Payments: check_payment_state first, answer from it. You cannot change plans, refund, or touch payment methods — say so plainly and point to /settings/billing.
+- NEVER claim an action you did not take. NEVER invent a diagnosis the tools did not show.`,
+  builder: `You are Mondaily's BUILDER brain — you do real work in the user's workspace with real tools, in-chat.
+DOCTRINE:
+- Build what they ask: sheets/objects (create_object_type), records, tasks, lists, saved reports (create_report), downloadable report files (generate_report — present BOTH returned links), automation drafts (create_workflow_draft).
+- Read before you write: check existing objects/records so you extend their workspace instead of duplicating it.
+- After building, say exactly what now exists and where to find it. If a tool fails, say it failed — never claim success.
+- Keep it in their language and their business vocabulary.`,
+};
+
 // POST /support/ask — the source-backed help answer. Never performs actions; may flag needs_ticket.
 router.post("/ask", zValidator("json", z.object({
   message: z.string().min(1).max(4000),
@@ -287,6 +402,39 @@ router.post("/ask", zValidator("json", z.object({
   const diagnostics = buildDiagnostics(ctx, topic);   // REAL rows, computed before the LLM
   const priorTurns = (history ?? []).slice(-6).map(h => `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`).join("\n");
   const routeLine = route ? `\n\nThe user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
+
+  // ── REPAIR / BUILDER: the tool-using brains. KNOWLEDGE falls through to the original path. ──
+  const brain = detectBrain(message);
+  if (brain !== "knowledge") {
+    const toolLog: { tool: string; summary: string }[] = [];
+    const system = `${BRAIN_DOCTRINE[brain]}\n\nPRICING (authoritative — quote exactly, never improvise):\n${pricingFacts()}\n\n${contextBlock(ctx)}${routeLine}\n\n${diagnosticsForPrompt(diagnostics)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}`;
+    const messages = [
+      ...((history ?? []).slice(-6).map(h => ({ role: h.role, content: h.content }))),
+      { role: "user", content: message },
+    ];
+    try {
+      const res = await aiGatewayAgent({
+        system, messages, tools: brainTools(brain), maxRounds: 6, maxTokens: 900,
+        // UNMETERED like the knowledge path (no workspaceId on the request): a user with 0 credits
+        // must still be able to get help. The tools themselves are workspace-scoped via closure.
+        feature: "support", taskClass: "support",
+        onToolCall: (name, input) => supportToolExec(name, input, c.get("workspaceId"), c.get("userId"), route, ctx, toolLog),
+      });
+      const filed = toolLog.find(t => t.tool === "file_bug_report" && t.summary.startsWith("Filed"));
+      return c.json({
+        answer: (res.reply || "").trim() || "I ran the checks but couldn't compose an answer — please try rephrasing.",
+        category: (brain === "repair" ? "bug_report" : "how_to") as SupportCategory,
+        needs_ticket: false,                       // repair files its own tickets; never bounce the user to a form
+        suggested_subject: filed ? filed.summary.replace(/^Filed bug report: /, "").replace(/^"|"$/g, "") : "",
+        language: ctx.language, cited_docs: docs.map(d => d.title),
+        diagnostics, suggested_actions: buildSuggestedActions(ctx, topic, false, diagnostics),
+        brain, tool_log: toolLog,
+      });
+    } catch {
+      // The tool loop failing must degrade to the ORIGINAL knowledge path, not to an error —
+      // fall through and answer source-backed without tools.
+    }
+  }
   const system = `${SUPPORT_SYSTEM}\n\nPRICING (authoritative — quote exactly, never improvise):\n${pricingFacts()}\n\n${contextBlock(ctx)}${routeLine}\n\n${diagnosticsForPrompt(diagnostics)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
 
@@ -376,33 +524,33 @@ export function ticketContentIssue(subject: string, message: string): { error: s
 }
 
 // POST /support/tickets — create a ticket. Notifies workspace admins/owners.
-router.post("/tickets", zValidator("json", z.object({
-  category: z.enum(SUPPORT_CATEGORIES),
-  subject: z.string().min(1).max(200),
-  message: z.string().min(1).max(8000),
-  route: z.string().max(200).optional(),   // the page the user was on (context, not a route we act on)
-  metadata: z.record(z.unknown()).optional(),
-})), async (c) => {
-  const ws = c.get("workspaceId"); const userId = c.get("userId");
-  const body = c.req.valid("json");
-  // Reject empty / whitespace / one-word junk with a helpful nudge (422) — never a silent fail or a
-  // hollow ticket. Valid tickets pass straight through unchanged.
-  const issue = ticketContentIssue(body.subject, body.message);
-  if (issue) return c.json({ error: issue.error, needs_more_info: true, questions: issue.questions }, 422);
-  const subject = body.subject.trim();
-  const message = body.message.trim();
+/**
+ * Ticket creation, extracted so the agent's file_bug_report tool and the /tickets route share ONE
+ * path — same diagnostics attachment, same notifications, same platform mail. A ticket filed by the
+ * agent must not be a lesser ticket.
+ */
+async function createSupportTicketFull(
+  ws: string, userId: string,
+  args: { category: SupportCategory; subject: string; message: string; route?: string; metadata?: Record<string, unknown> },
+): Promise<{ id: string; created_at: string } | { rejected: { error: string; questions: string[] } } | null> {
+  // The SAME junk guard for every path in: an agent-filed ticket must clear the same bar as a
+  // human's, or the platform queue fills with hollow tickets that merely have a different author.
+  const issue = ticketContentIssue(args.subject, args.message);
+  if (issue) return { rejected: { error: issue.error, questions: issue.questions } };
+  const subject = args.subject.trim();
+  const message = args.message.trim();
   const now = new Date().toISOString();
   // Stamp requester identity + account context onto the ticket so a human has what they need.
   const ctx = await buildSupportContext(ws, userId);
   const ticketData: TicketData = {
-    category: body.category, subject, message, status: "open",
+    category: args.category, subject, message, status: "open",
     metadata: {
-      ...(body.metadata ?? {}),
+      ...(args.metadata ?? {}),
       requester: { name: ctx.identity.name, email: ctx.identity.email, display_name: ctx.identity.display_name, role: ctx.identity.role },
       workspace_name: ctx.identity.workspace_name,
       plan: ctx.entitlement.tier,
       credits_remaining: ctx.wallet.remaining,
-      route: body.route ?? null,
+      route: args.route ?? null,
       language: ctx.language,
       // THE INVESTIGATION, attached. The agent runs real diagnostics before escalating and used to
       // throw them away at exactly the moment they became useful — so a human opened the ticket
@@ -430,15 +578,15 @@ router.post("/tickets", zValidator("json", z.object({
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: ws, vertical: "shared", object_type: "support_ticket", created_by: userId, data: ticketData,
   }).select("id, created_at").single();
-  if (error) return c.json({ error: "Could not create the support request." }, 500);
+  if (error || !data) return null;
 
   // Notify admins/owners (in-app; email only if the notification system already supports it safely).
   const admins = await workspaceAdminIds(ws, userId);
   await Promise.all(admins.map(uid => createNotification({
     workspace_id: ws, user_id: uid, type: "support",
     title: `New support request: ${subject}`,
-    body: `A ${body.category.replace(/_/g, " ")} request was opened.`,
-    metadata: { support_ticket_id: data.id, category: body.category },
+    body: `A ${args.category.replace(/_/g, " ")} request was opened.`,
+    metadata: { support_ticket_id: data.id, category: args.category },
   }).catch(() => false)));
 
   // Tell the people who actually answer tickets. The in-app notification above goes to the
@@ -446,7 +594,7 @@ router.post("/tickets", zValidator("json", z.object({
   // depended on someone remembering to open the dashboard, which is how the oldest open ticket in
   // production reached 762 hours.
   await mailPlatformNewTicket({
-    id: data.id, subject, message, category: body.category,
+    id: data.id, subject, message, category: args.category,
     workspace_name: ctx.identity.workspace_name,
     requester_email: ctx.identity.email ?? undefined,
     plan: ctx.entitlement.tier,
@@ -457,11 +605,28 @@ router.post("/tickets", zValidator("json", z.object({
   if (ctx.identity.email) {
     await mailTicketCreated(
       { email: ctx.identity.email, name: ctx.identity.display_name ?? ctx.identity.name },
-      { id: data.id, subject, message, category: body.category },
+      { id: data.id, subject, message, category: args.category },
     );
   }
 
-  return c.json({ id: data.id, status: "open", created_at: data.created_at }, 201);
+  return { id: data.id as string, created_at: data.created_at as string };
+}
+
+router.post("/tickets", zValidator("json", z.object({
+  category: z.enum(SUPPORT_CATEGORIES),
+  subject: z.string().min(1).max(200),
+  message: z.string().min(1).max(8000),
+  route: z.string().max(200).optional(),   // the page the user was on (context, not a route we act on)
+  metadata: z.record(z.unknown()).optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId"); const userId = c.get("userId");
+  const body = c.req.valid("json");
+  const created = await createSupportTicketFull(ws, userId, body);
+  // Reject empty / whitespace / one-word junk with a helpful nudge (422) — never a silent fail or a
+  // hollow ticket. The guard lives inside the ONE creation path (agent-filed tickets clear it too).
+  if (created && "rejected" in created) return c.json({ error: created.rejected.error, needs_more_info: true, questions: created.rejected.questions }, 422);
+  if (!created || !("id" in created)) return c.json({ error: "Could not create the support request." }, 500);
+  return c.json({ id: created.id, status: "open", created_at: created.created_at }, 201);
 });
 
 // GET /support/tickets — admin/owner queue for THIS workspace (capped, workspace-scoped).

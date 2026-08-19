@@ -18,7 +18,7 @@ import {
  * asks whether it's resolved, collects a rating, and only escalates to a ticket on an explicit click.
  * The agent is read-only: it guides/investigates, never fakes refunds/upgrades/fixes.
  */
-type AskResp = { answer: string; category: string; needs_ticket: boolean; suggested_subject: string; language: string; cited_docs: string[]; diagnostics?: HelpDiagnostic[]; suggested_actions?: HelpAction[] };
+type AskResp = { answer: string; category: string; needs_ticket: boolean; suggested_subject: string; language: string; cited_docs: string[]; diagnostics?: HelpDiagnostic[]; suggested_actions?: HelpAction[]; brain?: "knowledge" | "repair" | "builder"; tool_log?: { tool: string; summary: string }[] };
 interface SupportContext {
   identity: { display_name: string; email: string | null; role: string; workspace_name: string };
   entitlement: { tier: string; trial_ends_at: string | null };
@@ -174,7 +174,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
         // KEEP the agent's summary on the session, not just on the message. It was stored per-message
         // and read nowhere, so the ticket fell back to the user's raw opening paragraph.
         agentSubject: r.suggested_subject?.trim() ? r.suggested_subject.trim() : s.agentSubject,
-        messages: [...s.messages, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject, diagnostics: r.diagnostics, actions: r.suggested_actions }],
+        messages: [...s.messages, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject, diagnostics: r.diagnostics, actions: r.suggested_actions, brain: r.brain, toolLog: r.tool_log }],
         state: "waiting_for_user",
       }));
     } catch {
@@ -301,9 +301,24 @@ function HelpPanel({ prefill }: { prefill: string }) {
           )}
           {session.messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start"}>
+              {m.role === "assistant" && m.brain && m.brain !== "knowledge" && (
+                <span className="mb-1 rounded-sm border px-2 py-px text-[10px] uppercase tracking-wide" style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)" }}>
+                  {m.brain === "repair" ? "repair brain" : "builder brain"}
+                </span>
+              )}
               <div className={`max-w-[90%] rounded-md px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "self-end rounded-br-sm" : "rounded-bl-sm"} ${m.system ? "italic" : ""}`}
                 style={{ background: m.role === "user" ? "var(--surface-selected)" : "var(--surface-card)", color: m.system ? "var(--text-muted)" : "var(--text-primary)", border: "1px solid var(--border-soft)" }}>
                 <p className="whitespace-pre-wrap">{m.content}</p>
+                {/* What the tools ACTUALLY did — acting must never be invisible or claimed loosely. */}
+                {m.role === "assistant" && (m.toolLog?.length ?? 0) > 0 && (
+                  <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+                    {m.toolLog!.map((t, k) => (
+                      <p key={k} className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                        <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{t.tool.replace(/_/g, " ")}</span> — {t.summary}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {m.role === "assistant" && (m.diagnostics?.length ?? 0) > 0 && (
                   <div className="mt-2.5 space-y-1 rounded-lg border p-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
                     {m.diagnostics!.map((d, k) => <DiagRow key={k} d={d} />)}

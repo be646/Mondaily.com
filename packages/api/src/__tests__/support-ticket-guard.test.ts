@@ -50,17 +50,17 @@ describe("route wiring + scoping unchanged (source guards)", () => {
   const help = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/help/help-panel.tsx", import.meta.url)), "utf8");
 
   it("POST /tickets returns 422 + needs_more_info before inserting", () => {
-    expect(support).toMatch(/const issue = ticketContentIssue\(body\.subject, body\.message\);/);
-    expect(support).toMatch(/needs_more_info: true, questions: issue\.questions \}, 422\)/);
+    expect(support).toMatch(/const issue = ticketContentIssue\(args\.subject, args\.message\);/);   // guard moved INTO the one creation path — agent-filed tickets clear it too
+    expect(support).toMatch(/needs_more_info: true, questions: created\.rejected\.questions \}, 422\)/);
     // the 422 short-circuits before the nodes insert
-    const guardIdx = support.indexOf("ticketContentIssue(body.subject");
+    const guardIdx = support.indexOf("ticketContentIssue(args.subject");
     const insertIdx = support.indexOf('object_type: "support_ticket"');
     expect(guardIdx).toBeLessThan(insertIdx);
   });
 
   it("stores trimmed subject/message (no whitespace-padded rows)", () => {
-    expect(support).toMatch(/const subject = body\.subject\.trim\(\);/);
-    expect(support).toMatch(/const message = body\.message\.trim\(\);/);
+    expect(support).toMatch(/const subject = args\.subject\.trim\(\);/);
+    expect(support).toMatch(/const message = args\.message\.trim\(\);/);
   });
 
   it("workspace/user scoping on insert is unchanged", () => {

@@ -77176,6 +77176,140 @@ init_client();
 init_auth();
 init_rbac();
 init_ai_gateway();
+
+// src/lib/backfill-wins.ts
+init_client();
+init_money2();
+var WON_FIELDS = ["closed_at", "close_date", "won_on", "date_won"];
+async function undatedWins(workspaceId) {
+  const rows2 = [];
+  const PAGE2 = 1e3;
+  for (let from = 0; from < 1e5; from += PAGE2) {
+    const { data, error } = await supabase.from("nodes").select("id, data, created_at, updated_at").eq("workspace_id", workspaceId).eq("object_type", "deals").order("id", { ascending: true }).range(from, from + PAGE2 - 1);
+    if (error) throw new Error(`Could not read deals: ${error.message}`);
+    const page = data ?? [];
+    rows2.push(...page);
+    if (page.length < PAGE2) break;
+  }
+  return rows2.filter((r3) => isWon(dealStage(r3.data)) && !(r3.data ?? {}).won_at);
+}
+async function transitionEvidence(workspaceId, dealId) {
+  const { data } = await supabase.from("activities").select("action, created_at, diff").eq("workspace_id", workspaceId).eq("node_id", dealId).order("created_at", { ascending: true }).limit(500);
+  for (const a2 of data ?? []) {
+    const diff = a2.diff;
+    if (!diff) continue;
+    const candidates = [];
+    for (const key of ["stage", "deal_stage"]) {
+      const entry = diff[key];
+      if (entry && typeof entry === "object") candidates.push({ before: entry.from, after: entry.to });
+    }
+    const before = diff.before ?? {};
+    const after = diff.after ?? {};
+    if (Object.keys(before).length || Object.keys(after).length) {
+      candidates.push({ before: before.deal_stage ?? before.stage, after: after.deal_stage ?? after.stage });
+    }
+    for (const c2 of candidates) {
+      const wasWon = isWon(String(c2.before ?? ""));
+      const nowWon = isWon(String(c2.after ?? ""));
+      if (nowWon && !wasWon) {
+        return { at: String(a2.created_at), detail: `activity "${a2.action}" shows stage ${String(c2.before ?? "\u2014")} \u2192 ${String(c2.after ?? "\u2014")}` };
+      }
+    }
+  }
+  return null;
+}
+async function proposeWinDates(workspaceId, supplied = {}) {
+  const deals = await undatedWins(workspaceId);
+  const out = [];
+  for (const d2 of deals) {
+    const data = d2.data ?? {};
+    const base = {
+      deal_id: d2.id,
+      title: String(data.name ?? data.title ?? "Untitled"),
+      amount: dealValue(data)
+    };
+    const byHand = supplied[d2.id];
+    if (byHand && Number.isFinite(Date.parse(byHand))) {
+      out.push({
+        ...base,
+        proposed_closed_at: new Date(byHand).toISOString(),
+        source: "operator_supplied",
+        evidence_detail: "supplied by an operator for this deal"
+      });
+      continue;
+    }
+    const recorded = WON_FIELDS.map((f2) => data[f2]).find((v2) => v2 && Number.isFinite(Date.parse(String(v2))));
+    if (recorded) {
+      out.push({
+        ...base,
+        proposed_closed_at: new Date(String(recorded)).toISOString(),
+        source: "recorded_close_field",
+        evidence_detail: `record already carries ${WON_FIELDS.find((f2) => data[f2] === recorded)}`
+      });
+      continue;
+    }
+    const t3 = await transitionEvidence(workspaceId, d2.id);
+    if (t3) {
+      out.push({ ...base, proposed_closed_at: t3.at, source: "stage_transition", evidence_detail: t3.detail });
+      continue;
+    }
+    out.push({
+      ...base,
+      proposed_closed_at: null,
+      source: "no_evidence",
+      evidence_detail: "no stage-transition activity and no recorded close field; created_at is not evidence of when it was won"
+    });
+  }
+  return out;
+}
+function renderProposalTable(proposals) {
+  const cols = [
+    { h: "DEAL ID", w: 10, get: (p2) => p2.deal_id.slice(0, 8) },
+    { h: "TITLE", w: 28, get: (p2) => p2.title },
+    { h: "AMOUNT", w: 12, get: (p2) => p2.amount.toLocaleString() },
+    { h: "PROPOSED CLOSED_AT", w: 22, get: (p2) => p2.proposed_closed_at?.slice(0, 19) ?? "\u2014 none \u2014" },
+    { h: "SOURCE", w: 20, get: (p2) => p2.source }
+  ];
+  const pad2 = (s2, w2) => s2.length > w2 ? `${s2.slice(0, w2 - 1)}\u2026` : s2.padEnd(w2);
+  const line = cols.map((c2) => "\u2500".repeat(c2.w)).join("\u2500\u253C\u2500");
+  const head2 = cols.map((c2) => pad2(c2.h, c2.w)).join(" \u2502 ");
+  const body = proposals.map((p2) => cols.map((c2) => pad2(String(c2.get(p2)), c2.w)).join(" \u2502 "));
+  const withDate = proposals.filter((p2) => p2.proposed_closed_at).length;
+  return [
+    head2,
+    line,
+    ...body,
+    line,
+    `${proposals.length} undated win(s) \xB7 ${withDate} with evidence \xB7 ${proposals.length - withDate} without`,
+    proposals.length - withDate > 0 ? "Deals without evidence are left alone. created_at is when the row was made, not when the deal was won." : ""
+  ].filter(Boolean).join("\n");
+}
+async function applyWinDates(workspaceId, proposals) {
+  const errors = [];
+  let updated = 0, skipped = 0;
+  for (const p2 of proposals) {
+    if (!p2.proposed_closed_at) {
+      skipped++;
+      continue;
+    }
+    const { data: row } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("id", p2.deal_id).maybeSingle();
+    if (!row) {
+      errors.push(`${p2.deal_id}: not found`);
+      continue;
+    }
+    const data = row.data ?? {};
+    if (data.won_at) {
+      skipped++;
+      continue;
+    }
+    const { error } = await supabase.from("nodes").update({ data: { ...data, won_at: p2.proposed_closed_at, won_at_source: p2.source, won_at_backfilled: true } }).eq("workspace_id", workspaceId).eq("id", p2.deal_id);
+    if (error) errors.push(`${p2.deal_id}: ${error.message}`);
+    else updated++;
+  }
+  return { updated, skipped, errors };
+}
+
+// src/routes/support.ts
 init_entitlements();
 init_credits();
 init_notify();
@@ -77462,6 +77596,114 @@ TALK LIKE A PERSON WHO KNOWS THIS PRODUCT:
 - Never pad. No "Great question!", no restating what they just said back to them.
 
 PLANS & PAYMENTS: the PRICING section below is authoritative \u2014 quote it exactly and never improvise a price, credit amount, seat count or discount. If someone asks for something not in it (custom terms, invoicing, refunds, VAT), say it needs a human and open a ticket.`;
+function detectBrain(message) {
+  const m2 = message.toLowerCase();
+  if (/\b(create|build|make me|set ?up|add a|generate|design|automat|workflow|dashboard|report|sheet|template|import)\b/.test(m2)) return "builder";
+  if (/\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work|stuck|missing|duplicate|slow|can'?t|cannot|charged|payment (failed|problem|issue)|declined)\b/.test(m2)) return "repair";
+  return "knowledge";
+}
+var BUILDER_TOOL_NAMES = /* @__PURE__ */ new Set([
+  "search_records",
+  "list_records",
+  "list_lists",
+  "list_reports",
+  "run_report",
+  "create_task",
+  "create_record",
+  "create_list",
+  "create_object_type",
+  "create_report",
+  "generate_report",
+  "create_workflow_draft",
+  "create_note"
+]);
+var REPAIR_TOOL_NAMES = /* @__PURE__ */ new Set([
+  "search_records",
+  "list_records",
+  "list_invoices",
+  "list_finance_summary",
+  "list_reports",
+  "run_report",
+  "list_tasks"
+]);
+var LOCAL_TOOLS = [
+  {
+    name: "file_bug_report",
+    description: "File a bug report to the Mondaily team ON THE USER'S BEHALF, with this workspace's full diagnostics attached automatically. Use when the problem looks like a product defect you cannot fix with your tools. Tell the user you filed it and what you wrote \u2014 never file silently.",
+    input_schema: { type: "object", properties: {
+      subject: { type: "string", description: "Short, specific defect summary, e.g. 'Invoice PDF export returns 400 on invoices with credit notes'." },
+      details: { type: "string", description: "What the user reported, what you checked, what you found. Written for an engineer." }
+    }, required: ["subject", "details"] }
+  },
+  {
+    name: "propose_win_close_dates",
+    description: "DRY RUN of the supervised close-date backfill for won deals that carry no close date (they are excluded from period figures). Returns each deal with the EVIDENCE for a proposed date, or 'no evidence'. Never writes \u2014 point the user to the Deals live report to apply.",
+    input_schema: { type: "object", properties: {}, required: [] }
+  },
+  {
+    name: "check_payment_state",
+    description: "Read this workspace's real billing state: plan/tier and source, seats, AI credit wallet (included, purchased, used, remaining), and recent invoices. Use for any payment, charge, plan or credits question \u2014 answer from THIS data, never from memory.",
+    input_schema: { type: "object", properties: {}, required: [] }
+  }
+];
+function brainTools(brain) {
+  const names = brain === "builder" ? BUILDER_TOOL_NAMES : REPAIR_TOOL_NAMES;
+  const fromAsk = TOOLS.filter((t3) => names.has(t3.name));
+  const locals = brain === "repair" ? LOCAL_TOOLS : LOCAL_TOOLS.filter((t3) => t3.name !== "propose_win_close_dates");
+  return [...fromAsk, ...locals];
+}
+async function supportToolExec(name, input, ws, userId, route, ctx, log2) {
+  if (name === "file_bug_report") {
+    const subject = String(input.subject ?? "").slice(0, 200) || "Bug report (agent-filed)";
+    const details = String(input.details ?? "").slice(0, 8e3);
+    const created = await createSupportTicketFull(ws, userId, {
+      category: "bug_report",
+      subject,
+      message: details,
+      route,
+      metadata: { filed_by: "support-agent" }
+    });
+    if (created && "rejected" in created) {
+      log2.push({ tool: name, summary: "Bug report REJECTED as too thin \u2014 write a fuller one" });
+      return `Your report was too thin to file: ${created.rejected.error} Write a fuller subject + details and call file_bug_report again.`;
+    }
+    log2.push({ tool: name, summary: created ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
+    return created ? `Bug report filed (id ${created.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.` : "Filing failed \u2014 apologise and ask the user to use the Create support request button instead.";
+  }
+  if (name === "propose_win_close_dates") {
+    const proposals = await proposeWinDates(ws, {});
+    log2.push({ tool: name, summary: `Checked ${proposals.length} undated win(s) for close-date evidence` });
+    if (!proposals.length) return "No undated wins \u2014 every won deal has a close date.";
+    return `${renderProposalTable(proposals)}
+Deals with evidence can be applied from Reports \u2192 Live Report \u2192 Deals ("Review evidence-backed close dates"). Deals without evidence stay undated \u2014 a fabricated close date is worse than a disclosed gap.`;
+  }
+  if (name === "check_payment_state") {
+    const w2 = ctx.wallet, e2 = ctx.entitlement;
+    log2.push({ tool: name, summary: "Read billing state (plan, seats, credits)" });
+    return `REAL billing state: plan=${e2.tier} (source ${e2.source}${e2.trial_ends_at ? `, trial ends ${e2.trial_ends_at}` : ""}), seats=${e2.seats}. Credits: ${w2.enrolled ? `${w2.remaining.toLocaleString()} remaining of ${(w2.included_monthly_credits ?? 0).toLocaleString()}/mo included${w2.purchased ? ` + ${w2.purchased.toLocaleString()} purchased (never expire)` : ""}, ${w2.used.toLocaleString()} used` : "not enrolled"}. Included credits reset monthly on read; purchased never expire. Plan changes and payment methods live at /settings/billing \u2014 you cannot change them.`;
+  }
+  const sources = [];
+  const out = await executeTool(name, input, ws, userId, sources);
+  log2.push({ tool: name, summary: out.slice(0, 140).replace(/\n/g, " ") });
+  return out;
+}
+var BRAIN_DOCTRINE = {
+  knowledge: "",
+  // the original SUPPORT_SYSTEM path is used unchanged
+  repair: `You are Mondaily's REPAIR brain \u2014 a support engineer with real diagnostic tools for THIS workspace.
+DOCTRINE:
+- Diagnose from evidence: the workspace facts, the recorded errors, and your tools. Never guess.
+- Fix what your tools can fix, and SAY exactly what you did. Where the fix lives behind a supervised screen (duplicate merge in Settings \u2192 Data health, close-date backfill in the Deals live report), run the read-only check first, then send the user to the exact screen with what they will find there.
+- If it is a product defect you cannot fix: file_bug_report YOURSELF with everything an engineer needs, then tell the user it is filed and what happens next. The user should never have to write a ticket.
+- Payments: check_payment_state first, answer from it. You cannot change plans, refund, or touch payment methods \u2014 say so plainly and point to /settings/billing.
+- NEVER claim an action you did not take. NEVER invent a diagnosis the tools did not show.`,
+  builder: `You are Mondaily's BUILDER brain \u2014 you do real work in the user's workspace with real tools, in-chat.
+DOCTRINE:
+- Build what they ask: sheets/objects (create_object_type), records, tasks, lists, saved reports (create_report), downloadable report files (generate_report \u2014 present BOTH returned links), automation drafts (create_workflow_draft).
+- Read before you write: check existing objects/records so you extend their workspace instead of duplicating it.
+- After building, say exactly what now exists and where to find it. If a tool fails, say it failed \u2014 never claim success.
+- Keep it in their language and their business vocabulary.`
+};
 router22.post("/ask", zValidator2("json", external_exports.object({
   message: external_exports.string().min(1).max(4e3),
   history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional(),
@@ -77489,6 +77731,53 @@ router22.post("/ask", zValidator2("json", external_exports.object({
   const routeLine = route ? `
 
 The user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
+  const brain = detectBrain(message);
+  if (brain !== "knowledge") {
+    const toolLog = [];
+    const system2 = `${BRAIN_DOCTRINE[brain]}
+
+PRICING (authoritative \u2014 quote exactly, never improvise):
+${pricingFacts()}
+
+${contextBlock(ctx)}${routeLine}
+
+${diagnosticsForPrompt(diagnostics)}
+
+${helpDocsBlock(docs)}${languageInstruction(ctx.language)}`;
+    const messages = [
+      ...(history ?? []).slice(-6).map((h2) => ({ role: h2.role, content: h2.content })),
+      { role: "user", content: message }
+    ];
+    try {
+      const res = await aiGatewayAgent({
+        system: system2,
+        messages,
+        tools: brainTools(brain),
+        maxRounds: 6,
+        maxTokens: 900,
+        // UNMETERED like the knowledge path (no workspaceId on the request): a user with 0 credits
+        // must still be able to get help. The tools themselves are workspace-scoped via closure.
+        feature: "support",
+        taskClass: "support",
+        onToolCall: (name, input) => supportToolExec(name, input, c2.get("workspaceId"), c2.get("userId"), route, ctx, toolLog)
+      });
+      const filed = toolLog.find((t3) => t3.tool === "file_bug_report" && t3.summary.startsWith("Filed"));
+      return c2.json({
+        answer: (res.reply || "").trim() || "I ran the checks but couldn't compose an answer \u2014 please try rephrasing.",
+        category: brain === "repair" ? "bug_report" : "how_to",
+        needs_ticket: false,
+        // repair files its own tickets; never bounce the user to a form
+        suggested_subject: filed ? filed.summary.replace(/^Filed bug report: /, "").replace(/^"|"$/g, "") : "",
+        language: ctx.language,
+        cited_docs: docs.map((d2) => d2.title),
+        diagnostics,
+        suggested_actions: buildSuggestedActions(ctx, topic, false, diagnostics),
+        brain,
+        tool_log: toolLog
+      });
+    } catch {
+    }
+  }
   const system = `${SUPPORT_SYSTEM}
 
 PRICING (authoritative \u2014 quote exactly, never improvise):
@@ -77591,35 +77880,25 @@ function ticketContentIssue(subject, message) {
   }
   return null;
 }
-router22.post("/tickets", zValidator2("json", external_exports.object({
-  category: external_exports.enum(SUPPORT_CATEGORIES),
-  subject: external_exports.string().min(1).max(200),
-  message: external_exports.string().min(1).max(8e3),
-  route: external_exports.string().max(200).optional(),
-  // the page the user was on (context, not a route we act on)
-  metadata: external_exports.record(external_exports.unknown()).optional()
-})), async (c2) => {
-  const ws = c2.get("workspaceId");
-  const userId = c2.get("userId");
-  const body = c2.req.valid("json");
-  const issue = ticketContentIssue(body.subject, body.message);
-  if (issue) return c2.json({ error: issue.error, needs_more_info: true, questions: issue.questions }, 422);
-  const subject = body.subject.trim();
-  const message = body.message.trim();
+async function createSupportTicketFull(ws, userId, args) {
+  const issue = ticketContentIssue(args.subject, args.message);
+  if (issue) return { rejected: { error: issue.error, questions: issue.questions } };
+  const subject = args.subject.trim();
+  const message = args.message.trim();
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const ctx = await buildSupportContext(ws, userId);
   const ticketData = {
-    category: body.category,
+    category: args.category,
     subject,
     message,
     status: "open",
     metadata: {
-      ...body.metadata ?? {},
+      ...args.metadata ?? {},
       requester: { name: ctx.identity.name, email: ctx.identity.email, display_name: ctx.identity.display_name, role: ctx.identity.role },
       workspace_name: ctx.identity.workspace_name,
       plan: ctx.entitlement.tier,
       credits_remaining: ctx.wallet.remaining,
-      route: body.route ?? null,
+      route: args.route ?? null,
       language: ctx.language,
       // THE INVESTIGATION, attached. The agent runs real diagnostics before escalating and used to
       // throw them away at exactly the moment they became useful — so a human opened the ticket
@@ -77653,21 +77932,21 @@ router22.post("/tickets", zValidator2("json", external_exports.object({
     created_by: userId,
     data: ticketData
   }).select("id, created_at").single();
-  if (error) return c2.json({ error: "Could not create the support request." }, 500);
+  if (error || !data) return null;
   const admins = await workspaceAdminIds(ws, userId);
   await Promise.all(admins.map((uid) => createNotification({
     workspace_id: ws,
     user_id: uid,
     type: "support",
     title: `New support request: ${subject}`,
-    body: `A ${body.category.replace(/_/g, " ")} request was opened.`,
-    metadata: { support_ticket_id: data.id, category: body.category }
+    body: `A ${args.category.replace(/_/g, " ")} request was opened.`,
+    metadata: { support_ticket_id: data.id, category: args.category }
   }).catch(() => false)));
   await mailPlatformNewTicket({
     id: data.id,
     subject,
     message,
-    category: body.category,
+    category: args.category,
     workspace_name: ctx.identity.workspace_name,
     requester_email: ctx.identity.email ?? void 0,
     plan: ctx.entitlement.tier
@@ -77675,10 +77954,26 @@ router22.post("/tickets", zValidator2("json", external_exports.object({
   if (ctx.identity.email) {
     await mailTicketCreated(
       { email: ctx.identity.email, name: ctx.identity.display_name ?? ctx.identity.name },
-      { id: data.id, subject, message, category: body.category }
+      { id: data.id, subject, message, category: args.category }
     );
   }
-  return c2.json({ id: data.id, status: "open", created_at: data.created_at }, 201);
+  return { id: data.id, created_at: data.created_at };
+}
+router22.post("/tickets", zValidator2("json", external_exports.object({
+  category: external_exports.enum(SUPPORT_CATEGORIES),
+  subject: external_exports.string().min(1).max(200),
+  message: external_exports.string().min(1).max(8e3),
+  route: external_exports.string().max(200).optional(),
+  // the page the user was on (context, not a route we act on)
+  metadata: external_exports.record(external_exports.unknown()).optional()
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const body = c2.req.valid("json");
+  const created = await createSupportTicketFull(ws, userId, body);
+  if (created && "rejected" in created) return c2.json({ error: created.rejected.error, needs_more_info: true, questions: created.rejected.questions }, 422);
+  if (!created || !("id" in created)) return c2.json({ error: "Could not create the support request." }, 500);
+  return c2.json({ id: created.id, status: "open", created_at: created.created_at }, 201);
 });
 router22.get("/tickets", requireAdminRole, async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(100);
@@ -81945,138 +82240,6 @@ init_client();
 init_auth();
 init_period();
 init_period_close();
-
-// src/lib/backfill-wins.ts
-init_client();
-init_money2();
-var WON_FIELDS = ["closed_at", "close_date", "won_on", "date_won"];
-async function undatedWins(workspaceId) {
-  const rows2 = [];
-  const PAGE2 = 1e3;
-  for (let from = 0; from < 1e5; from += PAGE2) {
-    const { data, error } = await supabase.from("nodes").select("id, data, created_at, updated_at").eq("workspace_id", workspaceId).eq("object_type", "deals").order("id", { ascending: true }).range(from, from + PAGE2 - 1);
-    if (error) throw new Error(`Could not read deals: ${error.message}`);
-    const page = data ?? [];
-    rows2.push(...page);
-    if (page.length < PAGE2) break;
-  }
-  return rows2.filter((r3) => isWon(dealStage(r3.data)) && !(r3.data ?? {}).won_at);
-}
-async function transitionEvidence(workspaceId, dealId) {
-  const { data } = await supabase.from("activities").select("action, created_at, diff").eq("workspace_id", workspaceId).eq("node_id", dealId).order("created_at", { ascending: true }).limit(500);
-  for (const a2 of data ?? []) {
-    const diff = a2.diff;
-    if (!diff) continue;
-    const candidates = [];
-    for (const key of ["stage", "deal_stage"]) {
-      const entry = diff[key];
-      if (entry && typeof entry === "object") candidates.push({ before: entry.from, after: entry.to });
-    }
-    const before = diff.before ?? {};
-    const after = diff.after ?? {};
-    if (Object.keys(before).length || Object.keys(after).length) {
-      candidates.push({ before: before.deal_stage ?? before.stage, after: after.deal_stage ?? after.stage });
-    }
-    for (const c2 of candidates) {
-      const wasWon = isWon(String(c2.before ?? ""));
-      const nowWon = isWon(String(c2.after ?? ""));
-      if (nowWon && !wasWon) {
-        return { at: String(a2.created_at), detail: `activity "${a2.action}" shows stage ${String(c2.before ?? "\u2014")} \u2192 ${String(c2.after ?? "\u2014")}` };
-      }
-    }
-  }
-  return null;
-}
-async function proposeWinDates(workspaceId, supplied = {}) {
-  const deals = await undatedWins(workspaceId);
-  const out = [];
-  for (const d2 of deals) {
-    const data = d2.data ?? {};
-    const base = {
-      deal_id: d2.id,
-      title: String(data.name ?? data.title ?? "Untitled"),
-      amount: dealValue(data)
-    };
-    const byHand = supplied[d2.id];
-    if (byHand && Number.isFinite(Date.parse(byHand))) {
-      out.push({
-        ...base,
-        proposed_closed_at: new Date(byHand).toISOString(),
-        source: "operator_supplied",
-        evidence_detail: "supplied by an operator for this deal"
-      });
-      continue;
-    }
-    const recorded = WON_FIELDS.map((f2) => data[f2]).find((v2) => v2 && Number.isFinite(Date.parse(String(v2))));
-    if (recorded) {
-      out.push({
-        ...base,
-        proposed_closed_at: new Date(String(recorded)).toISOString(),
-        source: "recorded_close_field",
-        evidence_detail: `record already carries ${WON_FIELDS.find((f2) => data[f2] === recorded)}`
-      });
-      continue;
-    }
-    const t3 = await transitionEvidence(workspaceId, d2.id);
-    if (t3) {
-      out.push({ ...base, proposed_closed_at: t3.at, source: "stage_transition", evidence_detail: t3.detail });
-      continue;
-    }
-    out.push({
-      ...base,
-      proposed_closed_at: null,
-      source: "no_evidence",
-      evidence_detail: "no stage-transition activity and no recorded close field; created_at is not evidence of when it was won"
-    });
-  }
-  return out;
-}
-function renderProposalTable(proposals) {
-  const cols = [
-    { h: "DEAL ID", w: 10, get: (p2) => p2.deal_id.slice(0, 8) },
-    { h: "TITLE", w: 28, get: (p2) => p2.title },
-    { h: "AMOUNT", w: 12, get: (p2) => p2.amount.toLocaleString() },
-    { h: "PROPOSED CLOSED_AT", w: 22, get: (p2) => p2.proposed_closed_at?.slice(0, 19) ?? "\u2014 none \u2014" },
-    { h: "SOURCE", w: 20, get: (p2) => p2.source }
-  ];
-  const pad2 = (s2, w2) => s2.length > w2 ? `${s2.slice(0, w2 - 1)}\u2026` : s2.padEnd(w2);
-  const line = cols.map((c2) => "\u2500".repeat(c2.w)).join("\u2500\u253C\u2500");
-  const head2 = cols.map((c2) => pad2(c2.h, c2.w)).join(" \u2502 ");
-  const body = proposals.map((p2) => cols.map((c2) => pad2(String(c2.get(p2)), c2.w)).join(" \u2502 "));
-  const withDate = proposals.filter((p2) => p2.proposed_closed_at).length;
-  return [
-    head2,
-    line,
-    ...body,
-    line,
-    `${proposals.length} undated win(s) \xB7 ${withDate} with evidence \xB7 ${proposals.length - withDate} without`,
-    proposals.length - withDate > 0 ? "Deals without evidence are left alone. created_at is when the row was made, not when the deal was won." : ""
-  ].filter(Boolean).join("\n");
-}
-async function applyWinDates(workspaceId, proposals) {
-  const errors = [];
-  let updated = 0, skipped = 0;
-  for (const p2 of proposals) {
-    if (!p2.proposed_closed_at) {
-      skipped++;
-      continue;
-    }
-    const { data: row } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("id", p2.deal_id).maybeSingle();
-    if (!row) {
-      errors.push(`${p2.deal_id}: not found`);
-      continue;
-    }
-    const data = row.data ?? {};
-    if (data.won_at) {
-      skipped++;
-      continue;
-    }
-    const { error } = await supabase.from("nodes").update({ data: { ...data, won_at: p2.proposed_closed_at, won_at_source: p2.source, won_at_backfilled: true } }).eq("workspace_id", workspaceId).eq("id", p2.deal_id);
-    if (error) errors.push(`${p2.deal_id}: ${error.message}`);
-    else updated++;
-  }
-  return { updated, skipped, errors };
-}
 
 // src/lib/reconcile-stage.ts
 init_client();

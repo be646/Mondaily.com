@@ -15,6 +15,10 @@ export interface HelpMsg {
   diagnostics?: HelpDiagnostic[];
   actions?: HelpAction[];
   system?: boolean;   // a note the panel added (e.g. "I opened Discovery") — not from the model
+  /** Which brain answered (knowledge | repair | builder) — shown as a small chip. */
+  brain?: "knowledge" | "repair" | "builder";
+  /** What the agent's tools ACTUALLY did this turn — rendered so acting is never invisible. */
+  toolLog?: { tool: string; summary: string }[];
 }
 
 export type HelpState = "active" | "waiting_for_user" | "resolved" | "escalated" | "closed";

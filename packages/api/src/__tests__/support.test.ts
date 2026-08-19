@@ -76,7 +76,7 @@ describe("support agent — AI call is unmetered (help works at zero credits) + 
 
 describe("support tickets — creation + workspace isolation", () => {
   it("POST /tickets inserts a support_ticket node scoped to the workspace + user", () => {
-    const t = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
+    const t = src.slice(src.indexOf('async function createSupportTicketFull('), src.indexOf('router.get("/tickets"'));
     expect(t).toMatch(/object_type: "support_ticket"/);
     expect(t).toMatch(/workspace_id: ws/);          // ws = c.get("workspaceId")
     expect(src).toMatch(/const ws = c\.get\("workspaceId"\); const userId = c\.get\("userId"\)/);
@@ -123,7 +123,7 @@ describe("PHASE 2 — ticket lifecycle", () => {
 
 describe("PHASE 2 — notifications", () => {
   it("new ticket notifies workspace admins/owners", () => {
-    const fn = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
+    const fn = src.slice(src.indexOf('async function createSupportTicketFull('), src.indexOf('router.get("/tickets"'));
     expect(fn).toMatch(/workspaceAdminIds\(ws, userId\)/);
     expect(fn).toMatch(/createNotification\(\{[\s\S]{0,120}New support request/);
   });
@@ -206,11 +206,11 @@ describe("PHASE 2.1 — safe upsell, never fake actions", () => {
 
 describe("PHASE 2.1 — ticket metadata carries identity + context", () => {
   it("create-ticket stamps requester identity, plan, credits and route", () => {
-    const fn = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
+    const fn = src.slice(src.indexOf('async function createSupportTicketFull('), src.indexOf('router.get("/tickets"'));
     expect(fn).toMatch(/requester: \{ name: ctx\.identity\.name, email: ctx\.identity\.email/);
     expect(fn).toMatch(/plan: ctx\.entitlement\.tier/);
     expect(fn).toMatch(/credits_remaining: ctx\.wallet\.remaining/);
-    expect(fn).toMatch(/route: body\.route/);
+    expect(fn).toMatch(/route: args\.route/);
   });
 });
 
