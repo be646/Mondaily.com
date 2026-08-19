@@ -298,6 +298,26 @@ app.get("/api/cron/report-delivery", async (c) => {
 });
 
 /**
+ * Watchdog — every 15 minutes, live probes of the dependencies production leans on (DB, mail
+ * relay, the appliance boxes), alerting the operator on TRANSITIONS over the sovereign mail path.
+ * Fail-closed on CRON_SECRET like every cron here. Its honest limit is stated in every email:
+ * running inside the API, it cannot see the API's own total outage.
+ */
+app.get("/api/cron/watchdog", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+  const { runWatchdog } = await import("./lib/watchdog");
+  try {
+    const r = await runWatchdog();
+    return c.json({ ran: true, at: new Date().toISOString(), ok: r.checks.every(x => x.ok), checks: r.checks, transitions: r.transitions, alerted: r.alerted });
+  } catch (e) {
+    return c.json({ ran: false, error: String(e) }, 500);
+  }
+});
+
+/**
  * Dedicated Discovery-monitors cron — runs ONLY the "Watch this search" saved searches, so we can
  * refresh them several times a day WITHOUT re-running the heavy daily batch (invoices, scoring…).
  * Same CRON_SECRET auth as /api/cron/daily. Configured in vercel.json.

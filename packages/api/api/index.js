@@ -41281,10 +41281,10 @@ function inboundAddressFor(workspaceId) {
   const d2 = mailDomain();
   return d2 ? `ws-${workspaceId}@${d2}` : null;
 }
-function workspaceIdFromRecipients(recipients) {
+function workspaceIdFromRecipients(recipients2) {
   const d2 = mailDomain();
   if (!d2) return null;
-  for (const raw2 of recipients) {
+  for (const raw2 of recipients2) {
     const email = parseAddr(raw2).email;
     const at2 = email.lastIndexOf("@");
     if (at2 < 0 || email.slice(at2 + 1) !== d2) continue;
@@ -62593,17 +62593,17 @@ async function deliverDueReports(wsId, wsRow, now = /* @__PURE__ */ new Date()) 
   const out = [];
   const due = REPORT_CADENCES.filter((c2) => schedule.enabled[c2] && schedule.last_sent?.[c2] !== currentPeriodKey(c2, cfg, now));
   if (!due.length) return out;
-  const recipients = await ownerAdminRecipients(wsId);
+  const recipients2 = await ownerAdminRecipients(wsId);
   for (const cadence of due) {
     const key = currentPeriodKey(cadence, cfg, now);
-    if (!recipients.length) {
+    if (!recipients2.length) {
       out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "no_recipients" });
       continue;
     }
     try {
       const bundle = await composeWorkspaceReport(wsId, cadence, void 0, now, { complete: true });
       const { subject, body } = reportEmailHtml(bundle, wsId);
-      const ok2 = await sendWorkspaceEmail(wsId, { subject, body, to: recipients });
+      const ok2 = await sendWorkspaceEmail(wsId, { subject, body, to: recipients2 });
       if (!ok2) {
         out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: "mail transport declined" });
         continue;
@@ -62613,7 +62613,7 @@ async function deliverDueReports(wsId, wsRow, now = /* @__PURE__ */ new Date()) 
       const nextSchedule = { enabled: { ...schedule.enabled }, last_sent: { ...schedule.last_sent ?? {}, [cadence]: key } };
       await supabase.from("workspaces").update({ settings: { ...settings, report_schedule: nextSchedule } }).eq("id", wsId);
       wsRow.settings = { ...settings, report_schedule: nextSchedule };
-      out.push({ workspace: wsId, cadence, period: key, sent: recipients.length, status: "sent", archived });
+      out.push({ workspace: wsId, cadence, period: key, sent: recipients2.length, status: "sent", archived });
     } catch (e2) {
       out.push({ workspace: wsId, cadence, period: key, sent: 0, status: "failed", detail: e2 instanceof Error ? e2.message : String(e2) });
     }
@@ -64648,6 +64648,142 @@ var init_secret_brain = __esm({
   }
 });
 
+// src/lib/watchdog.ts
+var watchdog_exports = {};
+__export(watchdog_exports, {
+  STATE_BUCKET: () => STATE_BUCKET,
+  alertEmail: () => alertEmail,
+  computeTransitions: () => computeTransitions,
+  runChecks: () => runChecks,
+  runWatchdog: () => runWatchdog
+});
+async function probeUrl(name, base, path = "/health") {
+  const url = (base ?? "").trim().replace(/\/$/, "");
+  if (!url) return { name, ok: true, detail: "not configured \u2014 not monitored" };
+  try {
+    const ctl = new AbortController();
+    const t3 = setTimeout(() => ctl.abort(), PROBE_TIMEOUT_MS);
+    const r3 = await fetch(`${url}${path}`, { signal: ctl.signal });
+    clearTimeout(t3);
+    return { name, ok: r3.ok, detail: r3.ok ? `HTTP ${r3.status}` : `HTTP ${r3.status}` };
+  } catch (e2) {
+    return { name, ok: false, detail: e2 instanceof Error && e2.name === "AbortError" ? `no answer in ${PROBE_TIMEOUT_MS / 1e3}s` : String(e2).slice(0, 120) };
+  }
+}
+async function runChecks() {
+  const results = await Promise.all([
+    // Database — the query itself is the probe.
+    (async () => {
+      try {
+        const { error } = await supabase.from("workspaces").select("id", { count: "exact", head: true }).limit(1);
+        return { name: "database", ok: !error, detail: error ? error.message.slice(0, 120) : "reachable" };
+      } catch (e2) {
+        return { name: "database", ok: false, detail: String(e2).slice(0, 120) };
+      }
+    })(),
+    // Sovereign mail relay — reuses the same reachability check the readiness inspector trusts.
+    (async () => {
+      try {
+        const s2 = await sovereignRelayStatus();
+        if (!s2.configured) return { name: "mail_relay", ok: true, detail: "not configured \u2014 not monitored" };
+        if (!s2.checkable) return { name: "mail_relay", ok: false, detail: "health endpoint unreachable" };
+        return { name: "mail_relay", ok: s2.reachable, detail: s2.reachable ? "reachable" : "configured but unreachable" };
+      } catch (e2) {
+        return { name: "mail_relay", ok: false, detail: String(e2).slice(0, 120) };
+      }
+    })(),
+    // The appliance boxes — live HTTP, not env presence.
+    probeUrl("search_appliance", process.env.SOVEREIGN_SEARCH_URL),
+    probeUrl("stt_appliance", process.env.SOVEREIGN_STT_URL),
+    probeUrl("embed_appliance", process.env.SOVEREIGN_EMBED_URL)
+  ]);
+  return results;
+}
+async function readState() {
+  try {
+    const dl = await supabase.storage.from(STATE_BUCKET).download(STATE_PATH);
+    if (dl.error || !dl.data) return null;
+    return JSON.parse(await dl.data.text());
+  } catch {
+    return null;
+  }
+}
+async function writeState(state) {
+  await supabase.storage.createBucket(STATE_BUCKET, { public: false }).then(() => {
+  }, () => {
+  });
+  await supabase.storage.from(STATE_BUCKET).upload(STATE_PATH, new TextEncoder().encode(JSON.stringify(state)), { contentType: "application/json", upsert: true }).then(() => {
+  }, () => {
+  });
+}
+function computeTransitions(prev, checks, nowIso) {
+  const transitions = [];
+  const next = { checks: {}, last_run: nowIso };
+  for (const c2 of checks) {
+    const before = prev?.checks?.[c2.name];
+    if (!before) {
+      next.checks[c2.name] = { ok: c2.ok, since: nowIso };
+      if (!c2.ok) transitions.push({ name: c2.name, kind: "went_down", detail: c2.detail });
+      continue;
+    }
+    if (before.ok === c2.ok) {
+      next.checks[c2.name] = before;
+    } else {
+      next.checks[c2.name] = { ok: c2.ok, since: nowIso };
+      transitions.push(c2.ok ? { name: c2.name, kind: "recovered", detail: c2.detail, downSince: before.since } : { name: c2.name, kind: "went_down", detail: c2.detail });
+    }
+  }
+  return { transitions, next };
+}
+function recipients() {
+  const fromEnv = (process.env.PLATFORM_ADMIN_EMAILS ?? "").split(",").map((s2) => s2.trim()).filter((s2) => s2.includes("@"));
+  const list = fromEnv.length ? fromEnv : [...OWNER_EMAILS];
+  return list.map((email) => ({ email }));
+}
+function alertEmail(transitions, checks, nowIso) {
+  const down = transitions.filter((t3) => t3.kind === "went_down");
+  const up = transitions.filter((t3) => t3.kind === "recovered");
+  const subject = down.length ? `[Mondaily watchdog] ${down.map((t3) => t3.name).join(", ")} DOWN` : `[Mondaily watchdog] ${up.map((t3) => t3.name).join(", ")} recovered`;
+  const mins = (since) => since ? Math.max(1, Math.round((Date.parse(nowIso) - Date.parse(since)) / 6e4)) : null;
+  const lines = transitions.map((t3) => t3.kind === "went_down" ? `<li><b>${t3.name}</b> is DOWN \u2014 ${t3.detail}</li>` : `<li><b>${t3.name}</b> recovered after ~${mins(t3.downSince)} min \u2014 ${t3.detail}</li>`).join("");
+  const statusRows = checks.map((c2) => `<tr><td style="padding:2px 10px 2px 0;">${c2.ok ? "&#9679;" : "&#9675;"} ${c2.name}</td><td style="color:#6b7280;">${c2.detail}</td></tr>`).join("");
+  return {
+    subject,
+    body: `<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;max-width:560px;color:#111827;">
+      <ul style="font-size:14px;">${lines}</ul>
+      <p style="font-size:12px;color:#6b7280;margin:14px 0 4px;">Full sweep at ${nowIso.slice(0, 16).replace("T", " ")} UTC:</p>
+      <table style="font-size:12px;border-collapse:collapse;">${statusRows}</table>
+      <p style="font-size:11px;color:#9ca3af;margin-top:14px;">Sent by the in-app watchdog. Honest limit: it can see a degraded dependency, not its own total outage \u2014 if these emails STOP arriving while you expect them, check the platform itself.</p>
+    </div>`
+  };
+}
+async function runWatchdog(now = /* @__PURE__ */ new Date()) {
+  const nowIso = now.toISOString();
+  const checks = await runChecks();
+  const prev = await readState();
+  const { transitions, next } = computeTransitions(prev, checks, nowIso);
+  let alerted = false;
+  if (transitions.length) {
+    const { subject, body } = alertEmail(transitions, checks, nowIso);
+    alerted = await sendPlatformEmail({ subject, body, to: recipients() }, { localPart: "watchdog", displayName: "Mondaily Watchdog" }).catch(() => false);
+    if (!alerted) return { checks, transitions, alerted };
+  }
+  await writeState(next);
+  return { checks, transitions, alerted };
+}
+var STATE_BUCKET, STATE_PATH, PROBE_TIMEOUT_MS;
+var init_watchdog = __esm({
+  "src/lib/watchdog.ts"() {
+    "use strict";
+    init_client();
+    init_mail();
+    init_owner();
+    STATE_BUCKET = "platform-state";
+    STATE_PATH = "watchdog.json";
+    PROBE_TIMEOUT_MS = 6e3;
+  }
+});
+
 // src/jobs/executive-brief.ts
 var executive_brief_exports = {};
 __export(executive_brief_exports, {
@@ -64681,8 +64817,8 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
       const tasksDone = tasks2?.count ?? 0;
       const decisionsDone = decisions?.count ?? 0;
       const t3 = outcomes.team;
-      const recipients = (admins ?? []).map((a2) => ({ email: String(a2.email ?? "").trim(), name: a2.name ?? void 0 })).filter((r3) => r3.email);
-      if (recipients.length === 0 || t3.deals_won === 0 && t3.deals_lost === 0 && t3.pipeline_deals === 0 && tasksDone === 0 && decisionsDone === 0) {
+      const recipients2 = (admins ?? []).map((a2) => ({ email: String(a2.email ?? "").trim(), name: a2.name ?? void 0 })).filter((r3) => r3.email);
+      if (recipients2.length === 0 || t3.deals_won === 0 && t3.deals_lost === 0 && t3.pipeline_deals === 0 && tasksDone === 0 && decisionsDone === 0) {
         skipped++;
         continue;
       }
@@ -64727,7 +64863,7 @@ async function runExecutiveBrief(now = /* @__PURE__ */ new Date()) {
   ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc5(insight)}</p></div>` : ""}
   <div style="padding:12px 24px"><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:0">All figures are recorded workspace activity for ${esc5(monthName)}, in ${esc5(cur)}.${t3.unconverted > 0 ? ` ${t3.unconverted} deal(s) could not be currency-converted and are excluded from totals.` : ""} Nothing is estimated.</p></div>
 </div></body></html>`;
-      const ok2 = await sendTransactionalEmail({ subject: `${w2.name ?? "Workspace"} \u2014 executive brief \xB7 ${monthName}`, to: recipients, body: html });
+      const ok2 = await sendTransactionalEmail({ subject: `${w2.name ?? "Workspace"} \u2014 executive brief \xB7 ${monthName}`, to: recipients2, body: html });
       if (ok2) sent++;
       else failed++;
     } catch {
@@ -75676,7 +75812,7 @@ ${transcript}`,
   }
   const dir = await members2(ws);
   const recipientIds = [ev.data.organizer_id, ...ev.data.attendee_ids ?? []].filter((v2) => !!v2);
-  const recipients = [...new Set(recipientIds)].map((uid) => dir.get(uid)).filter(Boolean).map((m2) => ({ name: m2.name || m2.email || "Member", email: m2.email })).filter((r3) => r3.email);
+  const recipients2 = [...new Set(recipientIds)].map((uid) => dir.get(uid)).filter(Boolean).map((m2) => ({ name: m2.name || m2.email || "Member", email: m2.email })).filter((r3) => r3.email);
   const stored = {
     source: "saved_live_transcript",
     lines_used: lines.length,
@@ -75693,7 +75829,7 @@ ${transcript}`,
     decisions: intel.decisions,
     next_steps: intel.next_steps,
     follow_up_draft,
-    recipients
+    recipients: recipients2
   };
   const nextData = { ...ev.data, [INTEL_KEY]: { ...readIntelMap(ev.data), [id]: stored } };
   await supabase.from("nodes").update({ data: nextData }).eq("workspace_id", ws).eq("id", baseId(id)).eq("object_type", "calendar_event");
@@ -75715,7 +75851,7 @@ ${transcript}`,
     next_steps: intel.next_steps,
     follow_up_draft,
     // { subject, body } | null — DRAFT only, never sent
-    recipients
+    recipients: recipients2
     // real attendee emails only (may be empty)
   });
 });
@@ -80931,8 +81067,8 @@ router30.post("/inbound", async (c2) => {
     return c2.json({ error: "bad payload" }, 400);
   }
   if (!msg?.message_id || !msg?.from) return c2.json({ error: "missing message_id/from" }, 400);
-  const recipients = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean);
-  for (const r3 of recipients) {
+  const recipients2 = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean);
+  for (const r3 of recipients2) {
     const ticketId = ticketIdFromRecipient(r3);
     if (!ticketId) continue;
     const filed = await fileSupportReply(ticketId, msg);
@@ -80940,7 +81076,7 @@ router30.post("/inbound", async (c2) => {
   }
   const rsvp = await recordRsvpFromInbound(msg);
   if (rsvp) return c2.json({ ok: true, rsvp });
-  const workspaceId = workspaceIdFromRecipients(recipients);
+  const workspaceId = workspaceIdFromRecipients(recipients2);
   if (!workspaceId) return c2.json({ ok: true, ignored: "no matching workspace address" });
   const { data: ws } = await supabase.from("workspaces").select("id").eq("id", workspaceId).maybeSingle();
   if (!ws) return c2.json({ ok: true, ignored: "unknown workspace" });
@@ -88923,6 +89059,19 @@ app.get("/api/cron/report-delivery", async (c2) => {
     const r3 = await runReportDelivery2();
     const acted = r3.results.filter((x2) => x2.status !== "skipped");
     return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), workspaces: r3.workspaces, deliveries: acted });
+  } catch (e2) {
+    return c2.json({ ran: false, error: String(e2) }, 500);
+  }
+});
+app.get("/api/cron/watchdog", async (c2) => {
+  const secret4 = process.env.CRON_SECRET;
+  if (!secret4) return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
+  const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret4}`) return c2.json({ error: "Unauthorized" }, 401);
+  const { runWatchdog: runWatchdog2 } = await Promise.resolve().then(() => (init_watchdog(), watchdog_exports));
+  try {
+    const r3 = await runWatchdog2();
+    return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), ok: r3.checks.every((x2) => x2.ok), checks: r3.checks, transitions: r3.transitions, alerted: r3.alerted });
   } catch (e2) {
     return c2.json({ ran: false, error: String(e2) }, 500);
   }
