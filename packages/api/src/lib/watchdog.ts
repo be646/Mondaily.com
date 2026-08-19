@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { sendPlatformEmail, sovereignRelayStatus } from "./mail";
+import { gatewayHealthCheck } from "./ai-gateway";
 import { OWNER_EMAILS } from "./owner";
 
 /**
@@ -64,6 +65,17 @@ export async function runChecks(): Promise<CheckResult[]> {
         if (!s.checkable) return { name: "mail_relay", ok: false, detail: "health endpoint unreachable" };
         return { name: "mail_relay", ok: s.reachable, detail: s.reachable ? "reachable" : "configured but unreachable" };
       } catch (e) { return { name: "mail_relay", ok: false, detail: String(e).slice(0, 120) }; }
+    })(),
+    // AI gateway — a REAL tiny probe, not env presence. Learned live 2026-08-19: the provider
+    // returned 402 Payment Required (account out of funds), every AI feature degraded, and this
+    // watchdog stayed silent because "avoid paid probes" left it presence-only. One micro-probe
+    // per sweep is negligible; an unalerted dead AI product is not. A 402/401 fails fast and free.
+    (async (): Promise<CheckResult> => {
+      try {
+        const h = await gatewayHealthCheck({ probe: true });
+        if (!h.baseURLHost) return { name: "ai_gateway", ok: true, detail: "not configured — not monitored" };
+        return { name: "ai_gateway", ok: h.ok, detail: h.ok ? "answers" : (h.error ?? h.note ?? "probe failed").slice(0, 120) };
+      } catch (e) { return { name: "ai_gateway", ok: false, detail: String(e).slice(0, 120) }; }
     })(),
     // The appliance boxes — live HTTP, not env presence.
     probeUrl("search_appliance", process.env.SOVEREIGN_SEARCH_URL),

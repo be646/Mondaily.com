@@ -64724,6 +64724,19 @@ async function runChecks() {
         return { name: "mail_relay", ok: false, detail: String(e2).slice(0, 120) };
       }
     })(),
+    // AI gateway — a REAL tiny probe, not env presence. Learned live 2026-08-19: the provider
+    // returned 402 Payment Required (account out of funds), every AI feature degraded, and this
+    // watchdog stayed silent because "avoid paid probes" left it presence-only. One micro-probe
+    // per sweep is negligible; an unalerted dead AI product is not. A 402/401 fails fast and free.
+    (async () => {
+      try {
+        const h2 = await gatewayHealthCheck({ probe: true });
+        if (!h2.baseURLHost) return { name: "ai_gateway", ok: true, detail: "not configured \u2014 not monitored" };
+        return { name: "ai_gateway", ok: h2.ok, detail: h2.ok ? "answers" : (h2.error ?? h2.note ?? "probe failed").slice(0, 120) };
+      } catch (e2) {
+        return { name: "ai_gateway", ok: false, detail: String(e2).slice(0, 120) };
+      }
+    })(),
     // The appliance boxes — live HTTP, not env presence.
     probeUrl("search_appliance", process.env.SOVEREIGN_SEARCH_URL),
     probeUrl("stt_appliance", process.env.SOVEREIGN_STT_URL),
@@ -64809,6 +64822,7 @@ var init_watchdog = __esm({
     "use strict";
     init_client();
     init_mail();
+    init_ai_gateway();
     init_owner();
     STATE_BUCKET = "platform-state";
     STATE_PATH = "watchdog.json";

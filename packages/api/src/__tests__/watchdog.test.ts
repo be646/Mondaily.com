@@ -108,3 +108,11 @@ describe("chat's cache status is finally captured — the 1.2M-token blind spot"
     expect(gw).toMatch(/cacheStatus: streamCacheReported \? \(streamCachedTokens > 0 \? "hit" : "miss"\) : undefined/);
   });
 });
+
+describe("the AI gateway is watched with a REAL probe — presence-only stayed silent through a 402", () => {
+  const lib = readFileSync(join(__dirname, "../lib/watchdog.ts"), "utf8");
+  it("probes gatewayHealthCheck and treats unconfigured as not-monitored, never a false page", () => {
+    expect(lib).toContain("gatewayHealthCheck({ probe: true })");
+    expect(lib).toMatch(/name: "ai_gateway", ok: true, detail: "not configured — not monitored"/);
+  });
+});
