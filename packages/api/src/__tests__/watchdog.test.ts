@@ -146,3 +146,12 @@ describe("hybrid sovereign inference — the no-GPU bridge, evidence-gated", () 
     expect(wd).toMatch(/name: "sovereign_inference", ok: true, detail: "not configured — not monitored"/);
   });
 });
+
+describe("hybrid — the conversational fast tier rides the sovereign engine", () => {
+  const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+  it("BOTH agent paths route tool-free turns sovereign; tool rounds stay external (5% shadow similarity)", () => {
+    const hits = gw.match(/const sovereignTurn = req\.tools\.length === 0 && classIsSovereign\("fast"\)/g) ?? [];
+    expect(hits.length).toBe(2);
+    expect(gw).toContain("if (svCfg) modelId = svCfg.modelOverride!;");
+  });
+});

@@ -30,7 +30,7 @@ import OpenAI from "openai";
 import { recordAiUsage } from "./ai-usage";
 import { assertCreditsOk, CreditsExhaustedError } from "./credits";
 import { modelForClass, backendLabel as routerBackendLabel, type TaskClass } from "./ai-router";
-import { inferenceMode, sovereignBackendConfig, classIsSovereign } from "./inference-backend";
+import { inferenceMode, sovereignBackendConfig, classIsSovereign, sovereignClasses } from "./inference-backend";
 import { maybeShadowMirror } from "./inference-shadow";
 
 /** Observability label for the ACTIVE backend — "sovereign-vllm" when the local engine serves. */
@@ -644,7 +644,16 @@ async function runOpenAICompatAgent(
   // bubbles up to the graceful reply instead of hanging the request.
   // maxRetries:1 — fail fast on 429 rather than hang on a long Retry-After backoff;
   // the friendly rate-limit message tells the user to wait.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
+  // HYBRID: a tool-FREE agent turn (the conversational fast tier strips tools upstream) rides the
+  // sovereign engine when the "fast" class is sovereign-routed — short prompt, no tools, exactly
+  // what the CPU engine handles. Tool rounds stay external: shadow-eval measured 5% similarity on
+  // tool tasks for the current 3B. Patient timeout for the CPU box.
+  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
+  const client = svCfg
+    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 60000, maxRetries: 1 })
+    : new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
+  if (svCfg) modelId = svCfg.modelOverride!;
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -961,7 +970,14 @@ async function runOpenAICompatAgentStream(
   const ROUND_BUDGET_MS = 110_000;
   const startedAt = Date.now();
   const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
-  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
+  // HYBRID: tool-free streaming turns (the conversational fast tier) ride the sovereign engine —
+  // see the non-streaming twin above for the evidence gating.
+  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
+  const client = svCfg
+    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 60000, maxRetries: 1 })
+    : new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
+  if (svCfg) modelId = svCfg.modelOverride!;
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,

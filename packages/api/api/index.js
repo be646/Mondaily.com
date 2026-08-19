@@ -56287,7 +56287,10 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
+  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
+  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 6e4, maxRetries: 1 }) : new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
+  if (svCfg) modelId = svCfg.modelOverride;
   const openaiTools = req.tools.map((t3) => ({
     type: "function",
     function: { name: t3.name, description: t3.description, parameters: t3.input_schema }
@@ -56493,7 +56496,10 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const ROUND_BUDGET_MS = 11e4;
   const startedAt = Date.now();
   const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
-  const client = new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
+  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
+  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 6e4, maxRetries: 1 }) : new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
+  if (svCfg) modelId = svCfg.modelOverride;
   const openaiTools = req.tools.map((t3) => ({
     type: "function",
     function: { name: t3.name, description: t3.description, parameters: t3.input_schema }
