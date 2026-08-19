@@ -45,21 +45,25 @@ export function stalledDeals(rows: NodeRow[], now = Date.now()): { count: number
 }
 
 /** AI spend per feature over a window — PAGED, because a busy workspace exceeds the row cap. */
-async function aiSpendByFeature(ws: string, days: number): Promise<{ feature: string; total_tokens: number; calls: number }[]> {
+async function aiSpendByFeature(ws: string, days: number): Promise<{ feature: string; total_tokens: number; calls: number; cache_hits: number; cache_known: number }[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
-  const by = new Map<string, { total_tokens: number; calls: number }>();
+  const by = new Map<string, { total_tokens: number; calls: number; cache_hits: number; cache_known: number }>();
   const PAGE = 1000;
   for (let from = 0; from < 100_000; from += PAGE) {
     const { data, error } = await supabase.from("ai_usage")
-      .select("feature, total_tokens").eq("workspace_id", ws).gte("created_at", since)
+      .select("feature, total_tokens, cache_status").eq("workspace_id", ws).gte("created_at", since)
       .order("id", { ascending: true }).range(from, from + PAGE - 1);
     if (error) break;   // spend is informational — a read error degrades to what was aggregated so far
     const rows = data ?? [];
     for (const r of rows) {
       const f = String((r as { feature?: string }).feature ?? "other");
-      const b = by.get(f) ?? { total_tokens: 0, calls: 0 };
+      const b = by.get(f) ?? { total_tokens: 0, calls: 0, cache_hits: 0, cache_known: 0 };
       b.total_tokens += Number((r as { total_tokens?: number }).total_tokens ?? 0);
       b.calls++;
+      // Prefix-cache visibility: hit-rate only over calls where the provider REPORTED a status —
+      // treating unknown as miss would understate, treating it as hit would fabricate.
+      const cs = (r as { cache_status?: string | null }).cache_status;
+      if (cs === "hit" || cs === "miss") { b.cache_known++; if (cs === "hit") b.cache_hits++; }
       by.set(f, b);
     }
     if (rows.length < PAGE) break;

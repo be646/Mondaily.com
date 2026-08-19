@@ -69690,14 +69690,19 @@ async function aiSpendByFeature(ws, days) {
   const by = /* @__PURE__ */ new Map();
   const PAGE2 = 1e3;
   for (let from = 0; from < 1e5; from += PAGE2) {
-    const { data, error } = await supabase.from("ai_usage").select("feature, total_tokens").eq("workspace_id", ws).gte("created_at", since).order("id", { ascending: true }).range(from, from + PAGE2 - 1);
+    const { data, error } = await supabase.from("ai_usage").select("feature, total_tokens, cache_status").eq("workspace_id", ws).gte("created_at", since).order("id", { ascending: true }).range(from, from + PAGE2 - 1);
     if (error) break;
     const rows2 = data ?? [];
     for (const r3 of rows2) {
       const f2 = String(r3.feature ?? "other");
-      const b2 = by.get(f2) ?? { total_tokens: 0, calls: 0 };
+      const b2 = by.get(f2) ?? { total_tokens: 0, calls: 0, cache_hits: 0, cache_known: 0 };
       b2.total_tokens += Number(r3.total_tokens ?? 0);
       b2.calls++;
+      const cs = r3.cache_status;
+      if (cs === "hit" || cs === "miss") {
+        b2.cache_known++;
+        if (cs === "hit") b2.cache_hits++;
+      }
       by.set(f2, b2);
     }
     if (rows2.length < PAGE2) break;
@@ -81848,6 +81853,20 @@ router32.get("/readiness", async (c2) => {
   const search_configured = has2("SOVEREIGN_SEARCH_URL");
   const scrape_configured = has2("SOVEREIGN_SCRAPE_URL");
   const embeddings_configured = isEmbeddingsEnabled();
+  let embeddings_live = null;
+  let embeddings_indexed_rows = null;
+  if (embeddings_configured) {
+    try {
+      embeddings_live = Array.isArray(await embedOne("readiness probe"));
+    } catch {
+      embeddings_live = false;
+    }
+    try {
+      const { count, error } = await supabase.from("node_embeddings").select("node_id", { count: "exact", head: true }).eq("workspace_id", c2.get("workspaceId"));
+      if (!error) embeddings_indexed_rows = count ?? 0;
+    } catch {
+    }
+  }
   const inference_mode = inferenceMode();
   const sovereign_vllm_configured = sovereignVllmConfigured();
   const cron_configured = has2("CRON_SECRET");
@@ -81884,7 +81903,9 @@ router32.get("/readiness", async (c2) => {
     // Sovereign vLLM: selected+configured → ready (reachability via the POST self-test, like
     // LiveKit); selected but unconfigured → partial (the gateway is FAILING CLOSED right now);
     // not selected → embeddings-only status as before.
-    private_inference: inference_mode === "sovereign_vllm" ? sovereign_vllm_configured ? "ready" : "partial" : embeddings_configured ? "ready" : "missing"
+    // Configured but failing the live probe (or indexing nothing) is PARTIAL: the product works —
+    // fail-soft — but the acceleration the operator thinks is on is not actually happening.
+    private_inference: inference_mode === "sovereign_vllm" ? sovereign_vllm_configured ? "ready" : "partial" : embeddings_configured ? embeddings_live && (embeddings_indexed_rows ?? 0) > 0 ? "ready" : "partial" : "missing"
   };
   return c2.json({
     deploy_commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
@@ -81928,6 +81949,8 @@ router32.get("/readiness", async (c2) => {
       search_configured,
       scrape_configured,
       embeddings_configured,
+      embeddings_live,
+      embeddings_indexed_rows,
       inference_mode,
       sovereign_vllm_configured,
       cron_configured,

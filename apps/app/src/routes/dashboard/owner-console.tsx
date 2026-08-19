@@ -31,7 +31,7 @@ interface Console {
     rows: { agent: string; auto: number; human: number; pending: number }[];
     autonomy_level: string;
     breaker: { used_last_hour: number; cap: number };
-    spend_30d: { feature: string; total_tokens: number; calls: number }[];
+    spend_30d: { feature: string; total_tokens: number; calls: number; cache_hits?: number; cache_known?: number }[];
   };
   actions: {
     unassigned_deals: { id: string; name: string; value: number; stage: string }[];
@@ -410,7 +410,7 @@ export function OwnerConsolePage() {
             <div className="flex flex-wrap gap-x-4 gap-y-0.5">
               {data.agents.spend_30d.map(sp => (
                 <span key={sp.feature} className="text-[10.5px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-                  <span className="capitalize">{sp.feature.replace(/[_-]/g, " ")}</span>: <strong style={{ color: "var(--text-secondary)" }}>{sp.total_tokens >= 1_000_000 ? `${(sp.total_tokens / 1_000_000).toFixed(1)}M` : sp.total_tokens >= 1000 ? `${Math.round(sp.total_tokens / 1000)}k` : sp.total_tokens}</strong> tok · {sp.calls} calls
+                  <span className="capitalize">{sp.feature.replace(/[_-]/g, " ")}</span>: <strong style={{ color: "var(--text-secondary)" }}>{sp.total_tokens >= 1_000_000 ? `${(sp.total_tokens / 1_000_000).toFixed(1)}M` : sp.total_tokens >= 1000 ? `${Math.round(sp.total_tokens / 1000)}k` : sp.total_tokens}</strong> tok · {sp.calls} calls{(sp.cache_known ?? 0) > 0 ? ` · cache ${Math.round(((sp.cache_hits ?? 0) / sp.cache_known!) * 100)}%` : ""}
                 </span>
               ))}
             </div>

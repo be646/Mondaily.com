@@ -3,7 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest } from "../lib/livekit";
-import { isEmbeddingsEnabled } from "../lib/embeddings";
+import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
 import { inferenceMode, sovereignVllmConfigured, sovereignVllmProbe } from "../lib/inference-backend";
 import { sendTransactionalEmail, sovereignRelayStatus, recordingsStorageUsage } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
@@ -29,12 +29,16 @@ const has = (name: string) => !!(process.env[name] || "").trim();
  * paid AI, Stripe, mail SEND, LiveKit, STT, search, scrape, or GPU. Reuses the exact same gating
  * helpers the features themselves use, so this can't drift from real behavior.
  *
- * It makes exactly TWO read-only probes, each wrapped so it can never throw and each downgrading to
- * `checkable:false` on error:
+ * It makes exactly THREE read-only probes, each wrapped so it can never throw and each downgrading
+ * honestly on error:
  *   - Supabase `getBucket` — does the private recordings bucket exist and is it private?
  *   - `GET {SOVEREIGN_MAIL_SEND_URL}/health` — is the mail appliance actually reachable? No HMAC, no
  *     secret, no message. Added because env-presence alone reported a healthy relay for a day while
  *     the appliance was unreachable and every send was silently falling back.
+ *   - one embedding round-trip against OUR OWN appliance (when configured) + a head-count of this
+ *     workspace's indexed vectors. Vector search fails SOFT to LLM-rerank, so a dead appliance or an
+ *     unapplied pgvector migration is invisible from the product — this is the only place it shows.
+ *     No third party, no paid AI: the appliance is ours and the call is negligible.
  */
 router.get("/readiness", async (c) => {
   // ── individual config presence (booleans only) ──
@@ -60,6 +64,22 @@ router.get("/readiness", async (c) => {
   const search_configured = has("SOVEREIGN_SEARCH_URL");
   const scrape_configured = has("SOVEREIGN_SCRAPE_URL");
   const embeddings_configured = isEmbeddingsEnabled();
+
+  // ── embeddings: LIVE, not merely configured — the same lesson the mail-relay probe encodes.
+  // Vector search fails SOFT to LLM-rerank, which makes a dead appliance or an unapplied pgvector
+  // migration invisible from the product: everything still answers, just slower and dumber. The
+  // only way to know the vector path is real is to (a) round-trip one embedding through the
+  // appliance and (b) count what is actually indexed for THIS workspace.
+  let embeddings_live: boolean | null = null;        // null = not configured, nothing to probe
+  let embeddings_indexed_rows: number | null = null;
+  if (embeddings_configured) {
+    try { embeddings_live = Array.isArray(await embedOne("readiness probe")) ; } catch { embeddings_live = false; }
+    try {
+      const { count, error } = await supabase.from("node_embeddings")
+        .select("node_id", { count: "exact", head: true }).eq("workspace_id", c.get("workspaceId"));
+      if (!error) embeddings_indexed_rows = count ?? 0;
+    } catch { /* table missing (migration unapplied) → stays null, which the UI shows as unknown */ }
+  }
   const inference_mode = inferenceMode();
   const sovereign_vllm_configured = sovereignVllmConfigured();
   const cron_configured = has("CRON_SECRET");
@@ -119,9 +139,13 @@ router.get("/readiness", async (c) => {
     // Sovereign vLLM: selected+configured → ready (reachability via the POST self-test, like
     // LiveKit); selected but unconfigured → partial (the gateway is FAILING CLOSED right now);
     // not selected → embeddings-only status as before.
+    // Configured but failing the live probe (or indexing nothing) is PARTIAL: the product works —
+    // fail-soft — but the acceleration the operator thinks is on is not actually happening.
     private_inference: inference_mode === "sovereign_vllm"
       ? (sovereign_vllm_configured ? "ready" : "partial")
-      : embeddings_configured ? "ready" : "missing",
+      : embeddings_configured
+        ? (embeddings_live && (embeddings_indexed_rows ?? 0) > 0 ? "ready" : "partial")
+        : "missing",
   };
 
   return c.json({
@@ -164,6 +188,8 @@ router.get("/readiness", async (c) => {
       search_configured,
       scrape_configured,
       embeddings_configured,
+      embeddings_live,
+      embeddings_indexed_rows,
       inference_mode,
       sovereign_vllm_configured,
       cron_configured,

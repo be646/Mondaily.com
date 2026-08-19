@@ -30,7 +30,7 @@ describe("admin readiness — gated, read-only, no secrets", () => {
   });
   it("reuses the real feature gates (can't drift from actual behavior)", () => {
     expect(route).toMatch(/import \{ liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest \} from "\.\.\/lib\/livekit"/);
-    expect(route).toMatch(/import \{ isEmbeddingsEnabled \} from "\.\.\/lib\/embeddings"/);
+    expect(route).toMatch(/import \{ isEmbeddingsEnabled, embedOne \} from "\.\.\/lib\/embeddings"/);
     expect(route).toMatch(/const livekit_configured = liveKitEnabled\(\)/);
     expect(route).toMatch(/const stt_configured = transcriptionEnabled\(\)/);
     expect(route).toMatch(/const embeddings_configured = isEmbeddingsEnabled\(\)/);

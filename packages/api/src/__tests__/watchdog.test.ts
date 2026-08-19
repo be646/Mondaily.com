@@ -77,3 +77,21 @@ describe("the machinery is wired the fail-closed way", () => {
     expect(lib).toContain('localPart: "watchdog"');
   });
 });
+
+describe("B2/B3 instrumentation — measure before optimizing", () => {
+  const owner = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+  const consoleTsx = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/owner-console.tsx"), "utf8");
+  const readiness = readFileSync(join(__dirname, "../routes/admin-readiness.ts"), "utf8");
+
+  it("cache hit-rate is computed ONLY over calls where the provider reported a status", () => {
+    expect(owner).toMatch(/if \(cs === "hit" \|\| cs === "miss"\) \{ b\.cache_known\+\+; if \(cs === "hit"\) b\.cache_hits\+\+; \}/);
+    expect(consoleTsx).toContain("cache_known ?? 0) > 0");   // unknown → no fabricated 0%
+  });
+
+  it("embeddings readiness is LIVE (round-trip + this workspace's index count), not env presence", () => {
+    expect(readiness).toContain('await embedOne("readiness probe")');
+    expect(readiness).toMatch(/from\("node_embeddings"\)[\s\S]{0,120}count: "exact", head: true/);
+    // configured-but-dead (or indexing nothing) reads PARTIAL — fail-soft hides it everywhere else.
+    expect(readiness).toMatch(/embeddings_live && \(embeddings_indexed_rows \?\? 0\) > 0 \? "ready" : "partial"/);
+  });
+});
