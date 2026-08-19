@@ -1009,8 +1009,8 @@ describe("Currency wiring — sales report respects workspace currency + honest 
     expect(rep).toMatch(/import \{ useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL \}/);
     expect(rep).toMatch(/const v = convertAmount\(raw, from, display, rates\)/);
     // computeStats + buildTrend receive the converter; per-record rows convert too.
-    expect(rep).toMatch(/computeStats\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
-    expect(rep).toMatch(/buildTrend\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
+    expect(rep).toMatch(/computeStats\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay, dealMode\)/);
+    expect(rep).toMatch(/buildTrend\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay, dealMode\)/);
     expect(rep).toMatch(/const topValOf = \(r: NodeRecord\) =>/);
   });
   it("display-currency selector present + honest mixed/unconverted note (no silent mislabeling)", () => {

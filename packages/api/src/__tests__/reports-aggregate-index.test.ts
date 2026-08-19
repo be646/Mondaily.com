@@ -233,11 +233,11 @@ describe("Phase 3f — stage-derived KPIs from ONE grouped aggregate, classified
   });
   it("the 5 stage KPIs prefer the server value, falling back to the client stat", () => {
     for (const k of [
-      /const kWonValue   = sStage\?\.wonValue \?\? stats\.wonValue/,
-      /const kCompletion = sStage\?\.completionRate \?\? stats\.completionRate/,
+      /const kWonValue   = dealMode \? stats\.wonValue : \(sStage\?\.wonValue \?\? stats\.wonValue\)/,
+      /const kCompletion = dealMode \? stats\.completionRate : \(sStage\?\.completionRate \?\? stats\.completionRate\)/,
       /const kOpenValue  = sStage\?\.openValue \?\? stats\.openValue/,
       /const kOpenCount  = sStage\?\.openCount \?\? stats\.openCount/,
-      /const kAvg        = sStage\?\.avgVal \?\? stats\.avgVal/,
+      /const kAvg        = dealMode \? stats\.avgVal : \(sStage\?\.avgVal \?\? stats\.avgVal\)/,
     ]) expect(sales).toMatch(k);
     // the cards render the k* values (server-preferred), not the raw client stats
     expect(sales).toMatch(/value=\{hasStage \? `\$\{kCompletion\}%`/);
@@ -264,7 +264,7 @@ describe("Phase 3f parity — print/export KPIs match the visible cards; deltas 
     expect(sales).toMatch(/Period-over-period change is computed from the recent record sample, not the full-table server total\./);
   });
   it("client fallback + honesty labels preserved (server total / over N / first N / unconverted)", () => {
-    expect(sales).toMatch(/const kWonValue   = sStage\?\.wonValue \?\? stats\.wonValue/);
+    expect(sales).toMatch(/const kWonValue   = dealMode \? stats\.wonValue : \(sStage\?\.wonValue \?\? stats\.wonValue\)/);   // deal mode: client wins — see live-report-won-dating.test
     expect(sales).toMatch(/scope\.truncated \?/);
     expect(sales).toMatch(/serverUnconverted > 0/);
   });

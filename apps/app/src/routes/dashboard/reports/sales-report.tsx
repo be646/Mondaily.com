@@ -153,14 +153,22 @@ function bucketLabel(date: Date, p: Period): string {
   return date.toLocaleDateString([], { month: "short" });
 }
 
-function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }, toDisplay?: ValueReader) {
+function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }, toDisplay?: ValueReader, dealMode = false) {
   const start = customRange ? customRange.start : (period === "custom" ? new Date(0) : periodStart(period));
   // Buckets keep the earliest timestamp seen so the series can be ordered chronologically.
   // Sorting by the LABEL (localeCompare) put a year in the order Apr, Aug, Dec, Feb, Jan… and
   // a month in the order "Mar 12" before "Mar 3" — a rising series could render as falling.
   const buckets: Map<string, { revenue: number; count: number; at: number }> = new Map();
   for (const r of records) {
-    const raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
+    const stagePre = stageCol ? String(r.data[stageCol] ?? "") : "";
+    // Deal mode: a WIN sits on the time axis at its won_at; an undated win has no honest position
+    // and is skipped here (its exclusion is disclosed next to the KPI, not silently on the chart).
+    let raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
+    if (dealMode && stageCol && isWon(stagePre)) {
+      const wa = (r.data as Record<string, unknown>).won_at;
+      if (!wa || !Number.isFinite(Date.parse(String(wa)))) continue;
+      raw = String(wa);
+    }
     if (!raw) continue;
     const d = new Date(raw as string);
     if (d < start) continue;
@@ -183,7 +191,7 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
 // (data.currency, else the workspace base) into the caller's display currency. When no converter is
 // supplied it returns the raw number — so untouched callers are unchanged.
 type ValueReader = (raw: number, recordCurrency: string | null) => number;
-function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, rangeOverride?: { start: Date; end: Date }, toDisplay?: ValueReader) {
+function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, rangeOverride?: { start: Date; end: Date }, toDisplay?: ValueReader, dealMode = false) {
   const start = rangeOverride ? rangeOverride.start : periodStart(period);
   const end   = rangeOverride ? rangeOverride.end   : new Date();
   const inPeriod = records.filter(r => {
@@ -195,7 +203,24 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
   const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); if (isNaN(n)) return 0; return toDisplay ? toDisplay(n, (r.data.currency as string | undefined) ?? null) : n; };
   const getStage = (r: NodeRecord) => stageCol ? String(r.data[stageCol] ?? "") : "";
 
-  const wonRecs  = stageCol ? inPeriod.filter(r => isWon(getStage(r)))  : inPeriod;
+  // DEAL MODE — the money-model rule (lib/money.wonDate), not the generic one: a WIN belongs to the
+  // period its stamped won_at falls in, never the period someone last edited the row. MEASURED live
+  // 2026-08-18: this page said "Won Value $1.4M this month" while the telemetry strip above it said
+  // USD 800, because updated_at-dating attributed 9 undated wins to the current month. Undated wins
+  // are EXCLUDED from period figures and disclosed — the same treatment every other money surface
+  // gives them. Generic objects (visits, tasks…) keep updated_at semantics: they have no won_at.
+  let wonRecs: NodeRecord[]; let wonUndatedCount = 0; let wonUndatedValue = 0;
+  if (dealMode && stageCol) {
+    const allWon = records.filter(r => isWon(getStage(r)));
+    wonRecs = [];
+    for (const r of allWon) {
+      const wa = Date.parse(String((r.data as Record<string, unknown>).won_at ?? ""));
+      if (!Number.isFinite(wa)) { wonUndatedCount++; wonUndatedValue += getVal(r); continue; }
+      if (wa >= start.getTime() && wa <= end.getTime()) wonRecs.push(r);
+    }
+  } else {
+    wonRecs = stageCol ? inPeriod.filter(r => isWon(getStage(r))) : inPeriod;
+  }
   const lostRecs = stageCol ? inPeriod.filter(r => isLost(getStage(r))) : [];
   const openRecs = stageCol ? inPeriod.filter(r => isOpen(getStage(r))) : [];
 
@@ -206,7 +231,7 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
     ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : 0;
   const avgVal = wonRecs.length ? Math.round(wonValue / wonRecs.length) : (inPeriod.length ? Math.round(totalValue / inPeriod.length) : 0);
 
-  return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length };
+  return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length, wonUndatedCount, wonUndatedValue };
 }
 
 function pctDelta(curr: number, prev: number): number | null {
@@ -1068,15 +1093,17 @@ export function SalesReportPage() {
   const mixedCurrency = valueCurrencies.size > 1;
   const unconverted = useMemo(() => [...valueCurrencies].filter(c => c !== display && convertAmount(1, c, display, rates) == null).length, [valueCurrencies, display, rates]);
 
-  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period, customRange, toDisplay), [filteredRecords, period, valueCol, stageCol, customRange, toDisplay]);
+  // Deal-like objects follow the money model's won_at rule; everything else keeps generic dating.
+  const dealMode  = /deal/i.test(activeSlug ?? "");
+  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period, customRange, toDisplay, dealMode), [filteredRecords, period, valueCol, stageCol, customRange, toDisplay, dealMode]);
   const prevStats = useMemo(() => {
     if (period === "custom" && customRange) {
       const dur = customRange.end.getTime() - customRange.start.getTime();
-      return computeStats(filteredRecords, valueCol, stageCol, period, { start: new Date(customRange.start.getTime() - dur), end: customRange.start }, toDisplay);
+      return computeStats(filteredRecords, valueCol, stageCol, period, { start: new Date(customRange.start.getTime() - dur), end: customRange.start }, toDisplay, dealMode);
     }
     const range = prevPeriodRange(period as Exclude<Period, "custom">);
-    return computeStats(filteredRecords, valueCol, stageCol, period, range, toDisplay);
-  }, [filteredRecords, period, valueCol, stageCol, customRange, toDisplay]);
+    return computeStats(filteredRecords, valueCol, stageCol, period, range, toDisplay, dealMode);
+  }, [filteredRecords, period, valueCol, stageCol, customRange, toDisplay, dealMode]);
 
   const stageData = useMemo(() => {
     if (!stageCol) return [];
@@ -1095,7 +1122,7 @@ export function SalesReportPage() {
       .slice(0, 8);
   }, [filteredRecords, stageCol, valueCol]);
 
-  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange, toDisplay), [filteredRecords, valueCol, stageCol, period, customRange, toDisplay]);
+  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange, toDisplay, dealMode), [filteredRecords, valueCol, stageCol, period, customRange, toDisplay, dealMode]);
   // Honest value-chart gate: a value column exists but every bucket is zero → show an inline empty
   // state instead of a dead flat line (never pretend there's a value signal when there isn't one).
   const hasValueData = useMemo(() => trendData.some(d => (d.revenue ?? 0) > 0), [trendData]);
@@ -1132,11 +1159,14 @@ export function SalesReportPage() {
     const groups = serverStage.data?.groups;
     return groups ? deriveStageStats(groups as StageGroup[], !!valueCol) : null;
   }, [serverStage.data, valueCol]);
-  const kWonValue   = sStage?.wonValue ?? stats.wonValue;
-  const kCompletion = sStage?.completionRate ?? stats.completionRate;
+  // Won-derived KPIs: in deal mode the CLIENT stats win — the server stage aggregate scopes its
+  // window on updated_at, which is exactly the misdating computeStats just corrected. Open and
+  // total remain server-backed (balances are date-free).
+  const kWonValue   = dealMode ? stats.wonValue : (sStage?.wonValue ?? stats.wonValue);
+  const kCompletion = dealMode ? stats.completionRate : (sStage?.completionRate ?? stats.completionRate);
   const kOpenValue  = sStage?.openValue ?? stats.openValue;
   const kOpenCount  = sStage?.openCount ?? stats.openCount;
-  const kAvg        = sStage?.avgVal ?? stats.avgVal;
+  const kAvg        = dealMode ? stats.avgVal : (sStage?.avgVal ?? stats.avgVal);
   const serverBacked = !!serverCount.data || !!sStage;
   const serverUnconverted = (serverValue.data?.unconverted ?? 0) + (serverStage.data?.unconverted ?? 0);
 
@@ -1586,7 +1616,7 @@ export function SalesReportPage() {
               <KpiCard sym={curSym} primary
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
                 value={hasValue ? fmtMoney(hasStage ? (kWonValue || (sStage?.totalValue ?? stats.totalValue)) : kTotalValue, curSym) : fmtNum(kTotalCount)}
-                sub={hasStage ? `${sStage?.wonCount ?? stats.wonCount} completed` : `${kTotalCount} total`}
+                sub={hasStage ? `${dealMode ? stats.wonCount : (sStage?.wonCount ?? stats.wonCount)} completed${dealMode && stats.wonUndatedCount ? ` · ${stats.wonUndatedCount} undated excluded` : ""}` : `${kTotalCount} total`}
                 tone="#2f9e6b"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
@@ -1610,6 +1640,11 @@ export function SalesReportPage() {
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
             </div>
+            {dealMode && stats.wonUndatedCount > 0 && (
+              <p className="mb-2 -mt-1 text-[10px]" style={{ color: "var(--status-warn)" }}>
+                {stats.wonUndatedCount} won deal{stats.wonUndatedCount === 1 ? " carries" : "s carry"} no close date and {stats.wonUndatedCount === 1 ? "is" : "are"} excluded from period figures ({fmtMoney(stats.wonUndatedValue, curSym)}) — the same rule the Brief and downloadable reports apply.
+              </p>
+            )}
             {/* Honest provenance for the switched KPIs — server totals over the WHOLE table (period +
                 filters scoped), truncated/unconverted flagged; a plain client-500 note otherwise. */}
             {serverBacked && (() => {
