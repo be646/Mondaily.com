@@ -320,7 +320,8 @@ function openAIClient(taskClass?: string): OpenAI {
   // patient timeout; the fast-fail philosophy stays for the external gateway.
   if (classIsSovereign(taskClass)) {
     const cfg = sovereignBackendConfig();   // throws honestly when unconfigured
-    return new OpenAI({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 60000, maxRetries: 1 });
+    // Cold prompts prefill slowly on CPU (measured: a 3.5k-token prompt needs >60s uncached).
+    return new OpenAI({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 100000, maxRetries: 0 });
   }
   const { baseURL, apiKey } = gatewayEnv();
 
@@ -651,7 +652,7 @@ async function runOpenAICompatAgent(
   const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg
-    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 60000, maxRetries: 1 })
+    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 100000, maxRetries: 0 })
     : new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride!;
 
@@ -975,7 +976,7 @@ async function runOpenAICompatAgentStream(
   const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg
-    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 60000, maxRetries: 1 })
+    ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 100000, maxRetries: 0 })
     : new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride!;
 

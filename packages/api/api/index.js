@@ -56070,7 +56070,7 @@ function gatewayEnv() {
 function openAIClient(taskClass) {
   if (classIsSovereign(taskClass)) {
     const cfg = sovereignBackendConfig();
-    return new openai_default({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 6e4, maxRetries: 1 });
+    return new openai_default({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 1e5, maxRetries: 0 });
   }
   const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL) {
@@ -56289,7 +56289,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   }
   const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
-  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 6e4, maxRetries: 1 }) : new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
+  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 1e5, maxRetries: 0 }) : new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride;
   const openaiTools = req.tools.map((t3) => ({
     type: "function",
@@ -56498,7 +56498,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
   const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
-  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 6e4, maxRetries: 1 }) : new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
+  const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 1e5, maxRetries: 0 }) : new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride;
   const openaiTools = req.tools.map((t3) => ({
     type: "function",
