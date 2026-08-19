@@ -95,3 +95,16 @@ describe("B2/B3 instrumentation — measure before optimizing", () => {
     expect(readiness).toMatch(/embeddings_live && \(embeddings_indexed_rows \?\? 0\) > 0 \? "ready" : "partial"/);
   });
 });
+
+describe("chat's cache status is finally captured — the 1.2M-token blind spot", () => {
+  const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+
+  it("both multi-round chat paths accumulate cache evidence and record hit/miss/unknown honestly", () => {
+    // Agent path: evidence gathered per round inside addUsage.
+    expect(gw).toMatch(/if \(typeof ct === "number"\) \{ cacheReported = true; cachedTokens \+= ct; \}/);
+    expect(gw).toMatch(/cacheStatus: cacheReported \? \(cachedTokens > 0 \? "hit" : "miss"\) : undefined/);
+    // Stream path: evidence from the include_usage chunks.
+    expect(gw).toMatch(/if \(typeof ct === "number"\) \{ streamCacheReported = true; streamCachedTokens \+= ct; \}/);
+    expect(gw).toMatch(/cacheStatus: streamCacheReported \? \(streamCachedTokens > 0 \? "hit" : "miss"\) : undefined/);
+  });
+});

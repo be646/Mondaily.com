@@ -663,12 +663,18 @@ async function runOpenAICompatAgent(
   // Resolve active model — may be swapped to a fallback on 404
   let activeModel = modelId;
   const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-  const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } } | null) => {
+  // Cache evidence across the WHOLE multi-round turn. The measurement gap this closes: every
+  // single-shot path recorded cacheStatus, but chat — 1.2M of the 1.3M tokens — never did, so the
+  // console showed cache rates for everything except the one feature where caching matters.
+  let cacheReported = false; let cachedTokens = 0;
+  const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number }; prompt_tokens_details?: { cached_tokens?: number } } | null) => {
     if (!u) return;
     usage.prompt_tokens += u.prompt_tokens ?? 0;
     usage.completion_tokens += u.completion_tokens ?? 0;
     usage.total_tokens += u.total_tokens ?? 0;
     if (u.completion_tokens_details?.reasoning_tokens) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + u.completion_tokens_details.reasoning_tokens;
+    const ct = u.prompt_tokens_details?.cached_tokens;
+    if (typeof ct === "number") { cacheReported = true; cachedTokens += ct; }
   };
 
   // Tool output is re-sent on every later round, so it is budgeted across the WHOLE turn, not
@@ -761,7 +767,8 @@ async function runOpenAICompatAgent(
   }
 
   const finalUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount,
+    cacheStatus: cacheReported ? (cachedTokens > 0 ? "hit" : "miss") : undefined });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 
@@ -966,6 +973,7 @@ async function runOpenAICompatAgentStream(
   let rounds = 0;
   const t0 = Date.now();
   const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  let streamCacheReported = false; let streamCachedTokens = 0;   // cache evidence across all rounds
 
   // Tool output is re-sent on every later round, so it is budgeted across the WHOLE turn, not
   // per call. See boundToolResult.
@@ -1002,6 +1010,10 @@ async function runOpenAICompatAgentStream(
         // The final chunk (with include_usage) carries real token usage and an
         // empty choices array — accumulate it across all tool rounds.
         if (chunk.usage) {
+          {
+            const ct = (chunk.usage as { prompt_tokens_details?: { cached_tokens?: number } }).prompt_tokens_details?.cached_tokens;
+            if (typeof ct === "number") { streamCacheReported = true; streamCachedTokens += ct; }
+          }
           usage.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
           usage.completion_tokens += chunk.usage.completion_tokens ?? 0;
           usage.total_tokens += chunk.usage.total_tokens ?? 0;
@@ -1109,6 +1121,7 @@ async function runOpenAICompatAgentStream(
   }
 
   const streamUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount,
+    cacheStatus: streamCacheReported ? (streamCachedTokens > 0 ? "hit" : "miss") : undefined });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }

@@ -56291,12 +56291,19 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   const t0 = Date.now();
   let activeModel = modelId;
   const usage2 = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  let cacheReported = false;
+  let cachedTokens = 0;
   const addUsage = (u2) => {
     if (!u2) return;
     usage2.prompt_tokens += u2.prompt_tokens ?? 0;
     usage2.completion_tokens += u2.completion_tokens ?? 0;
     usage2.total_tokens += u2.total_tokens ?? 0;
     if (u2.completion_tokens_details?.reasoning_tokens) usage2.reasoning_tokens = (usage2.reasoning_tokens ?? 0) + u2.completion_tokens_details.reasoning_tokens;
+    const ct2 = u2.prompt_tokens_details?.cached_tokens;
+    if (typeof ct2 === "number") {
+      cacheReported = true;
+      cachedTokens += ct2;
+    }
   };
   let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
@@ -56371,7 +56378,15 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     }
   }
   const finalUsage = usage2.total_tokens > 0 ? usage2 : void 0;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel2(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, {
+    userId: req.userId,
+    feature: req.feature,
+    taskClass: req.taskClass,
+    provider: backendLabel2(),
+    latencyMs: Date.now() - t0,
+    sourceCount: req.sourceCount,
+    cacheStatus: cacheReported ? cachedTokens > 0 ? "hit" : "miss" : void 0
+  });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 async function aiGatewayAgent(req) {
@@ -56480,6 +56495,8 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   let rounds = 0;
   const t0 = Date.now();
   const usage2 = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  let streamCacheReported = false;
+  let streamCachedTokens = 0;
   let toolCharsSpent = 0;
   for (let round = 0; round < maxRounds; round++) {
     if (round > 0 && budgetLeft() < 12e3) {
@@ -56505,6 +56522,13 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       });
       for await (const chunk of stream2) {
         if (chunk.usage) {
+          {
+            const ct2 = chunk.usage.prompt_tokens_details?.cached_tokens;
+            if (typeof ct2 === "number") {
+              streamCacheReported = true;
+              streamCachedTokens += ct2;
+            }
+          }
           usage2.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
           usage2.completion_tokens += chunk.usage.completion_tokens ?? 0;
           usage2.total_tokens += chunk.usage.total_tokens ?? 0;
@@ -56590,7 +56614,15 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
     }
   }
   const streamUsage = usage2.total_tokens > 0 ? usage2 : void 0;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel2(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, {
+    userId: req.userId,
+    feature: req.feature,
+    taskClass: req.taskClass,
+    provider: backendLabel2(),
+    latencyMs: Date.now() - t0,
+    sourceCount: req.sourceCount,
+    cacheStatus: streamCacheReported ? streamCachedTokens > 0 ? "hit" : "miss" : void 0
+  });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
 var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, TOOL_RESULT_CHAR_CAP, TOOL_BUDGET_CHAR_CAP, TOOLLESS_RETRY_NOTE, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
