@@ -16,10 +16,38 @@
  *      SOVEREIGN_VLLM_MODEL=<served model id> · SOVEREIGN_VLLM_KEY (optional; vLLM often keyless)
  */
 
-export type InferenceMode = "gateway" | "sovereign_vllm";
+export type InferenceMode = "gateway" | "sovereign_vllm" | "hybrid_sovereign";
 
 export function inferenceMode(): InferenceMode {
-  return (process.env.SOVEREIGN_INFERENCE_MODE ?? "").trim() === "sovereign_vllm" ? "sovereign_vllm" : "gateway";
+  const m = (process.env.SOVEREIGN_INFERENCE_MODE ?? "").trim();
+  if (m === "sovereign_vllm") return "sovereign_vllm";
+  if (m === "hybrid_sovereign") return "hybrid_sovereign";
+  return "gateway";
+}
+
+/**
+ * HYBRID mode — the long-term bridge until the sovereign engine can carry everything.
+ *
+ * Task classes listed in AI_SOVEREIGN_CLASSES run on the self-hosted engine; everything else stays
+ * on the external gateway. The default is "fast" ONLY, and that is evidence, not caution theater:
+ * the shadow evaluation measured the current CPU engine (qwen2.5:3b, 1-token TTFT ≈ 4.7s) at 93%
+ * error on extraction and 5% similarity on tool tasks — routing those there would corrupt real
+ * records. Conversational fast turns are short-prompt, tool-free, and quality-tolerant. As the
+ * engine grows (bigger CCX box, 7B–14B model, later GPU), classes move over by CHANGING THIS ENV —
+ * never by silent promotion. Same fail-closed contract: a sovereign-routed class with a dead engine
+ * errors honestly, it never leaks back to the cloud.
+ */
+export function sovereignClasses(): Set<string> {
+  const raw = (process.env.AI_SOVEREIGN_CLASSES ?? "fast").trim();
+  return new Set(raw.split(",").map(s2 => s2.trim()).filter(Boolean));
+}
+
+/** Should THIS task class run on the self-hosted engine? */
+export function classIsSovereign(taskClass: string | undefined): boolean {
+  const mode = inferenceMode();
+  if (mode === "sovereign_vllm") return true;
+  if (mode !== "hybrid_sovereign") return false;
+  return sovereignClasses().has((taskClass ?? "").trim());
 }
 
 export interface BackendConfig { kind: InferenceMode; baseURL: string; apiKey: string; modelOverride: string | null }

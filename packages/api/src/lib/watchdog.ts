@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { sendPlatformEmail, sovereignRelayStatus } from "./mail";
 import { gatewayHealthCheck } from "./ai-gateway";
+import { sovereignVllmProbe, sovereignVllmConfigured, inferenceMode } from "./inference-backend";
 import { OWNER_EMAILS } from "./owner";
 
 /**
@@ -76,6 +77,15 @@ export async function runChecks(): Promise<CheckResult[]> {
         if (!h.baseURLHost) return { name: "ai_gateway", ok: true, detail: "not configured — not monitored" };
         return { name: "ai_gateway", ok: h.ok, detail: h.ok ? "answers" : (h.error ?? h.note ?? "probe failed").slice(0, 120) };
       } catch (e) { return { name: "ai_gateway", ok: false, detail: String(e).slice(0, 120) }; }
+    })(),
+    // The sovereign inference engine — the box hybrid mode routes real traffic to. Same live-probe
+    // rule; "not configured" is a choice, not an outage.
+    (async (): Promise<CheckResult> => {
+      try {
+        if (!sovereignVllmConfigured()) return { name: "sovereign_inference", ok: true, detail: "not configured — not monitored" };
+        const pr = await sovereignVllmProbe();
+        return { name: "sovereign_inference", ok: pr.ok, detail: pr.ok ? `serves ${pr.served_models[0] ?? "?"} · ttft ${pr.ttft_ms ?? "?"}ms (mode ${inferenceMode()})` : (pr.error ?? "probe failed").slice(0, 120) };
+      } catch (e) { return { name: "sovereign_inference", ok: false, detail: String(e).slice(0, 120) }; }
     })(),
     // The appliance boxes — live HTTP, not env presence.
     probeUrl("search_appliance", process.env.SOVEREIGN_SEARCH_URL),

@@ -72,9 +72,9 @@ describe("Phase 1 — gateway still sovereign + fail-closed", () => {
 
   it("task-class routing only overrides the model additively (no class → resolveModel default)", () => {
     // aiGateway resolves via modelForClass(req.taskClass); undefined → resolveModel() default.
-    expect(gatewaySrc).toMatch(/resolveModel\(modelForClass\(req\.taskClass\)\)/);
+    expect(gatewaySrc).toMatch(/resolveModel\(modelForClass\(req\.taskClass\), req\.taskClass\)/);   // taskClass also picks the BACKEND in hybrid mode
     // Tool-use: explicit model wins, else task-class, else default.
-    expect(gatewaySrc).toMatch(/resolveModel\(req\.model \?\? modelForClass\(req\.taskClass\)\)/);
+    expect(gatewaySrc).toMatch(/resolveModel\(req\.model \?\? modelForClass\(req\.taskClass\), req\.taskClass \?\? "extraction"\)/);
   });
 
   it("captures latency + cache status around the real completion call", () => {

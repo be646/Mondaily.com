@@ -116,3 +116,33 @@ describe("the AI gateway is watched with a REAL probe — presence-only stayed s
     expect(lib).toMatch(/name: "ai_gateway", ok: true, detail: "not configured — not monitored"/);
   });
 });
+
+describe("hybrid sovereign inference — the no-GPU bridge, evidence-gated", () => {
+  const backend = readFileSync(join(__dirname, "../lib/inference-backend.ts"), "utf8");
+  const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+  const wd = readFileSync(join(__dirname, "../lib/watchdog.ts"), "utf8");
+
+  it("hybrid routes ONLY env-listed classes to the self-hosted engine; default is fast alone", () => {
+    expect(backend).toContain('if (m === "hybrid_sovereign") return "hybrid_sovereign";');
+    expect(backend).toContain('process.env.AI_SOVEREIGN_CLASSES ?? "fast"');
+    // Promotion is a deliberate env change, never automatic — the shadow numbers say why.
+    expect(backend).toContain("never by silent promotion");
+    expect(backend).toContain("93%");
+  });
+
+  it("the gateway threads taskClass into client + model resolution, fail-closed per class", () => {
+    expect(gw).toContain("function openAIClient(taskClass?: string): OpenAI");
+    expect(gw).toContain("if (classIsSovereign(taskClass)) {");
+    expect(gw).toMatch(/resolveModel\(modelForClass\(req\.taskClass\), req\.taskClass\)/);
+  });
+
+  it("a 402 tells users the TRUTH (capacity, team alerted) — not a fake connectivity problem", () => {
+    expect(gw).toContain("const paymentBlocked = (primaryErr as { status?: number } | null)?.status === 402;");
+    expect(gw).toContain("AI capacity is exhausted right now");
+  });
+
+  it("the watchdog probes the sovereign engine the moment real traffic can route to it", () => {
+    expect(wd).toContain("sovereignVllmProbe()");
+    expect(wd).toMatch(/name: "sovereign_inference", ok: true, detail: "not configured — not monitored"/);
+  });
+});

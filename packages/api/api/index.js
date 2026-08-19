@@ -55851,7 +55851,20 @@ var init_ai_router = __esm({
 
 // src/lib/inference-backend.ts
 function inferenceMode() {
-  return (process.env.SOVEREIGN_INFERENCE_MODE ?? "").trim() === "sovereign_vllm" ? "sovereign_vllm" : "gateway";
+  const m2 = (process.env.SOVEREIGN_INFERENCE_MODE ?? "").trim();
+  if (m2 === "sovereign_vllm") return "sovereign_vllm";
+  if (m2 === "hybrid_sovereign") return "hybrid_sovereign";
+  return "gateway";
+}
+function sovereignClasses() {
+  const raw2 = (process.env.AI_SOVEREIGN_CLASSES ?? "fast").trim();
+  return new Set(raw2.split(",").map((s2) => s2.trim()).filter(Boolean));
+}
+function classIsSovereign(taskClass) {
+  const mode = inferenceMode();
+  if (mode === "sovereign_vllm") return true;
+  if (mode !== "hybrid_sovereign") return false;
+  return sovereignClasses().has((taskClass ?? "").trim());
 }
 function sovereignBackendConfig() {
   const baseURL = (process.env.SOVEREIGN_VLLM_URL ?? "").trim();
@@ -55991,8 +56004,8 @@ function cacheStatusFrom(usage2) {
   if (typeof cached !== "number") return null;
   return cached > 0 ? "hit" : "miss";
 }
-function resolveModel(spec) {
-  if (inferenceMode() === "sovereign_vllm") {
+function resolveModel(spec, taskClass) {
+  if (classIsSovereign(taskClass)) {
     return { type: "openai-compat", modelId: sovereignBackendConfig().modelOverride };
   }
   const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
@@ -56054,10 +56067,10 @@ function gatewayEnv() {
     apiKey: process.env.AI_GATEWAY_API_KEY
   };
 }
-function openAIClient() {
-  if (inferenceMode() === "sovereign_vllm") {
+function openAIClient(taskClass) {
+  if (classIsSovereign(taskClass)) {
     const cfg = sovereignBackendConfig();
-    return new openai_default({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 22e3, maxRetries: 1 });
+    return new openai_default({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 6e4, maxRetries: 1 });
   }
   const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL) {
@@ -56142,12 +56155,12 @@ async function aiGateway(req) {
     if (e2 instanceof CreditsExhaustedError) return { text: e2.message, provider: "none", model: "none" };
     throw e2;
   }
-  const resolved = resolveModel(modelForClass(req.taskClass));
+  const resolved = resolveModel(modelForClass(req.taskClass), req.taskClass);
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
   const t0 = Date.now();
-  const completion = await openAIClient().chat.completions.create({
+  const completion = await openAIClient(req.taskClass).chat.completions.create({
     model: resolved.modelId,
     // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
     // the answer in `content`; a small budget gets fully consumed by reasoning
@@ -56184,12 +56197,12 @@ async function aiGateway(req) {
 }
 async function aiGatewayToolUse(req) {
   await assertCreditsOk(req.workspaceId);
-  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass));
+  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass), req.taskClass ?? "extraction");
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
   const t0 = Date.now();
-  const completion = await openAIClient().chat.completions.create({
+  const completion = await openAIClient(req.taskClass ?? "extraction").chat.completions.create({
     model: resolved.modelId,
     max_tokens: req.maxTokens ?? 1024,
     messages,
@@ -56408,6 +56421,7 @@ async function aiGatewayAgent(req) {
     lastGatewayError = { at: `agent-primary/${resolved.modelId}`, message: primaryErr?.message ?? String(primaryErr), status: primaryErr?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
     const rateLimited = primaryErr?.status === 429 || /\b429\b|rate limit/i.test(String(primaryErr?.message ?? ""));
+    const paymentBlocked = primaryErr?.status === 402;
     if (rateLimited) {
       await new Promise((res) => setTimeout(res, retryAfterMs(primaryErr)));
       const fb = resolveModel(FAST_MODEL_SPEC);
@@ -56416,7 +56430,7 @@ async function aiGatewayAgent(req) {
     }
     console.error(`[gateway:agent] gateway exhausted \u2014 returning graceful reply (rateLimited=${rateLimited})`);
     return {
-      reply: rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
+      reply: rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : paymentBlocked ? "Mondaily's AI capacity is exhausted right now \u2014 the team has been alerted and it will be restored shortly. Everything else keeps working, and nothing you asked for was lost." : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
       provider: "none",
       model: "none",
       rounds: 0
@@ -64737,6 +64751,17 @@ async function runChecks() {
         return { name: "ai_gateway", ok: false, detail: String(e2).slice(0, 120) };
       }
     })(),
+    // The sovereign inference engine — the box hybrid mode routes real traffic to. Same live-probe
+    // rule; "not configured" is a choice, not an outage.
+    (async () => {
+      try {
+        if (!sovereignVllmConfigured()) return { name: "sovereign_inference", ok: true, detail: "not configured \u2014 not monitored" };
+        const pr2 = await sovereignVllmProbe();
+        return { name: "sovereign_inference", ok: pr2.ok, detail: pr2.ok ? `serves ${pr2.served_models[0] ?? "?"} \xB7 ttft ${pr2.ttft_ms ?? "?"}ms (mode ${inferenceMode()})` : (pr2.error ?? "probe failed").slice(0, 120) };
+      } catch (e2) {
+        return { name: "sovereign_inference", ok: false, detail: String(e2).slice(0, 120) };
+      }
+    })(),
     // The appliance boxes — live HTTP, not env presence.
     probeUrl("search_appliance", process.env.SOVEREIGN_SEARCH_URL),
     probeUrl("stt_appliance", process.env.SOVEREIGN_STT_URL),
@@ -64823,6 +64848,7 @@ var init_watchdog = __esm({
     init_client();
     init_mail();
     init_ai_gateway();
+    init_inference_backend();
     init_owner();
     STATE_BUCKET = "platform-state";
     STATE_PATH = "watchdog.json";

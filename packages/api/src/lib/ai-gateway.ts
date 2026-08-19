@@ -30,7 +30,7 @@ import OpenAI from "openai";
 import { recordAiUsage } from "./ai-usage";
 import { assertCreditsOk, CreditsExhaustedError } from "./credits";
 import { modelForClass, backendLabel as routerBackendLabel, type TaskClass } from "./ai-router";
-import { inferenceMode, sovereignBackendConfig } from "./inference-backend";
+import { inferenceMode, sovereignBackendConfig, classIsSovereign } from "./inference-backend";
 import { maybeShadowMirror } from "./inference-shadow";
 
 /** Observability label for the ACTIVE backend — "sovereign-vllm" when the local engine serves. */
@@ -113,10 +113,11 @@ type ResolvedModel = { type: "openai-compat"; modelId: string };
 // No proprietary Anthropic/OpenAI endpoint is referenced at the default layer.
 export const DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
 
-function resolveModel(spec?: string): ResolvedModel {
-  // Sovereign mode serves ONE declared model — the engine's served id overrides every spec so a
-  // task-class alias can never request a model the local engine doesn't host.
-  if (inferenceMode() === "sovereign_vllm") {
+function resolveModel(spec?: string, taskClass?: string): ResolvedModel {
+  // Sovereign-routed classes serve ONE declared model — the engine's served id overrides every
+  // spec so a task-class alias can never request a model the local engine doesn't host. In hybrid
+  // mode this applies ONLY to the classes evidence has cleared (see inference-backend).
+  if (classIsSovereign(taskClass)) {
     return { type: "openai-compat", modelId: sovereignBackendConfig().modelOverride! };
   }
   const s = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
@@ -312,12 +313,14 @@ export function gatewayEnv(): { baseURL?: string; apiKey?: string } {
   };
 }
 
-function openAIClient(): OpenAI {
-  // Backend registry: sovereign vLLM mode routes to the self-hosted engine and FAILS CLOSED when
+function openAIClient(taskClass?: string): OpenAI {
+  // Backend registry: sovereign-routed classes go to the self-hosted engine and FAIL CLOSED when
   // it's unconfigured/unreachable — never a silent fallback across the sovereignty boundary.
-  if (inferenceMode() === "sovereign_vllm") {
+  // CPU engines are slow by nature (measured 1-token TTFT ≈ 4.7s), so the sovereign client gets a
+  // patient timeout; the fast-fail philosophy stays for the external gateway.
+  if (classIsSovereign(taskClass)) {
     const cfg = sovereignBackendConfig();   // throws honestly when unconfigured
-    return new OpenAI({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 22000, maxRetries: 1 });
+    return new OpenAI({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 60000, maxRetries: 1 });
   }
   const { baseURL, apiKey } = gatewayEnv();
 
@@ -438,14 +441,14 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
 
   // Task-class routing (additive): when a taskClass is given, resolve its model via the router;
   // otherwise resolveModel() keeps the exact prior default. Never selects a proprietary provider.
-  const resolved = resolveModel(modelForClass(req.taskClass));
+  const resolved = resolveModel(modelForClass(req.taskClass), req.taskClass);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
   const t0 = Date.now();
-  const completion = await openAIClient().chat.completions.create({
+  const completion = await openAIClient(req.taskClass).chat.completions.create({
     model: resolved.modelId,
     // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
     // the answer in `content`; a small budget gets fully consumed by reasoning
@@ -486,14 +489,14 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   await assertCreditsOk(req.workspaceId);
   // Explicit model wins; else task-class routing; else gateway default. Additive — unchanged when
   // neither is provided.
-  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass));
+  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass), req.taskClass ?? "extraction");
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
   const t0 = Date.now();
-  const completion = await openAIClient().chat.completions.create({
+  const completion = await openAIClient(req.taskClass ?? "extraction").chat.completions.create({
     model: resolved.modelId,
     max_tokens: req.maxTokens ?? 1024,
     messages,
@@ -817,6 +820,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
      * thing.
      */
     const rateLimited = primaryErr?.status === 429 || /\b429\b|rate limit/i.test(String(primaryErr?.message ?? ""));
+    const paymentBlocked = (primaryErr as { status?: number } | null)?.status === 402;
     if (rateLimited) {
       await new Promise(res => setTimeout(res, retryAfterMs(primaryErr)));
       const fb = resolveModel(FAST_MODEL_SPEC);
@@ -832,7 +836,9 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     return {
       reply: rateLimited
         ? "⏳ Mondaily AI is at its current throughput limit — give it about a minute and try again. High-volume plans get higher limits."
-        : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
+        : paymentBlocked
+          ? "Mondaily's AI capacity is exhausted right now — the team has been alerted and it will be restored shortly. Everything else keeps working, and nothing you asked for was lost."
+          : "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
       provider: "none",
       model: "none",
       rounds: 0,
