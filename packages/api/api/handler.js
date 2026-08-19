@@ -77667,8 +77667,9 @@ async function supportToolExec(name, input, ws, userId, route, ctx, log2) {
       log2.push({ tool: name, summary: "Bug report REJECTED as too thin \u2014 write a fuller one" });
       return `Your report was too thin to file: ${created.rejected.error} Write a fuller subject + details and call file_bug_report again.`;
     }
-    log2.push({ tool: name, summary: created ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
-    return created ? `Bug report filed (id ${created.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.` : "Filing failed \u2014 apologise and ask the user to use the Create support request button instead.";
+    const filedOk = created && "id" in created ? created : null;
+    log2.push({ tool: name, summary: filedOk ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
+    return filedOk ? `Bug report filed (id ${filedOk.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.` : "Filing failed \u2014 apologise and ask the user to use the Create support request button instead.";
   }
   if (name === "propose_win_close_dates") {
     const proposals = await proposeWinDates(ws, {});
@@ -77970,7 +77971,7 @@ router22.post("/tickets", zValidator2("json", external_exports.object({
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = c2.req.valid("json");
-  const created = await createSupportTicketFull(ws, userId, body);
+  const created = await createSupportTicketFull(ws, userId, { category: body.category, subject: body.subject, message: body.message, route: body.route, metadata: body.metadata });
   if (created && "rejected" in created) return c2.json({ error: created.rejected.error, needs_more_info: true, questions: created.rejected.questions }, 422);
   if (!created || !("id" in created)) return c2.json({ error: "Could not create the support request." }, 500);
   return c2.json({ id: created.id, status: "open", created_at: created.created_at }, 201);

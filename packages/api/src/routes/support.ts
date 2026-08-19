@@ -339,9 +339,10 @@ async function supportToolExec(
       log.push({ tool: name, summary: "Bug report REJECTED as too thin — write a fuller one" });
       return `Your report was too thin to file: ${created.rejected.error} Write a fuller subject + details and call file_bug_report again.`;
     }
-    log.push({ tool: name, summary: created ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
-    return created
-      ? `Bug report filed (id ${created.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.`
+    const filedOk = created && "id" in created ? created : null;
+    log.push({ tool: name, summary: filedOk ? `Filed bug report: "${subject}"` : "Bug report filing FAILED" });
+    return filedOk
+      ? `Bug report filed (id ${filedOk.id}) with full workspace diagnostics attached. The Mondaily team is notified by email. Tell the user it is filed and summarize what you wrote.`
       : "Filing failed — apologise and ask the user to use the Create support request button instead.";
   }
   if (name === "propose_win_close_dates") {
@@ -621,7 +622,7 @@ router.post("/tickets", zValidator("json", z.object({
 })), async (c) => {
   const ws = c.get("workspaceId"); const userId = c.get("userId");
   const body = c.req.valid("json");
-  const created = await createSupportTicketFull(ws, userId, body);
+  const created = await createSupportTicketFull(ws, userId, { category: body.category, subject: body.subject, message: body.message, route: body.route, metadata: body.metadata });
   // Reject empty / whitespace / one-word junk with a helpful nudge (422) — never a silent fail or a
   // hollow ticket. The guard lives inside the ONE creation path (agent-filed tickets clear it too).
   if (created && "rejected" in created) return c.json({ error: created.rejected.error, needs_more_info: true, questions: created.rejected.questions }, 422);

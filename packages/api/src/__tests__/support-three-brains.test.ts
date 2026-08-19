@@ -44,7 +44,7 @@ describe("the repair brain never mutates through Ask tools — its writes are th
     expect(support).toContain("async function createSupportTicketFull(");
     expect(support).toMatch(/const created = await createSupportTicketFull\(ws, userId, \{\s*category: "bug_report"/);
     // The route uses the same function — an agent-filed ticket must not be a lesser ticket.
-    expect(support).toContain("const created = await createSupportTicketFull(ws, userId, body);");
+    expect(support).toMatch(/const created = await createSupportTicketFull\(ws, userId, \{ category: body\.category/);   // explicit args — the deploy tsc infers zod fields optional
   });
 
   it("the close-date tool is a DRY RUN that points at the supervised screen", () => {
