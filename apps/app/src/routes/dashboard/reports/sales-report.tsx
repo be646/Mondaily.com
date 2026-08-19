@@ -10,6 +10,7 @@ import { EmptyState } from "../../../components/ui/page-state";
 import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
+import { isOpenStage } from "@mondaily/shared/deal-stage";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FieldSelect, FilterButton } from "../../../components/ui/controls";
 import { SegmentedControl } from "../../../components/ui/segmented";
@@ -222,7 +223,23 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
     wonRecs = stageCol ? inPeriod.filter(r => isWon(getStage(r))) : inPeriod;
   }
   const lostRecs = stageCol ? inPeriod.filter(r => isLost(getStage(r))) : [];
-  const openRecs = stageCol ? inPeriod.filter(r => isOpen(getStage(r))) : [];
+  // DEAL MODE — open means AT a pipeline stage (the shared isOpenStage), measured as a BALANCE over
+  // all records, and it is the third of the three "open" definitions this codebase had: "not
+  // closed" (here) also summed On Hold and unstaged deals. MEASURED 2026-08-19: this page said
+  // $3.2M/29 open, the outcomes strip $3,168,310/28, the money model $3,070,412/21 — one screen,
+  // three answers. The remainder is DISCLOSED, never summed.
+  let openRecs: NodeRecord[]; let openExcludedCount = 0; let openExcludedValue = 0;
+  if (dealMode && stageCol) {
+    openRecs = [];
+    for (const r of records) {
+      const st = getStage(r).trim();
+      if (isWon(st) || isLost(st)) continue;
+      if (isOpenStage(st)) openRecs.push(r);
+      else { openExcludedCount++; openExcludedValue += getVal(r); }
+    }
+  } else {
+    openRecs = stageCol ? inPeriod.filter(r => isOpen(getStage(r))) : [];
+  }
 
   const totalValue   = inPeriod.reduce((s,r) => s + getVal(r), 0);
   const wonValue     = wonRecs.reduce((s,r) => s + getVal(r), 0);
@@ -231,7 +248,79 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
     ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : 0;
   const avgVal = wonRecs.length ? Math.round(wonValue / wonRecs.length) : (inPeriod.length ? Math.round(totalValue / inPeriod.length) : 0);
 
-  return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length, wonUndatedCount, wonUndatedValue };
+  return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length, wonUndatedCount, wonUndatedValue, openExcludedCount, openExcludedValue };
+}
+
+/**
+ * The undated-wins disclosure, with a PATH TO ACT: the supervised backfill the API already ships
+ * (POST /periods/backfill-wins — dry-run by default, evidence-only, owner/admin-gated server-side).
+ * Review shows each proposal WITH its evidence; Apply writes only the evidence-backed dates. Deals
+ * without evidence stay undated — a fabricated close date is worse than a disclosed gap.
+ */
+interface WinProposal { deal_id: string; title: string; amount: number; proposed_closed_at: string | null; source: string; evidence_detail: string }
+function UndatedWinsPanel({ count, value, onApplied }: { count: number; value: string; onApplied: () => void }) {
+  const [state, setState] = useState<"idle" | "loading" | "review" | "applying" | "done" | "error">("idle");
+  const [proposals, setProposals] = useState<WinProposal[]>([]);
+  const [err, setErr] = useState("");
+  const review = async () => {
+    setState("loading");
+    try {
+      const r = await apiClient.post<{ proposals: WinProposal[] }>("/periods/backfill-wins", { dry_run: true });
+      setProposals(r.proposals ?? []); setState("review");
+    } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setState("error"); }
+  };
+  const apply = async () => {
+    setState("applying");
+    try {
+      await apiClient.post("/periods/backfill-wins", { dry_run: false });
+      setState("done"); onApplied();
+    } catch (e) { setErr(e instanceof Error ? e.message : "failed"); setState("error"); }
+  };
+  const withEvidence = proposals.filter(p => p.proposed_closed_at);
+  return (
+    <div className="mb-2 -mt-1">
+      <p className="text-caption" style={{ color: "var(--status-warn)" }}>
+        {count} won deal{count === 1 ? " carries" : "s carry"} no close date and {count === 1 ? "is" : "are"} excluded from period figures ({value}) — the same rule the Brief and downloadable reports apply.
+        {state === "idle" && (
+          <button onClick={() => void review()} className="ml-2 underline hover:opacity-80" style={{ color: "var(--text-muted)" }}>
+            Review evidence-backed close dates
+          </button>
+        )}
+        {state === "loading" && <span className="ml-2" style={{ color: "var(--text-faint)" }}>checking the activity history…</span>}
+        {state === "error" && <span className="ml-2" style={{ color: "var(--status-error)" }}>{err}</span>}
+      </p>
+      {(state === "review" || state === "applying") && (
+        <div className="mt-1.5 rounded-md border p-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          {proposals.length === 0 ? (
+            <p className="text-caption" style={{ color: "var(--text-faint)" }}>No undated wins found on re-check.</p>
+          ) : (
+            <>
+              {proposals.map(p => (
+                <div key={p.deal_id} className="flex flex-wrap items-baseline gap-2 border-b py-1 text-caption last:border-b-0" style={{ borderColor: "var(--border-soft)" }}>
+                  <span className="min-w-0 truncate font-medium" style={{ color: "var(--text-primary)" }}>{p.title}</span>
+                  {p.proposed_closed_at
+                    ? <span style={{ color: "var(--text-secondary)" }}>→ {p.proposed_closed_at.slice(0, 10)} <span style={{ color: "var(--text-faint)" }}>({p.source}: {p.evidence_detail})</span></span>
+                    : <span style={{ color: "var(--text-faint)" }}>no evidence — stays undated</span>}
+                </div>
+              ))}
+              <div className="mt-2 flex items-center gap-2">
+                {withEvidence.length > 0 ? (
+                  <button onClick={() => void apply()} disabled={state === "applying"}
+                    className="rounded-md border px-2.5 py-1 text-caption font-medium transition-colors hover:opacity-80"
+                    style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--text-primary)" }}>
+                    {state === "applying" ? "Applying…" : `Apply ${withEvidence.length} evidence-backed date${withEvidence.length === 1 ? "" : "s"}`}
+                  </button>
+                ) : (
+                  <span className="text-caption" style={{ color: "var(--text-faint)" }}>None of these have evidence — nothing to apply. They stay disclosed, not invented.</span>
+                )}
+                <button onClick={() => setState("idle")} className="text-caption underline" style={{ color: "var(--text-muted)" }}>Close</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function pctDelta(curr: number, prev: number): number | null {
@@ -1164,8 +1253,8 @@ export function SalesReportPage() {
   // total remain server-backed (balances are date-free).
   const kWonValue   = dealMode ? stats.wonValue : (sStage?.wonValue ?? stats.wonValue);
   const kCompletion = dealMode ? stats.completionRate : (sStage?.completionRate ?? stats.completionRate);
-  const kOpenValue  = sStage?.openValue ?? stats.openValue;
-  const kOpenCount  = sStage?.openCount ?? stats.openCount;
+  const kOpenValue  = dealMode ? stats.openValue : (sStage?.openValue ?? stats.openValue);
+  const kOpenCount  = dealMode ? stats.openCount : (sStage?.openCount ?? stats.openCount);
   const kAvg        = dealMode ? stats.avgVal : (sStage?.avgVal ?? stats.avgVal);
   const serverBacked = !!serverCount.data || !!sStage;
   const serverUnconverted = (serverValue.data?.unconverted ?? 0) + (serverStage.data?.unconverted ?? 0);
@@ -1641,9 +1730,7 @@ export function SalesReportPage() {
               />
             </div>
             {dealMode && stats.wonUndatedCount > 0 && (
-              <p className="mb-2 -mt-1 text-[10px]" style={{ color: "var(--status-warn)" }}>
-                {stats.wonUndatedCount} won deal{stats.wonUndatedCount === 1 ? " carries" : "s carry"} no close date and {stats.wonUndatedCount === 1 ? "is" : "are"} excluded from period figures ({fmtMoney(stats.wonUndatedValue, curSym)}) — the same rule the Brief and downloadable reports apply.
-              </p>
+              <UndatedWinsPanel count={stats.wonUndatedCount} value={fmtMoney(stats.wonUndatedValue, curSym)} onApplied={() => window.location.reload()} />
             )}
             {/* Honest provenance for the switched KPIs — server totals over the WHOLE table (period +
                 filters scoped), truncated/unconverted flagged; a plain client-500 note otherwise. */}
@@ -1664,10 +1751,10 @@ export function SalesReportPage() {
               <KpiCard sym={curSym}
                 label={hasStage ? "In Progress" : "This Period"}
                 value={hasValue ? fmtMoney(kOpenValue, curSym) : fmtNum(kOpenCount || kTotalCount)}
-                sub={hasStage ? `${kOpenCount} open` : "active records"}
+                sub={hasStage ? `${kOpenCount} open${dealMode && stats.openExcludedCount ? ` · ${stats.openExcludedCount} on hold/unstaged excluded` : ""}` : "active records"}
                 tone="#717784"
                 trend="neutral"
-                delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
+                delta={dealMode ? null : pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
               />
               <KpiCard sym={curSym}
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}

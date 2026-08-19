@@ -18,7 +18,7 @@ describe("the live report dates deal wins the money model's way", () => {
     expect(page).toContain("wonUndatedCount");
     expect(page).toMatch(/won_at/);
     // The exclusion must return through the stats so the UI can disclose it.
-    expect(page).toMatch(/wonUndatedCount, wonUndatedValue \};/);
+    expect(page).toMatch(/wonUndatedCount, wonUndatedValue, openExcludedCount, openExcludedValue \};/);
   });
 
   it("deal-mode won KPIs come from the CLIENT stats — the server stage aggregate windows on updated_at", () => {
@@ -40,5 +40,42 @@ describe("the live report dates deal wins the money model's way", () => {
   it("generic objects keep their semantics — deal mode never leaks to visits/tasks", () => {
     // The undated-exclusion branch is gated on dealMode && stageCol; the generic branch survives.
     expect(page).toContain("wonRecs = stageCol ? inPeriod.filter(r => isWon(getStage(r))) : inPeriod;");
+  });
+});
+
+describe("the disclosure has a path to act — the supervised backfill, surfaced", () => {
+  it("Review calls the DRY RUN; Apply is a separate explicit step", () => {
+    expect(page).toContain('apiClient.post<{ proposals: WinProposal[] }>("/periods/backfill-wins", { dry_run: true })');
+    expect(page).toContain('apiClient.post("/periods/backfill-wins", { dry_run: false })');
+  });
+
+  it("each proposal shows its EVIDENCE, and evidence-less deals stay undated — never invented", () => {
+    expect(page).toContain("({p.source}: {p.evidence_detail})");
+    expect(page).toContain("no evidence — stays undated");
+    expect(page).toContain("They stay disclosed, not invented.");
+  });
+});
+
+describe("there is ONE definition of open pipeline — measured 2026-08-19: one screen, three answers", () => {
+  const outcomes = readFileSync(join(__dirname, "../lib/outcomes.ts"), "utf8");
+  const strip = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/reports/index.tsx"), "utf8");
+
+  it("the outcomes engine classifies open via the SHARED isOpenStage, never 'not closed'", () => {
+    expect(outcomes).toContain('import { isOpenStage } from "@mondaily/shared/deal-stage"');
+    expect(outcomes).toMatch(/\} else if \(isOpenStage\(stage\)\) \{/);
+    expect(outcomes).not.toMatch(/else if \(!\/closed\/i\.test\(stage\)\)/);
+  });
+
+  it("what it excludes is COUNTED and disclosed — silently dropping $97,898 is as wrong as silently including it", () => {
+    expect(outcomes).toContain("pipeline_excluded: { deals: excludedDeals, value:");
+    expect(strip).toContain("on hold/unstaged excluded");
+  });
+
+  it("the live report's deal-mode open uses the shared rule as a balance, remainder disclosed, no flow delta", () => {
+    expect(page).toContain('import { isOpenStage } from "@mondaily/shared/deal-stage"');
+    expect(page).toMatch(/if \(isOpenStage\(st\)\) openRecs\.push\(r\);/);
+    expect(page).toContain("openExcludedCount, openExcludedValue };");
+    expect(page).toMatch(/dealMode \? null : pctDelta\(hasValue \? stats\.openValue/);
+    expect(page).toMatch(/const kOpenValue  = dealMode \? stats\.openValue : \(sStage\?\.openValue \?\? stats\.openValue\);/);
   });
 });

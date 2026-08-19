@@ -1,4 +1,5 @@
 import { supabase } from "@mondaily/db/client";
+import { isOpenStage } from "@mondaily/shared/deal-stage";
 import { compareWindows, type BaselineComparison } from "@mondaily/shared/baseline";
 import { makeBaseConverter } from "./currency-store";
 import { dealStage as moneyDealStage, dealOwner as moneyDealOwner, dealValue as moneyDealValue, isWon as moneyIsWon, wonDate as moneyWonDate, STAGE_WEIGHTS } from "./money";
@@ -24,6 +25,10 @@ export interface OutcomesResult {
     /** Lost deals dated by their last edit because no lost date exists yet. An approximation. */
     undated_lost: number;
     pipeline_value: number; pipeline_deals: number;
+    /** Deals that are neither open (at a pipeline stage) nor closed — On Hold / unstaged. DISCLOSED,
+     *  never summed into pipeline: MEASURED 2026-08-19, this engine said $3,168,310 open while the
+     *  money model said $3,070,412 — the difference was exactly the 3 On Hold deals it was counting. */
+    pipeline_excluded: { deals: number; value: number };
     /** Stage-weighted forecast over open deals (declared editorial weights from lib/money). */
     projected_amount: number;
     /** % of ALL opportunities (open+closed in scope) that closed either way — distinct from win rate. */
@@ -59,6 +64,7 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
   const teamNow = emptyWin(); const teamPrev = emptyWin();
   const byMember = new Map<string, OutcomeWindow>();
   let pipelineValue = 0, pipelineN = 0, pipelineUnconverted = 0, projected = 0;
+  let excludedDeals = 0, excludedValue = 0;
   const pipelineByMember = new Map<string, { value: number; n: number }>();
   const openAges: number[] = [];
   const stageAgg = new Map<string, { deals: number; value: number }>();
@@ -123,8 +129,10 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
           lr.deals += 1; lr.value += convertible ? val : 0; lostReasons.set(reason, lr);
         }
       }
-    } else if (!/closed/i.test(stage)) {
-      // open pipeline — a BALANCE (as of now), not a windowed flow
+    } else if (isOpenStage(stage)) {
+      // open pipeline — a BALANCE (as of now), not a windowed flow. isOpenStage is THE definition
+      // (at a real pipeline stage): "not closed" also swept in On Hold and unstaged deals, which is
+      // the inflation the shared resolver exists to prevent.
       pipelineValue += convertible ? val : 0; pipelineN += 1;
       if (!convertible) pipelineUnconverted += 1;
       const w = STAGE_WEIGHTS.find(([re]) => re.test(stage))?.[1] ?? 0.2;
@@ -135,6 +143,11 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       const sa = stageAgg.get(label) ?? { deals: 0, value: 0 };
       sa.deals += 1; sa.value += convertible ? val : 0; stageAgg.set(label, sa);
       if (owner) { const pm = pipelineByMember.get(owner) ?? { value: 0, n: 0 }; pm.value += convertible ? val : 0; pm.n += 1; pipelineByMember.set(owner, pm); }
+    } else {
+      // Neither open nor closed: On Hold, unstaged, unknown labels. Counted so the strip can SAY
+      // what it left out — a figure that silently dropped $97,898 would be as wrong as one that
+      // silently included it.
+      excludedDeals += 1; excludedValue += convertible ? val : 0;
     }
   }
 
@@ -149,6 +162,7 @@ export async function computeOutcomes(ws: string, start: number, end: number, pr
       undated_wins: undatedWins, undated_lost: undatedLost,
       value_lost: Math.round(teamNow.lost), deals_lost: teamNow.lost_n,
       pipeline_value: Math.round(pipelineValue), pipeline_deals: pipelineN,
+    pipeline_excluded: { deals: excludedDeals, value: Math.round(excludedValue * 100) / 100 },
       projected_amount: Math.round(projected),
       close_rate_pct: (teamNow.won_n + teamNow.lost_n + pipelineN) > 0
         ? Math.round(((teamNow.won_n + teamNow.lost_n) / (teamNow.won_n + teamNow.lost_n + pipelineN)) * 100) : null,

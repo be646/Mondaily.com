@@ -62886,6 +62886,7 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
   const teamPrev = emptyWin();
   const byMember = /* @__PURE__ */ new Map();
   let pipelineValue = 0, pipelineN = 0, pipelineUnconverted = 0, projected = 0;
+  let excludedDeals = 0, excludedValue = 0;
   const pipelineByMember = /* @__PURE__ */ new Map();
   const openAges = [];
   const stageAgg = /* @__PURE__ */ new Map();
@@ -62945,7 +62946,7 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
           lostReasons.set(reason, lr2);
         }
       }
-    } else if (!/closed/i.test(stage)) {
+    } else if (isOpenStage(stage)) {
       pipelineValue += convertible ? val : 0;
       pipelineN += 1;
       if (!convertible) pipelineUnconverted += 1;
@@ -62964,6 +62965,9 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
         pm.n += 1;
         pipelineByMember.set(owner, pm);
       }
+    } else {
+      excludedDeals += 1;
+      excludedValue += convertible ? val : 0;
     }
   }
   const winRate = (w2) => w2.won_n + w2.lost_n > 0 ? Math.round(w2.won_n / (w2.won_n + w2.lost_n) * 100) : null;
@@ -62980,6 +62984,7 @@ async function computeOutcomes(ws, start, end, prevStart, prevEnd) {
       deals_lost: teamNow.lost_n,
       pipeline_value: Math.round(pipelineValue),
       pipeline_deals: pipelineN,
+      pipeline_excluded: { deals: excludedDeals, value: Math.round(excludedValue * 100) / 100 },
       projected_amount: Math.round(projected),
       close_rate_pct: teamNow.won_n + teamNow.lost_n + pipelineN > 0 ? Math.round((teamNow.won_n + teamNow.lost_n) / (teamNow.won_n + teamNow.lost_n + pipelineN) * 100) : null,
       avg_open_deal_age_days: openAges.length > 0 ? Math.round(openAges.reduce((a2, b2) => a2 + b2, 0) / openAges.length) : null,
@@ -63015,6 +63020,7 @@ var init_outcomes = __esm({
   "src/lib/outcomes.ts"() {
     "use strict";
     init_client();
+    init_deal_stage();
     init_baseline();
     init_currency_store();
     init_money2();

@@ -789,7 +789,7 @@ function SalesOutcomes() {
   const r = periodRange("month"); const pr = previousRange("month");
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
   if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
-  const q = useQuery<{ base_currency: string; team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; win_rate_pct: number | null; avg_deal_size: number | null; deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } } }>({
+  const q = useQuery<{ base_currency: string; team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; pipeline_excluded?: { deals: number; value: number }; win_rate_pct: number | null; avg_deal_size: number | null; deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } } }>({
     queryKey: ["outcomes", "reports-month"],
     queryFn: () => outcomesClient.get(`/activities/outcomes?${qs}`),
     staleTime: 60_000, retry: false,
@@ -806,7 +806,7 @@ function SalesOutcomes() {
           delta={d && d.label ? <span className="text-[10px] font-semibold tabular-nums" title={d.detail} style={{ color: d.direction >= 0 ? "var(--status-ok)" : "var(--status-error)" }}>{d.direction >= 0 ? "▲" : "▼"} {d.label}</span> : undefined}
           sub={`${t.deals_won} deal${t.deals_won === 1 ? "" : "s"} won`} />
         <KPITile label="Value lost" valueColor={t.value_lost > 0 ? "var(--status-error)" : undefined} value={money(t.value_lost)} sub={`${t.deals_lost} lost`} />
-        <KPITile label="Open pipeline" value={money(t.pipeline_value)} sub={`${t.pipeline_deals} open · as of today`} />
+        <KPITile label="Open pipeline" value={money(t.pipeline_value)} sub={`${t.pipeline_deals} open · as of today${t.pipeline_excluded?.deals ? ` · ${t.pipeline_excluded.deals} on hold/unstaged excluded (${money(t.pipeline_excluded.value)})` : ""}`} />
         <KPITile label="Win rate" value={t.win_rate_pct != null ? `${t.win_rate_pct}%` : "—"} sub={t.win_rate_pct != null ? "of closed deals" : "no closed deals yet"} />
       </KPIGrid>
     </div>

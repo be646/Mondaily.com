@@ -235,8 +235,8 @@ describe("Phase 3f — stage-derived KPIs from ONE grouped aggregate, classified
     for (const k of [
       /const kWonValue   = dealMode \? stats\.wonValue : \(sStage\?\.wonValue \?\? stats\.wonValue\)/,
       /const kCompletion = dealMode \? stats\.completionRate : \(sStage\?\.completionRate \?\? stats\.completionRate\)/,
-      /const kOpenValue  = sStage\?\.openValue \?\? stats\.openValue/,
-      /const kOpenCount  = sStage\?\.openCount \?\? stats\.openCount/,
+      /const kOpenValue  = dealMode \? stats\.openValue : \(sStage\?\.openValue \?\? stats\.openValue\)/,
+      /const kOpenCount  = dealMode \? stats\.openCount : \(sStage\?\.openCount \?\? stats\.openCount\)/,
       /const kAvg        = dealMode \? stats\.avgVal : \(sStage\?\.avgVal \?\? stats\.avgVal\)/,
     ]) expect(sales).toMatch(k);
     // the cards render the k* values (server-preferred), not the raw client stats
