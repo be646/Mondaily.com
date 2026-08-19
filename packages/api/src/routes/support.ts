@@ -277,9 +277,15 @@ export type SupportBrain = "knowledge" | "repair" | "builder";
 
 export function detectBrain(message: string): SupportBrain {
   const m = message.toLowerCase();
-  // Build-intent first: "create a report about the bug I logged" is a build, not a repair.
-  if (/\b(create|build|make me|set ?up|add a|generate|design|automat|workflow|dashboard|report|sheet|template|import)\b/.test(m)) return "builder";
-  if (/\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work|stuck|missing|duplicate|slow|can'?t|cannot|charged|payment (failed|problem|issue)|declined)\b/.test(m)) return "repair";
+  // Builder needs a creation VERB — bare nouns misrouted "my dashboard is broken" to the builder
+  // (audited 2026-08-19). When both signals appear, POSITION decides: "create a report about the
+  // bug I logged" leads with intent to build; "fix the broken export" leads with the problem.
+  const buildVerb = /\b(create|build|make (me|a|an|new)|set ?up|add (a|an|new)|generate|draft|design|import)\b/;
+  const problem = /\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work(ing)?|stuck|missing|duplicate|slow|not loading|won'?t load|doesn'?t load|freez|can'?t|cannot|charged|payment (failed|problem|issue)|declined|fix)\b/;
+  const b = m.search(buildVerb);
+  const p = m.search(problem);
+  if (b >= 0 && (p < 0 || b < p)) return "builder";
+  if (p >= 0) return "repair";
   return "knowledge";
 }
 

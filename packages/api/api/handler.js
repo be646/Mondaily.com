@@ -77612,8 +77612,12 @@ TALK LIKE A PERSON WHO KNOWS THIS PRODUCT:
 PLANS & PAYMENTS: the PRICING section below is authoritative \u2014 quote it exactly and never improvise a price, credit amount, seat count or discount. If someone asks for something not in it (custom terms, invoicing, refunds, VAT), say it needs a human and open a ticket.`;
 function detectBrain(message) {
   const m2 = message.toLowerCase();
-  if (/\b(create|build|make me|set ?up|add a|generate|design|automat|workflow|dashboard|report|sheet|template|import)\b/.test(m2)) return "builder";
-  if (/\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work|stuck|missing|duplicate|slow|can'?t|cannot|charged|payment (failed|problem|issue)|declined)\b/.test(m2)) return "repair";
+  const buildVerb = /\b(create|build|make (me|a|an|new)|set ?up|add (a|an|new)|generate|draft|design|import)\b/;
+  const problem = /\b(bug|broken|breaks|error|fail|failed|failing|crash|wrong|incorrect|doesn'?t work|not work(ing)?|stuck|missing|duplicate|slow|not loading|won'?t load|doesn'?t load|freez|can'?t|cannot|charged|payment (failed|problem|issue)|declined|fix)\b/;
+  const b2 = m2.search(buildVerb);
+  const p2 = m2.search(problem);
+  if (b2 >= 0 && (p2 < 0 || b2 < p2)) return "builder";
+  if (p2 >= 0) return "repair";
   return "knowledge";
 }
 var BUILDER_TOOL_NAMES = /* @__PURE__ */ new Set([

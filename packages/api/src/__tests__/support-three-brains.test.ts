@@ -15,15 +15,22 @@ const panel = readFileSync(join(__dirname, "../../../../apps/app/src/components/
  */
 
 describe("brain routing", () => {
-  it("build intent wins even when the sentence mentions a bug", () => {
+  it("build intent wins when it LEADS — even if the sentence mentions a bug", () => {
     expect(detectBrain("create a report about the bug I logged")).toBe("builder");
     expect(detectBrain("set up an automation for new leads")).toBe("builder");
     expect(detectBrain("make me a sheet for suppliers")).toBe("builder");
   });
-  it("problems route to repair — including payment problems", () => {
+  it("problems route to repair — bare feature nouns must NOT hijack them (audited misroute)", () => {
     expect(detectBrain("the pipeline number looks wrong")).toBe("repair");
     expect(detectBrain("I was charged twice, payment failed")).toBe("repair");
     expect(detectBrain("export is broken")).toBe("repair");
+    expect(detectBrain("my dashboard is broken")).toBe("repair");
+    expect(detectBrain("the sheet is not loading")).toBe("repair");
+    expect(detectBrain("fix the broken automation")).toBe("repair");
+  });
+  it("a creation verb inside a problem sentence does not flip it — position decides", () => {
+    expect(detectBrain("the workflow I set up keeps failing")).toBe("builder");   // leads with set up — ambiguous, builder can hand off
+    expect(detectBrain("something is wrong, can you create a fix task")).toBe("repair");
   });
   it("questions route to knowledge (the original path, unchanged)", () => {
     expect(detectBrain("what does the weighted forecast mean?")).toBe("knowledge");
