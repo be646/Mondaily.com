@@ -150,8 +150,18 @@ describe("hybrid sovereign inference — the no-GPU bridge, evidence-gated", () 
 describe("hybrid — the conversational fast tier rides the sovereign engine", () => {
   const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
   it("BOTH agent paths route tool-free turns sovereign; tool rounds stay external (5% shadow similarity)", () => {
-    const hits = gw.match(/const sovereignTurn = req\.tools\.length === 0 && classIsSovereign\("fast"\)/g) ?? [];
+    const hits = gw.match(/const sovereignTurn = fullSovereign \|\| \(req\.tools\.length === 0 && classIsSovereign\("fast"\)/g) ?? [];   // full mode overrides; hybrid keeps tool turns external
     expect(hits.length).toBe(2);
     expect(gw).toContain("if (svCfg) modelId = svCfg.modelOverride!;");
+  });
+});
+
+describe("FULL sovereign mode — every turn on our metal, no external env demanded", () => {
+  const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+  it("both agent paths override to sovereign for ALL turns and skip the gateway-env requirement", () => {
+    const hits = gw.match(/const sovereignTurn = fullSovereign \|\| \(req\.tools\.length === 0/g) ?? [];
+    expect(hits.length).toBe(2);
+    const guards = gw.match(/if \(!fullSovereign && \(!baseURL \|\| !apiKey\)\)/g) ?? [];
+    expect(guards.length).toBe(2);
   });
 });

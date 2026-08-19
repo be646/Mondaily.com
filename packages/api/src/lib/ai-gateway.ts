@@ -632,9 +632,12 @@ async function runOpenAICompatAgent(
   req: AgentRequest,
   maxRounds: number,
 ): Promise<AgentResponse> {
-  const { baseURL, apiKey } = gatewayEnv();
+  // FULL sovereign mode routes EVERY turn — tools included — to the self-hosted engine and never
+  // touches (or requires) the external gateway env. Hybrid keeps tool turns external by evidence.
+  const fullSovereign = inferenceMode() === "sovereign_vllm";
+  const { baseURL, apiKey } = fullSovereign ? { baseURL: "", apiKey: "" } : gatewayEnv();
 
-  if (!baseURL || !apiKey) {
+  if (!fullSovereign && (!baseURL || !apiKey)) {
     throw new Error(
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY — ` +
       `baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`,
@@ -649,7 +652,7 @@ async function runOpenAICompatAgent(
   // sovereign engine when the "fast" class is sovereign-routed — short prompt, no tools, exactly
   // what the CPU engine handles. Tool rounds stay external: shadow-eval measured 5% similarity on
   // tool tasks for the current 3B. Patient timeout for the CPU box.
-  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const sovereignTurn = fullSovereign || (req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast"));
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg
     ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 100000, maxRetries: 0 })
@@ -957,8 +960,9 @@ async function runOpenAICompatAgentStream(
   maxRounds: number,
   onEvent: (e: AgentStreamEvent) => void | Promise<void>,
 ): Promise<AgentResponse> {
-  const { baseURL, apiKey } = gatewayEnv();
-  if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
+  const fullSovereign = inferenceMode() === "sovereign_vllm";   // see the non-streaming twin
+  const { baseURL, apiKey } = fullSovereign ? { baseURL: "", apiKey: "" } : gatewayEnv();
+  if (!fullSovereign && (!baseURL || !apiKey)) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
   // Streaming agent: FAIL-FAST. 15s timeout + 1 retry so an upstream spike
   // surfaces instantly rather than hanging. A cut is safe here — mid-stream
   // drops preserve partial text below, and an empty result drops to the
@@ -973,7 +977,7 @@ async function runOpenAICompatAgentStream(
   const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
   // HYBRID: tool-free streaming turns (the conversational fast tier) ride the sovereign engine —
   // see the non-streaming twin above for the evidence gating.
-  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const sovereignTurn = fullSovereign || (req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast"));
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg
     ? new OpenAI({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 100000, maxRetries: 0 })

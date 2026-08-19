@@ -56281,13 +56281,14 @@ async function aiGatewayComplete(req) {
   }
 }
 async function runOpenAICompatAgent(modelId, req, maxRounds) {
-  const { baseURL, apiKey } = gatewayEnv();
-  if (!baseURL || !apiKey) {
+  const fullSovereign = inferenceMode() === "sovereign_vllm";
+  const { baseURL, apiKey } = fullSovereign ? { baseURL: "", apiKey: "" } : gatewayEnv();
+  if (!fullSovereign && (!baseURL || !apiKey)) {
     throw new Error(
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const sovereignTurn = fullSovereign || req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 1e5, maxRetries: 0 }) : new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride;
@@ -56491,12 +56492,13 @@ async function aiGatewayAgentStream(req, onEvent) {
   }
 }
 async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
-  const { baseURL, apiKey } = gatewayEnv();
-  if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
+  const fullSovereign = inferenceMode() === "sovereign_vllm";
+  const { baseURL, apiKey } = fullSovereign ? { baseURL: "", apiKey: "" } : gatewayEnv();
+  if (!fullSovereign && (!baseURL || !apiKey)) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
   const ROUND_BUDGET_MS = 11e4;
   const startedAt = Date.now();
   const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
-  const sovereignTurn = req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
+  const sovereignTurn = fullSovereign || req.tools.length === 0 && classIsSovereign("fast") && sovereignClasses().has("fast");
   const svCfg = sovereignTurn ? sovereignBackendConfig() : null;
   const client = svCfg ? new openai_default({ baseURL: svCfg.baseURL, apiKey: svCfg.apiKey, timeout: 1e5, maxRetries: 0 }) : new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
   if (svCfg) modelId = svCfg.modelOverride;
