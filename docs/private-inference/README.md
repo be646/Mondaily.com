@@ -29,3 +29,5 @@ canary. Templates are inert (`*.template`) and imported/executed by nothing.
 - Follows the sizing/break-even analysis in `docs/ai-eval/PHASE_3A_EVAL_PLAN.md`.
 - The 4090 validation path lives in `docs/ai-eval/PHASE_3A2_RUNBOOK.md`; **this** package is the
   step *after* validation — real production hardware, HA, security, ops.
+
+> **Read first:** [2026-08-UPDATE-hybrid-and-gex44.md](./2026-08-UPDATE-hybrid-and-gex44.md) — what actually happened in production (the Cerebras free tier ended), the hybrid mode that now exists, and the current GEX44 cutover sequence. The runbooks below remain valid for provisioning details.
