@@ -10,7 +10,7 @@ import { EmptyState } from "../../../components/ui/page-state";
 import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
-import { isOpenStage } from "@mondaily/shared/deal-stage";
+import { isOpenStage, dealStageOf } from "@mondaily/shared/deal-stage";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FieldSelect, FilterButton } from "../../../components/ui/controls";
 import { SegmentedControl } from "../../../components/ui/segmented";
@@ -161,7 +161,7 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
   // a month in the order "Mar 12" before "Mar 3" — a rising series could render as falling.
   const buckets: Map<string, { revenue: number; count: number; at: number }> = new Map();
   for (const r of records) {
-    const stagePre = stageCol ? String(r.data[stageCol] ?? "") : "";
+    const stagePre = dealMode ? dealStageOf(r.data) : (stageCol ? String(r.data[stageCol] ?? "") : "");
     // Deal mode: a WIN sits on the time axis at its won_at; an undated win has no honest position
     // and is skipped here (its exclusion is disclosed next to the KPI, not silently on the chart).
     let raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
@@ -174,7 +174,7 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
     const d = new Date(raw as string);
     if (d < start) continue;
     if (customRange && d > customRange.end) continue;
-    const stage = stageCol ? String(r.data[stageCol] ?? "") : "";
+    const stage = stagePre;
     const rawVal = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
     const val   = toDisplay ? toDisplay(isNaN(rawVal) ? 0 : rawVal, (r.data.currency as string | undefined) ?? null) : rawVal;
     const label = bucketLabel(d, period);
@@ -202,7 +202,10 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
     return d >= start && d <= end;
   });
   const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); if (isNaN(n)) return 0; return toDisplay ? toDisplay(n, (r.data.currency as string | undefined) ?? null) : n; };
-  const getStage = (r: NodeRecord) => stageCol ? String(r.data[stageCol] ?? "") : "";
+  // Deal mode reads the SHARED stage resolver (deal_stage ∪ stage — prod measured 2026-08-19: the
+  // raw column alone saw 15 open where the resolver sees 21, because 28 of 44 deals carry the two
+  // fields disagreeing). Generic objects keep their single detected column.
+  const getStage = (r: NodeRecord) => dealMode ? dealStageOf(r.data) : (stageCol ? String(r.data[stageCol] ?? "") : "");
 
   // DEAL MODE — the money-model rule (lib/money.wonDate), not the generic one: a WIN belongs to the
   // period its stamped won_at falls in, never the period someone last edited the row. MEASURED live

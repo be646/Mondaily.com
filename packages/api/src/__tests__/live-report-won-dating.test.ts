@@ -72,10 +72,18 @@ describe("there is ONE definition of open pipeline — measured 2026-08-19: one 
   });
 
   it("the live report's deal-mode open uses the shared rule as a balance, remainder disclosed, no flow delta", () => {
-    expect(page).toContain('import { isOpenStage } from "@mondaily/shared/deal-stage"');
+    expect(page).toContain('import { isOpenStage, dealStageOf } from "@mondaily/shared/deal-stage"');
     expect(page).toMatch(/if \(isOpenStage\(st\)\) openRecs\.push\(r\);/);
     expect(page).toContain("openExcludedCount, openExcludedValue };");
     expect(page).toMatch(/dealMode \? null : pctDelta\(hasValue \? stats\.openValue/);
     expect(page).toMatch(/const kOpenValue  = dealMode \? stats\.openValue : \(sStage\?\.openValue \?\? stats\.openValue\);/);
   });
 });
+
+describe("deal mode reads THE stage resolver, not one raw column", () => {
+  it("classification goes through dealStageOf — 28 of 44 prod deals carry two disagreeing stage fields", () => {
+    expect(page).toContain('import { isOpenStage, dealStageOf } from "@mondaily/shared/deal-stage"');
+    expect(page).toMatch(/const getStage = \(r: NodeRecord\) => dealMode \? dealStageOf\(r\.data\) :/);
+  });
+});
+
