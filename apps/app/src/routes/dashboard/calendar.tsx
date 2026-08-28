@@ -502,8 +502,15 @@ export function CalendarPage() {
   const viewSummary = `${viewCount} ${viewCount === 1 ? "meeting" : "meetings"}`;
 
   const groups = useMemo(() => {
+    // "Upcoming" means the future — filtered HERE, not by the fetch. The list used to inherit
+    // futureness from a from=now query; when the window was widened so the grids could show the
+    // past, Upcoming started listing July. Meetings still running right now stay in.
+    const horizon = Date.now() - 3600_000;
     const map = new Map<string, CalEvent[]>();
-    for (const e of events) { const k = dayKey(e.start_at); (map.get(k) ?? map.set(k, []).get(k)!).push(e); }
+    for (const e of events) {
+      if (new Date(e.end_at || e.start_at).getTime() < horizon) continue;
+      const k = dayKey(e.start_at); (map.get(k) ?? map.set(k, []).get(k)!).push(e);
+    }
     return [...map.entries()];
   }, [events]);
 
