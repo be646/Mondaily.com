@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { parseQuickEvent } from "../../lib/quick-event";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
@@ -231,6 +232,25 @@ export function CalendarPage() {
   const [createInit, setCreateInit] = useState<{ start: string; end: string } | null>(null);
   const [view, setView] = useState<ViewMode>("today");
   // Click an empty grid slot → open New Meeting prefilled with that time + a 30-minute default end.
+  // ── Natural-language quick add — deterministic parser, previewed interpretation, Enter creates.
+  const [quick, setQuick] = useState("");
+  const quickParsed = useMemo(() => parseQuickEvent(quick), [quick]);
+  const quickCreate = useMutation({
+    mutationFn: (q: { title: string; start: Date; end: Date }) =>
+      apiClient.post<{ id: string }>("/calendar/events", { title: q.title, start_at: toLocalInput(q.start), end_at: toLocalInput(q.end) }),
+    onSuccess: (r) => { setQuick(""); calQc.invalidateQueries({ queryKey: ["calendar-events"] }); if (r?.id) openEvent(r.id); },
+  });
+  const submitQuick = () => {
+    if (!quick.trim()) return;
+    if (quickParsed) quickCreate.mutate(quickParsed);
+    else {
+      // No date and no time understood — quick-add never guesses "when"; the full form opens
+      // with the text preserved as the title.
+      setCreateInit(null); setQuickTitle(quick.trim()); setCreateOpen(true);
+    }
+  };
+  const [quickTitle, setQuickTitle] = useState<string | null>(null);
+
   const openSlot = (start: Date) => { setCreateInit({ start: toLocalInput(start), end: toLocalInput(new Date(start.getTime() + 30 * 60_000)) }); setCreateOpen(true); };
   /**
    * "New meeting" opens on the NEXT HALF HOUR, not on an empty form.
@@ -328,7 +348,7 @@ export function CalendarPage() {
       <div className="w-12 shrink-0 text-caption tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
+        <div className="mt-0.5 flex items-center gap-2 text-label" style={{ color: "var(--text-faint)" }}>
           <Users size={11} /> {e.attendees.length + 1}
           {e.call_url && <><Video size={11} /> {t("cal.join_call")}</>}
           {e.location && <><MapPin size={11} /> {e.location}</>}
@@ -355,6 +375,28 @@ export function CalendarPage() {
   const focusId = openId ?? nextMeetingId;
   // The strip/grid highlight follows the focused meeting; the panel shows it too.
   const selected = focusId;
+
+  // ── Keyboard, the macOS-calendar set: ←/→ move the range, T = today, D/W/M/U switch views,
+  // N = new meeting. Never while typing — the quick-add box and the modal keep their keys.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); shift(-1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); shift(1); }
+      else if (e.key === "t" || e.key === "T") { e.preventDefault(); goToday(); }
+      else if (e.key === "d" || e.key === "D") setView("today");
+      else if (e.key === "w" || e.key === "W") setView("week");
+      else if (e.key === "m" || e.key === "M") setView("month");
+      else if (e.key === "u" || e.key === "U") setView("upcoming");
+      else if (e.key === "n" || e.key === "N") { e.preventDefault(); openCreate(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, anchor]);
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6">
@@ -391,6 +433,34 @@ export function CalendarPage() {
             <Plus size={13} /> {t("cal.new_meeting")}
           </button>
         </div>
+      </div>
+
+      {/* ── Quick add — type it like you would say it. Deterministic parse, interpretation SHOWN
+          before anything is created; Enter confirms. Unparseable "when" opens the full form with
+          the text as the title — quick-add never guesses a date it was not given. ── */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <input
+            value={quick}
+            onChange={e => setQuick(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); submitQuick(); } if (e.key === "Escape") setQuick(""); }}
+            placeholder='Quick add — try "lunch with Omar tomorrow 1pm" or "review friday 3-4pm"'
+            aria-label="Quick add event"
+            className="h-8 w-full rounded-md border bg-transparent px-3 text-[12.5px] outline-none transition-colors focus:border-[var(--section-accent-line)]"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
+          />
+        </div>
+        {quick.trim() && (
+          quickParsed ? (
+            <button onClick={submitQuick} disabled={quickCreate.isPending}
+              className="flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--text-primary)" }}>
+              {quickCreate.isPending ? "Creating…" : <>Create · <span className="font-normal" style={{ color: "var(--text-secondary)" }}>{quickParsed.when}</span></>}
+            </button>
+          ) : (
+            <span className="text-caption" style={{ color: "var(--text-faint)" }}>no date/time understood — Enter opens the full form</span>
+          )
+        )}
       </div>
 
       {/* Today intelligence strip — real data only. On lg+ the persistent Today-briefing rail shows
@@ -450,7 +520,7 @@ export function CalendarPage() {
 
       {/* Mobile drawer — same brief body, shown only below lg. */}
       {openId && <div className="lg:hidden"><EventDrawer id={openId} onClose={() => setParams({}, { replace: true })} /></div>}
-      {createOpen && <CreateModal callsEnabled={eventsQ.data?.calls_enabled ?? false} initialStart={createInit?.start} initialEnd={createInit?.end} onClose={() => { setCreateOpen(false); setCreateInit(null); }} onCreated={(id) => { setCreateOpen(false); setCreateInit(null); openEvent(id); }} />}
+      {createOpen && <CreateModal callsEnabled={eventsQ.data?.calls_enabled ?? false} initialStart={createInit?.start} initialEnd={createInit?.end} initialTitle={quickTitle ?? undefined} onClose={() => { setCreateOpen(false); setCreateInit(null); setQuickTitle(null); }} onCreated={(id) => { setCreateOpen(false); setCreateInit(null); setQuickTitle(null); setQuick(""); openEvent(id); }} />}
     </div>
   );
 }
@@ -627,7 +697,7 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
               ...(b.conflicts.length > 0 ? [{ n: b.conflicts.length, label: t("cal.overlaps"), warn: true }] : []),
               ...(b.calls_enabled ? [{ n: b.no_call_link.length, label: t("cal.needs_call"), warn: b.no_call_link.length > 0 }] : []),
             ] as { n: number; label: string; warn?: boolean }[]).map((c, i) => (
-              <span key={i} className="flex items-center gap-1 text-[11px]">
+              <span key={i} className="flex items-center gap-1 text-label">
                 <span className="tabular-nums font-semibold" style={{ color: c.warn ? AMBER : "var(--text-primary)" }}>{c.n}</span>
                 <span style={{ color: "var(--text-muted)" }}>{c.label}</span>
               </span>
@@ -733,7 +803,7 @@ function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups
                 style={{ ...(i > 0 ? { borderTop: "1px solid var(--border-soft)" } : {}), ...(on ? { background: "var(--surface-selected)" } : {}) }}>
                 <span className="w-12 shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</span>
                 <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</span>
-                <span className="flex shrink-0 items-center gap-2.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                <span className="flex shrink-0 items-center gap-2.5 text-label" style={{ color: "var(--text-faint)" }}>
                   <span className="flex items-center gap-1"><Users size={11} /> {e.attendees.length + 1}</span>
                   <Ic on={hasAgenda} warn={!hasAgenda}><FileText size={12} /></Ic>
                   <Ic on={!!e.call_url}><Video size={12} /></Ic>
@@ -1149,10 +1219,10 @@ function FollowUpGroups({ f, onOpenTask, onCreateSuggested, creating }: { f: Fol
   );
 }
 
-function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreated }: { callsEnabled: boolean; initialStart?: string; initialEnd?: string; onClose: () => void; onCreated: (id: string) => void }) {
+function CreateModal({ callsEnabled, initialStart, initialEnd, initialTitle, onClose, onCreated }: { callsEnabled: boolean; initialStart?: string; initialEnd?: string; initialTitle?: string; onClose: () => void; onCreated: (id: string) => void }) {
   const { t } = useLanguage();
   const me = useCurrentUser();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [desc, setDesc] = useState("");
   const [start, setStart] = useState(initialStart ?? "");   // prefilled when opened from a grid slot
   const [end, setEnd] = useState(initialEnd ?? "");
