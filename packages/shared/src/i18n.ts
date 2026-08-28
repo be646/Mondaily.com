@@ -371,6 +371,8 @@ const TRANSLATIONS: Translations = {
   "section.work":      { en: "Work", pl: "Praca", ru: "Работа", uk: "Робота", ar: "العمل", fr: "Travail", de: "Arbeit", es: "Trabajo", pt: "Trabalho", it: "Lavoro", tr: "Çalışma", nl: "Werk" },
   "section.workspace": { en: "Workspace", pl: "Przestrzeń", ru: "Пространство", uk: "Простір", ar: "مساحة العمل", fr: "Espace", de: "Workspace", es: "Espacio", pt: "Espaço", it: "Spazio", tr: "Çalışma alanı", nl: "Workspace" },
   "section.finance":   { en: "Finance", pl: "Finanse", ru: "Финансы", uk: "Фінанси", ar: "المالية", fr: "Finance", de: "Finanzen", es: "Finanzas", pt: "Finanças", it: "Finanza", tr: "Finans", nl: "Financiën" },
+  "section.ai":        { en: "AI", pl: "AI", ru: "ИИ", uk: "ШІ", ar: "الذكاء الاصطناعي", fr: "IA", de: "KI", es: "IA", pt: "IA", it: "IA", tr: "YZ", nl: "AI" },
+  "section.analytics": { en: "Analytics", pl: "Analityka", ru: "Аналитика", uk: "Аналітика", ar: "التحليلات", fr: "Analytique", de: "Analysen", es: "Analítica", pt: "Análises", it: "Analisi", tr: "Analitik", nl: "Analyses" },
   "settings.you":  { en: "You", pl: "Ty", ru: "Вы", uk: "Ви", ar: "أنت", fr: "Vous", de: "Du", es: "Tú", pt: "Você", it: "Tu", tr: "Sen", nl: "Jij" },
   "settings.plan": { en: "Plan", pl: "Plan", ru: "Тариф", uk: "Тариф", ar: "الخطة", fr: "Formule", de: "Tarif", es: "Plan", pt: "Plano", it: "Piano", tr: "Plan", nl: "Abonnement" },
   "settings.title":{ en: "Settings", pl: "Ustawienia", ru: "Настройки", uk: "Налаштування", ar: "الإعدادات", fr: "Paramètres", de: "Einstellungen", es: "Ajustes", pt: "Configurações", it: "Impostazioni", tr: "Ayarlar", nl: "Instellingen" },

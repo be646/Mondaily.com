@@ -22,39 +22,58 @@ import { SidebarAsk } from "./sidebar-ask";
 // token (no per-section tints). Everything else lives in the grouped sections below. ─────────
 type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string };
 
+/**
+ * SIDEBAR INFORMATION ARCHITECTURE — grouped by INTENT, and nothing was removed.
+ *
+ * It used to be 9 flat core rows, a 3-row "Work", and a 9-row "Workspace" junk drawer where
+ * Calendar sat between Notifications and Team Oversight, and two admin consoles lived mid-list.
+ * Now: five flat everyday rows, then three collapsible intent groups —
+ *   Workspace = the surfaces where YOU work (calendar, inbox, mail, calls, notes, canvas),
+ *   AI        = the autonomous workforce (agents raise decisions, goals direct them,
+ *               discovery hunts, automations execute),
+ *   Analytics = how it's going (reports, insights, team) —
+ * with Records/Finance/Lists keeping their own sections and the Owner Console pinned at the
+ * bottom by the account area, where a control plane belongs.
+ */
 const CORE_NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/briefing", label: "Brief", icon: Sparkles },
   { to: "/ask/new", label: "Ask", icon: MessageCircle },
   { to: "/search", label: "Graph", icon: GitBranch },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
-  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
-  { to: "/goals", label: "Goals", icon: Target },
-  { to: "/activity", label: "Agents", icon: Zap },
-  { to: "/discovery", label: "Discovery", icon: Radar },
 ];
 
-// ─── Work — the build surfaces (Records + Lists come from their own components below).
-const WORK_NAV: NavEntry[] = [
-  { to: "/automations", label: "Automations", icon: Activity },
-  { to: "/reports", label: "Reports", icon: BarChart2 },
-  { to: "/insights", label: "Insights", icon: LayoutGrid },
-];
-
-// ─── Workspace — daily-use surfaces + Team Oversight, kept in a flat group so no link is lost.
+// ─── Workspace — where you personally work: schedule, conversations, writing.
 const WORKSPACE_NAV: NavEntry[] = [
   { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/messages", label: "Inbox", icon: Inbox },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/notes",  label: "Notes",  icon: FileText },
+  { to: "/messages", label: "Inbox", icon: Inbox },
   { to: "/emails", label: "Emails", icon: Mail },
   { to: "/calls",  label: "Calls",  icon: Phone },
+  { to: "/notes",  label: "Notes",  icon: FileText },
   { to: "/canvas", label: "Canvas", icon: Layers },
-  { to: "/team/oversight", label: "Team Oversight", icon: Users },
-  // Owner Console — the API route is requireAdminRole; a member who opens it gets the 403 error
-  // state, same policy as /admin readiness. Hiding it per-role client-side is cosmetics, not access.
-  { to: "/console", label: "Owner Console", icon: Crown },
 ];
+
+// ─── AI — the autonomous workforce and its levers.
+const AI_NAV: NavEntry[] = [
+  { to: "/activity", label: "Agents", icon: Zap },
+  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
+  { to: "/goals", label: "Goals", icon: Target },
+  { to: "/discovery", label: "Discovery", icon: Radar },
+  { to: "/automations", label: "Automations", icon: Activity },
+];
+
+// ─── Analytics — how the business and the team are doing.
+const ANALYTICS_NAV: NavEntry[] = [
+  { to: "/reports", label: "Reports", icon: BarChart2 },
+  { to: "/insights", label: "Insights", icon: LayoutGrid },
+  { to: "/team/oversight", label: "Team Oversight", icon: Users },
+];
+
+// Owner Console — pinned at the sidebar's bottom next to account/settings, where a control plane
+// belongs. The API route is requireAdminRole; a member who opens it gets the 403 error state, same
+// policy as /admin readiness. Hiding it per-role client-side is cosmetics, not access.
+const CONSOLE_ENTRY: NavEntry = { to: "/console", label: "Owner Console", icon: Crown };
 
 // ─── Finance — merged into ONE entry: the /finance tab shell carries Invoices, Quotes,
 // Credit notes, Expenses, Reports and Approvals as tabs with live counts. Six sidebar links
@@ -283,6 +302,7 @@ const NAV_TKEY: Record<string, string> = {
   Notifications: "nav.notifications", Inbox: "nav.inbox", Notes: "nav.notes", Emails: "nav.emails",
   Calls: "nav.calls", Canvas: "nav.canvas", Calendar: "nav.calendar", "Team Oversight": "nav.team_oversight",
   Work: "section.work", Workspace: "section.workspace", Finance: "section.finance",
+  AI: "section.ai", Analytics: "section.analytics",
 };
 /** Localize a known nav/section label; return the original for anything unmapped. */
 function useNavLabel(label: string): string {
@@ -352,10 +372,11 @@ function SectionLabel({ label }: { label: string }) {
 // Secondary nav groups collapse by default so the sidebar isn't one long scroll.
 // Each group remembers its open/closed state, and auto-opens when the current
 // route lives inside it.
-function NavGroup({ label, items, unreadCount }: {
+function NavGroup({ label, items, unreadCount, defaultOpen = true }: {
   label: string;
   items: NavEntry[];
   unreadCount: number;
+  defaultOpen?: boolean;
 }) {
   const location = useLocation();
   const groupLabel = useNavLabel(label);
@@ -365,7 +386,7 @@ function NavGroup({ label, items, unreadCount }: {
   // if you choose to collapse it.
   const [open, setOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem(storeKey);
-    return saved === null ? true : saved === "1";
+    return saved === null ? defaultOpen : saved === "1";
   });
   useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
   const toggle = () => setOpen(o => { localStorage.setItem(storeKey, o ? "0" : "1"); return !o; });
@@ -579,49 +600,44 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             quick actions live behind the command palette, and agents have their own "Agents" row. */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
-          {/* Core — always flat, always visible */}
+          {/* Core — the everyday five, always flat, always visible */}
           {CORE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={collapsed}/>)}
 
-          {/* Work — build surfaces (Records + Lists render from their own components below) */}
-          {collapsed
-            ? WORK_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}/>)
-            : (
-              <>
-                <SectionLabel label="Work"/>
-                {WORK_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
-                <SidebarObjects />
-              </>
-            )}
-
-          {/* Finance — one entry; the /finance tab shell fans out to the six surfaces */}
-          {!collapsed && hasFinance && FINANCE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
-
-          {/* Workspace — daily surfaces + Team Oversight */}
-          {collapsed
-            ? WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}
-                badge={item.to === "/notifications" ? unreadCount : undefined}/>)
-            : (
-              <>
-                <SectionLabel label="Workspace"/>
-                {WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}
-                  badge={item.to === "/notifications" ? unreadCount : undefined}/>)}
-              </>
-            )}
-
-          {/* Recent — lists + chat history, collapsed sections that look like the rest of the nav */}
-          {!collapsed && (
+          {collapsed ? (
             <>
+              {/* Icon rail keeps EVERY destination reachable, in group order */}
+              {[...WORKSPACE_NAV, ...AI_NAV, ...ANALYTICS_NAV].map(item => (
+                <NavItem key={item.to} {...item} collapsed={true}
+                  badge={item.to === "/notifications" ? unreadCount : undefined}/>
+              ))}
+              <NavItem {...CONSOLE_ENTRY} collapsed={true}/>
+            </>
+          ) : (
+            <>
+              {/* Workspace — where you personally work */}
+              <NavGroup label="Workspace" items={WORKSPACE_NAV} unreadCount={unreadCount}/>
+
+              {/* AI — the autonomous workforce */}
+              <NavGroup label="AI" items={AI_NAV} unreadCount={unreadCount}/>
+
+              {/* Analytics — closed by default: consulted, not lived in */}
+              <NavGroup label="Analytics" items={ANALYTICS_NAV} unreadCount={unreadCount} defaultOpen={false}/>
+
+              {/* Records + Finance — the data itself (Records keeps its own collapsible section) */}
+              <SidebarObjects />
+              {hasFinance && FINANCE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
+
+              {/* Recent — lists + chat history, collapsed sections that look like the rest of the nav */}
               <SidebarLists />
               <SidebarAsk />
-            </>
-          )}
 
-          {/* Mondaily-internal — only for PLATFORM_ADMIN_EMAILS operators (capability probe;
-              the API is hard-gated server-side regardless of what renders here). */}
-          {!collapsed && platformAdmin && (
-            <>
-              <SectionLabel label="Mondaily"/>
-              <NavItem to="/platform/support" label="Platform Support" icon={LifeBuoy} collapsed={false}/>
+              {/* Control planes — pinned last: consoles are visited, not lived in */}
+              <div className="mt-3 border-t border-stone-200 pt-2 dark:border-stone-800">
+                <NavItem {...CONSOLE_ENTRY} collapsed={false}/>
+                {/* Mondaily-internal — only for PLATFORM_ADMIN_EMAILS operators (capability probe;
+                    the API is hard-gated server-side regardless of what renders here). */}
+                {platformAdmin && <NavItem to="/platform/support" label="Platform Support" icon={LifeBuoy} collapsed={false}/>}
+              </div>
             </>
           )}
         </nav>

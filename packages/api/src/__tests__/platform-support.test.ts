@@ -65,7 +65,7 @@ describe("Platform support routes — the ONLY place ticket status changes", () 
 describe("Platform support frontend — probe-gated, honest", () => {
   it("the sidebar link renders only when the capability probe returns true", () => {
     expect(sidebar).toMatch(/platform-admin-probe/);
-    expect(sidebar).toMatch(/\{!collapsed && platformAdmin && \(/);
+    expect(sidebar).toMatch(/\{platformAdmin && <NavItem to="\/platform\/support"/);
     expect(sidebar).toMatch(/to="\/platform\/support"/);
   });
   it("the workspace support UI labels Mondaily replies as 'Mondaily Support'", () => {
