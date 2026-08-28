@@ -56669,6 +56669,42 @@ var init_ai_gateway = __esm({
   }
 });
 
+// ../shared/src/agents.ts
+function canonicalAgentName(raw2) {
+  const stem2 = (s2) => s2.toLowerCase().replace(/[\s_-]+/g, " ").replace(/\bagents?\b/g, "").replace(/\s+/g, " ").trim();
+  const key = stem2(raw2);
+  if (!key) return raw2;
+  for (const a2 of AGENT_ROSTER) {
+    if (stem2(a2.name) === key || stem2(a2.id) === key) return a2.name;
+  }
+  return raw2;
+}
+var AGENT_ROSTER, AGENT_COUNT, AGENT_NAMES;
+var init_agents = __esm({
+  "../shared/src/agents.ts"() {
+    "use strict";
+    AGENT_ROSTER = [
+      { id: "ask-mondaily", name: "Graph Agent", cadence: "conversational" },
+      { id: "operations", name: "Operations Agent", cadence: "scheduled" },
+      { id: "relationship", name: "Relationship Agent", cadence: "scheduled" },
+      { id: "finance", name: "Finance Agent", cadence: "scheduled" },
+      { id: "signal", name: "Signal Agent", cadence: "scheduled" },
+      { id: "graph-enrichment", name: "Graph Enrichment Agent", cadence: "on-record" },
+      { id: "prospecting", name: "Prospecting Agent", cadence: "scheduled" },
+      { id: "workflow", name: "Workflow Agent", cadence: "on-record" },
+      { id: "opportunity", name: "Opportunity Agent", cadence: "scheduled" },
+      { id: "people", name: "People Agent", cadence: "scheduled" },
+      { id: "portfolio", name: "Portfolio Agent", cadence: "scheduled" },
+      { id: "asset", name: "Asset Agent", cadence: "scheduled" },
+      { id: "insights", name: "Insights Agent", cadence: "scheduled" },
+      { id: "meeting", name: "Meeting Agent", cadence: "scheduled" },
+      { id: "planner", name: "Goal Planner", cadence: "on-demand" }
+    ];
+    AGENT_COUNT = AGENT_ROSTER.length;
+    AGENT_NAMES = AGENT_ROSTER.map((a2) => a2.name);
+  }
+});
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
 var algorithm, getCryptoKey, makeSignature, verifySignature, validCookieNameRegEx, validCookieValueRegEx, trimCookieWhitespace, parse, parseSigned, _serialize, serialize, serializeSigned;
 var init_cookie = __esm({
@@ -58782,6 +58818,7 @@ var init_decisions = __esm({
   "src/routes/decisions.ts"() {
     "use strict";
     init_dist();
+    init_agents();
     init_validate();
     init_zod();
     init_auth();
@@ -58876,7 +58913,7 @@ var init_decisions = __esm({
       const { data } = await supabase.from("decision_queue").select("agent_name, status, resolved_by, risk_level, created_at").eq("workspace_id", workspaceId).gte("created_at", sinceIso).limit(8e3);
       const byAgent = {};
       for (const d2 of data ?? []) {
-        const a2 = String(d2.agent_name || "unknown");
+        const a2 = canonicalAgentName(String(d2.agent_name || "unknown"));
         const b2 = byAgent[a2] ??= { agent: a2, raised: 0, approved: 0, rejected: 0, auto_approved: 0, pending: 0 };
         b2.raised++;
         if (d2.status === "approved" || d2.status === "completed") {
@@ -80302,6 +80339,33 @@ init_zod();
 var import_node_crypto21 = require("crypto");
 init_auth();
 init_support_mail();
+
+// ../shared/src/mime.ts
+var ENCODED_WORD = /=\?([^?*]+)(?:\*[^?]*)?\?([BbQq])\?([^?]*)\?=/g;
+function decodeOne(charset, encoding, text) {
+  let bytes;
+  if (encoding.toUpperCase() === "B") {
+    bytes = Uint8Array.from(atob(text.replace(/\s+/g, "")), (ch) => ch.charCodeAt(0));
+  } else {
+    const chars = text.replace(/_/g, " ").replace(/=([0-9A-Fa-f]{2})/g, (_m, h2) => String.fromCharCode(parseInt(h2, 16)));
+    bytes = Uint8Array.from(chars, (ch) => ch.charCodeAt(0) & 255);
+  }
+  return new TextDecoder(charset.toLowerCase()).decode(bytes);
+}
+function decodeMimeWords(value) {
+  const s2 = value ?? "";
+  if (!s2.includes("=?")) return s2;
+  const joined = s2.replace(/(\?=)\s+(=\?)/g, "$1$2");
+  return joined.replace(ENCODED_WORD, (whole, charset, enc, text) => {
+    try {
+      return decodeOne(charset, enc, text);
+    } catch {
+      return whole;
+    }
+  });
+}
+
+// src/routes/emails.ts
 init_email_sovereign();
 init_google();
 init_mail();
@@ -80403,6 +80467,7 @@ router30.post("/inbound", async (c2) => {
     return c2.json({ error: "bad payload" }, 400);
   }
   if (!msg?.message_id || !msg?.from) return c2.json({ error: "missing message_id/from" }, 400);
+  msg.subject = decodeMimeWords(msg.subject);
   const recipients2 = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean);
   for (const r3 of recipients2) {
     const ticketId = ticketIdFromRecipient(r3);
@@ -80453,7 +80518,8 @@ async function localThreads(workspaceId) {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "email_thread").order("updated_at", { ascending: false }).limit(50);
   return (data ?? []).map((node) => ({
     id: String(node.data.thread_id ?? node.id),
-    subject: String(node.data.subject ?? "(no subject)"),
+    // decodeMimeWords: rows stored before ingest decoded RFC 2047 still read correctly.
+    subject: decodeMimeWords(String(node.data.subject ?? "(no subject)")),
     snippet: String(node.data.snippet ?? node.data.preview ?? ""),
     participants: Array.isArray(node.data.participants) ? node.data.participants : [],
     latest_message_received_date: Number(node.data.latest_message_received_date ?? Math.floor(new Date(node.updated_at).getTime() / 1e3)),
@@ -80532,7 +80598,7 @@ router30.get("/threads/:id", async (c2) => {
       const last = msgs[msgs.length - 1];
       return c2.json({
         id: c2.req.param("id"),
-        subject: last?.subject ?? "",
+        subject: decodeMimeWords(last?.subject ?? ""),
         snippet: last?.snippet ?? "",
         participants: last ? [parseAddr2(last.from)] : [],
         latest_message_received_date: last ? toUnixSeconds2(last.date) : 0,
@@ -80543,7 +80609,8 @@ router30.get("/threads/:id", async (c2) => {
     }
   }
   const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${orFilterValue(c2.req.param("id"))},data->>thread_id.eq.${orFilterValue(c2.req.param("id"))}`).maybeSingle();
-  return data ? c2.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c2.json({ error: "Thread not found" }, 404);
+  if (!data) return c2.json({ error: "Thread not found" }, 404);
+  return c2.json({ id: data.data.thread_id ?? data.id, ...data.data, subject: decodeMimeWords(String(data.data.subject ?? "")) });
 });
 function injectTracking(html, trackingId) {
   const withLinks = html.replace(
@@ -83321,6 +83388,16 @@ router42.get("/", async (c2) => {
     source: extractSource(n2)
   }));
   return c2.json(rows2);
+});
+router42.get("/unread-count", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const CAP2 = 500;
+  const { data, error } = await supabase.from("notifications").select("id, user_id, is_read").eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).order("created_at", { ascending: false }).limit(CAP2);
+  if (error) return c2.json({ error: error.message }, 500);
+  const scoped = await withReadState(data ?? [], userId);
+  const unread = scoped.filter((n2) => !n2.is_read).length;
+  return c2.json({ unread, capped: (data ?? []).length >= CAP2 });
 });
 router42.post("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");

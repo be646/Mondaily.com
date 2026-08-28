@@ -56,3 +56,20 @@ export function assertAgentCoverage(surface: string, names: readonly string[]): 
   }
   return problems;
 }
+
+/**
+ * Canonicalize a free-text agent name from stored rows (decision_queue.agent_name and friends hold
+ * whatever spelling the writer used: "signal", "signal_agent", "Signal Agent"). Grouping on the raw
+ * string split one agent into several scorecard rows — the Agents page showed "Signal Agent" twice.
+ * Matching is by STEM (case/punctuation/the word "agent" ignored) against the roster; an unknown
+ * name passes through unchanged so a future agent is never silently renamed.
+ */
+export function canonicalAgentName(raw: string): string {
+  const stem = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, " ").replace(/\bagents?\b/g, "").replace(/\s+/g, " ").trim();
+  const key = stem(raw);
+  if (!key) return raw;
+  for (const a of AGENT_ROSTER) {
+    if (stem(a.name) === key || stem(a.id) === key) return a.name;
+  }
+  return raw;
+}

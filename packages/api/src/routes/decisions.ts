@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { canonicalAgentName } from "@mondaily/shared/agents";
 import { zValidator } from "../lib/validate";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
@@ -157,7 +158,7 @@ router.get("/agent-scorecard", async (c) => {
   type Row = { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number };
   const byAgent: Record<string, Row> = {};
   for (const d of data ?? []) {
-    const a = String(d.agent_name || "unknown");
+    const a = canonicalAgentName(String(d.agent_name || "unknown"));
     const b = (byAgent[a] ??= { agent: a, raised: 0, approved: 0, rejected: 0, auto_approved: 0, pending: 0 });
     b.raised++;
     if (d.status === "approved" || d.status === "completed") { b.approved++; if (d.resolved_by === "autonomy") b.auto_approved++; }

@@ -37,6 +37,28 @@ router.get("/", async (c) => {
   return c.json(rows);
 });
 
+// GET /notifications/unread-count — the REAL unread number for this reader. Home's telemetry pill
+// used to count unread inside its own 50-row page, so it read "50 unread" while the bell said 71 —
+// a page size reported as a fact. This walks minimal columns (capped well above realistic volume)
+// through the same per-reader read-state overlay the list uses, so broadcasts count correctly.
+router.get("/unread-count", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const CAP = 500;
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, user_id, is_read")
+    .eq("workspace_id", workspaceId)
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .order("created_at", { ascending: false })
+    .limit(CAP);
+  if (error) return c.json({ error: error.message }, 500);
+  const scoped = await withReadState(data ?? [], userId);
+  const unread = scoped.filter((n) => !n.is_read).length;
+  // capped=true means "at least this many" — the caller may render 500+ but must not claim exactness.
+  return c.json({ unread, capped: (data ?? []).length >= CAP });
+});
+
 // POST /notifications
 router.post("/", async (c) => {
   const workspaceId = c.get("workspaceId");

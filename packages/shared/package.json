@@ -23,7 +23,8 @@
     "./money": "./src/money.ts",
     "./period": "./src/period.ts",
     "./deal-stage": "./src/deal-stage.ts",
-    "./deal-fields": "./src/deal-fields.ts"
+    "./deal-fields": "./src/deal-fields.ts",
+    "./mime": "./src/mime.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

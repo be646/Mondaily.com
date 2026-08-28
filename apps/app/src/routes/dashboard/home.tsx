@@ -304,6 +304,13 @@ export function HomePage() {
     queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string }[]>("/notifications?limit=50"),
     staleTime: 60_000,
   });
+  // The REAL unread total for the telemetry pill — counting unread inside the 50-row page above
+  // showed "50 unread" while the bell said 71 (a page size reported as a fact).
+  const unreadCountQuery = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => apiClient.get<{ unread: number; capped?: boolean }>("/notifications/unread-count"),
+    staleTime: 60_000,
+  });
   // Real pending-decision count for the command room's telemetry strip —
   // same query/endpoint the Decision Queue panel itself uses below.
   const decisionsQuery = useDecisionQueue();
@@ -509,7 +516,8 @@ export function HomePage() {
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
-  const unreadCount = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
+  // Server total when available; the page-local count only bridges the first render.
+  const unreadCount = unreadCountQuery.data?.unread ?? (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
   // Honest load state for the header pill: amber while any of the three feeds is still in flight,
   // green only once they have all actually returned, red if one failed.
   const workspaceDataLoading = tasksQuery.isLoading || notificationsQuery.isLoading || decisionsQuery.isLoading;
@@ -548,7 +556,9 @@ export function HomePage() {
                 approvals), not here — the two used to echo the same number. */}
             <div className="home-telemetry-strip">
               <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
-              <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
+              {/* Bell, not the Inbox envelope — this counts NOTIFICATIONS and links there; the
+                  envelope read as "50 unread messages" while the Inbox was empty. */}
+              <Link to="/notifications"><BellDot size={13}/><strong>{unreadCount}</strong>unread</Link>
             </div>
 
             {/* Overdue / urgent / AI-risk relocated into the console status rail below, so no signal

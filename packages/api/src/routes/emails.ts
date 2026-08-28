@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
 import { orFilterValue } from "../lib/pgrst-filter";
 import { ticketIdFromRecipient, fileSupportReply } from "../lib/support-mail";
+import { decodeMimeWords } from "@mondaily/shared/mime";
 import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, attachmentPath, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
@@ -163,6 +164,9 @@ router.post("/inbound", async (c) => {
   let msg: InboundMessage & { recipients?: string[] };
   try { msg = JSON.parse(raw); } catch { return c.json({ error: "bad payload" }, 400); }
   if (!msg?.message_id || !msg?.from) return c.json({ error: "missing message_id/from" }, 400);
+  // The receiver forwards headers verbatim, so an RFC 2047 subject ("=?UTF-8?Q?...?=") arrives
+  // encoded — decode ONCE at ingest so every stored row reads as the sender wrote it.
+  msg.subject = decodeMimeWords(msg.subject);
 
   // Route to the owning workspace from the ENVELOPE recipients (falls back to the To/Cc headers).
   const recipients = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean) as string[];
@@ -257,7 +261,8 @@ async function localThreads(workspaceId: string) {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "email_thread").order("updated_at", { ascending: false }).limit(50);
   return (data ?? []).map((node) => ({
     id: String(node.data.thread_id ?? node.id),
-    subject: String(node.data.subject ?? "(no subject)"),
+    // decodeMimeWords: rows stored before ingest decoded RFC 2047 still read correctly.
+    subject: decodeMimeWords(String(node.data.subject ?? "(no subject)")),
     snippet: String(node.data.snippet ?? node.data.preview ?? ""),
     participants: Array.isArray(node.data.participants) ? node.data.participants : [],
     latest_message_received_date: Number(node.data.latest_message_received_date ?? Math.floor(new Date(node.updated_at).getTime() / 1000)),
@@ -365,7 +370,7 @@ router.get("/threads/:id", async (c) => {
       const last = msgs[msgs.length - 1];
       return c.json({
         id: c.req.param("id"),
-        subject: last?.subject ?? "",
+        subject: decodeMimeWords(last?.subject ?? ""),
         snippet: last?.snippet ?? "",
         participants: last ? [parseAddr(last.from)] : [],
         latest_message_received_date: last ? toUnixSeconds(last.date) : 0,
@@ -377,7 +382,9 @@ router.get("/threads/:id", async (c) => {
   }
 
   const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${orFilterValue(c.req.param("id"))},data->>thread_id.eq.${orFilterValue(c.req.param("id"))}`).maybeSingle();
-  return data ? c.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c.json({ error: "Thread not found" }, 404);
+  if (!data) return c.json({ error: "Thread not found" }, 404);
+  // Same legacy-row decode as the list: subjects stored before ingest-decode read correctly.
+  return c.json({ id: data.data.thread_id ?? data.id, ...data.data, subject: decodeMimeWords(String(data.data.subject ?? "")) });
 });
 
 // ── Inject tracking pixel + wrap links in HTML body ──────────────────────────
