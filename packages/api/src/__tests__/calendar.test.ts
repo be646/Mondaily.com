@@ -481,7 +481,7 @@ describe("Smart Calendar — real time grid (rail, hour lines, positioned events
   });
   it("positions events by time and lays overlaps side-by-side", () => {
     expect(page).toMatch(/function layoutDay/);
-    expect(page).toMatch(/top: pl\.top, height: pl\.height/);           // time-positioned blocks
+    expect(page).toMatch(/top: pl\.top, height: blockH/);           // time-positioned blocks
     expect(page).toMatch(/widthPct/);                                   // side-by-side overlap columns
   });
   it("draws a current-time line when today is visible", () => {
@@ -543,7 +543,7 @@ describe("Calendar UX — click-to-create + review panel + semantic colours", ()
     expect(page).toMatch(/useState\(initialEnd \?\? ""\)/);
   });
   it("clicking an existing meeting opens the review panel (event, not slot)", () => {
-    expect(page).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); onOpen\(pl\.e\.id\); \}\}/);
+    expect(page).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); if \(swallowIfDragged\(ev\)\) return; onOpen\(pl\.e\.id\); \}\}/);
     expect(page).toMatch(/focusId \? <MeetingBriefBody id=\{focusId\} \/> : <TodayBriefingPanel/);
   });
   it("review panel carries the required actions (join / prepare / add-edit agenda / create task)", () => {

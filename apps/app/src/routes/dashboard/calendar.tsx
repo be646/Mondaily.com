@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { parseQuickEvent } from "../../lib/quick-event";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -113,16 +113,77 @@ function meetingTone(e: CalEvent): { edge: string; tint: string } {
  * event blocks (overlaps laid side-by-side), today shading, and a live current-time line. Drives both
  * the Today day-timeline (single column) and the Week grid (seven columns).
  */
-function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
-  days: Date[]; events: CalEvent[]; selected: string | null; onOpen: (id: string) => void; onSlot?: (start: Date) => void; lang: string; single?: boolean;
+/**
+ * A live drag on the grid, expressed as one state object. All three gestures share the same
+ * geometry (columns for the day, HOUR_PX for the minute, 15-minute snapping) and the same contract:
+ * nothing is written until pointer-up — the ghost is a PREVIEW of intent, and a drag that never
+ * crosses the movement threshold degrades to the plain click it started as.
+ */
+type GridDrag =
+  | { kind: "move"; id: string; grabMin: number; startMin: number; durMin: number; curDay: number; curStart: number; moved: boolean }
+  | { kind: "resize"; id: string; day: number; startMin: number; end0: number; curEnd: number; moved: boolean }
+  | { kind: "create"; day: number; anchor: number; cur: number; moved: boolean };
+
+const snap15 = (m: number) => Math.round(m / 15) * 15;
+const fmtMin = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(((m % 60) + 60) % 60).padStart(2, "0")}`;
+
+function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove, onResize, lang, single }: {
+  days: Date[]; events: CalEvent[]; selected: string | null; onOpen: (id: string) => void; onSlot?: (start: Date) => void;
+  onSlotRange?: (start: Date, end: Date) => void; onMove?: (id: string, start: Date) => void; onResize?: (id: string, end: Date) => void;
+  lang: string; single?: boolean;
 }) {
   const now = new Date();
+  const [drag, setDrag] = useState<GridDrag | null>(null);
+  const colsRef = useRef<HTMLDivElement | null>(null);
+  // A drag that committed must swallow the click the browser fires right after pointer-up —
+  // otherwise every drop also opens the event (or the create modal) it was dropped onto.
+  const suppressClick = useRef(false);
   const perDay = days.map(d => events.filter(e => isSameDay(new Date(e.start_at), d)));
   const { startH, endH } = hourWindow(perDay.flat());
   const hours = Array.from({ length: endH - startH }, (_, i) => startH + i);
   const bodyH = (endH - startH) * HOUR_PX;
   const nowTop = (now.getHours() * 60 + now.getMinutes() - startH * 60) / 60 * HOUR_PX;
   const nowVisible = now.getHours() >= startH && now.getHours() < endH;
+
+  const dayMin = startH * 60, dayMax = endH * 60;
+  const clampMin = (m: number, lo = dayMin, hi = dayMax) => Math.max(lo, Math.min(hi, m));
+  /** Minute-of-day under the pointer, from the day-body's own top edge (survives horizontal drags). */
+  const minAt = (clientY: number, ev: { currentTarget: EventTarget & Element }) => {
+    const body = (ev.currentTarget as Element).closest("[data-daybody]");
+    const top = body ? body.getBoundingClientRect().top : 0;
+    return (clientY - top) / HOUR_PX * 60 + dayMin;
+  };
+  /** Day column under the pointer — equal-width columns, so pure arithmetic on the container rect. */
+  const dayAt = (clientX: number) => {
+    const rect = colsRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return 0;
+    return Math.max(0, Math.min(days.length - 1, Math.floor((clientX - rect.left) / (rect.width / days.length))));
+  };
+  const dateAt = (di: number, min: number) => { const d = new Date(days[di]!); d.setHours(0, 0, 0, 0); d.setMinutes(min); return d; };
+  const beginDrag = (ev: React.PointerEvent, next: GridDrag): boolean => {
+    // Touch keeps its native scroll — drag gestures are a pointer-precision (mouse/pen) feature;
+    // touch users get the same outcomes through tap → form.
+    if (ev.pointerType === "touch" || ev.button !== 0) return false;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    setDrag(next);
+    return true;
+  };
+  const endDrag = (commit: (d: GridDrag) => void) => (ev: React.PointerEvent) => {
+    if (!drag) return;
+    if (drag.moved) {
+      suppressClick.current = true;
+      // The post-drag click fires immediately after pointer-up; if the browser skips it, the flag
+      // must not lie in wait for the NEXT genuine click.
+      setTimeout(() => { suppressClick.current = false; }, 150);
+      commit(drag);
+    }
+    setDrag(null);
+    try { ev.currentTarget.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
+  };
+  const swallowIfDragged = (ev: React.MouseEvent) => {
+    if (suppressClick.current) { suppressClick.current = false; ev.stopPropagation(); ev.preventDefault(); return true; }
+    return false;
+  };
 
   return (
     <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 15rem)" }}>
@@ -137,7 +198,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
           </div>
         </div>
         {/* Day columns */}
-        <div className="flex flex-1">
+        <div ref={colsRef} className="flex flex-1">
           {days.map((d, di) => {
             const placed = layoutDay(perDay[di]!, startH, endH);
             const isToday = isSameDay(d, now);
@@ -148,15 +209,34 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>
                   </div>
                 )}
-                <div className="group relative" style={{ height: bodyH, cursor: onSlot ? "pointer" : "default" }}
+                <div data-daybody className="group relative" style={{ height: bodyH, cursor: onSlot ? "pointer" : "default" }}
                   onClick={onSlot ? (ev) => {
+                    if (swallowIfDragged(ev)) return;
                     // Click an empty slot → open New Meeting with the clicked time (rounded to 15m), 30m default.
                     const rect = ev.currentTarget.getBoundingClientRect();
                     let mins = Math.round((startH * 60 + ((ev.clientY - rect.top) / HOUR_PX) * 60) / 15) * 15;
                     mins = Math.max(0, Math.min(mins, 24 * 60 - 30));
                     const slot = new Date(d); slot.setHours(0, 0, 0, 0); slot.setMinutes(mins);
                     onSlot(slot);
-                  } : undefined}>
+                  } : undefined}
+                  // Paint a range on empty grid → New Meeting prefilled with EXACTLY that range.
+                  // Event blocks stop pointer-down propagation, so a drag starting here is always
+                  // on empty time. A press that never crosses the threshold stays the plain click.
+                  onPointerDown={onSlotRange ? (ev) => {
+                    const m = minAt(ev.clientY, ev);
+                    beginDrag(ev, { kind: "create", day: di, anchor: m, cur: m, moved: false });
+                  } : undefined}
+                  onPointerMove={(ev) => {
+                    if (!drag || drag.kind !== "create") return;
+                    const m = minAt(ev.clientY, ev);
+                    setDrag({ ...drag, cur: m, moved: drag.moved || Math.abs(m - drag.anchor) > 8 });
+                  }}
+                  onPointerUp={endDrag(dr => {
+                    if (dr.kind !== "create") return;
+                    const a = clampMin(snap15(Math.min(dr.anchor, dr.cur)));
+                    const b = Math.max(clampMin(snap15(Math.max(dr.anchor, dr.cur))), a + 15);
+                    onSlotRange?.(dateAt(dr.day, a), dateAt(dr.day, b));
+                  })}>
                   {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--text-muted) 4%, transparent)" }} />}
                   {/* Subtle empty-slot hover affordance (only when slots are clickable) */}
                   {onSlot && <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ background: "color-mix(in srgb, var(--text-muted) 3.5%, transparent)" }} />}
@@ -173,8 +253,38 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                   {placed.map(pl => {
                     const on = pl.e.id === selected;
                     const tone = meetingTone(pl.e);
+                    // Recurring meetings stay put on the grid too — the same one-occurrence
+                    // ambiguity the month view refuses (reschedule the series from its detail).
+                    const canDrag = !!onMove && !pl.e.recurring;
+                    const moving = drag?.kind === "move" && drag.id === pl.e.id && drag.moved;
+                    const rs = drag && drag.kind === "resize" && drag.id === pl.e.id && drag.moved ? drag : null;
+                    const liveEnd = rs ? Math.max(rs.startMin + 15, Math.min(dayMax, snap15(rs.curEnd))) : null;
+                    const blockH = rs && liveEnd != null ? Math.max(18, (liveEnd - rs.startMin) / 60 * HOUR_PX) : pl.height;
                     return (
-                      <button key={pl.e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(pl.e.id); }} title={pl.e.title}
+                      <button key={pl.e.id} title={pl.e.title}
+                        onClick={(ev) => { ev.stopPropagation(); if (swallowIfDragged(ev)) return; onOpen(pl.e.id); }}
+                        onPointerDown={(ev) => {
+                          ev.stopPropagation();           // never let a press on an event start a create-drag underneath
+                          if (!canDrag) return;
+                          beginDrag(ev, { kind: "move", id: pl.e.id, grabMin: minAt(ev.clientY, ev), startMin: minOfDay(pl.e.start_at),
+                            durMin: Math.max(15, Math.round((new Date(pl.e.end_at || pl.e.start_at).getTime() - new Date(pl.e.start_at).getTime()) / 60000)),
+                            curDay: di, curStart: minOfDay(pl.e.start_at), moved: false });
+                        }}
+                        onPointerMove={(ev) => {
+                          if (!drag || !("id" in drag) || drag.id !== pl.e.id) return;
+                          const m = minAt(ev.clientY, ev);
+                          if (drag.kind === "move") {
+                            const nextStart = drag.startMin + (m - drag.grabMin);
+                            const nextDay = dayAt(ev.clientX);
+                            setDrag({ ...drag, curDay: nextDay, curStart: nextStart, moved: drag.moved || nextDay !== di || Math.abs(nextStart - drag.startMin) > 8 });
+                          } else if (drag.kind === "resize") {
+                            setDrag({ ...drag, curEnd: m, moved: drag.moved || Math.abs(m - drag.end0) > 8 });
+                          }
+                        }}
+                        onPointerUp={endDrag(dr => {
+                          if (dr.kind === "move") onMove?.(dr.id, dateAt(dr.curDay, clampMin(snap15(dr.curStart), dayMin, dayMax - dr.durMin)));
+                          else if (dr.kind === "resize") onResize?.(dr.id, dateAt(dr.day, Math.max(dr.startMin + 15, Math.min(dayMax, snap15(dr.curEnd)))));
+                        })}
                         className="absolute overflow-hidden rounded-sm px-1.5 py-[3px] text-left transition-all"
                         /**
                          * HAIRLINE BLOCK. This was a solid tone fill with a 3px bar and, when
@@ -186,7 +296,8 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                          * type still reads at a glance but the text stays the loudest thing in the
                          * cell. Selection is the same hairline turned solid — no shadow, no ring.
                          */
-                        style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
+                        style={{ top: pl.top, height: blockH, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
+                          opacity: moving ? 0.35 : undefined, cursor: canDrag ? "grab" : undefined,
                           background: on
                             ? `color-mix(in srgb, ${tone.edge} 12%, var(--surface-page))`
                             : `color-mix(in srgb, ${tone.edge} 5%, var(--surface-page))`,
@@ -210,9 +321,44 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                             {fmtTime(pl.e.start_at, lang)}
                           </div>
                         )}
+                        {/* Live new end time while resizing — the preview IS the confirmation. */}
+                        {liveEnd != null && (
+                          <span className="absolute bottom-0.5 right-1 text-caption tabular-nums" style={{ color: tone.edge }}>{fmtMin(liveEnd)}</span>
+                        )}
+                        {/* Bottom-edge resize grip — drag to change the end time (15-minute snap). */}
+                        {!!onResize && !pl.e.recurring && blockH >= 24 && (
+                          <span className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" style={{ touchAction: "none" }}
+                            onPointerDown={(ev) => {
+                              ev.stopPropagation();       // a grab on the grip must not start a move
+                              const end0 = minOfDay(pl.e.end_at || pl.e.start_at) || minOfDay(pl.e.start_at) + 30;
+                              beginDrag(ev, { kind: "resize", id: pl.e.id, day: di, startMin: minOfDay(pl.e.start_at), end0, curEnd: end0, moved: false });
+                            }} />
+                        )}
                       </button>
                     );
                   })}
+                  {/* Drag ghosts — dashed previews of what pointer-up will commit, never data. */}
+                  {drag?.kind === "move" && drag.moved && drag.curDay === di && (() => {
+                    const s = clampMin(snap15(drag.curStart), dayMin, dayMax - drag.durMin);
+                    return (
+                      <div className="pointer-events-none absolute inset-x-0.5 z-40 rounded-sm border border-dashed px-1.5 py-[3px] text-caption tabular-nums"
+                        style={{ top: (s - dayMin) / 60 * HOUR_PX, height: Math.max(18, drag.durMin / 60 * HOUR_PX),
+                          borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--text-muted)" }}>
+                        {fmtMin(s)}–{fmtMin(s + drag.durMin)}
+                      </div>
+                    );
+                  })()}
+                  {drag?.kind === "create" && drag.moved && drag.day === di && (() => {
+                    const a = clampMin(snap15(Math.min(drag.anchor, drag.cur)));
+                    const b = Math.max(clampMin(snap15(Math.max(drag.anchor, drag.cur))), a + 15);
+                    return (
+                      <div className="pointer-events-none absolute inset-x-0.5 z-40 rounded-sm border border-dashed px-1.5 py-[3px] text-caption tabular-nums"
+                        style={{ top: (a - dayMin) / 60 * HOUR_PX, height: Math.max(12, (b - a) / 60 * HOUR_PX),
+                          borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--text-muted)" }}>
+                        {fmtMin(a)}–{fmtMin(b)}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -252,6 +398,8 @@ export function CalendarPage() {
   const [quickTitle, setQuickTitle] = useState<string | null>(null);
 
   const openSlot = (start: Date) => { setCreateInit({ start: toLocalInput(start), end: toLocalInput(new Date(start.getTime() + 30 * 60_000)) }); setCreateOpen(true); };
+  // A painted range opens New Meeting with EXACTLY the dragged times — no 30-minute default.
+  const openSlotRange = (start: Date, end: Date) => { setCreateInit({ start: toLocalInput(start), end: toLocalInput(end) }); setCreateOpen(true); };
   /**
    * "New meeting" opens on the NEXT HALF HOUR, not on an empty form.
    *
@@ -290,6 +438,15 @@ export function CalendarPage() {
     const next = new Date(targetDay); next.setHours(src.getHours(), src.getMinutes(), 0, 0);
     reschedule.mutate({ id: eventId, start_at: toLocalInput(next) });
   };
+  // Time-grid drag gestures (day/week): move keeps the duration server-side; resize PATCHes only
+  // the end. The server stays the authority — an organizer-only 403 simply leaves the event where
+  // the refetch says it is, so a non-organizer's drag visibly snaps back instead of lying.
+  const resizeEvent = useMutation({
+    mutationFn: ({ id, end_at }: { id: string; end_at: string }) => apiClient.patch(`/calendar/events/${id}`, { end_at }),
+    onSettled: () => calQc.invalidateQueries({ queryKey: ["calendar-events"] }),
+  });
+  const gridMove = (id: string, start: Date) => reschedule.mutate({ id, start_at: toLocalInput(start) });
+  const gridResize = (id: string, end: Date) => resizeEvent.mutate({ id, end_at: toLocalInput(end) });
 
   // Week = the Mon–Sun calendar week containing the anchor (a real weekly grid).
   const anchorWeek = useMemo(() => {
@@ -482,12 +639,12 @@ export function CalendarPage() {
           ) : view === "today" ? (
             // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
             <div className="relative overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-              <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} single />
+              <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} onSlotRange={openSlotRange} onMove={gridMove} onResize={gridResize} lang={lang} single />
               {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : view === "week" ? (
             <div className="relative overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-              <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} />
+              <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} onSlotRange={openSlotRange} onMove={gridMove} onResize={gridResize} lang={lang} />
               {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : view === "month" ? (

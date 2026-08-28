@@ -43,7 +43,7 @@ describe("every existing action preserved (nothing removed)", () => {
   it("New meeting + slot-click create + event open", () => {
     expect(cal).toMatch(/onClick=\{openCreate\}/);          // New meeting
     expect(cal).toMatch(/onSlot=\{openSlot\}/);             // slot-click create
-    expect(cal).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); onOpen\(pl\.e\.id\); \}\}/); // open event block
+    expect(cal).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); if \(swallowIfDragged\(ev\)\) return; onOpen\(pl\.e\.id\); \}\}/); // open event block
   });
   it("Join call + prepare brief + draft agenda + follow-ups", () => {
     expect(cal).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);   // Join call
