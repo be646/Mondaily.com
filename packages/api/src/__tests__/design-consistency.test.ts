@@ -1090,3 +1090,53 @@ describe("Ask side panel squared (ask-mondaily)", () => {
     expect(askMondaily).toMatch(/rounded-full border px-1\.5 py-0\.5/);       // mode-label pill kept
   });
 });
+
+describe("group shells — THE nav grammar (Finance-shell pattern, extended)", () => {
+  const shells = read("routes/dashboard/group-shells.tsx");
+  const app = read("App.tsx");
+  const sidebar = read("components/layout/sidebar.tsx");
+
+  it("all three shells exist and use the ONE shared Tabs implementation (no hand-rolled strips)", () => {
+    for (const name of ["CommsShell", "AiShell", "AnalyticsShell"]) expect(shells).toContain(`export function ${name}`);
+    expect(shells).toMatch(/from "@\/components\/ui\/tabs"/);
+    expect(shells).not.toMatch(/role="tablist"/);       // no bespoke tab chrome
+  });
+
+  it("shells are PATHLESS layout routes — child pages keep their exact URLs (no redirects)", () => {
+    for (const shell of ["CommsShell", "AiShell", "AnalyticsShell"]) {
+      expect(app).toMatch(new RegExp(`<Route element=\\{<${shell} />\\}>`)); // no path= on the wrapper
+    }
+    // The historical URLs stay routable — a notification link or agent-emitted href never breaks.
+    for (const path of ["messages", "emails", "calls", "activity", "decisions", "goals", "discovery", "automations", "reports", "insights", "team/oversight"]) {
+      expect(app).toMatch(new RegExp(`path="${path.replace("/", "\\/")}"`));
+    }
+  });
+
+  it("immersive children stay OUTSIDE their shells: live call room + builders get no nav chrome", () => {
+    const aiBlock = app.slice(app.indexOf("<AiShell"), app.indexOf("</Route>", app.indexOf("<AiShell")));
+    const commsBlock = app.slice(app.indexOf("<CommsShell"), app.indexOf("</Route>", app.indexOf("<CommsShell")));
+    const analyticsBlock = app.slice(app.indexOf("<AnalyticsShell"), app.indexOf("</Route>", app.indexOf("<AnalyticsShell")));
+    expect(commsBlock).not.toContain("calls/:id");                 // live room is full-screen
+    expect(aiBlock).not.toContain("workflows/:id");                // workflow builder
+    expect(aiBlock).not.toContain("sequences/:id");                // sequence builder
+    expect(analyticsBlock).not.toMatch(/path="reports\/:id"/);     // report builder
+    // …but detail VIEWS keep the strip, the Finance rule (one click back to sibling lists).
+    expect(analyticsBlock).toContain('path="reports/sales"');
+  });
+
+  it("the Decisions tab carries the pending count — approvals never hide behind a tab silently", () => {
+    expect(shells).toMatch(/useDecisionQueue/);
+    expect(shells).toMatch(/path: "\/decisions", count: pending/);
+  });
+
+  it("sidebar shell rows stay lit on EVERY tab they front (matches), and route literals are intact", () => {
+    expect(sidebar).toMatch(/matches: \["\/messages", "\/emails", "\/calls"\]/);
+    expect(sidebar).toMatch(/matches: \["\/activity", "\/decisions", "\/goals", "\/discovery", "\/automations"\]/);
+    expect(sidebar).toMatch(/matches: \["\/reports", "\/insights", "\/team\/oversight"\]/);
+    expect(sidebar).toMatch(/matches \? matches\.some/);
+  });
+
+  it("shell strip carries the ONE hairline (border-b continuation), same as the Finance shell", () => {
+    expect(shells).toMatch(/flex-1 border-b border-\[var\(--border-soft\)\]/);
+  });
+});

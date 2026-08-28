@@ -184,6 +184,10 @@ export function App() {
         {/* Analytics shell — Reports · Insights · Team; the immersive builders stay outside. */}
         <Route element={<AnalyticsShell />}>
           <Route path="reports" element={<ReportsPage />} />
+          {/* Detail VIEWS keep the strip — the Finance rule: one click back to the sibling
+              lists. Only the immersive builder (/reports/:id) lives outside. */}
+          <Route path="reports/sales" element={<SalesReportPage />} />
+          <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />
           <Route path="insights" element={<InsightsPage />} />
           <Route path="team/oversight" element={<TeamOversightPage />} />
         </Route>
@@ -200,8 +204,6 @@ export function App() {
         <Route path="calls/:id" element={<CallRoomDispatch />} />
         <Route path="briefing" element={<BriefingPage />} />
         <Route path="console" element={<OwnerConsolePage />} />
-        <Route path="reports/sales" element={<SalesReportPage />} />
-        <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />
         <Route path="reports/:id" element={<ReportBuilderPage />} />
         <Route path="automations/workflows/:id" element={<WorkflowBuilderPage />} />
         <Route path="automations/sequences/:id" element={<SequenceBuilderPage />} />
