@@ -133,7 +133,13 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove,
   lang: string; single?: boolean;
 }) {
   const now = new Date();
-  const [drag, setDrag] = useState<GridDrag | null>(null);
+  // The drag lives in BOTH a ref and state: state drives the ghost render, the ref is what
+  // pointer-up commits from. Handlers close over the render they were created in, so committing
+  // from state uses the SECOND-TO-LAST pointer position when move and up arrive in one frame —
+  // caught live as a drop landing a column over and 45 minutes off from the ghost.
+  const dragRef = useRef<GridDrag | null>(null);
+  const [drag, _setDrag] = useState<GridDrag | null>(null);
+  const setDrag = (d: GridDrag | null) => { dragRef.current = d; _setDrag(d); };
   const colsRef = useRef<HTMLDivElement | null>(null);
   // A drag that committed must swallow the click the browser fires right after pointer-up —
   // otherwise every drop also opens the event (or the create modal) it was dropped onto.
@@ -169,13 +175,14 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove,
     return true;
   };
   const endDrag = (commit: (d: GridDrag) => void) => (ev: React.PointerEvent) => {
-    if (!drag) return;
-    if (drag.moved) {
+    const d = dragRef.current;   // the ref, never render state — see dragRef above
+    if (!d) return;
+    if (d.moved) {
       suppressClick.current = true;
       // The post-drag click fires immediately after pointer-up; if the browser skips it, the flag
       // must not lie in wait for the NEXT genuine click.
       setTimeout(() => { suppressClick.current = false; }, 150);
-      commit(drag);
+      commit(d);
     }
     setDrag(null);
     try { ev.currentTarget.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
@@ -227,9 +234,10 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove,
                     beginDrag(ev, { kind: "create", day: di, anchor: m, cur: m, moved: false });
                   } : undefined}
                   onPointerMove={(ev) => {
-                    if (!drag || drag.kind !== "create") return;
+                    const d0 = dragRef.current;
+                    if (!d0 || d0.kind !== "create") return;
                     const m = minAt(ev.clientY, ev);
-                    setDrag({ ...drag, cur: m, moved: drag.moved || Math.abs(m - drag.anchor) > 8 });
+                    setDrag({ ...d0, cur: m, moved: d0.moved || Math.abs(m - d0.anchor) > 8 });
                   }}
                   onPointerUp={endDrag(dr => {
                     if (dr.kind !== "create") return;
@@ -271,14 +279,15 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove,
                             curDay: di, curStart: minOfDay(pl.e.start_at), moved: false });
                         }}
                         onPointerMove={(ev) => {
-                          if (!drag || !("id" in drag) || drag.id !== pl.e.id) return;
+                          const d0 = dragRef.current;   // the ref, never render state — see dragRef above
+                          if (!d0 || !("id" in d0) || d0.id !== pl.e.id) return;
                           const m = minAt(ev.clientY, ev);
-                          if (drag.kind === "move") {
-                            const nextStart = drag.startMin + (m - drag.grabMin);
+                          if (d0.kind === "move") {
+                            const nextStart = d0.startMin + (m - d0.grabMin);
                             const nextDay = dayAt(ev.clientX);
-                            setDrag({ ...drag, curDay: nextDay, curStart: nextStart, moved: drag.moved || nextDay !== di || Math.abs(nextStart - drag.startMin) > 8 });
-                          } else if (drag.kind === "resize") {
-                            setDrag({ ...drag, curEnd: m, moved: drag.moved || Math.abs(m - drag.end0) > 8 });
+                            setDrag({ ...d0, curDay: nextDay, curStart: nextStart, moved: d0.moved || nextDay !== di || Math.abs(nextStart - d0.startMin) > 8 });
+                          } else if (d0.kind === "resize") {
+                            setDrag({ ...d0, curEnd: m, moved: d0.moved || Math.abs(m - d0.end0) > 8 });
                           }
                         }}
                         onPointerUp={endDrag(dr => {
@@ -418,9 +427,20 @@ export function CalendarPage() {
   // The date the Day/Week grid is centered on — moved by the Today / ‹ / › controls.
   const [anchor, setAnchor] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
 
+  /**
+   * FETCH WINDOW BUG (found live): this asked for `from = now − 1h` with no `to`, so the calendar
+   * only ever knew about the future. This morning's meetings fell OFF the Today view as the day
+   * went on, and every past day in the Week/Month grids rendered permanently empty — a calendar
+   * that forgets the past isn't a calendar. Now: 60 days behind the grid anchor (covers the whole
+   * month grid plus back-navigation), still open-ended forward so Upcoming keeps everything. The
+   * window is part of the query key, so paging further back refetches instead of showing holes.
+   */
+  const eventsFrom = useMemo(() => {
+    const d = new Date(anchor); d.setDate(d.getDate() - 60); d.setHours(0, 0, 0, 0); return d.toISOString();
+  }, [anchor]);
   const eventsQ = useQuery<{ events: CalEvent[]; calls_enabled: boolean }>({
-    queryKey: ["calendar-events"],
-    queryFn: () => apiClient.get(`/calendar/events?from=${new Date(Date.now() - 3600_000).toISOString()}`),
+    queryKey: ["calendar-events", eventsFrom],
+    queryFn: () => apiClient.get(`/calendar/events?from=${eventsFrom}`),
     retry: false,
   });
   const events = (eventsQ.data?.events ?? []).filter(e => e.status !== "cancelled");
