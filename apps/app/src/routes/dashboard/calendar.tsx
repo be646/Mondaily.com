@@ -336,7 +336,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, onSlotRange, onMove,
                         )}
                         {/* Bottom-edge resize grip — drag to change the end time (15-minute snap). */}
                         {!!onResize && !pl.e.recurring && blockH >= 24 && (
-                          <span className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" style={{ touchAction: "none" }}
+                          <span className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize" style={{ touchAction: "none" }}
                             onPointerDown={(ev) => {
                               ev.stopPropagation();       // a grab on the grip must not start a move
                               const end0 = minOfDay(pl.e.end_at || pl.e.start_at) || minOfDay(pl.e.start_at) + 30;
@@ -451,7 +451,9 @@ export function CalendarPage() {
   const calQc = useQueryClient();
   const reschedule = useMutation({
     mutationFn: ({ id, start_at }: { id: string; start_at: string }) => apiClient.post(`/calendar/events/${id}/reschedule`, { start_at }),
-    onSuccess: () => calQc.invalidateQueries({ queryKey: ["calendar-events"] }),
+    // BOTH caches: the grid ("calendar-events") AND any open detail panel ("calendar-event", id) —
+    // found live: after a grid drag the panel kept quoting the meeting's old time.
+    onSuccess: () => { calQc.invalidateQueries({ queryKey: ["calendar-events"] }); calQc.invalidateQueries({ queryKey: ["calendar-event"] }); },
   });
   const moveEventToDay = (eventId: string, currentStart: string, targetDay: Date) => {
     const src = new Date(currentStart);
@@ -463,7 +465,7 @@ export function CalendarPage() {
   // the refetch says it is, so a non-organizer's drag visibly snaps back instead of lying.
   const resizeEvent = useMutation({
     mutationFn: ({ id, end_at }: { id: string; end_at: string }) => apiClient.patch(`/calendar/events/${id}`, { end_at }),
-    onSettled: () => calQc.invalidateQueries({ queryKey: ["calendar-events"] }),
+    onSettled: () => { calQc.invalidateQueries({ queryKey: ["calendar-events"] }); calQc.invalidateQueries({ queryKey: ["calendar-event"] }); },
   });
   const gridMove = (id: string, start: Date) => reschedule.mutate({ id, start_at: toLocalInput(start) });
   const gridResize = (id: string, end: Date) => resizeEvent.mutate({ id, end_at: toLocalInput(end) });
