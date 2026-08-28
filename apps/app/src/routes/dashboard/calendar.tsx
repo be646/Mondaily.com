@@ -392,7 +392,9 @@ export function CalendarPage() {
   const quickParsed = useMemo(() => parseQuickEvent(quick), [quick]);
   const quickCreate = useMutation({
     mutationFn: (q: { title: string; start: Date; end: Date }) =>
-      apiClient.post<{ id: string }>("/calendar/events", { title: q.title, start_at: toLocalInput(q.start), end_at: toLocalInput(q.end) }),
+      // timezone: the full form sends it; without it the server defaulted to "UTC" and the panel
+      // labelled a local wall-clock time as UTC — stored times must say whose clock they're on.
+      apiClient.post<{ id: string }>("/calendar/events", { title: q.title, start_at: toLocalInput(q.start), end_at: toLocalInput(q.end), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
     onSuccess: (r) => { setQuick(""); calQc.invalidateQueries({ queryKey: ["calendar-events"] }); if (r?.id) openEvent(r.id); },
   });
   const submitQuick = () => {
