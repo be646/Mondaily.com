@@ -62,6 +62,9 @@ const AIControlRoomSettings = lazy(() => import("./routes/dashboard/settings/ai-
 const ListPage = lazy(() => import("./routes/dashboard/lists/[listId]").then(m => ({ default: m.ListPage })));
 const SearchPage = lazy(() => import("./routes/dashboard/search").then(m => ({ default: m.SearchPage })));
 const FinanceShell = lazy(() => import("./routes/dashboard/finance/shell").then(m => ({ default: m.FinanceShell })));
+const CommsShell = lazy(() => import("./routes/dashboard/group-shells").then(m => ({ default: m.CommsShell })));
+const AiShell = lazy(() => import("./routes/dashboard/group-shells").then(m => ({ default: m.AiShell })));
+const AnalyticsShell = lazy(() => import("./routes/dashboard/group-shells").then(m => ({ default: m.AnalyticsShell })));
 const InvoicesPage = lazy(() => import("./routes/dashboard/finance/invoices").then(m => ({ default: m.InvoicesPage })));
 const InvoiceDetailPage = lazy(() => import("./routes/dashboard/finance/[invoiceId]").then(m => ({ default: m.InvoiceDetailPage })));
 const CreditNotesPage = lazy(() => import("./routes/dashboard/finance/credit-notes").then(m => ({ default: m.CreditNotesPage })));
@@ -170,25 +173,36 @@ export function App() {
         <Route path="home" element={<HomePage />} />
         <Route path="status" element={<StatusPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="activity" element={<AgentActivityPage />} />
-        <Route path="team/oversight" element={<TeamOversightPage />} />
-        <Route path="messages" element={<MessagesPage />} />
+        {/* AI Center shell — Agents · Decisions · Goals · Discovery · Automations. */}
+        <Route element={<AiShell />}>
+          <Route path="activity" element={<AgentActivityPage />} />
+          <Route path="decisions" element={<DecisionsPage />} />
+          <Route path="goals" element={<GoalsPage />} />
+          <Route path="discovery" element={<DiscoveryPage />} />
+          <Route path="automations" element={<AutomationsPage />} />
+        </Route>
+        {/* Analytics shell — Reports · Insights · Team; the immersive builders stay outside. */}
+        <Route element={<AnalyticsShell />}>
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="insights" element={<InsightsPage />} />
+          <Route path="team/oversight" element={<TeamOversightPage />} />
+        </Route>
+        {/* Comms shell — Inbox · Emails · Calls share one tab strip; URLs unchanged. */}
+        <Route element={<CommsShell />}>
+          <Route path="messages" element={<MessagesPage />} />
+          <Route path="emails" element={<EmailsPage />} />
+          <Route path="calls" element={<CallsPage />} />
+        </Route>
         <Route path="tasks" element={<TasksPage />} />
         <Route path="notes" element={<NotesPage />} />
-        <Route path="emails" element={<EmailsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
-        <Route path="calls" element={<CallsPage />} />
         {/* /calls/:id dispatches: a calendar-event id → the live Mondaily call room; else the call record. */}
         <Route path="calls/:id" element={<CallRoomDispatch />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="insights" element={<InsightsPage />} />
         <Route path="briefing" element={<BriefingPage />} />
         <Route path="console" element={<OwnerConsolePage />} />
-        <Route path="goals" element={<GoalsPage />} />
         <Route path="reports/sales" element={<SalesReportPage />} />
         <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />
         <Route path="reports/:id" element={<ReportBuilderPage />} />
-        <Route path="automations" element={<AutomationsPage />} />
         <Route path="automations/workflows/:id" element={<WorkflowBuilderPage />} />
         <Route path="automations/sequences/:id" element={<SequenceBuilderPage />} />
         <Route path="ask/:threadId?" element={<AskPage />} />
@@ -212,8 +226,6 @@ export function App() {
           <Route path="approvals" element={<ApprovalsPage />} />
         </Route>
         <Route path="approvals" element={<Navigate to="/finance/approvals" replace />} />
-        <Route path="decisions" element={<DecisionsPage />} />
-        <Route path="discovery" element={<DiscoveryPage />} />
         {/* Mondaily-internal (PLATFORM_ADMIN_EMAILS): page self-gates via the capability probe; API is hard-gated. */}
         <Route path="platform/support" element={<PlatformSupportPage />} />
         <Route path="settings" element={<SettingsLayout />}>

@@ -304,7 +304,7 @@ describe("wiring guards — language flows through the app", () => {
     const sidebar = read("../../../../apps/app/src/components/layout/sidebar.tsx");
     expect(sidebar).toMatch(/NAV_TKEY/);
     expect(sidebar).toMatch(/useNavLabel/);
-    expect(sidebar).toMatch(/to: "\/discovery"/);   // route path unchanged
+    expect(sidebar).toMatch(/"\/discovery"/);   // route path literal intact (now inside the AI-shell row's matches)
     expect(sidebar).toMatch(/to: "\/search"/);
     for (const k of ["discovery.heading", "ask.heading", "settings.language"]) expect(k).not.toMatch(/^\//);
   });

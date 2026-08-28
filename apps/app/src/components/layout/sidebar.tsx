@@ -20,7 +20,7 @@ import { SidebarAsk } from "./sidebar-ask";
 
 // ─── Core nav — the 7 always-visible surfaces. Monochrome; each row uses the shared nav-row
 // token (no per-section tints). Everything else lives in the grouped sections below. ─────────
-type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string };
+type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string; matches?: string[] };
 
 /**
  * SIDEBAR INFORMATION ARCHITECTURE — grouped by INTENT, and nothing was removed.
@@ -43,31 +43,23 @@ const CORE_NAV: NavEntry[] = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
 ];
 
-// ─── Workspace — where you personally work: schedule, conversations, writing.
+// ─── Workspace — where you personally work. Comms is ONE row: the /messages·/emails·/calls tab
+// shell (group-shells.tsx) carries the three channels, so `matches` keeps the row lit on all of
+// them. Nothing was removed — three rows became one page with tabs.
 const WORKSPACE_NAV: NavEntry[] = [
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
-  { to: "/messages", label: "Inbox", icon: Inbox },
-  { to: "/emails", label: "Emails", icon: Mail },
-  { to: "/calls",  label: "Calls",  icon: Phone },
+  { to: "/messages", label: "Comms", icon: Inbox, matches: ["/messages", "/emails", "/calls"] },
   { to: "/notes",  label: "Notes",  icon: FileText },
   { to: "/canvas", label: "Canvas", icon: Layers },
 ];
 
-// ─── AI — the autonomous workforce and its levers.
-const AI_NAV: NavEntry[] = [
-  { to: "/activity", label: "Agents", icon: Zap },
-  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
-  { to: "/goals", label: "Goals", icon: Target },
-  { to: "/discovery", label: "Discovery", icon: Radar },
-  { to: "/automations", label: "Automations", icon: Activity },
-];
-
-// ─── Analytics — how the business and the team are doing.
-const ANALYTICS_NAV: NavEntry[] = [
-  { to: "/reports", label: "Reports", icon: BarChart2 },
-  { to: "/insights", label: "Insights", icon: LayoutGrid },
-  { to: "/team/oversight", label: "Team Oversight", icon: Users },
+// ─── Work — the business machine, one row per SHELL: AI Center (Agents·Decisions·Goals·
+// Discovery·Automations), Analytics (Reports·Insights·Team), Finance (six tabs, from
+// FINANCE_NAV). Records + Lists keep their own sections below.
+const WORK_SHELL_NAV: NavEntry[] = [
+  { to: "/activity", label: "AI Center", icon: Zap, matches: ["/activity", "/decisions", "/goals", "/discovery", "/automations"] },
+  { to: "/reports", label: "Analytics", icon: BarChart2, matches: ["/reports", "/insights", "/team/oversight"] },
 ];
 
 // Owner Console — pinned at the sidebar's bottom next to account/settings, where a control plane
@@ -312,11 +304,12 @@ function useNavLabel(label: string): string {
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label: rawLabel, icon: Icon, collapsed, badge,
-}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
+  to, label: rawLabel, icon: Icon, collapsed, badge, matches,
+}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string; matches?: string[] }) {
   const label = useNavLabel(rawLabel);
   const location = useLocation();
-  const active = location.pathname.startsWith(to);
+  // A shell row stays lit on EVERY tab it fronts (matches), not just its landing path.
+  const active = matches ? matches.some(m => location.pathname.startsWith(m)) : location.pathname.startsWith(to);
   // Monochrome by design: ONE active indicator (accent bar + primary text/icon). Inactive rows are
   // calm neutral tokens; hover lifts to the shared surface. No per-section tints, no mixed stone/hex.
   const iconColor = active ? "var(--text-primary)" : "var(--text-muted)";
@@ -605,27 +598,26 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
           {collapsed ? (
             <>
-              {/* Icon rail keeps EVERY destination reachable, in group order */}
-              {[...WORKSPACE_NAV, ...AI_NAV, ...ANALYTICS_NAV].map(item => (
+              {/* Icon rail keeps EVERY destination reachable, in row order */}
+              {[...WORKSPACE_NAV, ...WORK_SHELL_NAV].map(item => (
                 <NavItem key={item.to} {...item} collapsed={true}
                   badge={item.to === "/notifications" ? unreadCount : undefined}/>
               ))}
+              {hasFinance && FINANCE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}/>)}
               <NavItem {...CONSOLE_ENTRY} collapsed={true}/>
             </>
           ) : (
             <>
-              {/* Workspace — where you personally work */}
-              <NavGroup label="Workspace" items={WORKSPACE_NAV} unreadCount={unreadCount}/>
+              {/* Workspace — where you personally work (Comms fronts Inbox·Emails·Calls) */}
+              <SectionLabel label="Workspace"/>
+              {WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}
+                badge={item.to === "/notifications" ? unreadCount : undefined}/>)}
 
-              {/* AI — the autonomous workforce */}
-              <NavGroup label="AI" items={AI_NAV} unreadCount={unreadCount}/>
-
-              {/* Analytics — closed by default: consulted, not lived in */}
-              <NavGroup label="Analytics" items={ANALYTICS_NAV} unreadCount={unreadCount} defaultOpen={false}/>
-
-              {/* Records + Finance — the data itself (Records keeps its own collapsible section) */}
-              <SidebarObjects />
+              {/* Work — one row per shell: AI Center, Analytics, Finance; then the data itself */}
+              <SectionLabel label="Work"/>
+              {WORK_SHELL_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
               {hasFinance && FINANCE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
+              <SidebarObjects />
 
               {/* Recent — lists + chat history, collapsed sections that look like the rest of the nav */}
               <SidebarLists />

@@ -241,7 +241,7 @@ describe("PHASE 2 — wiring guards (surfaces consume the new suggestions)", () 
     const src = read("../../../../apps/app/src/components/layout/sidebar.tsx");
     expect(src).not.toMatch(/applyTerms/);           // nav never runs preferred-term substitution
     expect(src).toMatch(/to: "\/search"/);            // route literals intact
-    expect(src).toMatch(/to: "\/discovery"/);
+    expect(src).toMatch(/"\/discovery"/);       // literal intact — Discovery rides the AI-shell row's matches
   });
 });
 
